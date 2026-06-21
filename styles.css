@@ -31,6 +31,9 @@
   --radius:    14px;
   --radius-sm: 10px;
   --font: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  /* Symbol font for all icon glyphs — keeps them the SAME size in every language
+     (prevents the browser swapping to a CJK font when lang="zh-CN"). */
+  --icon-font: "Segoe UI Symbol", "Segoe UI", system-ui, sans-serif;
 }
 
 [data-theme="dark"] {
@@ -106,7 +109,7 @@ a { color: inherit; text-decoration: none; }
   color: var(--text-soft); font-weight: 550; font-size: 14px;
   transition: background .12s, color .12s;
 }
-.nav-item .ni-ico { width: 18px; text-align: center; opacity: .8; font-size: 14px; }
+.nav-item .ni-ico { width: 18px; text-align: center; opacity: .8; font-size: 14px; font-family: var(--icon-font); }
 .nav-item:hover { background: var(--surface-2); color: var(--text); }
 .nav-item.active { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand-ink); }
 .nav-sep { height: 1px; background: var(--border); margin: 10px 6px; }
@@ -136,11 +139,23 @@ a { color: inherit; text-decoration: none; }
 .content { padding: 22px 26px 90px; display: flex; flex-direction: column; gap: 20px; }
 
 /* ===================== Buttons ===================== */
+/* Fixed height + line-height:1 so the button never changes size when the
+   language switches (Chinese glyphs are taller than Latin). inline-flex keeps
+   the icon and label vertically centered and the same size in any language. */
 .btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  height: 38px; padding: 0 14px; line-height: 1; white-space: nowrap;
   border: 1px solid var(--border); background: var(--surface);
-  color: var(--text); padding: 8px 14px; border-radius: 10px;
+  color: var(--text); border-radius: 10px;
   font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit;
   transition: background .12s, border-color .12s, transform .05s;
+}
+/* Leading button icon (⭳, +): fixed size + symbol font so it never changes
+   between languages and all icons match each other. */
+.btn-ico {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; font-size: 15px; line-height: 1;
+  font-family: var(--icon-font);
 }
 .btn:hover { background: var(--surface-2); }
 .btn:active { transform: translateY(1px); }
@@ -150,7 +165,7 @@ a { color: inherit; text-decoration: none; }
 .icon-btn {
   width: 38px; height: 38px; border-radius: 10px; cursor: pointer;
   border: 1px solid var(--border); background: var(--surface); color: var(--text);
-  font-size: 16px; display: grid; place-items: center; font-family: inherit;
+  font-size: 16px; display: grid; place-items: center; font-family: var(--icon-font);
 }
 .icon-btn:hover { background: var(--surface-2); }
 
@@ -310,7 +325,7 @@ a { color: inherit; text-decoration: none; }
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
     font-size: 10.5px; color: var(--muted); padding: 6px 2px; font-weight: 600;
   }
-  .bn-item span { font-size: 17px; }
+  .bn-item span:first-child { font-size: 17px; font-family: var(--icon-font); }
   .bn-item.active { color: var(--brand); }
   .bn-item.add span {
     background: var(--brand); color: #fff; width: 36px; height: 36px;

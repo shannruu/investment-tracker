@@ -22,6 +22,142 @@ const signed = (n) => `${n >= 0 ? "+" : "−"}${fmt(Math.abs(n))}`;
 const pctTxt = (n) => `${n >= 0 ? "+" : "−"}${fmt(Math.abs(n), { maximumFractionDigits: 2 })}%`;
 const cls = (n) => (n >= 0 ? "pos" : "neg");
 
+/* =============================================================================
+ * i18n — English / 中文
+ * Dictionary maps the English source string -> Chinese. Most UI text is
+ * translated by walking the rendered DOM and swapping any text node / option /
+ * placeholder whose trimmed text exactly matches a dictionary key, so we don't
+ * have to hand-wrap every string. Dynamic data (tickers, names, numbers) never
+ * matches a key, so it is left untouched.
+ * ========================================================================== */
+let LANG = (function () { try { return localStorage.getItem("il-lang") || "en"; } catch (e) { return "en"; } })();
+
+const ZH = {
+  // Nav / chrome
+  "Dashboard": "仪表盘", "Portfolio": "投资组合", "Transactions": "交易记录",
+  "Cash Ledger": "现金账本", "Dividends": "股息", "Reports": "报表",
+  "Brokers": "券商", "Settings": "设置", "Help": "帮助",
+  "Base currency": "基准货币", "Add": "添加", "More": "更多",
+  "Export CSV": "导出 CSV", "Add Transaction": "添加交易",
+  // Page subtitles (static)
+  "Welcome back — here is your portfolio at a glance.": "欢迎回来 — 这是您的投资组合概览。",
+  "Record deposits, trades, dividends, fees and exchanges.": "记录存款、交易、股息、费用和货币兑换。",
+  "How much cash you actually put into each investment app.": "您实际投入每个投资平台的现金。",
+  "Calendar, history and withholding-tax summary.": "日历、历史记录和预扣税汇总。",
+  "Returns, dividends, fees and currency impact.": "收益、股息、费用和汇率影响。",
+  "Profile, currency, appearance and data.": "个人资料、货币、外观和数据。",
+  "How calculations work, transaction types and FAQ.": "计算方式、交易类型与常见问题。",
+  // Summary cards
+  "Total Deposits": "总存款", "Total Withdrawals": "总取款", "Net Capital Invested": "净投入资本",
+  "Current Portfolio Value": "当前组合价值", "Net Dividends Received": "净股息收入",
+  "Total Return": "总回报", "Unrealized / Realized P/L": "未实现 / 已实现盈亏",
+  "Cash put into brokers": "投入券商的现金", "Cash taken out": "取出的现金",
+  "Deposits − Withdrawals": "存款 − 取款", "Market value of holdings": "持仓市值",
+  "After withholding tax": "扣除预扣税后", "ⓘ how": "ⓘ 明细",
+  // Panel titles
+  "Portfolio Value Over Time": "组合价值走势", "Asset Allocation": "资产配置",
+  "Top Holdings": "主要持仓", "Upcoming Dividends": "即将到来的股息",
+  "Recent Transactions": "近期交易", "Holdings by Broker": "按券商分布",
+  "Holdings by Currency": "按货币分布", "All Holdings": "全部持仓",
+  "All Transactions": "全部交易", "Cash Ledger — Deposits & Withdrawals": "现金账本 — 存款与取款",
+  "Broker Cash Reconciliation": "券商现金对账", "Dividend History": "股息历史",
+  "Dividend Tax Paid by Country": "按国家/地区缴纳的股息税",
+  "Profit / Loss by Holding": "按持仓盈亏", "Profit / Loss by Broker": "按券商盈亏",
+  "Dividend Income by Year": "按年度股息收入", "Fees Paid by Broker": "按券商支付的费用",
+  "Currency Gain / Loss": "汇率盈亏", "Export": "导出", "Add Broker": "添加券商",
+  "Profile": "个人资料", "Appearance": "外观", "Base Currency": "基准货币",
+  "Exchange Rates": "汇率", "Data Import / Export": "数据导入 / 导出", "Danger Zone": "危险操作",
+  // Table headers
+  "Holding": "持仓", "Broker": "券商", "Market": "市场", "Shares": "股数",
+  "Avg Cost": "平均成本", "Price": "价格", "Cost Basis": "成本", "Market Value": "市值",
+  "Unrealized P/L": "未实现盈亏", "Net Div": "净股息", "Ticker": "代码",
+  "Ex-Date": "除息日", "Payment": "派息日", "Expected Net": "预计净额", "Status": "状态",
+  "Date": "日期", "Type": "类型", "Qty": "数量", "Gross": "总额", "Fee": "费用",
+  "Tax": "税", "Net (MYR)": "净额 (MYR)", "Net": "净额", "Amount": "金额",
+  "Currency": "货币", "FX Rate": "汇率", "Amount in MYR": "金额 (MYR)", "In MYR": "折合 MYR",
+  "Calculated Balance": "计算余额", "Actual Balance": "实际余额", "Difference": "差额",
+  "Fees": "费用", "Country": "国家/地区", "Withholding Tax (MYR)": "预扣税 (MYR)",
+  "Year": "年份", "Net Dividends": "净股息", "Rate to MYR": "对 MYR 汇率",
+  // Links
+  "View all →": "查看全部 →", "Calendar →": "日历 →", "All →": "全部 →",
+  // Badges
+  "Base: MYR": "基准: MYR", "By market value": "按市值", "By broker": "按券商", "By currency": "按货币",
+  // Statuses
+  "Confirmed": "已确认", "Estimated": "预估", "Paid": "已派发", "Cancelled": "已取消",
+  "Unknown": "未知", "Reconciled": "已对账", "Unreconciled": "未对账",
+  // Transaction types
+  "Deposit": "存款", "Withdrawal": "取款", "Buy": "买入", "Sell": "卖出", "Dividend": "股息",
+  "Dividend Tax": "股息税", "Currency Exchange": "货币兑换", "Stock Split": "拆股",
+  "DRIP / Reinvested": "股息再投资", "Adjustment": "调整",
+  // Forms
+  "Transaction Type": "交易类型", "Amount (gross)": "金额（总额）", "Quantity": "数量",
+  "Price / Share": "每股价格", "Ex-dividend Date": "除息日", "Payment Date": "派息日",
+  "Withholding Tax": "预扣税", "Save Transaction": "保存交易", "Clear": "清空",
+  "Hide": "隐藏", "Show": "显示", "Reset": "重置",
+  "All brokers": "全部券商", "All markets": "全部市场", "All currencies": "全部货币",
+  "All P/L": "全部盈亏", "Profit": "盈利", "Loss": "亏损",
+  // Mini cards / dividend summary
+  "Net Cash Added": "净增现金", "Gross Dividends (YTD)": "总股息（年初至今）",
+  // Settings
+  "Name": "姓名", "Email": "邮箱", "Member since": "注册于",
+  "Light": "浅色", "Dark": "深色", "Default design": "默认设计", "True black": "纯黑",
+  "Export Cash CSV": "导出现金 CSV", "Export Transactions CSV": "导出交易 CSV",
+  "Import CSV": "导入 CSV", "Delete Account": "删除账户",
+  "⭳ Export Cash CSV": "⭳ 导出现金 CSV", "⭳ Export Transactions CSV": "⭳ 导出交易 CSV",
+  "⭱ Import CSV": "⭱ 导入 CSV", "⭳ Cash Ledger CSV": "⭳ 现金账本 CSV",
+  "⭳ Transactions CSV": "⭳ 交易 CSV", "⭳ Dividends CSV": "⭳ 股息 CSV",
+  // Empty states
+  "No records yet — add them in data.js.": "暂无记录 — 请在 data.js 中添加。",
+  "No holdings yet — add them to HOLDINGS in data.js.": "暂无持仓 — 请在 data.js 的 HOLDINGS 中添加。",
+  "No holdings match these filters.": "没有符合筛选条件的持仓。",
+  "No portfolio history yet — add entries to PORTFOLIO_SERIES in data.js.": "暂无组合历史 — 请在 data.js 的 PORTFOLIO_SERIES 中添加。",
+  "No allocation data yet — add holdings in data.js.": "暂无配置数据 — 请在 data.js 中添加持仓。",
+  "No brokers yet — add them to BROKERS in data.js.": "暂无券商 — 请在 data.js 的 BROKERS 中添加。",
+  // Calc modal
+  "Result": "结果",
+  "Profit / Loss": "盈亏",
+  "Net Dividends Received (after tax)": "净股息收入（税后）",
+  "All values converted to base currency using stored exchange rates. Original amounts are preserved.":
+    "所有数值均按存储的汇率换算为基准货币，原始金额保持不变。",
+  // Add-broker note
+  "Each broker keeps its own default currency and cash reconciliation.": "每个券商保留自己的默认货币与现金对账。",
+  // Misc
+  "Portfolio": "投资组合",
+};
+
+const I18N = { zh: ZH };
+function t(s) { if (s == null) return s; return (LANG === "zh" && I18N.zh[s]) ? I18N.zh[s] : s; }
+
+function setLang(l) {
+  LANG = l;
+  try { localStorage.setItem("il-lang", l); } catch (e) {}
+  document.documentElement.setAttribute("lang", l === "zh" ? "zh-CN" : "en");
+}
+
+/* Translate any static element carrying a data-i18n attribute (nav, topbar…). */
+function applyStaticI18n() {
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.getAttribute("data-i18n"));
+  });
+}
+
+/* Walk a freshly-rendered subtree and swap matching text nodes / placeholders. */
+function translateDOM(root) {
+  if (!root || LANG === "en") return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  const nodes = [];
+  let node;
+  while ((node = walker.nextNode())) nodes.push(node);
+  nodes.forEach((nd) => {
+    const key = nd.nodeValue.trim();
+    if (key && I18N.zh[key]) nd.nodeValue = nd.nodeValue.replace(key, I18N.zh[key]);
+  });
+  root.querySelectorAll("[placeholder]").forEach((el) => {
+    const key = (el.getAttribute("placeholder") || "").trim();
+    if (I18N.zh[key]) el.setAttribute("placeholder", I18N.zh[key]);
+  });
+}
+
 function fmtDate(iso) {
   if (!iso || iso === "—") return "—";
   const [y, m, d] = iso.split("-").map(Number);
@@ -282,7 +418,9 @@ function pagePortfolio() {
     ${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`)}
     <footer class="page-foot muted">Toggle "Total Return" to include dividends. Click any holding number to see its breakdown in the next build.</footer>`;
 
-  return { title: "Portfolio", subtitle: `${T.holdings.length} holdings across ${BROKERS.length} brokers · ${money(T.portfolioValue)}`, html,
+  return { title: "Portfolio", subtitle: LANG === "zh"
+      ? `${T.holdings.length} 个持仓，${BROKERS.length} 个券商 · ${money(T.portfolioValue)}`
+      : `${T.holdings.length} holdings across ${BROKERS.length} brokers · ${money(T.portfolioValue)}`, html,
     mount() {
       const apply = () => { $("#holdingsBody").innerHTML = portfolioTable(); };
       $("#fBroker").value = portfolioFilters.broker;
@@ -353,7 +491,7 @@ function pageTransactions() {
         const f = $("#txForm");
         const hidden = f.style.display === "none";
         f.style.display = hidden ? "" : "none";
-        $("#toggleForm").textContent = hidden ? "Hide" : "Show";
+        $("#toggleForm").textContent = hidden ? t("Hide") : t("Show");
       });
 
       form.addEventListener("submit", (e) => {
@@ -412,7 +550,9 @@ function addTxForm() {
       <label>Payment Date<input type="date" name="payDate"></label>
       <label>Withholding Tax<input type="number" step="any" name="tax" placeholder="0.00"></label>
     </div>
-    <p class="form-note" id="dripNote">ℹ️ A reinvested dividend creates <strong>two linked records</strong>: the dividend received, and a buy using the dividend amount (enter quantity &amp; price above).</p>
+    <p class="form-note" id="dripNote">${LANG === "zh"
+      ? "ℹ️ 股息再投资会生成<strong>两条关联记录</strong>：收到的股息，以及用该股息金额买入（请在上方填写数量和价格）。"
+      : "ℹ️ A reinvested dividend creates <strong>two linked records</strong>: the dividend received, and a buy using the dividend amount (enter quantity &amp; price above)."}</p>
     <div class="form-actions">
       <button type="submit" class="btn primary">Save Transaction</button>
       <button type="reset" class="btn ghost">Clear</button>
@@ -501,8 +641,9 @@ function pageDividends() {
       ${miniCard("Gross Dividends (YTD)", money(grossBase))}
       ${miniCard("Withholding Tax", money(taxBase), "neg")}
       ${miniCard("Net Dividends", money(netBase), "pos")}</div>
-    <div class="info-card"><span class="w-ico">ⓘ</span><div class="w-body">
-      <strong>Confirmed vs estimated:</strong> rows marked <span class="badge warn">Estimated</span> are projected from historical patterns and are <strong>not confirmed</strong> — never treat them as guaranteed dates or amounts.</div></div>
+    <div class="info-card"><span class="w-ico">ⓘ</span><div class="w-body">${LANG === "zh"
+      ? `<strong>已确认与预估：</strong>标记为 <span class="badge warn">预估</span> 的条目是根据历史规律推算的，<strong>并未确认</strong> — 切勿将其视为确定的日期或金额。`
+      : `<strong>Confirmed vs estimated:</strong> rows marked <span class="badge warn">Estimated</span> are projected from historical patterns and are <strong>not confirmed</strong> — never treat them as guaranteed dates or amounts.`}</div></div>
     ${panel("Upcoming Dividends", table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Expected Net",num:1},{label:"Status"}], upcomingRows))}
     ${panel("Dividend History", table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Fees",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], histRows))}
     ${panel("Dividend Tax Paid by Country", table([{label:"Country"},{label:"Withholding Tax (MYR)",num:1}], taxRows))}`;
@@ -582,7 +723,9 @@ function pageBrokers() {
   const html = `${cards ? `<div class="broker-grid">${cards}</div>` : emptyState("No brokers yet — add them to BROKERS in data.js.")}
     <section class="panel"><div class="panel-head"><h2>Add Broker</h2></div>
       <p class="muted">Broker management form is wired in the Transactions/Settings flow for this build. Each broker keeps its own default currency and cash reconciliation.</p></section>`;
-  return { title: "Brokers", subtitle: `${BROKERS.length} investment apps connected.`, html };
+  return { title: "Brokers", subtitle: LANG === "zh"
+      ? `已连接 ${BROKERS.length} 个投资平台。`
+      : `${BROKERS.length} investment apps connected.`, html };
 }
 
 /* =============================================================================
@@ -647,7 +790,7 @@ function reflectThemeChoice() {
  * PAGE: HELP
  * ========================================================================== */
 function pageHelp() {
-  const items = [
+  const itemsEN = [
     { q: "How is Total Return calculated?", a: "Total Return = Current Portfolio Value + Total Withdrawals + Net Dividends − Total Deposits − Total Fees. It captures price movement, dividends and cash flows in one figure." },
     { q: "What's the difference between realized and unrealized P/L?", a: "Unrealized P/L = current market value − cost basis of shares you still hold. Realized P/L = sale proceeds − cost basis of sold shares − fees. Total Return combines both plus dividends and currency effects." },
     { q: "How is dividend tax handled?", a: "Net Dividend = Gross Dividend − Withholding Tax − Other Fees. Withholding tax is tracked per dividend and summarised by country in Reports." },
@@ -655,6 +798,15 @@ function pageHelp() {
     { q: "Why are some dividends marked 'Estimated'?", a: "Estimated dividends are projected from historical patterns and are not confirmed. They are clearly badged and never shown as confirmed dates or amounts." },
     { q: "Why does a broker show 'Unreconciled'?", a: "Your calculated cash balance (deposits − buys − fees + sells + net dividends − withdrawals) differs from the actual balance in the app. Usually a missing fee or dividend entry." },
   ];
+  const itemsZH = [
+    { q: "总回报是如何计算的？", a: "总回报 = 当前组合价值 + 总取款 + 净股息 − 总存款 − 总费用。它用一个数字涵盖了价格变动、股息和现金流。" },
+    { q: "已实现与未实现盈亏有什么区别？", a: "未实现盈亏 = 当前市值 − 仍持有股票的成本。已实现盈亏 = 卖出所得 − 已卖出股票的成本 − 费用。总回报将两者再加上股息和汇率影响。" },
+    { q: "股息税是如何处理的？", a: "净股息 = 总股息 − 预扣税 − 其他费用。预扣税按每笔股息记录，并在报表中按国家/地区汇总。" },
+    { q: "各交易类型是什么意思？", a: "存款/取款用于现金进出。买入/卖出用于交易股票。股息记录收入。股息再投资会生成两条关联记录（股息 + 买入）。费用、货币兑换、拆股和调整涵盖其余情况。" },
+    { q: "为什么有些股息被标记为“预估”？", a: "预估股息是根据历史规律推算的，尚未确认。它们都有清晰标记，绝不会显示为已确认的日期或金额。" },
+    { q: "为什么某个券商显示“未对账”？", a: "您的计算现金余额（存款 − 买入 − 费用 + 卖出 + 净股息 − 取款）与平台中的实际余额不一致，通常是漏记了某笔费用或股息。" },
+  ];
+  const items = LANG === "zh" ? itemsZH : itemsEN;
   const html = `<div class="help-list">${items.map((it) => `
     <details class="help-item"><summary>${it.q}</summary><p>${it.a}</p></details>`).join("")}</div>`;
   return { title: "Help", subtitle: "How calculations work, transaction types and FAQ.", html };
@@ -664,11 +816,11 @@ function pageHelp() {
  * CALC MODAL
  * ========================================================================== */
 function showCalc(calc) {
-  $("#modalTitle").textContent = calc.title;
-  const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span>${r.label}</span><span class="cr-val">${r.val}</span></div>`).join("");
+  $("#modalTitle").textContent = t(calc.title);
+  const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span>${t(r.label)}</span><span class="cr-val">${r.val}</span></div>`).join("");
   $("#modalBody").innerHTML = `${rows}
-    <div class="calc-row total"><span>= Result</span><span class="cr-val">${money(calc.total)}</span></div>
-    <p class="muted" style="margin:14px 0 0;font-size:12px">All values converted to base currency (${FX.base}) using stored exchange rates. Original amounts are preserved.</p>`;
+    <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${money(calc.total)}</span></div>
+    <p class="muted" style="margin:14px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
   $("#modal").hidden = false;
 }
 function closeModal() { $("#modal").hidden = true; }
@@ -738,12 +890,13 @@ function render() {
   const root = $("#page");
   try {
     const page = PAGES[key]();
-    $("#pageTitle").textContent = page.title;
-    $("#pageSubtitle").textContent = page.subtitle;
+    $("#pageTitle").textContent = t(page.title);
+    $("#pageSubtitle").textContent = t(page.subtitle);
     root.innerHTML = page.html;
     root.scrollTop = 0;
     window.scrollTo(0, 0);
     if (page.mount) page.mount();
+    translateDOM(root);  // swap any matching text to the current language
   } catch (err) {
     // Never leave the page blank — surface the problem instead.
     console.error("Render error on page:", key, err);
@@ -763,9 +916,25 @@ function render() {
 /* =============================================================================
  * INIT / WIRING
  * ========================================================================== */
+function updateLangBtn() {
+  // Button shows the language you'll switch TO.
+  $("#langBtn").textContent = LANG === "en" ? "CN" : "EN";
+}
+
 function init() {
   try { const saved = localStorage.getItem("il-theme"); if (saved) setTheme(saved); } catch (e) {}
   $("#baseCurrency").textContent = FX.base;
+
+  setLang(LANG);            // sets <html lang> from the persisted choice
+  applyStaticI18n();        // translate nav / topbar / bottom-nav labels
+  updateLangBtn();
+
+  $("#langBtn").addEventListener("click", () => {
+    setLang(LANG === "en" ? "zh" : "en");
+    applyStaticI18n();
+    updateLangBtn();
+    render();               // re-render page content in the new language
+  });
 
   $("#themeBtn").addEventListener("click", () => {
     const cur = document.documentElement.getAttribute("data-theme");

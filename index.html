@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Investment Ledger</title>
   <meta name="description" content="Track investments across multiple brokers in one place." />
-  <link rel="stylesheet" href="styles.css?v=12" />
+  <link rel="stylesheet" href="styles.css?v=16" />
 </head>
 <body>
   <div class="app">
@@ -18,23 +18,23 @@
       </div>
 
       <nav class="nav" aria-label="Primary">
-        <a class="nav-item" href="#/dashboard" data-page="dashboard"><span class="ni-ico">▦</span>Dashboard</a>
-        <a class="nav-item" href="#/portfolio" data-page="portfolio"><span class="ni-ico">▤</span>Portfolio</a>
-        <a class="nav-item" href="#/transactions" data-page="transactions"><span class="ni-ico">⇄</span>Transactions</a>
-        <a class="nav-item" href="#/cash" data-page="cash"><span class="ni-ico">▣</span>Cash Ledger</a>
-        <a class="nav-item" href="#/dividends" data-page="dividends"><span class="ni-ico">◷</span>Dividends</a>
-        <a class="nav-item" href="#/reports" data-page="reports"><span class="ni-ico">▥</span>Reports</a>
+        <a class="nav-item" href="#/dashboard" data-page="dashboard"><span class="ni-ico">▦</span><span data-i18n="Dashboard">Dashboard</span></a>
+        <a class="nav-item" href="#/portfolio" data-page="portfolio"><span class="ni-ico">▤</span><span data-i18n="Portfolio">Portfolio</span></a>
+        <a class="nav-item" href="#/transactions" data-page="transactions"><span class="ni-ico">⇄</span><span data-i18n="Transactions">Transactions</span></a>
+        <a class="nav-item" href="#/cash" data-page="cash"><span class="ni-ico">▣</span><span data-i18n="Cash Ledger">Cash Ledger</span></a>
+        <a class="nav-item" href="#/dividends" data-page="dividends"><span class="ni-ico">◷</span><span data-i18n="Dividends">Dividends</span></a>
+        <a class="nav-item" href="#/reports" data-page="reports"><span class="ni-ico">▥</span><span data-i18n="Reports">Reports</span></a>
 
         <div class="nav-sep"></div>
-        <a class="nav-item" href="#/brokers" data-page="brokers"><span class="ni-ico">▢</span>Brokers</a>
+        <a class="nav-item" href="#/brokers" data-page="brokers"><span class="ni-ico">▢</span><span data-i18n="Brokers">Brokers</span></a>
 
         <div class="nav-sep"></div>
-        <a class="nav-item" href="#/settings" data-page="settings"><span class="ni-ico">⚙</span>Settings</a>
-        <a class="nav-item" href="#/help" data-page="help"><span class="ni-ico">?</span>Help</a>
+        <a class="nav-item" href="#/settings" data-page="settings"><span class="ni-ico">⚙</span><span data-i18n="Settings">Settings</span></a>
+        <a class="nav-item" href="#/help" data-page="help"><span class="ni-ico">?</span><span data-i18n="Help">Help</span></a>
       </nav>
 
       <div class="sidebar-foot">
-        <div class="base-pill">Base currency<strong id="baseCurrency">MYR</strong></div>
+        <div class="base-pill"><span data-i18n="Base currency">Base currency</span><strong id="baseCurrency">MYR</strong></div>
       </div>
     </aside>
 
@@ -48,8 +48,9 @@
           <p class="muted" id="pageSubtitle">Welcome back — here is your portfolio at a glance.</p>
         </div>
         <div class="topbar-actions">
-          <button class="btn ghost" id="exportBtn">⭳ Export CSV</button>
-          <button class="btn primary only-desktop" id="addTxBtn">＋ Add Transaction</button>
+          <button class="btn ghost" id="exportBtn"><span class="btn-ico">⭳</span><span data-i18n="Export CSV">Export CSV</span></button>
+          <button class="btn primary only-desktop" id="addTxBtn"><span class="btn-ico">+</span><span data-i18n="Add Transaction">Add Transaction</span></button>
+          <button class="btn ghost" id="langBtn" title="切换语言 / Switch language">CN</button>
           <button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle dark / light">◐</button>
         </div>
       </header>
@@ -61,11 +62,11 @@
 
   <!-- ===== Mobile bottom nav ===== -->
   <nav class="bottom-nav" aria-label="Mobile">
-    <a class="bn-item" href="#/dashboard" data-page="dashboard"><span>▦</span>Dashboard</a>
-    <a class="bn-item" href="#/portfolio" data-page="portfolio"><span>▤</span>Portfolio</a>
-    <a class="bn-item add" href="#/add" data-page="add"><span>＋</span>Add</a>
-    <a class="bn-item" href="#/dividends" data-page="dividends"><span>◷</span>Dividends</a>
-    <a class="bn-item" href="#/more" id="moreBtn"><span>⋯</span>More</a>
+    <a class="bn-item" href="#/dashboard" data-page="dashboard"><span>▦</span><span data-i18n="Dashboard">Dashboard</span></a>
+    <a class="bn-item" href="#/portfolio" data-page="portfolio"><span>▤</span><span data-i18n="Portfolio">Portfolio</span></a>
+    <a class="bn-item add" href="#/add" data-page="add"><span>＋</span><span data-i18n="Add">Add</span></a>
+    <a class="bn-item" href="#/dividends" data-page="dividends"><span>◷</span><span data-i18n="Dividends">Dividends</span></a>
+    <a class="bn-item" href="#/more" id="moreBtn"><span>⋯</span><span data-i18n="More">More</span></a>
   </nav>
 
   <!-- ===== Calculation breakdown modal ===== -->
@@ -81,7 +82,7 @@
 
   <div class="toast" id="toast" hidden></div>
 
-  <script src="data.js?v=11"></script>
-  <script src="app.js?v=11"></script>
+  <script src="data.js?v=14"></script>
+  <script src="app.js?v=14"></script>
 </body>
 </html>
