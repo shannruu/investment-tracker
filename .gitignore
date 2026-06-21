@@ -1,0 +1,14 @@
+# Claude Code local settings — not part of the website
+.claude/
+
+# OS / editor junk
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+*~
+
+# Dependency / build dirs (not used now, but safe to ignore)
+node_modules/
+.vercel/
