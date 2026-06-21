@@ -121,7 +121,8 @@ function lineChartSVG(series) {
     ${grid}<path d="${area}" fill="url(#lg)"/><path d="${line}" class="ln"/>${dots}${xlabs}</svg>`;
 }
 
-const PALETTE = ["#2f6df6", "#15a86b", "#f0a13a", "#7b5cf0", "#e0405a", "#23b5b5", "#9aa0ad"];
+// Monochrome indigo ramp (+ one neutral) so the allocation chart stays on-brand.
+const PALETTE = ["#4a3ed9", "#6d5efc", "#8b80ff", "#a99dff", "#352c9e", "#c4bcff", "#8089a0"];
 function donutHTML(slices, centerLabel, centerValue) {
   slices = (slices || []).filter((s) => s.value > 0);
   if (!slices.length) return emptyState("No allocation data yet — add holdings in data.js.");
@@ -500,7 +501,7 @@ function pageDividends() {
       ${miniCard("Gross Dividends (YTD)", money(grossBase))}
       ${miniCard("Withholding Tax", money(taxBase), "neg")}
       ${miniCard("Net Dividends", money(netBase), "pos")}</div>
-    <div class="warn-card"><span class="w-ico">ⓘ</span><div class="w-body">
+    <div class="info-card"><span class="w-ico">ⓘ</span><div class="w-body">
       <strong>Confirmed vs estimated:</strong> rows marked <span class="badge warn">Estimated</span> are projected from historical patterns and are <strong>not confirmed</strong> — never treat them as guaranteed dates or amounts.</div></div>
     ${panel("Upcoming Dividends", table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Expected Net",num:1},{label:"Status"}], upcomingRows))}
     ${panel("Dividend History", table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Fees",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], histRows))}

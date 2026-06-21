@@ -16,16 +16,16 @@
   --text-soft: #5b6473;
   --muted:     #8b93a3;
 
-  --brand:     #2f6df6;
-  --brand-ink: #1f4fd0;
+  --brand:     #5b54e8;   /* indigo-violet brand */
+  --brand-ink: #463cce;
 
-  --pos:       #15a86b;   /* profit / green  */
-  --pos-bg:    #e7f7ef;
+  --pos:       #0f9d6b;   /* profit / green  */
+  --pos-bg:    #e6f6ef;
   --neg:       #e0405a;   /* loss / red      */
   --neg-bg:    #fdebee;
-  --warn:      #d98a00;   /* estimated/missing */
-  --warn-bg:   #fff4df;
-  --warn-bd:   #f3d9a3;
+  --warn:      #5f6672;   /* "uncertain/estimated" -> neutral slate (not a brand color) */
+  --warn-bg:   #f1f3f7;
+  --warn-bd:   #dfe3ea;
 
   --shadow:    0 1px 2px rgba(16,24,40,.04), 0 6px 20px rgba(16,24,40,.06);
   --radius:    14px;
@@ -44,16 +44,16 @@
   --text-soft: #b6b9c2;
   --muted:     #777a85;
 
-  --brand:     #5b8dff;
-  --brand-ink: #82a4ff;
+  --brand:     #8b80ff;   /* indigo-violet brand (dark) */
+  --brand-ink: #a99dff;
 
   --pos:       #2bd18a;
-  --pos-bg:    #0e2a1e;
+  --pos-bg:    rgba(43,209,138,.12);
   --neg:       #ff6b80;
-  --neg-bg:    #2e1118;
-  --warn:      #f0b44a;
-  --warn-bg:   #2a2110;
-  --warn-bd:   #4a3a18;
+  --neg-bg:    rgba(255,107,128,.12);
+  --warn:      #9aa1ad;                  /* "uncertain/estimated" -> neutral slate */
+  --warn-bg:   rgba(154,161,173,.10);
+  --warn-bd:   rgba(154,161,173,.26);
 
   --shadow:    0 1px 2px rgba(0,0,0,.6), 0 10px 28px rgba(0,0,0,.65);
 }
@@ -71,7 +71,7 @@ body {
 h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -.01em; }
 a { color: inherit; text-decoration: none; }
 .muted { color: var(--muted); }
-.link { color: var(--brand); font-weight: 600; font-size: 13px; }
+.link { color: var(--brand-ink); font-weight: 650; font-size: 13px; }
 .link:hover { text-decoration: underline; }
 
 /* ===================== Layout ===================== */
@@ -92,7 +92,8 @@ a { color: inherit; text-decoration: none; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 6px 8px 18px; }
 .brand-mark {
   width: 34px; height: 34px; border-radius: 9px;
-  background: linear-gradient(135deg, var(--brand), #7b5cf0);
+  background: linear-gradient(135deg, #6d5efc, #4a3ed9);
+  box-shadow: 0 4px 12px rgba(109,94,252,.35);
   color: #fff; font-weight: 800; font-size: 14px;
   display: grid; place-items: center; letter-spacing: .5px;
 }
@@ -190,7 +191,7 @@ a { color: inherit; text-decoration: none; }
 .badge.subtle { background: transparent; }
 .badge.pos { color: var(--pos); background: var(--pos-bg); border-color: transparent; }
 .badge.neg { color: var(--neg); background: var(--neg-bg); border-color: transparent; }
-.badge.warn { color: var(--warn); background: var(--warn-bg); border-color: var(--warn-bd); }
+.badge.warn { color: var(--warn); background: transparent; border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
 .badge.confirmed { color: var(--pos); background: var(--pos-bg); border-color: transparent; }
 
 /* ===================== Charts ===================== */
@@ -206,7 +207,7 @@ a { color: inherit; text-decoration: none; }
 .table-wrap { overflow-x: auto; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .data-table th {
-  text-align: left; color: var(--muted); font-weight: 600; font-size: 11.5px;
+  text-align: left; color: var(--text-soft); font-weight: 700; font-size: 12px;
   text-transform: uppercase; letter-spacing: .03em;
   padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
 }
@@ -226,15 +227,29 @@ a { color: inherit; text-decoration: none; }
 
 /* ===================== Warnings ===================== */
 .warn-wrap { display: flex; flex-direction: column; gap: 10px; }
+/* Neutral card with a thin colored accent stripe — no filled yellow background. */
 .warn-card {
   display: flex; align-items: flex-start; gap: 12px;
-  background: var(--warn-bg); border: 1px solid var(--warn-bd);
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--warn);
   border-radius: var(--radius); padding: 13px 16px;
 }
-.warn-card .w-ico { font-size: 16px; line-height: 1.4; }
-.warn-card .w-body { font-size: 13px; }
+.warn-card .w-ico { font-size: 16px; line-height: 1.4; color: var(--warn); }
+.warn-card .w-body { font-size: 13px; color: var(--text-soft); }
 .warn-card .w-body strong { color: var(--text); }
-.warn-card.crit { background: var(--neg-bg); border-color: color-mix(in srgb, var(--neg) 35%, transparent); }
+.warn-card.crit { border-left-color: var(--neg); }
+.warn-card.crit .w-ico { color: var(--neg); }
+
+/* Informational note (not a warning) — soft brand-tinted card, no yellow. */
+.info-card {
+  display: flex; align-items: flex-start; gap: 12px;
+  background: color-mix(in srgb, var(--brand) 8%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--brand) 22%, transparent);
+  border-radius: var(--radius); padding: 13px 16px;
+}
+.info-card .w-ico { font-size: 16px; line-height: 1.4; color: var(--brand-ink); }
+.info-card .w-body { font-size: 13px; color: var(--text); }
+.info-card .w-body strong { color: var(--text); }
 
 /* ===================== Modal ===================== */
 .modal-backdrop {
@@ -386,9 +401,9 @@ a { color: inherit; text-decoration: none; }
 .tc-swatch { display: flex; gap: 5px; padding: 12px; border-radius: 10px; border: 1px solid var(--border); }
 .tc-swatch span { width: 100%; height: 26px; border-radius: 5px; }
 .tc-swatch.light { background: #f4f6fb; }
-.tc-swatch.light span:nth-child(1){ background:#ffffff;border:1px solid #e4e8f0 } .tc-swatch.light span:nth-child(2){ background:#2f6df6 } .tc-swatch.light span:nth-child(3){ background:#15a86b }
+.tc-swatch.light span:nth-child(1){ background:#ffffff;border:1px solid #e4e8f0 } .tc-swatch.light span:nth-child(2){ background:#5b54e8 } .tc-swatch.light span:nth-child(3){ background:#0f9d6b }
 .tc-swatch.dark { background: #000; }
-.tc-swatch.dark span:nth-child(1){ background:#0c0c0e;border:1px solid #242427 } .tc-swatch.dark span:nth-child(2){ background:#5b8dff } .tc-swatch.dark span:nth-child(3){ background:#2bd18a }
+.tc-swatch.dark span:nth-child(1){ background:#0c0c0e;border:1px solid #242427 } .tc-swatch.dark span:nth-child(2){ background:#8b80ff } .tc-swatch.dark span:nth-child(3){ background:#2bd18a }
 
 /* ---- Help ---- */
 .help-list { display: flex; flex-direction: column; gap: 10px; }
