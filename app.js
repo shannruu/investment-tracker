@@ -70,10 +70,18 @@ function panel(title, body, extra = "") {
   return `<section class="panel"><div class="panel-head"><h2>${title}</h2>${extra}</div>${body}</section>`;
 }
 
+function emptyState(msg) {
+  return `<div class="empty" style="padding:40px 12px">${msg}</div>`;
+}
+
 function table(headers, rows) {
   const thead = `<thead><tr>${headers.map((h) =>
     `<th class="${h.num ? "num" : ""}">${h.label}</th>`).join("")}</tr></thead>`;
-  return `<div class="table-wrap"><table class="data-table">${thead}<tbody>${rows}</tbody></table></div>`;
+  // Show a friendly placeholder row when there are no records yet.
+  const body = (rows && rows.trim())
+    ? rows
+    : `<tr><td colspan="${headers.length}" class="empty" style="padding:28px 12px">No records yet — add them in data.js.</td></tr>`;
+  return `<div class="table-wrap"><table class="data-table">${thead}<tbody>${body}</tbody></table></div>`;
 }
 
 function statusBadge(s) {
@@ -88,6 +96,7 @@ function typeChip(t) {
 }
 
 function lineChartSVG(series) {
+  if (!series || series.length < 2) return emptyState("No portfolio history yet — add entries to PORTFOLIO_SERIES in data.js.");
   const W = 640, H = 240, padL = 52, padR = 16, padT = 16, padB = 28;
   const vals = series.map((d) => d.value);
   const min = Math.min(...vals) * 0.97, max = Math.max(...vals) * 1.03;
@@ -114,6 +123,8 @@ function lineChartSVG(series) {
 
 const PALETTE = ["#2f6df6", "#15a86b", "#f0a13a", "#7b5cf0", "#e0405a", "#23b5b5", "#9aa0ad"];
 function donutHTML(slices, centerLabel, centerValue) {
+  slices = (slices || []).filter((s) => s.value > 0);
+  if (!slices.length) return emptyState("No allocation data yet — add holdings in data.js.");
   const total = slices.reduce((s, x) => s + x.value, 0) || 1;
   const R = 70, r = 44, C = 88;
   let a0 = -Math.PI / 2;
@@ -297,7 +308,9 @@ function portfolioTable() {
     (!f.currency || h.currency === f.currency) &&
     (!f.pl || (f.pl === "pos" ? h.unrealized >= 0 : h.unrealized < 0)));
   rows = rows.sort((a, b) => b.marketValue - a.marketValue);
-  if (!rows.length) return `<p class="empty">No holdings match these filters.</p>`;
+  if (!rows.length) return emptyState(T.holdings.length
+    ? "No holdings match these filters."
+    : "No holdings yet — add them to HOLDINGS in data.js.");
   const body = rows.map((h) => `<tr>
     <td><div class="ticker">${h.ticker}</div><div class="sub">${h.company}</div></td>
     <td><span class="chip">${brokerName(h.brokerId)}</span></td><td class="sub">${h.market}</td>
@@ -565,7 +578,7 @@ function pageBrokers() {
         <div><span class="sub">Difference</span><strong class="${ok ? "" : "neg"}">${rec ? signed(diff) : "—"}</strong></div>
       </div></article>`;
   }).join("");
-  const html = `<div class="broker-grid">${cards}</div>
+  const html = `${cards ? `<div class="broker-grid">${cards}</div>` : emptyState("No brokers yet — add them to BROKERS in data.js.")}
     <section class="panel"><div class="panel-head"><h2>Add Broker</h2></div>
       <p class="muted">Broker management form is wired in the Transactions/Settings flow for this build. Each broker keeps its own default currency and cash reconciliation.</p></section>`;
   return { title: "Brokers", subtitle: `${BROKERS.length} investment apps connected.`, html };
