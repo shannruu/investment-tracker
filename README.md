@@ -1,8 +1,28 @@
-# Investment Ledger — Dashboard (first screen)
+# Investment Ledger
 
-A responsive personal investment tracker. This is the **first screen** from the build
-brief: the Dashboard, rendered with realistic sample data (base currency **MYR**,
-holdings in both **MYR** and **USD**).
+A privacy-first personal investment tracker. Transactions are the single source of
+truth; holdings, P/L, dividends and cash are derived. Data is stored only in your
+browser (localStorage) — export JSON backups from Settings.
+
+## Live stock prices (optional)
+
+`/api/quote.js` is a **Vercel serverless function** that proxies Yahoo Finance (no API
+key) so the browser can fetch live/delayed quotes. Use Yahoo ticker formats:
+`AAPL`, `1155.KL` (Bursa), `D05.SI` (Singapore), `0700.HK` (Hong Kong).
+
+- On the **deployed Vercel site** it works automatically — click **⟳** on a holding or
+  **Refresh live prices** on the Portfolio page.
+- **Locally** (opening `index.html` directly) there is no `/api` backend, so live fetch
+  is disabled with a clear message. To test live prices locally, install Node + the
+  Vercel CLI and run `vercel dev`.
+- Live prices are clearly labelled **Live + timestamp**; manually entered prices stay
+  labelled **Manual**. They are delayed market data, not advice.
+
+> Ensure the Vercel project's **Root Directory** is the repo root so `/api` is detected.
+
+---
+
+A responsive personal investment tracker (base currency **MYR**, multi-currency).
 
 It is built as a **zero-dependency static app** so it runs instantly by opening a file —
 no Node, npm, or build step required (Node isn't installed in this environment). The

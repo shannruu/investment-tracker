@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Investment Ledger</title>
   <meta name="description" content="Track investments across multiple brokers in one place." />
-  <link rel="stylesheet" href="styles.css?v=16" />
+  <link rel="stylesheet" href="styles.css?v=25" />
 </head>
 <body>
   <div class="app">
@@ -50,13 +50,14 @@
         <div class="topbar-actions">
           <button class="btn ghost" id="exportBtn"><span class="btn-ico">⭳</span><span data-i18n="Export CSV">Export CSV</span></button>
           <button class="btn primary only-desktop" id="addTxBtn"><span class="btn-ico">+</span><span data-i18n="Add Transaction">Add Transaction</span></button>
-          <button class="btn ghost" id="langBtn" title="切换语言 / Switch language">CN</button>
+          <button class="btn ghost" id="langBtn" title="切换语言 / Switch language">EN / 中文</button>
           <button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle dark / light">◐</button>
         </div>
       </header>
 
       <!-- Router renders pages here -->
       <div class="content" id="page"></div>
+      <footer class="app-disclaimer" data-i18n="For personal record-keeping only. Not financial, tax, or investment advice.">For personal record-keeping only. Not financial, tax, or investment advice.</footer>
     </main>
   </div>
 
@@ -82,7 +83,7 @@
 
   <div class="toast" id="toast" hidden></div>
 
-  <script src="data.js?v=14"></script>
-  <script src="app.js?v=14"></script>
+  <script src="data.js?v=25"></script>
+  <script src="app.js?v=25"></script>
 </body>
 </html>

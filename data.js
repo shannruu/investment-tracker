@@ -114,3 +114,20 @@ const ALL_TRANSACTIONS = [
  */
 const DIVIDEND_HISTORY = [
 ];
+
+/* Manually entered CURRENT prices (NOT live). Keyed by ticker.
+ * { price, currency, date } — used only for valuation; clearly labelled "Manual price". */
+const CURRENT_PRICES = {};
+
+/* Reconciliation checks the user records, keyed by brokerId:
+ * { actual, date, note } — actual broker cash balance the user typed in. */
+const RECON_CHECKS = {};
+
+/* App settings persisted with the data. */
+const SETTINGS = {
+  returnMode: "total",   // "total" (incl. dividends) | "price"
+  reconTolerance: 1,     // MYR tolerance for "Matched" vs "Needs review"
+};
+
+/* When the data was last saved on this device (ISO string). */
+let LAST_SAVED = "";

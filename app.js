@@ -121,6 +121,125 @@ const ZH = {
     "所有数值均按存储的汇率换算为基准货币，原始金额保持不变。",
   // Add-broker note
   "Each broker keeps its own default currency and cash reconciliation.": "每个券商保留自己的默认货币与现金对账。",
+  // Exchange-rate controls
+  "Rates convert each currency to your base.": "汇率将每种货币换算为您的基准货币。",
+  "Pull today's market rate or type your own.": "可拉取今日市场汇率，或自行输入。",
+  "Currency code": "货币代码", "Rate to": "汇率对", "Add currency": "添加货币",
+  "Refresh live rates": "刷新实时汇率", "base": "基准", "Remove": "移除",
+  "Fetching…": "获取中…", "Fetching live rates…": "正在获取实时汇率…",
+  "Live rates as of": "实时汇率截至", "updated": "项已更新", "added": "已添加",
+  "Couldn't reach the rate service — check your connection.": "无法连接汇率服务 — 请检查网络连接。",
+  "Enter a 3-letter currency code.": "请输入 3 位货币代码。", "Enter a valid rate.": "请输入有效的汇率。",
+  // Data entry — brokers / holdings / transactions
+  "Broker name": "券商名称", "Default currency": "默认货币", "Broker added": "已添加券商",
+  "Broker removed": "已移除券商", "This broker still has records. Remove it anyway?": "该券商仍有记录，仍要移除吗？",
+  "Add a broker first (Brokers page), then you can add holdings.": "请先在「券商」页面添加券商，然后才能添加持仓。",
+  "Add a broker first (Brokers page), then you can record transactions.": "请先在「券商」页面添加券商，然后才能记录交易。",
+  "Company Name": "公司名称", "Current Price": "当前价格", "Add Holding": "添加持仓",
+  "Holding added": "已添加持仓", "Holding removed": "已移除持仓",
+  "records": "条记录", "Transaction added": "已添加交易",
+  "DRIP recorded as 2 linked records: dividend + buy": "股息再投资已记录为两条关联记录：股息 + 买入",
+  // Settings
+  "Your name": "您的姓名", "Save profile": "保存资料", "Profile saved": "资料已保存",
+  "Add a rate for that currency first.": "请先为该货币添加汇率。", "Base currency set to": "基准货币已设为",
+  "CSV import is coming soon.": "CSV 导入即将推出。",
+  "Clear all data": "清除所有数据",
+  "Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone.": "清除将删除本浏览器中保存的所有券商、持仓和交易，且无法撤销。",
+  "Delete ALL your data from this browser? This cannot be undone.": "确定要删除本浏览器中的所有数据吗？此操作无法撤销。",
+  "All data cleared": "已清除所有数据",
+  // Stage 1 — empty states / onboarding
+  "Nothing to show yet.": "暂无数据。",
+  "No transactions yet. Add your first deposit or investment to begin.": "暂无交易。添加第一笔存款或投资即可开始。",
+  "No holdings yet. Add a buy transaction to create your first holding.": "暂无持仓。添加一笔买入交易即可创建首个持仓。",
+  "No portfolio history yet.": "暂无组合历史。",
+  "No holdings match these filters.": "没有符合筛选条件的持仓。",
+  "Getting started": "开始使用", "Add a broker": "添加券商", "Record your first deposit": "记录第一笔存款",
+  "Add your first buy transaction": "添加第一笔买入交易", "Add a current price": "添加当前价格", "Record a dividend": "记录一笔股息",
+  "Last saved on this device": "本设备最后保存", "Nothing saved yet": "尚未保存",
+  // Return modes
+  "Return mode": "回报模式", "Price return only": "仅价格回报", "Total return": "总回报",
+  "Total Return = Unrealized P/L + Realized P/L + Net Dividends − fees": "总回报 = 未实现盈亏 + 已实现盈亏 + 净股息 − 费用",
+  "Price Return = Unrealized P/L + Realized P/L − fees (excludes dividends)": "价格回报 = 未实现盈亏 + 已实现盈亏 − 费用（不含股息）",
+  "Net Capital Invested = Deposits − Withdrawals": "净投入资本 = 存款 − 取款",
+  "Net Dividends = Gross dividends − withholding tax": "净股息 = 总股息 − 预扣税",
+  // Transaction types
+  "Deposit": "存款", "Withdrawal": "取款", "Buy": "买入", "Sell": "卖出", "Dividend": "股息",
+  "Fee": "费用", "Tax withholding": "预扣税", "Stock split": "拆股",
+  "Transfer between brokers": "券商间转账", "Interest / cash yield": "利息 / 现金收益", "FX conversion": "外汇兑换",
+  // Form labels
+  "optional": "可选", "Quantity / Shares": "数量 / 股数", "Gross dividend": "总股息",
+  "Received": "已收到", "Expected": "预期", "Split ratio (new ÷ old)": "拆股比例（新 ÷ 旧）",
+  "To broker": "转入券商", "Notes": "备注", "FX rate to": "汇率对",
+  "Allow selling more shares than currently held (override)": "允许卖出超过当前持有的股数（覆盖）",
+  "You only hold": "您仅持有", "shares — tick the override to sell more.": "股 — 勾选覆盖以卖出更多。",
+  "Avg Cost per share": "每股平均成本", "blank = use current": "留空 = 使用当前汇率",
+  "Use this only for investments you owned before you started tracking in Investment Ledger. New purchases should be entered as Buy transactions.": "仅用于您在开始使用 Investment Ledger 之前已持有的投资。新买入请记为买入交易。",
+  "Add Opening Holding": "添加期初持仓", "Opening holding added": "已添加期初持仓",
+  "Set current price": "设置当前价格", "Manual price": "手动价格", "No price set": "未设价格",
+  "avg, MYR": "均价, MYR", "Current price per share for": "每股当前价格：", "manual, not live": "手动，非实时",
+  "Enter a valid price.": "请输入有效价格。", "Price updated": "价格已更新",
+  "Remove this opening holding?": "移除此期初持仓？", "Holding removed": "已移除持仓",
+  "This holding comes from your transactions — delete the related transactions to remove it.": "此持仓来自您的交易 — 请删除相关交易以移除它。",
+  "Delete this transaction? Holdings and balances will be recalculated.": "删除此交易？持仓和余额将重新计算。",
+  "Transaction removed": "已移除交易", "records": "条记录",
+  "holdings without a current price": "个持仓没有当前价格", "no price": "无价格",
+  "holdings have no current price set": "个持仓未设当前价格",
+  // Cash / reconciliation
+  "Holdings": "持仓", "Market Value": "市值", "Cash (calc)": "计算现金", "Difference": "差额",
+  "Not checked": "未核对", "Matched": "已匹配", "Small difference": "小幅差异", "Needs review": "需复核",
+  "Update": "更新", "Actual cash balance for": "实际现金余额：", "Note (optional)": "备注（可选）",
+  "Reconciliation saved": "对账已保存", "Enter a valid number.": "请输入有效数字。",
+  "Calculated = Deposits − Buys − Fees + Sells + Net Dividends − Withdrawals": "计算余额 = 存款 − 买入 − 费用 + 卖出 + 净股息 − 取款",
+  "Cash difference": "现金差异", "Calculated": "计算值", "vs actual": "对比实际", "difference": "差额",
+  "Check for a missing fee, dividend or transfer.": "请检查是否漏记费用、股息或转账。",
+  "A sell exceeds shares held for": "卖出超过持有股数：", "Use the oversell override if intentional.": "如有意为之，请使用超卖覆盖。",
+  "holding(s) have no current price set — portfolio value uses cost as a placeholder.": "个持仓未设当前价格 — 组合价值暂用成本代替。",
+  "Exchange rates were last updated": "汇率最后更新于", "days ago — refresh them in Settings.": "天前 — 请在设置中刷新。",
+  "days": "天", "overdue": "已过期",
+  // Settings — data safety
+  "Tolerance": "容差", "Differences within this amount are treated as a small difference rather than needing review.": "此金额内的差异视为小幅差异，而非需复核。",
+  "Tolerance saved": "容差已保存",
+  "Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.": "您的投资数据仅保存在本设备的此浏览器中。清除浏览器数据可能会将其删除。请定期导出 JSON 备份。",
+  "Export full backup (JSON)": "导出完整备份 (JSON)", "Import backup (JSON)": "导入备份 (JSON)",
+  "Export Transactions CSV": "导出交易 CSV", "Export Cash CSV": "导出现金 CSV",
+  "Load demo data": "加载演示数据", "Demo data loaded": "已加载演示数据",
+  "This will replace your current data with demo data. Continue?": "这将用演示数据替换您当前的数据。是否继续？",
+  "Type DELETE to confirm": "输入 DELETE 确认", "Type DELETE to confirm.": "请输入 DELETE 确认。",
+  "Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.": "清除会删除本浏览器中保存的所有券商、持仓和交易，且无法撤销 — 请先导出备份。",
+  "Backup downloaded": "备份已下载", "Backup restored": "备份已恢复",
+  "That file isn't valid JSON.": "该文件不是有效的 JSON。",
+  "That doesn't look like an Investment Ledger backup.": "这看起来不是 Investment Ledger 的备份。",
+  "For personal record-keeping only. Not financial, tax, or investment advice.": "仅供个人记录之用。并非财务、税务或投资建议。",
+  // Guided tour
+  "Welcome to Investment Ledger": "欢迎使用 Investment Ledger",
+  "Take a 1-minute guided tour — we'll point to exactly where to click.": "用 1 分钟跟随引导教程 — 我们会指向您需要点击的确切位置。",
+  "Start the guided tour": "开始引导教程", "steps done": "步已完成",
+  "Skip": "跳过", "Back": "上一步", "Next": "下一步", "Done": "完成",
+  "Tour complete — you're ready to go.": "教程完成 — 一切就绪。",
+  "Step 1 · Add a broker": "第 1 步 · 添加券商",
+  "Start here. Click Brokers to add your investment app — every transaction belongs to a broker.": "从这里开始。点击「券商」添加您的投资平台 — 每笔交易都归属于某个券商。",
+  "Add your broker": "添加券商", "Enter the broker name and currency, then click Add Broker.": "输入券商名称和货币，然后点击「添加券商」。",
+  "Step 2 · Record a deposit": "第 2 步 · 记录存款",
+  "Use Add Transaction to record cash you put into a broker. Pick type Deposit.": "用「添加交易」记录您投入券商的现金，类型选择「存款」。",
+  "Pick the transaction type": "选择交易类型",
+  "Choose the type here. Buy and Sell create and update your holdings automatically.": "在此选择类型。买入和卖出会自动创建并更新您的持仓。",
+  "Step 3 · Set a current price": "第 3 步 · 设置当前价格",
+  "After a Buy your holding appears here. Use the ＄ button to type a current price (manual, not live).": "买入后，您的持仓会显示在这里。用 ＄ 按钮输入当前价格（手动，非实时）。",
+  "Back up your data": "备份您的数据",
+  "Your data lives only in this browser. Export a JSON backup from Settings regularly.": "您的数据仅存于此浏览器中。请定期在「设置」中导出 JSON 备份。",
+  // Live prices
+  "Refresh live prices": "刷新实时价格", "Fetch live price": "获取实时价格", "Live": "实时",
+  "Fetching prices": "正在获取价格", "prices updated": "个价格已更新", "updated": "已更新",
+  "Couldn't fetch prices — check the ticker symbols (Yahoo format).": "无法获取价格 — 请检查股票代码（Yahoo 格式）。",
+  "Couldn't fetch": "无法获取", "check the symbol (e.g. AAPL, 1155.KL).": "请检查代码（例如 AAPL、1155.KL）。",
+  "Live prices only work on the deployed site (or with vercel dev).": "实时价格仅在已部署的网站上可用（或使用 vercel dev）。",
+  "Live prices are over 2 days old for": "以下实时价格已超过 2 天：",
+  "refresh them on the Portfolio page.": "请在「投资组合」页面刷新。",
+  // Ticker auto-lookup
+  "Looking up…": "查询中…", "No match — you can enter the details manually.": "未找到匹配 — 您可手动输入信息。",
+  "Auto-lookup works on the deployed site.": "自动查询在已部署的网站上可用。",
+  "Live lookup only works on your deployed website, not when you open the file locally. Commit, push, and try it on your Vercel URL.": "实时查询仅在您已部署的网站上可用，本地打开文件时无法使用。请提交、推送后在您的 Vercel 网址上尝试。",
+  "check the code, or that /api is deployed on Vercel.": "请检查代码，或确认 /api 已部署到 Vercel。",
   // Misc
   "Portfolio": "投资组合",
 };
@@ -164,40 +283,292 @@ function fmtDate(iso) {
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   return `${d} ${months[m - 1]} ${y}`;
 }
+function fmtDateTime(iso) {
+  if (!iso) return "—";
+  const dt = new Date(iso);
+  if (isNaN(dt)) return iso;
+  return `${fmtDate(dt.toISOString().slice(0, 10))}, ${dt.toTimeString().slice(0, 5)}`;
+}
+function daysUntil(iso) {
+  if (!iso) return NaN;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const target = new Date(iso + "T00:00:00");
+  return Math.round((target - today) / 86400000);
+}
+function daysSince(iso) {
+  if (!iso) return Infinity;
+  const dt = new Date(iso);
+  if (isNaN(dt)) return Infinity;
+  return Math.floor((Date.now() - dt.getTime()) / 86400000);
+}
 
 /* =============================================================================
  * DERIVED TOTALS
  * ========================================================================== */
+/* Transactions are the SINGLE SOURCE OF TRUTH. Holdings, cash, realized/unrealized
+ * P/L, dividends and fees are all DERIVED here using a simple average-cost method.
+ * Cost basis is tracked in MYR using each transaction's historical FX rate; current
+ * market value uses the (current) FX.rates and manually-entered current prices. */
 function computeTotals() {
-  const totalDeposits = CASH_LEDGER.filter((c) => c.type === "Deposit")
-    .reduce((s, c) => s + toBase(c.amount, c.currency), 0);
-  const totalWithdrawals = CASH_LEDGER.filter((c) => c.type === "Withdrawal")
-    .reduce((s, c) => s + toBase(c.amount, c.currency), 0);
-  const netCapitalInvested = totalDeposits - totalWithdrawals;
+  // FX helpers: historical rate stored on the transaction; current from FX.rates.
+  const histFx = (tx) => (tx.fxRate != null && tx.fxRate !== "" ? +tx.fxRate : (FX.rates[tx.currency] || 1));
+  const curFx = (ccy) => (FX.rates[ccy] || 1);
 
-  const holdings = HOLDINGS.map((h) => {
-    const costBasis = toBase(h.shares * h.avgCost, h.currency);
-    const marketValue = toBase(h.shares * h.price, h.currency);
+  const keyOf = (brokerId, ticker) => brokerId + "|" + ticker;
+  const lots = {};
+  const ensureLot = (brokerId, ticker, meta = {}) => {
+    const k = keyOf(brokerId, ticker);
+    if (!lots[k]) lots[k] = { ticker, brokerId, company: "", market: "", currency: FX.base, shares: 0, costMYR: 0, netDivMYR: 0 };
+    const l = lots[k];
+    if (meta.company && !l.company) l.company = meta.company;
+    if (meta.market && !l.market) l.market = meta.market;
+    if (meta.currency) l.currency = meta.currency;
+    return l;
+  };
+
+  // Seed opening positions (HOLDINGS = positions owned before tracking began).
+  HOLDINGS.forEach((h) => {
+    const fx = h.openingFxRate || curFx(h.currency);
+    const l = ensureLot(h.brokerId, h.ticker, h);
+    l.shares += +h.shares || 0;
+    l.costMYR += (+h.shares || 0) * (+h.avgCost || 0) * fx;
+    if (h.netDividends) l.netDivMYR += +h.netDividends;
+  });
+
+  const cash = {};
+  BROKERS.forEach((b) => (cash[b.id] = 0));
+  const addCash = (id, amt) => { cash[id] = (cash[id] || 0) + amt; };
+
+  let totalDeposits = 0, totalWithdrawals = 0, netDividends = 0, totalFees = 0, realizedPL = 0;
+  const oversells = [];
+
+  // Process chronologically so average cost is correct.
+  const txns = [...ALL_TRANSACTIONS].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  txns.forEach((tx) => {
+    const fx = histFx(tx);
+    const grossMYR = (+tx.gross || 0) * fx;
+    const feeMYR = (+tx.fee || 0) * fx;
+    const taxMYR = (+tx.tax || 0) * fx;
+    const q = +tx.qty || 0, price = +tx.price || 0;
+    switch (tx.type) {
+      case "Deposit": totalDeposits += grossMYR; addCash(tx.brokerId, grossMYR); break;
+      case "Withdrawal": totalWithdrawals += grossMYR; addCash(tx.brokerId, -grossMYR); break;
+      case "Interest / cash yield": addCash(tx.brokerId, grossMYR); break;
+      case "Fee": totalFees += grossMYR; addCash(tx.brokerId, -grossMYR); break;
+      case "Tax withholding": totalFees += grossMYR; addCash(tx.brokerId, -grossMYR); break;
+      case "Buy": {
+        const l = ensureLot(tx.brokerId, tx.ticker, tx);
+        l.shares += q; l.costMYR += q * price * fx + feeMYR;
+        totalFees += feeMYR; addCash(tx.brokerId, -(grossMYR + feeMYR)); break;
+      }
+      case "Sell": {
+        const l = ensureLot(tx.brokerId, tx.ticker, tx);
+        if (q > l.shares + 1e-9 && !tx.override) oversells.push({ ticker: tx.ticker, brokerId: tx.brokerId });
+        const avg = l.shares > 0 ? l.costMYR / l.shares : 0;
+        const proceedsMYR = q * price * fx;
+        realizedPL += proceedsMYR - avg * q - feeMYR;
+        l.shares -= q; l.costMYR -= avg * q;
+        if (l.shares < 1e-9) { l.shares = Math.max(0, l.shares); l.costMYR = Math.max(0, l.costMYR); }
+        totalFees += feeMYR; addCash(tx.brokerId, grossMYR - feeMYR); break;
+      }
+      case "Dividend": {
+        if (tx.status !== "Expected") {
+          const netMYR = grossMYR - taxMYR;
+          netDividends += netMYR; addCash(tx.brokerId, netMYR);
+          ensureLot(tx.brokerId, tx.ticker, tx).netDivMYR += netMYR;
+        }
+        break;
+      }
+      case "Stock split": { ensureLot(tx.brokerId, tx.ticker, tx).shares *= (q || 1); break; }
+      case "Transfer between brokers": {
+        addCash(tx.brokerId, -grossMYR); if (tx.toBrokerId) addCash(tx.toBrokerId, grossMYR); break;
+      }
+      case "FX conversion": break; // moves cash between currencies; MYR value ~neutral
+      default: break;
+    }
+  });
+
+  const holdings = Object.values(lots).filter((l) => Math.abs(l.shares) > 1e-9).map((l) => {
+    const cp = CURRENT_PRICES[l.ticker];
+    const hasPrice = !!cp && cp.price != null;
+    const priceCcy = hasPrice ? cp.currency : l.currency;
+    const marketValue = hasPrice ? l.shares * (+cp.price) * curFx(priceCcy) : l.costMYR;
+    const costBasis = l.costMYR;
+    const avgCost = l.shares > 0 ? l.costMYR / l.shares : 0;
     const unrealized = marketValue - costBasis;
     const unrealizedPct = costBasis ? (unrealized / costBasis) * 100 : 0;
-    const totalReturn = unrealized + h.netDividends;
-    return { ...h, costBasis, marketValue, unrealized, unrealizedPct, totalReturn };
+    const totalReturn = unrealized + l.netDivMYR;
+    return { ...l, costBasis, marketValue, avgCost, unrealized, unrealizedPct,
+      netDividends: l.netDivMYR, totalReturn,
+      hasPrice, currentPrice: hasPrice ? +cp.price : null, currentPriceCcy: priceCcy,
+      currentPriceDate: hasPrice ? cp.date : null,
+      priceSource: hasPrice ? (cp.source || "manual") : null,
+      priceFetchedAt: hasPrice ? cp.fetchedAt : null,
+      changePct: hasPrice ? cp.changePct : null };
   });
 
   const portfolioValue = holdings.reduce((s, h) => s + h.marketValue, 0);
-  const netDividends = holdings.reduce((s, h) => s + h.netDividends, 0);
   const unrealizedPL = holdings.reduce((s, h) => s + h.unrealized, 0);
-  const realizedPL = REALIZED.reduce((s, r) => s + toBase(r.proceeds - r.costBasis - r.fees, r.currency), 0);
-  const realizedFees = REALIZED.reduce((s, r) => s + toBase(r.fees, r.currency), 0);
-  const totalFees = realizedFees + STANDALONE_FEES_BASE;
-
-  const totalReturn = portfolioValue + totalWithdrawals + netDividends - totalDeposits - totalFees;
+  const netCapitalInvested = totalDeposits - totalWithdrawals;
+  const priceReturn = unrealizedPL + realizedPL - totalFees;
+  const totalReturn = unrealizedPL + realizedPL + netDividends - totalFees;
   const totalReturnPct = netCapitalInvested ? (totalReturn / netCapitalInvested) * 100 : 0;
+  const missingPrices = holdings.filter((h) => !h.hasPrice).length;
 
   return { totalDeposits, totalWithdrawals, netCapitalInvested, portfolioValue,
-    netDividends, unrealizedPL, realizedPL, totalFees, totalReturn, totalReturnPct, holdings };
+    netDividends, unrealizedPL, realizedPL, totalFees, priceReturn, totalReturn, totalReturnPct,
+    holdings, brokerCash: cash, oversells, missingPrices };
 }
-const T = computeTotals();
+/* =============================================================================
+ * PERSISTENCE — saves everything to the browser (localStorage) so your data
+ * survives reloads. Defaults come from data.js the first time.
+ * ========================================================================== */
+const STORE_KEY = "il-data-v2";
+function uid(prefix) { return prefix + Math.random().toString(36).slice(2, 8); }
+
+function snapshot() {
+  return { version: 3, lastSaved: LAST_SAVED,
+    BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS,
+    CURRENT_PRICES, RECON_CHECKS, SETTINGS, USER, FX };
+}
+function assignObj(target, next) {
+  if (!next || typeof next !== "object") return;
+  Object.keys(target).forEach((k) => delete target[k]);
+  Object.assign(target, next);
+}
+function saveStore() {
+  try {
+    LAST_SAVED = new Date().toISOString();
+    localStorage.setItem(STORE_KEY, JSON.stringify(snapshot()));
+    recompute();
+  } catch (e) {}
+}
+function replaceArr(arr, next) { arr.length = 0; if (Array.isArray(next)) next.forEach((x) => arr.push(x)); }
+function applySnapshot(s) {
+  replaceArr(BROKERS, s.BROKERS); replaceArr(HOLDINGS, s.HOLDINGS);
+  replaceArr(ALL_TRANSACTIONS, s.ALL_TRANSACTIONS); replaceArr(UPCOMING_DIVIDENDS, s.UPCOMING_DIVIDENDS);
+  assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(RECON_CHECKS, s.RECON_CHECKS);
+  if (s.SETTINGS) Object.assign(SETTINGS, s.SETTINGS);
+  if (s.USER) Object.assign(USER, s.USER);
+  if (s.lastSaved) LAST_SAVED = s.lastSaved;
+  if (s.FX) {
+    if (s.FX.base) FX.base = s.FX.base;
+    if (s.FX.rates) { Object.keys(FX.rates).forEach((k) => delete FX.rates[k]); Object.assign(FX.rates, s.FX.rates); }
+    if (s.FX.updated) FX.updated = s.FX.updated;
+  }
+}
+function loadStore() {
+  let s;
+  try { s = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch (e) { s = null; }
+  if (s) applySnapshot(s);
+}
+function resetStore() {
+  try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+}
+loadStore();  // hydrate from the browser before the first calculation
+
+let T = computeTotals();
+function recompute() { T = computeTotals(); }  // call after data/rates change
+
+/* =============================================================================
+ * LIVE EXCHANGE RATES (free, no API key)
+ * Returns how many BASE units 1 unit of `from` is worth (i.e. from -> base).
+ * Tries open.er-api.com first, then frankfurter.app as a fallback.
+ * ========================================================================== */
+let FX_STATUS = "";  // shown under the Exchange Rates panel; survives re-render
+const COMMON_CCY = ["USD","EUR","GBP","SGD","HKD","CNY","JPY","AUD","CAD","CHF",
+  "INR","IDR","THB","KRW","TWD","PHP","VND","NZD","AED","SAR","MYR","SGD"];
+
+async function fetchRatesAgainstBase(base) {
+  // open.er-api.com: data.rates[X] = how many X per 1 base
+  try {
+    const r = await fetch(`https://open.er-api.com/v6/latest/${encodeURIComponent(base)}`);
+    const d = await r.json();
+    if (d && d.result === "success" && d.rates) {
+      return { rates: d.rates, date: (d.time_last_update_utc || "").slice(0, 16), source: "open.er-api.com" };
+    }
+  } catch (e) { /* fall through */ }
+  // frankfurter.app fallback (ECB data, ~31 currencies)
+  try {
+    const r = await fetch(`https://api.frankfurter.app/latest?from=${encodeURIComponent(base)}`);
+    const d = await r.json();
+    if (d && d.rates) return { rates: d.rates, date: d.date || "", source: "frankfurter.app" };
+  } catch (e) { /* fall through */ }
+  return null;
+}
+// Convert "X per base" map into "base per X" (the rate we store).
+const perBaseToRate = (perBase) => (perBase ? +(1 / perBase).toFixed(4) : null);
+
+/* =============================================================================
+ * LIVE STOCK QUOTES (via our /api/quote Vercel function → Yahoo Finance)
+ * Returns { price, currency, time, source } or null. Throws-safe.
+ * Note: only works on the deployed site (or `vercel dev`) — a static file:// page
+ * has no /api backend, so we surface a clear message in that case.
+ * ========================================================================== */
+const LIVE_ENABLED = location.protocol === "http:" || location.protocol === "https:";
+async function fetchQuote(symbol) {
+  try {
+    const r = await fetch(`/api/quote?symbol=${encodeURIComponent(symbol)}`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (d && d.price != null) return d;
+  } catch (e) { /* network / no backend */ }
+  return null;
+}
+/* Turn a user-typed code into a Yahoo symbol.
+ * Bursa Malaysia codes are 4–5 digit numbers (e.g. 5555 → 5555.KL). */
+function normalizeSymbol(input) {
+  let s = (input || "").trim().toUpperCase();
+  if (!s) return "";
+  if (/^\d{3,5}$/.test(s)) s += ".KL";
+  return s;
+}
+
+/* Look up a typed ticker and auto-fill a form's stock fields. Fields stay editable. */
+async function autofillFromTicker(form, statusEl, opts = {}) {
+  const tEl = form.querySelector('[name="ticker"]');
+  if (!tEl) return;
+  const raw = tEl.value.trim();
+  if (!raw) { if (statusEl) statusEl.textContent = ""; return; }
+  if (!LIVE_ENABLED) { if (statusEl) { statusEl.innerHTML = `⚠️ ${t("Live lookup only works on your deployed website, not when you open the file locally. Commit, push, and try it on your Vercel URL.")}`; statusEl.className = "lookup-status warn"; } return; }
+  const symbol = normalizeSymbol(raw);
+  if (statusEl) { statusEl.textContent = `${t("Looking up…")} (${symbol})`; statusEl.className = "lookup-status muted"; }
+  const q = await fetchQuote(symbol);
+  if (!q) { if (statusEl) { statusEl.innerHTML = `⚠️ ${t("Couldn't fetch")} ${symbol} — ${t("check the code, or that /api is deployed on Vercel.")}`; statusEl.className = "lookup-status warn"; } return; }
+
+  tEl.value = q.symbol || symbol;                       // normalise to the resolved symbol
+  const set = (name, val) => { const el = form.querySelector(`[name="${name}"]`); if (el && val != null && val !== "") el.value = val; };
+  set("company", q.name);
+  set("market", q.exchange);
+  if (q.currency) {
+    const ccySel = form.querySelector('[name="currency"]');
+    if (ccySel) {
+      if (![...ccySel.options].some((o) => o.value === q.currency)) {
+        const opt = document.createElement("option"); opt.value = q.currency; opt.textContent = q.currency; ccySel.appendChild(opt);
+      }
+      ccySel.value = q.currency;
+      const fxEl = form.querySelector('[name="fxRate"]');
+      if (fxEl) fxEl.value = FX.rates[q.currency] || (q.currency === FX.base ? 1 : "");
+    }
+  }
+  // Fill price only if empty (don't clobber a price the user already typed)
+  if (opts.fillPrice) { const pe = form.querySelector('[name="price"]'); if (pe && !pe.value) pe.value = q.price; }
+  // Remember the current market price for valuation (clearly labelled "Live")
+  if (q.currency) CURRENT_PRICES[q.symbol || symbol] = { price: +q.price, currency: q.currency, date: new Date().toISOString().slice(0, 10), source: "live", fetchedAt: new Date().toISOString(), changePct: q.changePct };
+  if (statusEl) { statusEl.innerHTML = `✓ ${q.name || q.symbol} · ${q.currency || ""} ${fmt(q.price)} <span class="live-price">${t("Live")}</span>`; statusEl.className = "lookup-status ok"; }
+}
+
+/* Update a single holding's price from the market. Returns true on success. */
+async function refreshLivePrice(ticker) {
+  const q = await fetchQuote(ticker);
+  if (!q) return false;
+  CURRENT_PRICES[ticker] = {
+    price: +q.price, currency: q.currency || (CURRENT_PRICES[ticker] && CURRENT_PRICES[ticker].currency) || FX.base,
+    date: new Date().toISOString().slice(0, 10), source: "live",
+    fetchedAt: new Date().toISOString(), changePct: q.changePct,
+  };
+  return true;
+}
 
 /* =============================================================================
  * SHARED UI BUILDERS (return HTML strings)
@@ -216,12 +587,12 @@ function table(headers, rows) {
   // Show a friendly placeholder row when there are no records yet.
   const body = (rows && rows.trim())
     ? rows
-    : `<tr><td colspan="${headers.length}" class="empty" style="padding:28px 12px">No records yet — add them in data.js.</td></tr>`;
+    : `<tr><td colspan="${headers.length}" class="empty" style="padding:28px 12px">${t("Nothing to show yet.")}</td></tr>`;
   return `<div class="table-wrap"><table class="data-table">${thead}<tbody>${body}</tbody></table></div>`;
 }
 
 function statusBadge(s) {
-  const map = { Confirmed: "confirmed", Estimated: "warn", Paid: "pos", Cancelled: "neg", Unknown: "subtle" };
+  const map = { Confirmed: "confirmed", Estimated: "warn", Paid: "pos", Cancelled: "neg", Unknown: "subtle", Received: "pos", Expected: "warn" };
   return `<span class="badge ${map[s] || "subtle"}">${s}</span>`;
 }
 function typeChip(t) {
@@ -232,7 +603,7 @@ function typeChip(t) {
 }
 
 function lineChartSVG(series) {
-  if (!series || series.length < 2) return emptyState("No portfolio history yet — add entries to PORTFOLIO_SERIES in data.js.");
+  if (!series || series.length < 2) return emptyState(t("No portfolio history yet."));
   const W = 640, H = 240, padL = 52, padR = 16, padT = 16, padB = 28;
   const vals = series.map((d) => d.value);
   const min = Math.min(...vals) * 0.97, max = Math.max(...vals) * 1.03;
@@ -261,7 +632,7 @@ function lineChartSVG(series) {
 const PALETTE = ["#4a3ed9", "#6d5efc", "#8b80ff", "#a99dff", "#352c9e", "#c4bcff", "#8089a0"];
 function donutHTML(slices, centerLabel, centerValue) {
   slices = (slices || []).filter((s) => s.value > 0);
-  if (!slices.length) return emptyState("No allocation data yet — add holdings in data.js.");
+  if (!slices.length) return emptyState(t("No holdings yet. Add a buy transaction to create your first holding."));
   const total = slices.reduce((s, x) => s + x.value, 0) || 1;
   const R = 70, r = 44, C = 88;
   let a0 = -Math.PI / 2;
@@ -302,40 +673,53 @@ function pageDashboard() {
       <div class="c-value ${c.valCls || ""}">${c.value}</div>
       <div class="c-sub">${c.sub}</div></article>`).join("");
 
-  const holdingsRows = [...T.holdings].sort((a, b) => b.marketValue - a.marketValue).map((h) => `
-    <tr><td><div class="ticker">${h.ticker}</div><div class="sub">${h.company}</div></td>
-      <td><span class="chip">${brokerName(h.brokerId)}</span></td><td class="sub">${h.market}</td>
-      <td class="num">${fmt(h.shares, { maximumFractionDigits: 0 })}</td>
-      <td class="num">${h.currency} ${fmt(h.avgCost)}</td><td class="num">${h.currency} ${fmt(h.price)}</td>
-      <td class="num">${money(h.marketValue)}<div class="fx-note">${h.currency !== FX.base ? `@ ${FX.rates[h.currency]}` : "&nbsp;"}</div></td>
+  const isEmpty = ALL_TRANSACTIONS.length === 0 && HOLDINGS.length === 0;
+
+  const holdingsRows = [...T.holdings].sort((a, b) => b.marketValue - a.marketValue).slice(0, 8).map((h) => `
+    <tr><td><div class="ticker">${h.ticker}</div><div class="sub">${h.company || ""}</div></td>
+      <td><span class="chip">${brokerName(h.brokerId)}</span></td><td class="sub">${h.market || "—"}</td>
+      <td class="num">${fmt(h.shares, { maximumFractionDigits: 4 })}</td>
+      <td class="num">${money(h.avgCost)}</td>
+      <td class="num">${h.hasPrice ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}<div class="fx-note ${h.priceSource === "live" ? "live-price" : "manual-price"}">${h.priceSource === "live" ? t("Live") : t("Manual price")}</div>` : `<span class="muted">—</span>`}</td>
+      <td class="num">${money(h.marketValue)}</td>
       <td class="num ${cls(h.unrealized)}">${signed(h.unrealized)}<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div></td>
       <td class="num">${fmt(h.netDividends)}</td><td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td></tr>`).join("");
 
-  const divRows = UPCOMING_DIVIDENDS.map((d) => `<tr>
-    <td><div class="ticker">${d.ticker}</div><div class="sub">${d.company}</div></td>
-    <td>${fmtDate(d.exDate)}<div class="sub">ex-date</div></td>
-    <td>${fmtDate(d.payDate)}<div class="sub">pay-date</div></td>
-    <td class="num">${d.currency} ${fmt(d.expectedNet)}</td><td>${statusBadge(d.status)}</td></tr>`).join("");
+  // Upcoming dividends derived from "Expected" dividend transactions.
+  const upcoming = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status === "Expected")
+    .sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
+  const divRows = upcoming.map((d) => {
+    const du = daysUntil(d.payDate);
+    const dlabel = d.payDate ? (du >= 0 ? `${du} ${t("days")}` : t("overdue")) : "—";
+    return `<tr><td class="ticker">${d.ticker}</td><td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
+      <td class="num">${dlabel}</td>
+      <td class="num">${d.currency} ${fmt((+d.gross || 0) - (+d.tax || 0))}</td><td>${statusBadge(d.status || "Expected")}</td></tr>`;
+  }).join("");
 
-  const recentRows = RECENT_TX.map((tx) => `<tr><td>${fmtDate(tx.date)}</td><td>${typeChip(tx.type)}</td>
-    <td class="ticker">${tx.ticker}</td><td class="sub">${brokerName(tx.brokerId)}</td>
-    <td class="num">${tx.currency} ${fmt(tx.amount)}</td></tr>`).join("");
+  const recentRows = ALL_TRANSACTIONS.slice(0, 6).map((tx) => `<tr><td>${fmtDate(tx.date)}</td><td>${typeChip(tx.type)}</td>
+    <td class="ticker">${tx.ticker || "—"}</td><td class="sub">${brokerName(tx.brokerId)}</td>
+    <td class="num">${tx.currency} ${fmt(tx.gross != null ? tx.gross : 0)}</td></tr>`).join("");
+
+  const toggle = `<div class="seg" role="group" aria-label="${t("Return mode")}">
+    <button class="seg-btn ${SETTINGS.returnMode === "price" ? "on" : ""}" data-return="price">${t("Price return only")}</button>
+    <button class="seg-btn ${SETTINGS.returnMode !== "price" ? "on" : ""}" data-return="total">${t("Total return")}</button></div>`;
 
   const html = `
+    ${isEmpty ? onboardingHTML() : ""}
+    <div class="dash-meta">
+      <span class="muted">${LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet")}</span>
+      ${toggle}
+    </div>
     <section class="cards">${cardsHtml}</section>
-    <section class="grid-2">
-      ${panel("Portfolio Value Over Time", `<div class="chart">${lineChartSVG(PORTFOLIO_SERIES)}</div>`, `<span class="badge subtle">Base: MYR</span>`)}
-      ${panel("Asset Allocation", donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), "Portfolio", money(T.portfolioValue).replace(".00","")), `<span class="badge subtle">By market value</span>`)}
-    </section>
     <section class="warn-wrap">${warningsHTML()}</section>
-    ${panel("Top Holdings", table(
-      [{label:"Holding"},{label:"Broker"},{label:"Market"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Price",num:1},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Net Div",num:1},{label:"Total Return",num:1}],
-      holdingsRows), `<a class="link" href="#/portfolio">View all →</a>`)}
     <section class="grid-2">
-      ${panel("Upcoming Dividends", table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Expected Net",num:1},{label:"Status"}], divRows), `<a class="link" href="#/dividends">Calendar →</a>`)}
-      ${panel("Recent Transactions", table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Amount",num:1}], recentRows), `<a class="link" href="#/transactions">All →</a>`)}
+      ${panel("Asset Allocation", donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), "Portfolio", money(T.portfolioValue).replace(".00","")), `<span class="badge subtle">By market value</span>`)}
+      ${panel("Upcoming Dividends", table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows), `<a class="link" href="#/dividends">Calendar →</a>`)}
     </section>
-    <footer class="page-foot muted">Sample data · figures derived from original currency × exchange rate · click any summary card to see how it was calculated.</footer>`;
+    ${panel("Top Holdings", table(
+      [{label:"Holding"},{label:"Broker"},{label:"Market"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Net Div",num:1},{label:"Total Return",num:1}],
+      holdingsRows), `<a class="link" href="#/portfolio">View all →</a>`)}
+    ${panel("Recent Transactions", table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Amount",num:1}], recentRows), `<a class="link" href="#/transactions">All →</a>`)}`;
 
   return { title: "Dashboard", subtitle: "Welcome back — here is your portfolio at a glance.", html,
     mount() {
@@ -345,47 +729,100 @@ function pageDashboard() {
         el.addEventListener("click", open);
         el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
       });
+      $$("[data-return]").forEach((b) => b.addEventListener("click", () => {
+        SETTINGS.returnMode = b.dataset.return; saveStore(); render();
+      }));
+      const st = $("#startTour");
+      if (st) st.addEventListener("click", () => startTour());
+      // Auto-launch the tour once for brand-new users
+      let tourDone = false;
+      try { tourDone = localStorage.getItem("il-tour-done") === "1"; } catch (e) {}
+      if (isEmpty && !tourDone && tourIdx < 0 && !TOUR_SEEN) {
+        TOUR_SEEN = true; setTimeout(startTour, 500);
+      }
     } };
 }
 
+function onboardingHTML() {
+  const steps = [
+    BROKERS.length > 0,
+    ALL_TRANSACTIONS.some((x) => x.type === "Deposit"),
+    ALL_TRANSACTIONS.some((x) => x.type === "Buy") || HOLDINGS.length > 0,
+    Object.keys(CURRENT_PRICES).length > 0,
+    ALL_TRANSACTIONS.some((x) => x.type === "Dividend"),
+  ];
+  const done = steps.filter(Boolean).length;
+  return panel("Welcome to Investment Ledger", `
+    <p class="muted" style="margin:-2px 0 14px">${t("Take a 1-minute guided tour — we'll point to exactly where to click.")}</p>
+    <div class="form-actions">
+      <button class="btn primary" id="startTour">▶ ${t("Start the guided tour")}</button>
+      <span class="muted" style="align-self:center">${done} / ${steps.length} ${t("steps done")}</span>
+    </div>`);
+}
+
 function dashboardCards() {
+  const depRows = ALL_TRANSACTIONS.filter((x) => x.type === "Deposit");
+  const wdrRows = ALL_TRANSACTIONS.filter((x) => x.type === "Withdrawal");
+  const txFx = (x) => (x.fxRate != null && x.fxRate !== "" ? +x.fxRate : (FX.rates[x.currency] || 1));
+  const returnIsTotal = SETTINGS.returnMode !== "price";
+  const shownReturn = returnIsTotal ? T.totalReturn : T.priceReturn;
+  const shownPct = T.netCapitalInvested ? (shownReturn / T.netCapitalInvested) * 100 : 0;
+
   return [
-    { label: "Total Deposits", value: money(T.totalDeposits), sub: "Cash put into brokers",
-      calc: { title: "Total Deposits", rows: CASH_LEDGER.filter((c) => c.type === "Deposit").map((c) => ({
-        op: "+", label: `${brokerName(c.brokerId)} · ${c.currency} ${fmt(c.amount)}${c.currency !== FX.base ? ` × ${FX.rates[c.currency]}` : ""}`, val: fmt(toBase(c.amount, c.currency)) })), total: T.totalDeposits } },
+    { label: "Total Deposits", value: money(T.totalDeposits), sub: tip("Cash put into brokers", "Net Capital Invested = Deposits − Withdrawals"),
+      calc: { title: "Total Deposits", rows: depRows.map((c) => ({
+        op: "+", label: `${brokerName(c.brokerId)} · ${c.currency} ${fmt(c.gross)}${c.currency !== FX.base ? ` × ${txFx(c)}` : ""}`, val: fmt((+c.gross || 0) * txFx(c)) })), total: T.totalDeposits } },
     { label: "Total Withdrawals", value: money(T.totalWithdrawals), sub: "Cash taken out",
-      calc: { title: "Total Withdrawals", rows: CASH_LEDGER.filter((c) => c.type === "Withdrawal").map((c) => ({
-        op: "+", label: `${brokerName(c.brokerId)} · ${c.currency} ${fmt(c.amount)}`, val: fmt(toBase(c.amount, c.currency)) })), total: T.totalWithdrawals } },
-    { label: "Net Capital Invested", value: money(T.netCapitalInvested), sub: "Deposits − Withdrawals",
+      calc: { title: "Total Withdrawals", rows: wdrRows.map((c) => ({
+        op: "+", label: `${brokerName(c.brokerId)} · ${c.currency} ${fmt(c.gross)}`, val: fmt((+c.gross || 0) * txFx(c)) })), total: T.totalWithdrawals } },
+    { label: "Net Capital Invested", value: money(T.netCapitalInvested), sub: tip("Deposits − Withdrawals", "Money you have actually committed, net of cash taken back out."),
       calc: { title: "Net Capital Invested", rows: [{ op: "+", label: "Total Deposits", val: fmt(T.totalDeposits) }, { op: "−", label: "Total Withdrawals", val: fmt(T.totalWithdrawals) }], total: T.netCapitalInvested } },
-    { label: "Current Portfolio Value", value: money(T.portfolioValue), sub: "Market value of holdings",
+    { label: "Current Portfolio Value", value: money(T.portfolioValue), sub: T.missingPrices ? `${T.missingPrices} ${t("holdings without a current price")}` : "Market value of holdings",
       calc: { title: "Current Portfolio Value", rows: T.holdings.map((h) => ({ op: "+",
-        label: `${h.ticker} · ${h.shares} × ${h.currency} ${fmt(h.price)}${h.currency !== FX.base ? ` × ${FX.rates[h.currency]}` : ""}`, val: fmt(h.marketValue) })), total: T.portfolioValue } },
-    { label: "Net Dividends Received", value: money(T.netDividends), sub: "After withholding tax",
+        label: `${h.ticker} · ${fmt(h.shares, { maximumFractionDigits: 4 })}${h.hasPrice ? ` × ${h.currentPriceCcy} ${fmt(h.currentPrice)}` : ` (${t("no price")})`}`, val: fmt(h.marketValue) })), total: T.portfolioValue } },
+    { label: "Net Dividends Received", value: money(T.netDividends), sub: tip("After withholding tax", "Net Dividends = Gross dividends − withholding tax"),
       calc: { title: "Net Dividends Received (after tax)", rows: T.holdings.filter((h) => h.netDividends).map((h) => ({ op: "+", label: h.ticker, val: fmt(h.netDividends) })), total: T.netDividends } },
-    { label: "Total Return", value: money(T.totalReturn), feature: true, sub: `${pctTxt(T.totalReturnPct)} on net capital invested`,
-      badge: { text: pctTxt(T.totalReturnPct), cls: T.totalReturn >= 0 ? "pos" : "neg" }, valCls: cls(T.totalReturn),
-      calc: { title: "Total Return", rows: [
-        { op: "+", label: "Current Portfolio Value", val: fmt(T.portfolioValue) },
-        { op: "+", label: "Total Withdrawals", val: fmt(T.totalWithdrawals) },
-        { op: "+", label: "Net Dividends Received", val: fmt(T.netDividends) },
-        { op: "−", label: "Total Deposits", val: fmt(T.totalDeposits) },
-        { op: "−", label: "Total Fees", val: fmt(T.totalFees) }], total: T.totalReturn } },
+    { label: returnIsTotal ? "Total Return" : "Price Return", value: money(shownReturn), feature: true,
+      sub: tip(`${pctTxt(shownPct)} on net capital invested`, returnIsTotal ? "Total Return = Unrealized P/L + Realized P/L + Net Dividends − fees" : "Price Return = Unrealized P/L + Realized P/L − fees (excludes dividends)"),
+      badge: { text: pctTxt(shownPct), cls: shownReturn >= 0 ? "pos" : "neg" }, valCls: cls(shownReturn),
+      calc: { title: returnIsTotal ? "Total Return" : "Price Return", rows: [
+        { op: "+", label: "Unrealized P/L", val: signed(T.unrealizedPL) },
+        { op: "+", label: "Realized P/L", val: signed(T.realizedPL) },
+        ...(returnIsTotal ? [{ op: "+", label: "Net Dividends", val: signed(T.netDividends) }] : []),
+        { op: "−", label: "Total Fees", val: fmt(T.totalFees) }], total: shownReturn } },
     { label: "Unrealized / Realized P/L", value: `${signed(T.unrealizedPL)}`, valCls: cls(T.unrealizedPL), sub: `Realized: ${money(T.realizedPL)}`,
       calc: { title: "Profit / Loss", rows: [
-        { op: "+", label: "Unrealized P/L (market value − cost basis)", val: signed(T.unrealizedPL) },
-        { op: "+", label: "Realized P/L (closed positions, net of fees)", val: signed(T.realizedPL) }], total: T.unrealizedPL + T.realizedPL } },
+        { op: "+", label: "Unrealized P/L (current value − remaining cost basis)", val: signed(T.unrealizedPL) },
+        { op: "+", label: "Realized P/L (proceeds − cost basis of sold − fees)", val: signed(T.realizedPL) }], total: T.unrealizedPL + T.realizedPL } },
   ];
+}
+
+// Inline tooltip wrapper (uses native title for accessibility + an ⓘ marker).
+function tip(text, explain) {
+  return `${text} <span class="tip" tabindex="0" role="note" title="${explain.replace(/"/g, "&quot;")}" aria-label="${explain.replace(/"/g, "&quot;")}">ⓘ</span>`;
 }
 
 function warningsHTML() {
   const items = [];
-  RECONCILIATION.forEach((r) => {
-    const diff = r.calculated - r.actual;
-    if (Math.abs(diff) > 0.005) items.push({ level: "crit", html:
-      `<strong>Unreconciled balance — ${brokerName(r.brokerId)}.</strong> Calculated cash ${money(r.calculated)} vs actual ${money(r.actual)} (difference ${money(Math.abs(diff))}). Review for a missing fee or dividend entry.` });
+  // Reconciliation differences beyond tolerance
+  Object.keys(RECON_CHECKS).forEach((bid) => {
+    const chk = RECON_CHECKS[bid];
+    if (chk == null || chk.actual == null) return;
+    const calc = T.brokerCash[bid] || 0;
+    const diff = calc - (+chk.actual);
+    if (Math.abs(diff) > (SETTINGS.reconTolerance || 0)) {
+      items.push({ level: "crit", html: `<strong>${t("Cash difference")} — ${brokerName(bid)}.</strong> ${t("Calculated")} ${money(calc)} ${t("vs actual")} ${money(+chk.actual)} (${t("difference")} ${money(Math.abs(diff))}). ${t("Check for a missing fee, dividend or transfer.")}` });
+    }
   });
-  EXTRA_WARNINGS.forEach((w) => items.push({ level: w.level, html: w.text }));
+  // Missing current prices
+  if (T.missingPrices > 0) items.push({ level: "warn", html: `${T.missingPrices} ${t("holding(s) have no current price set — portfolio value uses cost as a placeholder.")}` });
+  // Stale live prices (fetched > 2 days ago)
+  const staleLive = T.holdings.filter((h) => h.priceSource === "live" && daysSince(h.priceFetchedAt) > 2);
+  if (staleLive.length) items.push({ level: "warn", html: `${t("Live prices are over 2 days old for")} ${staleLive.map((h) => h.ticker).join(", ")} — ${t("refresh them on the Portfolio page.")}` });
+  // Oversell flags
+  if (T.oversells && T.oversells.length) items.push({ level: "crit", html: `${t("A sell exceeds shares held for")}: ${[...new Set(T.oversells.map((o) => o.ticker))].join(", ")}. ${t("Use the oversell override if intentional.")}` });
+  // Stale FX
+  if (FX.updated && daysSince(FX.updated) > 30) items.push({ level: "warn", html: `${t("Exchange rates were last updated")} ${daysSince(FX.updated)} ${t("days ago — refresh them in Settings.")}` });
   return items.map((it) => `<div class="warn-card ${it.level === "crit" ? "crit" : ""}">
     <span class="w-ico">${it.level === "crit" ? "⚠️" : "ⓘ"}</span><div class="w-body">${it.html}</div></div>`).join("");
 }
@@ -410,13 +847,34 @@ function pagePortfolio() {
   const byBroker = donutHTML(groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.marketValue), "By broker", "");
   const byCcy = donutHTML(groupSum(T.holdings, (h) => h.currency, (h) => h.marketValue), "By currency", "");
 
+  const ccyOpts = Object.keys(FX.rates).map((c) => `<option>${c}</option>`).join("");
+  const brokerOpts = BROKERS.map((b) => `<option value="${b.id}">${b.name}</option>`).join("");
+  const holdingForm = BROKERS.length === 0
+    ? `<p class="muted">${t("Add a broker first (Brokers page), then you can add holdings.")}</p>`
+    : `<p class="muted" style="margin:-4px 0 12px">${t("Use this only for investments you owned before you started tracking in Investment Ledger. New purchases should be entered as Buy transactions.")}</p>
+      <form id="holdingForm" class="form" autocomplete="off">
+        <div class="form-grid">
+          <label>${t("Ticker")}<input name="ticker" placeholder="AAPL" required></label>
+          <label>${t("Company Name")}<input name="company" placeholder="Apple Inc."></label>
+          <label>${t("Broker")}<select name="brokerId" required>${brokerOpts}</select></label>
+          <label>${t("Market")}<input name="market" placeholder="NASDAQ"></label>
+          <label>${t("Currency")}<select name="currency">${ccyOpts}</select></label>
+          <label>${t("Shares")}<input type="number" step="any" name="shares" placeholder="0" required></label>
+          <label>${t("Avg Cost per share")}<input type="number" step="any" name="avgCost" placeholder="0.00" required></label>
+          <label>${t("FX rate to")} ${FX.base}<input type="number" step="any" name="openingFxRate" placeholder="${t("blank = use current")}"></label>
+        </div>
+        <div class="lookup-status muted" id="holdingLookup"></div>
+        <div class="form-actions"><button class="btn primary" type="submit">${t("Add Opening Holding")}</button></div>
+      </form>`;
+
   const html = `
     <section class="grid-2">
       ${panel("Holdings by Broker", byBroker)}
       ${panel("Holdings by Currency", byCcy)}
     </section>
-    ${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`)}
-    <footer class="page-foot muted">Toggle "Total Return" to include dividends. Click any holding number to see its breakdown in the next build.</footer>`;
+    ${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
+      T.holdings.length ? `<button class="btn" id="refreshPrices">⟳ ${t("Refresh live prices")}</button>` : "")}
+    ${panel("Add Opening Holding", holdingForm)}`;
 
   return { title: "Portfolio", subtitle: LANG === "zh"
       ? `${T.holdings.length} 个持仓，${BROKERS.length} 个券商 · ${money(T.portfolioValue)}`
@@ -436,6 +894,70 @@ function pagePortfolio() {
         ["#fBroker","#fMarket","#fCurrency","#fPL"].forEach((s) => ($(s).value = ""));
         apply();
       });
+      // Refresh ALL holdings from the market
+      const rp = $("#refreshPrices");
+      if (rp) rp.addEventListener("click", async () => {
+        if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
+        rp.disabled = true; rp.textContent = "… " + t("Fetching prices");
+        const tickers = [...new Set(T.holdings.map((h) => h.ticker))];
+        let ok = 0;
+        for (const tk of tickers) { if (await refreshLivePrice(tk)) ok++; }
+        saveStore(); render();
+        toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
+      });
+      // Delegated actions (survive table re-renders): live fetch, set price, delete
+      $("#holdingsBody").addEventListener("click", async (e) => {
+        const lbtn = e.target.closest("[data-live-holding]");
+        if (lbtn) {
+          if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
+          const tk = lbtn.dataset.liveHolding;
+          lbtn.classList.add("spin");
+          const ok = await refreshLivePrice(tk);
+          if (ok) { saveStore(); toast(`${tk} ${t("updated")}`); render(); }
+          else { lbtn.classList.remove("spin"); toast(`${t("Couldn't fetch")} ${tk} — ${t("check the symbol (e.g. AAPL, 1155.KL).")}`); }
+          return;
+        }
+        const pbtn = e.target.closest("[data-price-holding]");
+        if (pbtn) {
+          const [ticker, ccy] = pbtn.dataset.priceHolding.split("|");
+          const cur = CURRENT_PRICES[ticker];
+          const input = prompt(`${t("Current price per share for")} ${ticker} (${ccy}) — ${t("manual, not live")}`, cur ? cur.price : "");
+          if (input == null) return;
+          const price = parseFloat(input);
+          if (!(price > 0)) { toast(t("Enter a valid price.")); return; }
+          CURRENT_PRICES[ticker] = { price, currency: ccy, date: new Date().toISOString().slice(0, 10), source: "manual" };
+          saveStore(); toast(t("Price updated")); render();
+          return;
+        }
+        const dbtn = e.target.closest("[data-del-holding]");
+        if (!dbtn) return;
+        const [ticker, brokerId] = dbtn.dataset.delHolding.split("|");
+        const i = HOLDINGS.findIndex((h) => h.ticker === ticker && h.brokerId === brokerId);
+        if (i >= 0) {
+          if (!confirm(t("Remove this opening holding?"))) return;
+          HOLDINGS.splice(i, 1);
+          saveStore(); toast(t("Holding removed")); render();
+        } else {
+          toast(t("This holding comes from your transactions — delete the related transactions to remove it."));
+        }
+      });
+      // Add a holding
+      const hf = $("#holdingForm");
+      if (hf) {
+        const ht = hf.querySelector('[name="ticker"]');
+        if (ht) ht.addEventListener("change", () => autofillFromTicker(hf, $("#holdingLookup"), { fillPrice: false }));
+      }
+      if (hf) hf.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const d = Object.fromEntries(new FormData(e.target).entries());
+        HOLDINGS.push({
+          ticker: d.ticker.trim().toUpperCase(), company: (d.company || "").trim(),
+          brokerId: d.brokerId, market: (d.market || "").trim(), currency: d.currency,
+          shares: parseFloat(d.shares) || 0, avgCost: parseFloat(d.avgCost) || 0,
+          openingFxRate: d.openingFxRate ? parseFloat(d.openingFxRate) : null, netDividends: 0,
+        });
+        saveStore(); toast(t("Opening holding added")); render();
+      });
     } };
 }
 
@@ -448,44 +970,101 @@ function portfolioTable() {
     (!f.pl || (f.pl === "pos" ? h.unrealized >= 0 : h.unrealized < 0)));
   rows = rows.sort((a, b) => b.marketValue - a.marketValue);
   if (!rows.length) return emptyState(T.holdings.length
-    ? "No holdings match these filters."
-    : "No holdings yet — add them to HOLDINGS in data.js.");
-  const body = rows.map((h) => `<tr>
-    <td><div class="ticker">${h.ticker}</div><div class="sub">${h.company}</div></td>
-    <td><span class="chip">${brokerName(h.brokerId)}</span></td><td class="sub">${h.market}</td>
-    <td class="num">${fmt(h.shares, { maximumFractionDigits: 0 })}</td>
-    <td class="num">${h.currency} ${fmt(h.avgCost)}</td><td class="num">${h.currency} ${fmt(h.price)}</td>
-    <td class="num">${money(h.costBasis)}</td><td class="num">${money(h.marketValue)}</td>
-    <td class="num ${cls(h.unrealized)}">${signed(h.unrealized)}<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div></td>
-    <td class="num">${fmt(h.netDividends)}</td><td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td></tr>`).join("");
-  return table([{label:"Holding"},{label:"Broker"},{label:"Market"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Price",num:1},{label:"Cost Basis",num:1},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Net Div",num:1},{label:"Total Return",num:1}], body);
+    ? t("No holdings match these filters.")
+    : t("No holdings yet. Add a buy transaction to create your first holding."));
+  const pv = T.portfolioValue || 0;
+  const body = rows.map((h) => {
+    const alloc = pv ? (h.marketValue / pv) * 100 : 0;
+    const isLive = h.priceSource === "live";
+    const priceTag = isLive
+      ? `<div class="fx-note live-price">${t("Live")} · ${h.priceFetchedAt ? fmtDateTime(h.priceFetchedAt) : fmtDate(h.currentPriceDate)}</div>`
+      : `<div class="fx-note manual-price">${t("Manual price")} · ${fmtDate(h.currentPriceDate)}</div>`;
+    const priceCell = h.hasPrice
+      ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}${priceTag}`
+      : `<span class="muted">—</span><div class="fx-note">${t("No price set")}</div>`;
+    return `<tr>
+      <td><div class="ticker">${h.ticker}</div><div class="sub">${h.company || ""}</div></td>
+      <td><span class="chip">${brokerName(h.brokerId)}</span></td><td class="sub">${h.market || "—"}</td>
+      <td class="num">${fmt(h.shares, { maximumFractionDigits: 4 })}</td>
+      <td class="num">${money(h.avgCost)}<div class="fx-note">${t("avg, MYR")}</div></td>
+      <td class="num">${priceCell}</td>
+      <td class="num">${money(h.costBasis)}</td>
+      <td class="num">${money(h.marketValue)}</td>
+      <td class="num">${fmt(alloc, { maximumFractionDigits: 1 })}%</td>
+      <td class="num ${cls(h.unrealized)}">${signed(h.unrealized)}<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div></td>
+      <td class="num">${fmt(h.netDividends)}</td>
+      <td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td>
+      <td class="num">
+        <button class="icon-btn row-live" data-live-holding="${h.ticker}" title="${t("Fetch live price")}" aria-label="${t("Fetch live price")}">⟳</button>
+        <button class="icon-btn row-price" data-price-holding="${h.ticker}|${h.currentPriceCcy}" title="${t("Set current price")}" aria-label="${t("Set current price")}">＄</button>
+        <button class="icon-btn row-del" data-del-holding="${h.ticker}|${h.brokerId}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button></td></tr>`;
+  }).join("");
+  return table([{label:"Holding"},{label:"Broker"},{label:"Market"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},{label:"Cost Basis",num:1},{label:"Market Value",num:1},{label:"Allocation",num:1},{label:"Unrealized P/L",num:1},{label:"Net Div",num:1},{label:"Total Return",num:1},{label:"",num:1}], body);
 }
 
 /* =============================================================================
  * PAGE: TRANSACTIONS  (list + working Add Transaction form)
  * ========================================================================== */
 function pageTransactions() {
-  const html = `
-    <section class="panel" id="addTxPanel">
-      <div class="panel-head"><h2>Add Transaction</h2><button class="btn ghost" id="toggleForm">Hide</button></div>
-      ${addTxForm()}
-    </section>
-    ${panel("All Transactions", `<div id="txBody">${txTable()}</div>`, `<span class="badge subtle" id="txCount">${ALL_TRANSACTIONS.length} records</span>`)}`;
+  const formPanel = BROKERS.length === 0
+    ? `<section class="panel"><div class="panel-head"><h2>Add Transaction</h2></div>
+        <p class="muted">${t("Add a broker first (Brokers page), then you can record transactions.")}</p></section>`
+    : `<section class="panel" id="addTxPanel">
+        <div class="panel-head"><h2>Add Transaction</h2><button class="btn ghost" id="toggleForm">Hide</button></div>
+        ${addTxForm()}</section>`;
+  const html = `${formPanel}
+    ${panel("All Transactions", `<div id="txBody">${txTable()}</div>`, `<span class="badge subtle" id="txCount">${ALL_TRANSACTIONS.length} ${t("records")}</span>`)}`;
 
   return { title: "Transactions", subtitle: "Record deposits, trades, dividends, fees and exchanges.", html,
     mount() {
+      // Delete a transaction (delegated). Transactions are the source of truth.
+      $("#txBody").addEventListener("click", (e) => {
+        const b = e.target.closest("[data-del-tx]");
+        if (!b) return;
+        if (!confirm(t("Delete this transaction? Holdings and balances will be recalculated."))) return;
+        const i = ALL_TRANSACTIONS.findIndex((x) => x.id === b.dataset.delTx);
+        if (i >= 0) ALL_TRANSACTIONS.splice(i, 1);
+        saveStore(); toast(t("Transaction removed")); render();
+      });
       const form = $("#txForm");
+      if (!form) return;  // no brokers yet → no form to wire
       const typeSel = $("#txType");
+      const ccySel = $("#txCcy");
+      const show = (sel, on) => { const el = $(sel); if (el) el.style.display = on ? "" : "none"; };
       const syncFields = () => {
-        const t = typeSel.value;
-        const trade = (t === "Buy" || t === "Sell" || t === "DRIP / Reinvested");
-        const div = (t === "Dividend" || t === "DRIP / Reinvested");
-        $("#tradeFields").style.display = trade ? "" : "none";
-        $("#divFields").style.display = div ? "" : "none";
-        $("#dripNote").style.display = (t === "DRIP / Reinvested") ? "" : "none";
+        const tp = typeSel.value;
+        const trade = (tp === "Buy" || tp === "Sell");
+        show(".fld-ticker", trade || tp === "Dividend" || tp === "Stock split");
+        show(".fld-company", trade);
+        show(".fld-market", trade);
+        show(".fld-fee", trade);
+        show("#tradeFields", trade);
+        show(".fld-amount", !trade && tp !== "Stock split" && tp !== "Dividend");
+        show("#divFields", tp === "Dividend");
+        show("#splitFields", tp === "Stock split");
+        show("#transferFields", tp === "Transfer between brokers");
+        show("#oversellWrap", tp === "Sell");
+      };
+      const syncFx = () => {
+        const fxEl = $("#txFx");
+        if (fxEl && !fxEl.value) fxEl.value = FX.rates[ccySel.value] || 1;
       };
       typeSel.addEventListener("change", syncFields);
-      syncFields();
+      ccySel.addEventListener("change", () => { $("#txFx").value = FX.rates[ccySel.value] || 1; });
+      syncFields(); syncFx();
+
+      // Auto-lookup the stock when the ticker is entered (Buy/Sell/Dividend/Split)
+      const tickerEl = form.querySelector('[name="ticker"]');
+      const doLookup = () => {
+        const tp = typeSel.value;
+        if (tp === "Buy" || tp === "Sell" || tp === "Dividend" || tp === "Stock split") {
+          autofillFromTicker(form, $("#lookupStatus"), { fillPrice: tp === "Buy" || tp === "Sell" });
+        }
+      };
+      if (tickerEl) {
+        tickerEl.addEventListener("change", doLookup);
+        tickerEl.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); doLookup(); } });
+      }
 
       $("#toggleForm").addEventListener("click", () => {
         const f = $("#txForm");
@@ -496,115 +1075,167 @@ function pageTransactions() {
 
       form.addEventListener("submit", (e) => {
         e.preventDefault();
-        const data = Object.fromEntries(new FormData(form).entries());
-        const gross = parseFloat(data.amount) || 0;
-        const tax = parseFloat(data.tax) || 0;
-        const fee = parseFloat(data.fee) || 0;
-        const net = gross - tax - fee;
-        const rec = { id: "t" + (ALL_TRANSACTIONS.length + 1), date: data.date, brokerId: data.broker,
-          type: data.type, ticker: data.ticker || "—", qty: data.qty ? parseFloat(data.qty) : null,
-          price: data.price ? parseFloat(data.price) : null, gross, fee, tax, net, currency: data.currency,
-          exDate: data.exDate || undefined, payDate: data.payDate || undefined };
-        ALL_TRANSACTIONS.unshift(rec);
+        const d = Object.fromEntries(new FormData(form).entries());
+        const type = d.type, currency = d.currency;
+        const fxRate = d.fxRate ? parseFloat(d.fxRate) : (FX.rates[currency] || 1);
+        const fee = parseFloat(d.fee) || 0;
+        const tax = parseFloat(d.tax) || 0;
+        let qty = d.qty ? parseFloat(d.qty) : null;
+        let price = d.price ? parseFloat(d.price) : null;
+        let gross = parseFloat(d.amount) || 0;
+        if (type === "Dividend") gross = parseFloat(d.divGross) || 0;
+        const ticker = (d.ticker || "").trim().toUpperCase();
+        if (type === "Buy" || type === "Sell") gross = (qty || 0) * (price || 0);
+        if (type === "Stock split") qty = parseFloat(d.splitRatio) || 1;
 
-        // DRIP must create two linked records (dividend + buy).
-        if (data.type === "DRIP / Reinvested" && data.qty && data.price) {
-          const buy = { id: "t" + (ALL_TRANSACTIONS.length + 1), date: data.date, brokerId: data.broker,
-            type: "Buy", ticker: data.ticker || "—", qty: parseFloat(data.qty), price: parseFloat(data.price),
-            gross: parseFloat(data.qty) * parseFloat(data.price), fee: 0, tax: 0,
-            net: parseFloat(data.qty) * parseFloat(data.price), currency: data.currency, linkedId: rec.id };
-          ALL_TRANSACTIONS.unshift(buy);
-          toast("DRIP recorded as 2 linked records: dividend + buy");
-        } else {
-          toast(`${data.type} transaction added`);
+        // Prevent overselling unless overridden
+        if (type === "Sell" && !d.override) {
+          const held = availableShares(d.broker, ticker);
+          if ((qty || 0) > held + 1e-9) {
+            toast(`${t("You only hold")} ${fmt(held, { maximumFractionDigits: 4 })} ${t("shares — tick the override to sell more.")}`);
+            return;
+          }
         }
-        $("#txBody").innerHTML = txTable();
-        $("#txCount").textContent = `${ALL_TRANSACTIONS.length} records`;
-        form.reset();
-        syncFields();
+
+        ALL_TRANSACTIONS.unshift({ id: uid("t"), date: d.date, brokerId: d.broker, type,
+          ticker: ticker || "—", company: (d.company || "").trim(), market: (d.market || "").trim(),
+          currency, qty, price, gross, fee, tax, fxRate, myrEquivalent: gross * fxRate,
+          status: type === "Dividend" ? (d.status || "Received") : undefined,
+          exDate: d.exDate || undefined, payDate: d.payDate || undefined,
+          toBrokerId: type === "Transfer between brokers" ? d.toBroker : undefined,
+          override: !!d.override, notes: (d.notes || "").trim() || undefined });
+        saveStore(); toast(t("Transaction added")); render();
       });
     } };
 }
 
+function availableShares(brokerId, ticker) {
+  const h = T.holdings.find((x) => x.brokerId === brokerId && x.ticker === ticker);
+  return h ? h.shares : 0;
+}
+
 function addTxForm() {
   const brokerOpts = BROKERS.map((b) => `<option value="${b.id}">${b.name}</option>`).join("");
-  const typeOpts = ["Deposit","Withdrawal","Buy","Sell","Dividend","Dividend Tax","Fee","Currency Exchange","Stock Split","DRIP / Reinvested","Adjustment"]
-    .map((t) => `<option value="${t}">${t}</option>`).join("");
+  const types = ["Deposit","Withdrawal","Buy","Sell","Dividend","Fee","Tax withholding",
+    "Stock split","Transfer between brokers","Interest / cash yield","FX conversion"];
+  const typeOpts = types.map((tp) => `<option value="${tp}">${t(tp)}</option>`).join("");
   const ccyOpts = Object.keys(FX.rates).map((c) => `<option value="${c}">${c}</option>`).join("");
   return `<form id="txForm" class="form" autocomplete="off">
     <div class="form-grid">
-      <label>Date<input type="date" name="date" value="2026-06-21" required></label>
-      <label>Broker<select name="broker" required>${brokerOpts}</select></label>
-      <label>Transaction Type<select name="type" id="txType" required>${typeOpts}</select></label>
-      <label>Currency<select name="currency" required>${ccyOpts}</select></label>
-      <label>Ticker<input type="text" name="ticker" placeholder="e.g. AAPL (optional)"></label>
-      <label>Amount (gross)<input type="number" step="any" name="amount" placeholder="0.00" required></label>
-      <label>Fee<input type="number" step="any" name="fee" placeholder="0.00"></label>
+      <label>${t("Date")}<input type="date" name="date" value="${new Date().toISOString().slice(0,10)}" required></label>
+      <label>${t("Broker")}<select name="broker" required>${brokerOpts}</select></label>
+      <label>${t("Transaction Type")}<select name="type" id="txType" required>${typeOpts}</select></label>
+      <label>${t("Currency")}<select name="currency" id="txCcy" required>${ccyOpts}</select></label>
+      <label class="fld-ticker">${t("Ticker")}<input type="text" name="ticker" placeholder="AAPL"></label>
+      <label class="fld-company">${t("Company Name")}<input type="text" name="company" placeholder="${t("optional")}"></label>
+      <label class="fld-market">${t("Market")}<input type="text" name="market" placeholder="NASDAQ"></label>
+      <label class="fld-amount">${t("Amount (gross)")}<input type="number" step="any" name="amount" placeholder="0.00"></label>
+      <label class="fld-fee">${t("Fee")}<input type="number" step="any" name="fee" placeholder="0.00"></label>
+      <label>${t("FX rate to")} ${FX.base}<input type="number" step="any" name="fxRate" id="txFx" placeholder="1.0"></label>
     </div>
+    <div class="lookup-status muted" id="lookupStatus"></div>
     <div class="form-grid" id="tradeFields">
-      <label>Quantity<input type="number" step="any" name="qty" placeholder="0"></label>
-      <label>Price / Share<input type="number" step="any" name="price" placeholder="0.00"></label>
+      <label>${t("Quantity / Shares")}<input type="number" step="any" name="qty" placeholder="0"></label>
+      <label>${t("Price / Share")}<input type="number" step="any" name="price" placeholder="0.00"></label>
     </div>
     <div class="form-grid" id="divFields">
-      <label>Ex-dividend Date<input type="date" name="exDate"></label>
-      <label>Payment Date<input type="date" name="payDate"></label>
-      <label>Withholding Tax<input type="number" step="any" name="tax" placeholder="0.00"></label>
+      <label>${t("Gross dividend")}<input type="number" step="any" name="divGross" placeholder="0.00"></label>
+      <label>${t("Withholding Tax")}<input type="number" step="any" name="tax" placeholder="0.00"></label>
+      <label>${t("Ex-dividend Date")}<input type="date" name="exDate"></label>
+      <label>${t("Payment Date")}<input type="date" name="payDate"></label>
+      <label>${t("Status")}<select name="status"><option value="Received">${t("Received")}</option><option value="Expected">${t("Expected")}</option></select></label>
     </div>
-    <p class="form-note" id="dripNote">${LANG === "zh"
-      ? "ℹ️ 股息再投资会生成<strong>两条关联记录</strong>：收到的股息，以及用该股息金额买入（请在上方填写数量和价格）。"
-      : "ℹ️ A reinvested dividend creates <strong>two linked records</strong>: the dividend received, and a buy using the dividend amount (enter quantity &amp; price above)."}</p>
+    <div class="form-grid" id="splitFields">
+      <label>${t("Split ratio (new ÷ old)")}<input type="number" step="any" name="splitRatio" placeholder="2"></label>
+    </div>
+    <div class="form-grid" id="transferFields">
+      <label>${t("To broker")}<select name="toBroker">${brokerOpts}</select></label>
+    </div>
+    <label class="block">${t("Notes")}<input type="text" name="notes" placeholder="${t("optional")}"></label>
+    <label id="oversellWrap" class="check"><input type="checkbox" name="override"> ${t("Allow selling more shares than currently held (override)")}</label>
     <div class="form-actions">
-      <button type="submit" class="btn primary">Save Transaction</button>
-      <button type="reset" class="btn ghost">Clear</button>
+      <button type="submit" class="btn primary">${t("Save Transaction")}</button>
+      <button type="reset" class="btn ghost">${t("Clear")}</button>
     </div>
   </form>`;
 }
 
 function txTable() {
-  const rows = ALL_TRANSACTIONS.map((tx) => `<tr>
-    <td>${fmtDate(tx.date)}</td><td>${typeChip(tx.type)}</td><td class="ticker">${tx.ticker}</td>
-    <td class="sub">${brokerName(tx.brokerId)}</td>
-    <td class="num">${tx.qty != null ? fmt(tx.qty, { maximumFractionDigits: 4 }) : "—"}</td>
-    <td class="num">${tx.gross != null ? tx.currency + " " + fmt(tx.gross) : "—"}</td>
-    <td class="num">${tx.fee ? tx.currency + " " + fmt(tx.fee) : "—"}</td>
-    <td class="num">${tx.tax ? tx.currency + " " + fmt(tx.tax) : "—"}</td>
-    <td class="num">${money(toBase(tx.net, tx.currency))}</td></tr>`).join("");
-  return table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Qty",num:1},{label:"Gross",num:1},{label:"Fee",num:1},{label:"Tax",num:1},{label:"Net (MYR)",num:1}], rows);
+  if (!ALL_TRANSACTIONS.length) return emptyState(t("No transactions yet. Add your first deposit or investment to begin."));
+  const rows = ALL_TRANSACTIONS.map((tx) => {
+    const myr = tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * (tx.fxRate || FX.rates[tx.currency] || 1);
+    return `<tr>
+      <td>${fmtDate(tx.date)}</td><td>${typeChip(tx.type)}</td><td class="ticker">${tx.ticker || "—"}</td>
+      <td class="sub">${brokerName(tx.brokerId)}</td>
+      <td class="num">${tx.qty != null ? fmt(tx.qty, { maximumFractionDigits: 4 }) : "—"}</td>
+      <td class="num">${tx.gross != null ? tx.currency + " " + fmt(tx.gross) : "—"}</td>
+      <td class="num">${tx.fee ? tx.currency + " " + fmt(tx.fee) : "—"}</td>
+      <td class="num">${tx.fxRate ? fmt(tx.fxRate, { maximumFractionDigits: 4 }) : "—"}</td>
+      <td class="num">${money(myr)}</td>
+      <td class="num"><button class="icon-btn row-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button></td></tr>`;
+  }).join("");
+  return table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Qty",num:1},{label:"Gross",num:1},{label:"Fee",num:1},{label:"FX Rate",num:1},{label:"MYR",num:1},{label:"",num:1}], rows);
 }
 
 /* =============================================================================
  * PAGE: CASH LEDGER  (+ reconciliation)
  * ========================================================================== */
 function pageCash() {
-  const rows = CASH_LEDGER.map((c) => `<tr>
-    <td>${fmtDate(c.date)}</td><td class="sub">${brokerName(c.brokerId)}</td><td>${typeChip(c.type)}</td>
-    <td class="num">${fmt(c.amount)}</td><td>${c.currency}</td>
-    <td class="num">${c.currency !== FX.base ? FX.rates[c.currency] : "1.00"}</td>
-    <td class="num">${money(toBase(c.amount, c.currency))}</td></tr>`).join("");
+  const cashTypes = ["Deposit", "Withdrawal", "Interest / cash yield", "Fee", "Tax withholding", "Transfer between brokers"];
+  const cashTx = ALL_TRANSACTIONS.filter((x) => cashTypes.includes(x.type) || (x.type === "Dividend" && x.status !== "Expected"));
+  const rows = cashTx.map((c) => {
+    const myr = c.myrEquivalent != null ? c.myrEquivalent : (+c.gross || 0) * (c.fxRate || FX.rates[c.currency] || 1);
+    return `<tr><td>${fmtDate(c.date)}</td><td class="sub">${brokerName(c.brokerId)}</td><td>${typeChip(c.type)}</td>
+      <td class="num">${fmt(c.gross)}</td><td>${c.currency}</td>
+      <td class="num">${c.fxRate ? fmt(c.fxRate, { maximumFractionDigits: 4 }) : "1.00"}</td>
+      <td class="num">${money(myr)}</td></tr>`;
+  }).join("");
 
   const summary = `<div class="mini-cards">
     ${miniCard("Total Deposits", money(T.totalDeposits))}
     ${miniCard("Total Withdrawals", money(T.totalWithdrawals))}
     ${miniCard("Net Cash Added", money(T.netCapitalInvested), cls(T.netCapitalInvested))}</div>`;
 
-  const recRows = RECONCILIATION.map((r) => {
-    const diff = r.calculated - r.actual;
-    const ok = Math.abs(diff) < 0.005;
-    return `<tr><td>${brokerName(r.brokerId)}</td>
-      <td class="num">${money(r.calculated)}</td><td class="num">${money(r.actual)}</td>
-      <td class="num ${ok ? "" : "neg"}">${signed(diff)}</td>
-      <td>${ok ? `<span class="badge pos">Reconciled</span>` : `<span class="badge neg">Unreconciled</span>`}</td></tr>`;
+  const recRows = BROKERS.map((b) => {
+    const calc = T.brokerCash[b.id] || 0;
+    const chk = RECON_CHECKS[b.id];
+    const hasActual = chk && chk.actual != null;
+    const diff = hasActual ? calc - (+chk.actual) : null;
+    let status = t("Not checked"), scls = "subtle";
+    if (hasActual) {
+      if (Math.abs(diff) < 0.005) { status = t("Matched"); scls = "pos"; }
+      else if (Math.abs(diff) <= (SETTINGS.reconTolerance || 0)) { status = t("Small difference"); scls = "warn"; }
+      else { status = t("Needs review"); scls = "neg"; }
+    }
+    return `<tr><td>${b.name}</td><td class="num">${money(calc)}</td>
+      <td class="num">${hasActual ? money(+chk.actual) : "—"}${hasActual && chk.date ? `<div class="fx-note">${fmtDate(chk.date)}</div>` : ""}</td>
+      <td class="num ${hasActual && Math.abs(diff) > (SETTINGS.reconTolerance || 0) ? "neg" : ""}">${hasActual ? signed(diff) : "—"}</td>
+      <td><span class="badge ${scls}">${status}</span></td>
+      <td class="num"><button class="btn ghost" data-recon-broker="${b.id}">${t("Update")}</button></td></tr>`;
   }).join("");
 
   const html = `
     ${summary}
-    ${panel("Cash Ledger — Deposits & Withdrawals", table(
+    ${panel("Cash Movements", table(
       [{label:"Date"},{label:"Broker"},{label:"Type"},{label:"Amount",num:1},{label:"Currency"},{label:"FX Rate",num:1},{label:"Amount in MYR",num:1}], rows))}
     ${panel("Broker Cash Reconciliation", table(
-      [{label:"Broker"},{label:"Calculated Balance",num:1},{label:"Actual Balance",num:1},{label:"Difference",num:1},{label:"Status"}], recRows),
-      `<span class="badge subtle">Deposits − Buys − Fees + Sells + Net Div − Withdrawals</span>`)}
+      [{label:"Broker"},{label:"Calculated Balance",num:1},{label:"Actual Balance",num:1},{label:"Difference",num:1},{label:"Status"},{label:"",num:1}], recRows),
+      `<span class="badge subtle">${t("Calculated = Deposits − Buys − Fees + Sells + Net Dividends − Withdrawals")}</span>`)}
     <section class="warn-wrap">${warningsHTML()}</section>`;
-  return { title: "Cash Ledger", subtitle: "How much cash you actually put into each investment app.", html };
+  return { title: "Cash Ledger", subtitle: "How much cash you actually put into each investment app.", html,
+    mount() {
+      $$("[data-recon-broker]").forEach((btn) => btn.addEventListener("click", () => {
+        const id = btn.dataset.reconBroker;
+        const chk = RECON_CHECKS[id] || {};
+        const a = prompt(`${t("Actual cash balance for")} ${brokerName(id)} (${FX.base})`, chk.actual != null ? chk.actual : "");
+        if (a == null) return;
+        const actual = parseFloat(a);
+        if (isNaN(actual)) { toast(t("Enter a valid number.")); return; }
+        const note = prompt(t("Note (optional)"), chk.note || "") || "";
+        RECON_CHECKS[id] = { actual, date: new Date().toISOString().slice(0, 10), note };
+        saveStore(); toast(t("Reconciliation saved")); render();
+      }));
+    } };
 }
 
 function miniCard(label, value, valCls = "") {
@@ -615,37 +1246,41 @@ function miniCard(label, value, valCls = "") {
  * PAGE: DIVIDENDS
  * ========================================================================== */
 function pageDividends() {
-  const upcomingRows = UPCOMING_DIVIDENDS.map((d) => `<tr>
-    <td><div class="ticker">${d.ticker}</div><div class="sub">${d.company}</div></td>
-    <td class="sub">${brokerName(d.brokerId)}</td><td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
-    <td class="num">${d.currency} ${fmt(d.expectedNet)}</td><td>${statusBadge(d.status)}</td></tr>`).join("");
+  const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend");
+  const received = divs.filter((d) => d.status !== "Expected");
+  const expected = divs.filter((d) => d.status === "Expected").sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
 
-  const histRows = DIVIDEND_HISTORY.map((d) => {
-    const net = d.gross - d.tax - d.fees;
+  const upcomingRows = expected.map((d) => {
+    const net = (+d.gross || 0) - (+d.tax || 0);
+    const du = daysUntil(d.payDate);
     return `<tr><td class="ticker">${d.ticker}</td><td class="sub">${brokerName(d.brokerId)}</td>
       <td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
-      <td class="num">${d.currency} ${fmt(d.gross)}</td><td class="num neg">${d.tax ? "−" + fmt(d.tax) : "0.00"}</td>
-      <td class="num">${fmt(d.fees)}</td><td class="num pos">${d.currency} ${fmt(net)}</td>
-      <td class="num">${money(toBase(net, d.currency))}</td><td>${statusBadge(d.status)}</td></tr>`;
+      <td class="num">${d.payDate ? (du >= 0 ? du + " " + t("days") : t("overdue")) : "—"}</td>
+      <td class="num">${d.currency} ${fmt(net)}</td><td>${statusBadge("Expected")}</td></tr>`;
   }).join("");
 
-  const grossBase = DIVIDEND_HISTORY.reduce((s, d) => s + toBase(d.gross, d.currency), 0);
-  const taxBase = DIVIDEND_HISTORY.reduce((s, d) => s + toBase(d.tax, d.currency), 0);
-  const netBase = grossBase - taxBase;
-  const taxByCountry = groupSum(DIVIDEND_HISTORY, (d) => countryForTicker(d.ticker), (d) => toBase(d.tax, d.currency));
+  const histRows = received.sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1)).map((d) => {
+    const net = (+d.gross || 0) - (+d.tax || 0);
+    const fx = d.fxRate || FX.rates[d.currency] || 1;
+    return `<tr><td class="ticker">${d.ticker}</td><td class="sub">${brokerName(d.brokerId)}</td>
+      <td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate || d.date)}</td>
+      <td class="num">${d.currency} ${fmt(d.gross)}</td><td class="num neg">${d.tax ? "−" + fmt(d.tax) : "0.00"}</td>
+      <td class="num pos">${d.currency} ${fmt(net)}</td>
+      <td class="num">${money(net * fx)}</td><td>${statusBadge("Received")}</td></tr>`;
+  }).join("");
 
-  const taxRows = taxByCountry.map((c) => `<tr><td>${c.label}</td><td class="num neg">${money(c.value)}</td></tr>`).join("");
+  const grossBase = received.reduce((s, d) => s + (+d.gross || 0) * (d.fxRate || FX.rates[d.currency] || 1), 0);
+  const taxBase = received.reduce((s, d) => s + (+d.tax || 0) * (d.fxRate || FX.rates[d.currency] || 1), 0);
+  const taxByCountry = groupSum(received, (d) => countryForTicker(d.ticker), (d) => (+d.tax || 0) * (d.fxRate || FX.rates[d.currency] || 1));
+  const taxRows = taxByCountry.filter((c) => c.value > 0).map((c) => `<tr><td>${c.label}</td><td class="num neg">${money(c.value)}</td></tr>`).join("");
 
   const html = `
     <div class="mini-cards">
-      ${miniCard("Gross Dividends (YTD)", money(grossBase))}
+      ${miniCard("Gross Dividends", money(grossBase))}
       ${miniCard("Withholding Tax", money(taxBase), "neg")}
-      ${miniCard("Net Dividends", money(netBase), "pos")}</div>
-    <div class="info-card"><span class="w-ico">ⓘ</span><div class="w-body">${LANG === "zh"
-      ? `<strong>已确认与预估：</strong>标记为 <span class="badge warn">预估</span> 的条目是根据历史规律推算的，<strong>并未确认</strong> — 切勿将其视为确定的日期或金额。`
-      : `<strong>Confirmed vs estimated:</strong> rows marked <span class="badge warn">Estimated</span> are projected from historical patterns and are <strong>not confirmed</strong> — never treat them as guaranteed dates or amounts.`}</div></div>
-    ${panel("Upcoming Dividends", table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Expected Net",num:1},{label:"Status"}], upcomingRows))}
-    ${panel("Dividend History", table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Fees",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], histRows))}
+      ${miniCard("Net Dividends", money(grossBase - taxBase), "pos")}</div>
+    ${panel("Upcoming Dividends", table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], upcomingRows))}
+    ${panel("Dividend History", table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], histRows))}
     ${panel("Dividend Tax Paid by Country", table([{label:"Country"},{label:"Withholding Tax (MYR)",num:1}], taxRows))}`;
   return { title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html };
 }
@@ -661,7 +1296,10 @@ function pageReports() {
   const plByBroker = groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.totalReturn)
     .map((b) => `<tr><td>${b.label}</td><td class="num ${cls(b.value)}">${signed(b.value)}</td></tr>`).join("");
 
-  const divByYear = groupSum(DIVIDEND_HISTORY, (d) => d.payDate.slice(0, 4), (d) => toBase(d.gross - d.tax - d.fees, d.currency))
+  const divByYear = groupSum(
+    ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status !== "Expected"),
+    (d) => (d.payDate || d.date || "----").slice(0, 4),
+    (d) => ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1))
     .map((y) => `<tr><td>${y.label}</td><td class="num pos">${money(y.value)}</td></tr>`).join("");
 
   const feesByBroker = groupSum(ALL_TRANSACTIONS.filter((t) => t.fee), (t) => brokerName(t.brokerId), (t) => toBase(t.fee, t.currency))
@@ -687,7 +1325,7 @@ function pageReports() {
     </div>
     <section class="panel"><div class="panel-head"><h2>Export</h2></div>
       <div class="form-actions">
-        <button class="btn primary" id="expCash">⭳ Cash Ledger CSV</button>
+        <button class="btn" id="expCash">⭳ Cash Ledger CSV</button>
         <button class="btn" id="expTx">⭳ Transactions CSV</button>
         <button class="btn" id="expDiv">⭳ Dividends CSV</button>
       </div></section>`;
@@ -706,26 +1344,54 @@ function pageBrokers() {
   const cards = BROKERS.map((b) => {
     const holdings = T.holdings.filter((h) => h.brokerId === b.id);
     const value = holdings.reduce((s, h) => s + h.marketValue, 0);
-    const rec = RECONCILIATION.find((r) => r.brokerId === b.id);
-    const diff = rec ? rec.calculated - rec.actual : 0;
-    const ok = Math.abs(diff) < 0.005;
+    const calc = T.brokerCash[b.id] || 0;
+    const chk = RECON_CHECKS[b.id];
+    const hasActual = chk && chk.actual != null;
+    const diff = hasActual ? calc - (+chk.actual) : null;
+    const off = hasActual && Math.abs(diff) > (SETTINGS.reconTolerance || 0);
     return `<article class="broker-card">
       <div class="bc-head"><span class="brand-mark sm">${b.name.slice(0,2).toUpperCase()}</span>
-        <div><div class="bc-name">${b.name}</div><div class="sub">${b.country} · ${b.currency}</div></div>
-        ${ok ? `<span class="badge pos">Reconciled</span>` : `<span class="badge neg">Unreconciled</span>`}</div>
+        <div><div class="bc-name">${b.name}</div><div class="sub">${b.country || "—"} · ${b.currency}</div></div>
+        <button class="icon-btn bc-del" data-del-broker="${b.id}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button></div>
       <div class="bc-stats">
-        <div><span class="sub">Holdings</span><strong>${holdings.length}</strong></div>
-        <div><span class="sub">Market Value</span><strong>${money(value)}</strong></div>
-        <div><span class="sub">Cash (calc)</span><strong>${rec ? money(rec.calculated) : "—"}</strong></div>
-        <div><span class="sub">Difference</span><strong class="${ok ? "" : "neg"}">${rec ? signed(diff) : "—"}</strong></div>
+        <div><span class="sub">${t("Holdings")}</span><strong>${holdings.length}</strong></div>
+        <div><span class="sub">${t("Market Value")}</span><strong>${money(value)}</strong></div>
+        <div><span class="sub">${t("Cash (calc)")}</span><strong>${money(calc)}</strong></div>
+        <div><span class="sub">${t("Difference")}</span><strong class="${off ? "neg" : ""}">${hasActual ? signed(diff) : "—"}</strong></div>
       </div></article>`;
   }).join("");
-  const html = `${cards ? `<div class="broker-grid">${cards}</div>` : emptyState("No brokers yet — add them to BROKERS in data.js.")}
-    <section class="panel"><div class="panel-head"><h2>Add Broker</h2></div>
-      <p class="muted">Broker management form is wired in the Transactions/Settings flow for this build. Each broker keeps its own default currency and cash reconciliation.</p></section>`;
+
+  const brokerForm = `<form id="brokerForm" class="form" autocomplete="off">
+    <div class="form-grid">
+      <label>${t("Broker name")}<input name="name" placeholder="e.g. Rakuten Trade" required></label>
+      <label>${t("Country")}<input name="country" placeholder="e.g. Malaysia"></label>
+      <label>${t("Default currency")}<select name="currency">${Object.keys(FX.rates).map((c) => `<option>${c}</option>`).join("")}</select></label>
+    </div>
+    <div class="form-actions"><button class="btn primary" type="submit">${t("Add Broker")}</button></div>
+  </form>`;
+
+  const html = `${cards ? `<div class="broker-grid">${cards}</div>` : emptyState("No brokers yet — add your first one below.")}
+    ${panel("Add Broker", brokerForm)}`;
+
   return { title: "Brokers", subtitle: LANG === "zh"
       ? `已连接 ${BROKERS.length} 个投资平台。`
-      : `${BROKERS.length} investment apps connected.`, html };
+      : `${BROKERS.length} investment apps connected.`, html,
+    mount() {
+      $("#brokerForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const d = Object.fromEntries(new FormData(e.target).entries());
+        BROKERS.push({ id: uid("b"), name: d.name.trim(), country: (d.country || "").trim(), currency: d.currency });
+        saveStore(); toast(t("Broker added")); render();
+      });
+      $$("[data-del-broker]").forEach((btn) => btn.addEventListener("click", () => {
+        const id = btn.dataset.delBroker;
+        const used = HOLDINGS.some((h) => h.brokerId === id) || ALL_TRANSACTIONS.some((x) => x.brokerId === id) || CASH_LEDGER.some((c) => c.brokerId === id);
+        if (used && !confirm(t("This broker still has records. Remove it anyway?"))) return;
+        const i = BROKERS.findIndex((b) => b.id === id);
+        if (i >= 0) BROKERS.splice(i, 1);
+        saveStore(); toast(t("Broker removed")); render();
+      }));
+    } };
 }
 
 /* =============================================================================
@@ -733,10 +1399,13 @@ function pageBrokers() {
  * ========================================================================== */
 function pageSettings() {
   const html = `
-    ${panel("Profile", `<div class="setting-rows">
-      ${settingRow("Name", USER.name)}
-      ${settingRow("Email", USER.email)}
-      ${settingRow("Member since", fmtDate(USER.joined))}</div>`)}
+    ${panel("Profile", `<form id="profileForm" class="form" autocomplete="off">
+      <div class="form-grid">
+        <label>${t("Name")}<input name="name" value="${USER.name || ""}" placeholder="${t("Your name")}"></label>
+        <label>${t("Email")}<input name="email" type="email" value="${USER.email || ""}" placeholder="you@example.com"></label>
+      </div>
+      <div class="form-actions"><button class="btn primary" type="submit">${t("Save profile")}</button></div>
+    </form>`)}
 
     ${panel("Appearance", `
       <p class="muted" style="margin:-4px 0 14px">Choose your theme. Dark mode uses a true-black background; light mode is the default design.</p>
@@ -755,16 +1424,41 @@ function pageSettings() {
       ${settingRow("Base currency", `<select id="baseCcy">${Object.keys(FX.rates).map((c) => `<option ${c === FX.base ? "selected" : ""}>${c}</option>`).join("")}</select>`)}
       <p class="muted" style="margin:6px 0 0">All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.</p></div>`)}
 
-    ${panel("Exchange Rates", table([{label:"Currency"},{label:"Rate to MYR",num:1}],
-      Object.entries(FX.rates).map(([c, r]) => `<tr><td>${c}</td><td class="num">${fmt(r)}</td></tr>`).join("")))}
+    ${panel("Exchange Rates", `
+      <p class="muted" style="margin:-4px 0 12px">${t("Rates convert each currency to your base.")} ${t("Pull today's market rate or type your own.")}</p>
+      <div id="fxRows">${fxRows()}</div>
+      <div class="fx-add">
+        <input list="ccyList" id="newCcy" class="fx-input" placeholder="${t("Currency code")} (e.g. JPY)" maxlength="3" autocomplete="off" />
+        <datalist id="ccyList">${[...new Set(COMMON_CCY)].map((c) => `<option value="${c}"></option>`).join("")}</datalist>
+        <input type="number" step="any" id="newRate" class="fx-input" placeholder="${t("Rate to")} ${FX.base}" />
+        <button class="btn" id="addCcyBtn">${t("Add currency")}</button>
+      </div>
+      <div class="fx-foot">
+        <button class="btn" id="refreshFx">↻ ${t("Refresh live rates")}</button>
+        <span class="muted fx-status" id="fxStatus">${FX_STATUS}</span>
+      </div>`)}
 
-    ${panel("Data Import / Export", `<div class="form-actions">
-      <button class="btn primary" id="setExpCash">⭳ Export Cash CSV</button>
-      <button class="btn" id="setExpTx">⭳ Export Transactions CSV</button>
-      <button class="btn ghost">⭱ Import CSV</button></div>`)}
+    ${panel("Reconciliation", `<div class="setting-rows">
+      ${settingRow(t("Tolerance") + " (" + FX.base + ")", `<input type="number" step="any" id="reconTol" value="${SETTINGS.reconTolerance}" style="width:120px">`)}
+      <p class="muted" style="margin:6px 0 0">${t("Differences within this amount are treated as a small difference rather than needing review.")}</p></div>`)}
 
-    ${panel("Danger Zone", `<div class="form-actions">
-      <button class="btn danger" id="deleteAcct">Delete Account</button></div>`)}`;
+    ${panel("Data Safety & Backup", `
+      <p class="muted info-card" style="display:flex;gap:10px;margin:-2px 0 14px"><span class="w-ico">🔒</span><span>${t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.")}</span></p>
+      <div class="form-actions">
+        <button class="btn primary" id="expJson">⭳ ${t("Export full backup (JSON)")}</button>
+        <button class="btn" id="impJsonBtn">⭱ ${t("Import backup (JSON)")}</button>
+        <input type="file" id="impJsonFile" accept="application/json,.json" hidden>
+        <button class="btn" id="setExpTx">⭳ ${t("Export Transactions CSV")}</button>
+        <button class="btn" id="setExpCash">⭳ ${t("Export Cash CSV")}</button>
+        <button class="btn ghost" id="loadDemo">${t("Load demo data")}</button>
+      </div>`)}
+
+    ${panel("Danger Zone", `
+      <p class="muted" style="margin:-2px 0 12px">${t("Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.")}</p>
+      <div class="fx-add">
+        <input type="text" id="clearConfirm" class="fx-input" placeholder="${t("Type DELETE to confirm")}" autocomplete="off" style="width:220px">
+        <button class="btn danger" id="clearData">${t("Clear all data")}</button>
+      </div>`)}`;
 
   return { title: "Settings", subtitle: "Profile, currency, appearance and data.", html,
     mount() {
@@ -772,11 +1466,268 @@ function pageSettings() {
       $$("#themeOptions .theme-card").forEach((btn) => {
         btn.addEventListener("click", () => { setTheme(btn.dataset.themeChoice); reflectThemeChoice(); toast(`${btn.dataset.themeChoice === "dark" ? "Dark" : "Light"} theme applied`); });
       });
-      $("#baseCcy").addEventListener("change", (e) => toast(`Base currency change to ${e.target.value} — recalculation arrives in the next build`));
+      // Editable profile
+      $("#profileForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const d = Object.fromEntries(new FormData(e.target).entries());
+        USER.name = d.name; USER.email = d.email;
+        saveStore(); toast(t("Profile saved"));
+      });
+      // Change base currency — re-base every stored rate so values stay correct
+      $("#baseCcy").addEventListener("change", (e) => {
+        const nb = e.target.value;
+        const div = FX.rates[nb];
+        if (!div) { toast(t("Add a rate for that currency first.")); e.target.value = FX.base; return; }
+        Object.keys(FX.rates).forEach((c) => { FX.rates[c] = +(FX.rates[c] / div).toFixed(6); });
+        FX.base = nb; saveStore(); toast(`${t("Base currency set to")} ${nb}`); render();
+      });
+      // Reconciliation tolerance
+      $("#reconTol").addEventListener("change", (e) => {
+        const v = parseFloat(e.target.value);
+        SETTINGS.reconTolerance = isNaN(v) ? 0 : Math.abs(v);
+        saveStore(); toast(t("Tolerance saved"));
+      });
+      // CSV + JSON backup
       $("#setExpCash").addEventListener("click", exportCashCSV);
       $("#setExpTx").addEventListener("click", exportTxCSV);
-      $("#deleteAcct").addEventListener("click", () => toast("Account deletion is disabled in the sample app"));
+      $("#expJson").addEventListener("click", exportBackupJSON);
+      $("#impJsonBtn").addEventListener("click", () => $("#impJsonFile").click());
+      $("#impJsonFile").addEventListener("change", (e) => importBackupJSON(e.target.files[0]));
+      $("#loadDemo").addEventListener("click", () => {
+        if (ALL_TRANSACTIONS.length || BROKERS.length) {
+          if (!confirm(t("This will replace your current data with demo data. Continue?"))) return;
+        }
+        loadDemoData(); saveStore(); toast(t("Demo data loaded")); render();
+      });
+      // Clear all — requires typing DELETE
+      $("#clearData").addEventListener("click", () => {
+        const typed = ($("#clearConfirm").value || "").trim().toUpperCase();
+        if (typed !== "DELETE") { toast(t("Type DELETE to confirm.")); return; }
+        clearAllData(); toast(t("All data cleared")); render();
+      });
+      mountFxControls();
     } };
+}
+
+/* --- Data safety helpers --- */
+function clearAllData() {
+  [BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS].forEach((a) => (a.length = 0));
+  assignObj(CURRENT_PRICES, {}); assignObj(RECON_CHECKS, {});
+  resetStore(); recompute();
+}
+function exportBackupJSON() {
+  const blob = new Blob([JSON.stringify(snapshot(), null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `investment-ledger-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  toast(t("Backup downloaded"));
+}
+function validBackup(s) {
+  return s && typeof s === "object" && Array.isArray(s.BROKERS) && Array.isArray(s.ALL_TRANSACTIONS)
+    && s.FX && typeof s.FX === "object";
+}
+function importBackupJSON(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let s;
+    try { s = JSON.parse(reader.result); } catch (e) { toast(t("That file isn't valid JSON.")); return; }
+    if (!validBackup(s)) { toast(t("That doesn't look like an Investment Ledger backup.")); return; }
+    applySnapshot(s); saveStore(); toast(t("Backup restored")); render();
+  };
+  reader.readAsText(file);
+}
+/* Demo data (only loaded on demand from Settings). Shows the core flows:
+ * deposit → buy → manual price, dividend with withholding tax, multi-currency FX. */
+function loadDemoData() {
+  const today = new Date().toISOString().slice(0, 10);
+  applySnapshot({
+    BROKERS: [
+      { id: "rkt", name: "Rakuten Trade", country: "Malaysia", currency: "MYR" },
+      { id: "ibkr", name: "Interactive Brokers", country: "United States", currency: "USD" },
+    ],
+    HOLDINGS: [],
+    ALL_TRANSACTIONS: [
+      { id: uid("t"), date: "2025-01-06", brokerId: "rkt", type: "Deposit", ticker: "—", currency: "MYR", gross: 20000, fee: 0, fxRate: 1, myrEquivalent: 20000 },
+      { id: uid("t"), date: "2025-02-03", brokerId: "ibkr", type: "Deposit", ticker: "—", currency: "USD", gross: 4000, fee: 0, fxRate: 4.70, myrEquivalent: 18800 },
+      { id: uid("t"), date: "2025-01-10", brokerId: "rkt", type: "Buy", ticker: "1155.KL", company: "Malayan Banking", market: "Bursa Malaysia", currency: "MYR", qty: 1000, price: 9.20, gross: 9200, fee: 9, fxRate: 1, myrEquivalent: 9200 },
+      { id: uid("t"), date: "2025-02-05", brokerId: "ibkr", type: "Buy", ticker: "AAPL", company: "Apple Inc.", market: "NASDAQ", currency: "USD", qty: 15, price: 180, gross: 2700, fee: 1, fxRate: 4.70, myrEquivalent: 12690 },
+      { id: uid("t"), date: "2025-05-15", brokerId: "ibkr", type: "Dividend", ticker: "AAPL", currency: "USD", gross: 12, tax: 1.8, fxRate: 4.70, myrEquivalent: 56.4, status: "Received", payDate: "2025-05-15" },
+      { id: uid("t"), date: "2025-06-12", brokerId: "rkt", type: "Dividend", ticker: "1155.KL", currency: "MYR", gross: 600, tax: 0, fxRate: 1, myrEquivalent: 600, status: "Received", payDate: "2025-06-12" },
+    ],
+    UPCOMING_DIVIDENDS: [],
+    CURRENT_PRICES: {
+      "1155.KL": { price: 10.10, currency: "MYR", date: today },
+      "AAPL": { price: 215.40, currency: "USD", date: today },
+    },
+    RECON_CHECKS: {},
+    SETTINGS: { returnMode: "total", reconTolerance: 1 },
+    USER: { name: "Demo User", email: "", baseCurrency: "MYR", joined: "2025-01-06" },
+    FX: { base: "MYR", rates: { MYR: 1, USD: 4.70, SGD: 3.48 }, updated: today },
+  });
+}
+
+/* =============================================================================
+ * GUIDED TOUR — spotlight + pulsing highlight pointing at the exact element.
+ * ========================================================================== */
+let tourIdx = -1;
+let TOUR_SEEN = false;
+function tourSteps() {
+  return [
+    { route: "dashboard", selector: '.sidebar [data-page="brokers"]', fallback: '[data-page="brokers"]',
+      title: t("Step 1 · Add a broker"), text: t("Start here. Click Brokers to add your investment app — every transaction belongs to a broker.") },
+    { route: "brokers", selector: "#brokerForm",
+      title: t("Add your broker"), text: t("Enter the broker name and currency, then click Add Broker.") },
+    { route: "dashboard", selector: "#addTxBtn",
+      title: t("Step 2 · Record a deposit"), text: t("Use Add Transaction to record cash you put into a broker. Pick type Deposit.") },
+    { route: "transactions", selector: "#txType",
+      title: t("Pick the transaction type"), text: t("Choose the type here. Buy and Sell create and update your holdings automatically.") },
+    { route: "portfolio", selector: "#holdingsBody",
+      title: t("Step 3 · Set a current price"), text: t("After a Buy your holding appears here. Use the ＄ button to type a current price (manual, not live).") },
+    { route: "settings", selector: "#expJson",
+      title: t("Back up your data"), text: t("Your data lives only in this browser. Export a JSON backup from Settings regularly.") },
+  ];
+}
+const TOUR = { steps: [] };
+
+function startTour() {
+  TOUR.steps = tourSteps();
+  tourIdx = 0;
+  runTourStep();
+}
+function endTour(complete) {
+  document.querySelectorAll(".tour-backdrop,.tour-spot,.tour-ring,.tour-pop").forEach((e) => e.remove());
+  window.removeEventListener("resize", repositionTour);
+  window.removeEventListener("scroll", repositionTour, true);
+  document.removeEventListener("keydown", tourKey);
+  tourIdx = -1;
+  if (complete) { try { localStorage.setItem("il-tour-done", "1"); } catch (e) {} }
+}
+function tourKey(e) { if (e.key === "Escape") endTour(true); }
+function runTourStep() {
+  const step = TOUR.steps[tourIdx];
+  if (!step) { endTour(true); toast(t("Tour complete — you're ready to go.")); return; }
+  if (step.route && currentPageKey() !== step.route) {
+    location.hash = "#/" + step.route;
+    setTimeout(() => renderTourStep(step), 110);
+  } else {
+    renderTourStep(step);
+  }
+}
+function tourEl(cls) {
+  let el = document.querySelector("." + cls);
+  if (!el) { el = document.createElement("div"); el.className = cls; document.body.appendChild(el); }
+  return el;
+}
+function renderTourStep(step) {
+  tourEl("tour-backdrop");
+  tourEl("tour-spot");
+  tourEl("tour-ring");
+  const pop = tourEl("tour-pop");
+  positionTour(step);
+  const last = tourIdx === TOUR.steps.length - 1;
+  pop.innerHTML = `<h4>${step.title}</h4><p>${step.text}</p>
+    <div class="tour-actions">
+      <span class="tour-step-n">${tourIdx + 1} / ${TOUR.steps.length}</span>
+      <button class="btn ghost" id="tourSkip">${t("Skip")}</button>
+      ${tourIdx > 0 ? `<button class="btn" id="tourPrev">${t("Back")}</button>` : ""}
+      <button class="btn primary" id="tourNext">${last ? t("Done") : t("Next")}</button>
+    </div>`;
+  $("#tourSkip").onclick = () => endTour(true);
+  $("#tourNext").onclick = () => { tourIdx++; runTourStep(); };
+  const prev = $("#tourPrev");
+  if (prev) prev.onclick = () => { tourIdx = Math.max(0, tourIdx - 1); runTourStep(); };
+  window.addEventListener("resize", repositionTour);
+  window.addEventListener("scroll", repositionTour, true);
+  document.addEventListener("keydown", tourKey);
+}
+function positionTour(step) {
+  const target = document.querySelector(step.selector) || (step.fallback && document.querySelector(step.fallback));
+  const spot = document.querySelector(".tour-spot");
+  const ring = document.querySelector(".tour-ring");
+  const pop = document.querySelector(".tour-pop");
+  if (!spot || !pop) return;
+  const r = target ? target.getBoundingClientRect() : null;
+  if (!target || r.width === 0 || r.height === 0) {
+    spot.style.display = "none"; ring.style.display = "none";
+    pop.style.left = "50%"; pop.style.top = "90px"; pop.style.transform = "translateX(-50%)";
+    return;
+  }
+  if (target.scrollIntoView) target.scrollIntoView({ block: "center", behavior: "smooth" });
+  const pad = 6;
+  const box = { left: r.left - pad, top: r.top - pad, width: r.width + pad * 2, height: r.height + pad * 2 };
+  [spot, ring].forEach((el) => {
+    el.style.display = "";
+    el.style.left = box.left + "px"; el.style.top = box.top + "px";
+    el.style.width = box.width + "px"; el.style.height = box.height + "px";
+  });
+  pop.style.transform = "";
+  pop.style.left = Math.min(Math.max(8, r.left), window.innerWidth - 320) + "px";
+  const below = r.bottom + 12;
+  pop.style.top = (below + 150 < window.innerHeight ? below : Math.max(8, r.top - 158)) + "px";
+}
+function repositionTour() { if (tourIdx >= 0 && TOUR.steps[tourIdx]) positionTour(TOUR.steps[tourIdx]); }
+
+/* Build the editable exchange-rate rows. */
+function fxRows() {
+  return Object.entries(FX.rates).map(([c, r]) => `
+    <div class="fx-row">
+      <span class="fx-code">${c}</span>
+      ${c === FX.base
+        ? `<span class="fx-base-tag">1.00 · ${t("base")}</span>`
+        : `<input class="fx-input fx-rate" type="number" step="any" data-ccy="${c}" value="${r}" />
+           <button class="icon-btn fx-del" data-del="${c}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button>`}
+    </div>`).join("");
+}
+
+/* Wire the exchange-rate controls: edit, delete, add (with live auto-fill), refresh. */
+function mountFxControls() {
+  // Edit an existing rate
+  $$(".fx-rate").forEach((inp) => inp.addEventListener("change", (e) => {
+    const v = parseFloat(e.target.value);
+    if (v > 0) { FX.rates[e.target.dataset.ccy] = v; saveStore(); }
+  }));
+  // Delete a currency
+  $$(".fx-del").forEach((btn) => btn.addEventListener("click", () => {
+    const c = btn.dataset.del;
+    delete FX.rates[c]; saveStore(); render();
+  }));
+  // Auto-fill today's rate when a currency code is chosen
+  $("#newCcy").addEventListener("change", async () => {
+    const code = $("#newCcy").value.trim().toUpperCase();
+    if (code.length !== 3 || code === FX.base || FX.rates[code]) return;
+    $("#newRate").placeholder = t("Fetching…");
+    const d = await fetchRatesAgainstBase(FX.base);
+    if (d && d.rates[code]) $("#newRate").value = perBaseToRate(d.rates[code]);
+    $("#newRate").placeholder = `${t("Rate to")} ${FX.base}`;
+  });
+  // Add the currency
+  $("#addCcyBtn").addEventListener("click", () => {
+    const code = $("#newCcy").value.trim().toUpperCase();
+    const rate = parseFloat($("#newRate").value);
+    if (code.length !== 3) { toast(t("Enter a 3-letter currency code.")); return; }
+    if (!(rate > 0)) { toast(t("Enter a valid rate.")); return; }
+    FX.rates[code] = rate; saveStore(); render();
+    toast(`${code} ${t("added")}`);
+  });
+  // Refresh all rates from the market
+  $("#refreshFx").addEventListener("click", async () => {
+    const btn = $("#refreshFx");
+    btn.disabled = true; FX_STATUS = t("Fetching live rates…"); $("#fxStatus").textContent = FX_STATUS;
+    const d = await fetchRatesAgainstBase(FX.base);
+    if (!d) { FX_STATUS = t("Couldn't reach the rate service — check your connection."); $("#fxStatus").textContent = FX_STATUS; btn.disabled = false; return; }
+    let updated = 0;
+    Object.keys(FX.rates).forEach((c) => {
+      if (c === FX.base) return;
+      const rate = perBaseToRate(d.rates[c]);
+      if (rate) { FX.rates[c] = rate; updated++; }
+    });
+    FX.updated = new Date().toISOString();
+    saveStore();
+    FX_STATUS = `${t("Live rates as of")} ${d.date} · ${d.source} · ${updated} ${t("updated")}`;
+    render();
+  });
 }
 function settingRow(label, value) {
   return `<div class="setting-row"><span class="sr-label">${label}</span><span class="sr-value">${value}</span></div>`;
@@ -839,19 +1790,23 @@ function downloadCSV(filename, header, lines) {
   toast(filename + " exported");
 }
 function exportCashCSV() {
+  const cashTypes = ["Deposit", "Withdrawal", "Interest / cash yield", "Fee", "Tax withholding", "Transfer between brokers"];
+  const rows = ALL_TRANSACTIONS.filter((x) => cashTypes.includes(x.type) || (x.type === "Dividend" && x.status !== "Expected"));
   downloadCSV("investment-ledger-cash.csv",
-    ["Date","Broker","Type","Amount","Currency","Exchange Rate","Amount in " + FX.base],
-    CASH_LEDGER.map((c) => [c.date, brokerName(c.brokerId), c.type, c.amount, c.currency, FX.rates[c.currency], toBase(c.amount, c.currency).toFixed(2)]));
+    ["Date","Broker","Type","Amount","Currency","FX Rate","Amount in " + FX.base],
+    rows.map((c) => [c.date, brokerName(c.brokerId), c.type, c.gross, c.currency, c.fxRate || FX.rates[c.currency] || 1, (c.myrEquivalent != null ? c.myrEquivalent : (+c.gross || 0) * (c.fxRate || 1)).toFixed(2)]));
 }
 function exportTxCSV() {
   downloadCSV("investment-ledger-transactions.csv",
-    ["Date","Broker","Type","Ticker","Quantity","Gross","Fee","Tax","Net","Currency","Net in " + FX.base],
-    ALL_TRANSACTIONS.map((t) => [t.date, brokerName(t.brokerId), t.type, t.ticker, t.qty ?? "", t.gross, t.fee, t.tax, t.net, t.currency, toBase(t.net, t.currency).toFixed(2)]));
+    ["Date","Broker","Type","Ticker","Quantity","Price","Gross","Fee","Tax","Currency","FX Rate","MYR Equivalent","Notes"],
+    ALL_TRANSACTIONS.map((x) => [x.date, brokerName(x.brokerId), x.type, x.ticker, x.qty ?? "", x.price ?? "", x.gross ?? "", x.fee ?? 0, x.tax ?? 0, x.currency, x.fxRate ?? "", (x.myrEquivalent != null ? x.myrEquivalent : "").toString(), (x.notes || "").replace(/"/g, "'")]));
 }
 function exportDivCSV() {
+  const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend");
   downloadCSV("investment-ledger-dividends.csv",
-    ["Ticker","Broker","Ex-Date","Payment","Gross","Tax","Fees","Net","Currency","Net in " + FX.base,"Status"],
-    DIVIDEND_HISTORY.map((d) => [d.ticker, brokerName(d.brokerId), d.exDate, d.payDate, d.gross, d.tax, d.fees, (d.gross - d.tax - d.fees).toFixed(2), d.currency, toBase(d.gross - d.tax - d.fees, d.currency).toFixed(2), d.status]));
+    ["Ticker","Broker","Ex-Date","Payment","Gross","Tax","Net","Currency","FX Rate","Net in " + FX.base,"Status"],
+    divs.map((d) => { const net = (+d.gross || 0) - (+d.tax || 0); const fx = d.fxRate || FX.rates[d.currency] || 1;
+      return [d.ticker, brokerName(d.brokerId), d.exDate || "", d.payDate || d.date, d.gross, d.tax || 0, net.toFixed(2), d.currency, fx, (net * fx).toFixed(2), d.status || "Received"]; }));
 }
 
 /* =============================================================================
@@ -917,8 +1872,10 @@ function render() {
  * INIT / WIRING
  * ========================================================================== */
 function updateLangBtn() {
-  // Button shows the language you'll switch TO.
-  $("#langBtn").textContent = LANG === "en" ? "CN" : "EN";
+  // Clearly labelled language selector: active language emphasised.
+  const el = $("#langBtn");
+  el.innerHTML = LANG === "en" ? `<b>EN</b> / 中文` : `EN / <b>中文</b>`;
+  el.setAttribute("aria-label", LANG === "en" ? "Language: English. Switch to Chinese" : "语言：中文。切换为英文");
 }
 
 function init() {
