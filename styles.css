@@ -136,7 +136,7 @@ a { color: inherit; text-decoration: none; }
 .topbar-title p { margin: 2px 0 0; font-size: 12.5px; }
 .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
-.content { padding: 22px 26px 90px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1180px; margin: 0 auto; }
+.content { padding: 22px 26px 90px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1320px; margin: 0 auto; align-self: center; }
 
 /* ===================== Buttons ===================== */
 /* Fixed height + line-height:1 so the button never changes size when the
@@ -627,6 +627,10 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 }
 
 .dash-footnote { font-size: 11.5px; margin: 2px 0 0; text-align: right; }
+
+/* Prices-as-of row (market-data freshness) — sits under the hero metrics, separate from "Last saved" */
+.dash-asof { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: -6px; font-size: 12.5px; }
+.dash-asof .btn.small { margin-left: auto; }
 
 /* Compact one-line empty state for dashboard list panels */
 .empty-line { padding: 6px 2px 2px; font-size: 13px; }

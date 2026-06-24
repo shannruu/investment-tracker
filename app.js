@@ -411,6 +411,13 @@ const ZH = {
   "No upcoming dividends.": "暂无即将派发的股息。",
   "No activity yet.": "暂无记录。",
   "No holdings yet — add a Buy to get started.": "暂无持仓 — 添加一笔买入即可开始。",
+  // Prices freshness + cash breakdown
+  "Prices as of": "价格截至", "Update prices": "更新价格", "No prices set yet": "尚未设置价格",
+  "Set prices": "设置价格", "No cash movements recorded yet": "暂无现金流水记录",
+  "Available Cash": "可用现金",
+  "Buys (incl. fees & tax)": "买入（含费用与税）", "Sells (net of fees)": "卖出（扣除费用）",
+  "Net dividends received": "已收净股息", "Standalone fees": "独立费用",
+  "FX revaluation of foreign cash": "外币现金的汇率重估",
   "Holdings": "持仓", "Principal Invested": "已投入本金", "Dividends YTD": "今年至今股息",
   "By market value": "按市值", "Calendar": "日历", "View all": "查看全部", "Recent Activity": "近期活动",
   "Top Holdings": "主要持仓", "Asset Allocation": "资产配置", "Upcoming Dividends": "即将派发股息",
@@ -1142,6 +1149,24 @@ function pageDashboard() {
     .filter((x) => x.type === "Dividend" && x.status !== "Expected" && (x.payDate || x.date || "").slice(0, 4) === yr)
     .reduce((s, d) => s + divNetMYR(d), 0);
 
+  // Cash flow components in MYR (at each transaction's FX) — for the "Available Cash" breakdown.
+  const txFx = (x) => (x.fxRate || FX.rates[x.currency] || 1);
+  const flowSum = (pred, amt) => ALL_TRANSACTIONS.filter(pred).reduce((s, x) => s + amt(x) * txFx(x), 0);
+  const cashFlow = {
+    deposits: flowSum((x) => x.type === "Deposit", (x) => +x.gross || 0),
+    withdrawals: flowSum((x) => x.type === "Withdrawal", (x) => +x.gross || 0),
+    buys: flowSum((x) => x.type === "Buy", (x) => (+x.gross || 0) + (+x.fee || 0) + (+x.tax || 0)),
+    sells: flowSum((x) => x.type === "Sell", (x) => (+x.gross || 0) - (+x.fee || 0) - (+x.tax || 0)),
+    divs: flowSum((x) => x.type === "Dividend" && x.status !== "Expected", (x) => (+x.gross || 0) - (+x.tax || 0)),
+    interest: flowSum((x) => x.type === "Interest / cash yield", (x) => +x.gross || 0),
+    fees: flowSum((x) => x.type === "Fee", (x) => +x.gross || 0),
+    taxes: flowSum((x) => x.type === "Tax withholding", (x) => +x.gross || 0),
+  };
+
+  // Latest "prices as of" date across priced holdings (market-data freshness, NOT the save time).
+  const priceDates = T.holdings.filter((h) => h.hasPrice && h.currentPriceDate).map((h) => h.currentPriceDate).sort();
+  const pricesAsOf = priceDates.length ? priceDates[priceDates.length - 1] : null;
+
   const holdingsRows = [...T.holdings].sort((a, b) => b.marketValue - a.marketValue).slice(0, 8).map((h) => `
     <tr><td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a><div class="sub">${h.company || ""}</div></td>
       <td><span class="chip">${brokerName(h.brokerId)}</span></td><td class="sub">${h.market || "—"}</td>
@@ -1182,7 +1207,28 @@ function pageDashboard() {
       { op: "+", label: "Realized P/L", val: signed(T.realizedPL) },
       ...(returnIsTotal ? [{ op: "+", label: "Net Dividends", val: signed(T.netDividends) }] : []),
       { op: "−", label: "Total Fees", val: fmt(T.totalFees) }], total: shownReturn },
-    cash: { title: "Available Cash", rows: BROKERS.map((b) => ({ op: "+", label: b.name, val: fmt(T.brokerCash[b.id] || 0) })), total: T.totalCash || 0 },
+    cash: (() => {
+      const cf = cashFlow;
+      const flow = cf.deposits - cf.withdrawals - cf.buys + cf.sells + cf.divs + cf.interest - cf.fees - cf.taxes;
+      const fxAdj = (T.totalCash || 0) - flow;
+      let rows = [
+        { on: cf.deposits, op: "+", label: "Deposits", val: fmt(cf.deposits) },
+        { on: cf.withdrawals, op: "−", label: "Withdrawals", val: fmt(cf.withdrawals) },
+        { on: cf.buys, op: "−", label: "Buys (incl. fees & tax)", val: fmt(cf.buys) },
+        { on: cf.sells, op: "+", label: "Sells (net of fees)", val: fmt(cf.sells) },
+        { on: cf.divs, op: "+", label: "Net dividends received", val: fmt(cf.divs) },
+        { on: cf.interest, op: "+", label: "Interest / cash yield", val: fmt(cf.interest) },
+        { on: cf.fees, op: "−", label: "Standalone fees", val: fmt(cf.fees) },
+        { on: cf.taxes, op: "−", label: "Tax withholding", val: fmt(cf.taxes) },
+        { on: Math.abs(fxAdj) > 0.005, op: fxAdj >= 0 ? "+" : "−", label: "FX revaluation of foreign cash", val: fmt(Math.abs(fxAdj)) },
+      ].filter((r) => r.on).map(({ op, label, val }) => ({ op, label, val }));
+      // Fallback so the breakdown is never blank: only brokers that actually hold cash, else a plain note.
+      if (!rows.length) rows = BROKERS
+        .filter((b) => Math.abs(T.brokerCash[b.id] || 0) > 0.005)
+        .map((b) => ({ op: "+", label: b.name, val: fmt(T.brokerCash[b.id] || 0) }));
+      if (!rows.length) rows = [{ op: "+", label: "No cash movements recorded yet", val: fmt(0) }];
+      return { title: "Available Cash", rows, total: T.totalCash || 0 };
+    })(),
     principal: { title: "Net Capital Invested", rows: [
       { op: "+", label: "Total Deposits", val: fmt(T.totalDeposits) },
       { op: "−", label: "Total Withdrawals", val: fmt(T.totalWithdrawals) }], total: T.netCapitalInvested },
@@ -1225,6 +1271,11 @@ function pageDashboard() {
   const html = `
     ${isEmpty ? onboardingHTML() : ""}
     ${metrics}
+    ${T.holdings.length ? `<div class="dash-asof">
+      ${pricesAsOf
+        ? `<span class="muted">${t("Prices as of")} ${fmtDate(pricesAsOf)}</span><button class="btn ghost small" id="dashUpdatePrices">↻ ${t("Update prices")}</button>`
+        : `<span class="muted">${t("No prices set yet")}</span><a class="btn ghost small" href="#/portfolio">${t("Set prices")} →</a>`}
+    </div>` : ""}
     <section class="warn-wrap">${warningsHTML()}</section>
     <section class="grid-2 dash-charts">
       ${panel("Portfolio Value Over Time", (() => {
@@ -1258,6 +1309,17 @@ function pageDashboard() {
         e.stopPropagation();   // don't trigger the P/L card's calc modal
         SETTINGS.returnMode = b.dataset.return; saveStore(); render();
       }));
+      // Update market prices for all holdings (separate from the data save time)
+      const upBtn = $("#dashUpdatePrices");
+      if (upBtn) upBtn.addEventListener("click", async () => {
+        if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
+        upBtn.disabled = true; upBtn.textContent = "… " + t("Fetching prices");
+        const tickers = [...new Set(T.holdings.map((h) => h.ticker))];
+        let ok = 0;
+        for (const tk of tickers) { if (await refreshLivePrice(tk)) ok++; }
+        saveStore(); render();
+        toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
+      });
       const st = $("#startTour");
       if (st) st.addEventListener("click", () => startTour());
       // Auto-launch the tour once for brand-new users
