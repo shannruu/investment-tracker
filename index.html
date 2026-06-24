@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Investment Ledger</title>
   <meta name="description" content="Track investments across multiple brokers in one place." />
-  <link rel="stylesheet" href="styles.css?v=36" />
+  <link rel="stylesheet" href="styles.css?v=38" />
 </head>
 <body>
   <div class="app">
 
-    <!-- ===================== SIDEBAR (desktop) ===================== -->
+    <!-- ===================== SIDEBAR (desktop) — 5-item primary nav ===================== -->
     <aside class="sidebar" id="sidebar">
       <div class="brand">
         <span class="brand-mark" aria-hidden="true">IL</span>
@@ -20,17 +20,9 @@
       <nav class="nav" aria-label="Primary">
         <a class="nav-item" href="#/dashboard" data-page="dashboard"><span class="ni-ico">▦</span><span data-i18n="Dashboard">Dashboard</span></a>
         <a class="nav-item" href="#/portfolio" data-page="portfolio"><span class="ni-ico">▤</span><span data-i18n="Portfolio">Portfolio</span></a>
-        <a class="nav-item" href="#/transactions" data-page="transactions"><span class="ni-ico">⇄</span><span data-i18n="Transactions">Transactions</span></a>
-        <a class="nav-item" href="#/cash" data-page="cash"><span class="ni-ico">▣</span><span data-i18n="Cash Ledger">Cash Ledger</span></a>
+        <a class="nav-item add-link" href="#/add" data-page="add"><span class="ni-ico">＋</span><span data-i18n="Add">Add</span></a>
         <a class="nav-item" href="#/dividends" data-page="dividends"><span class="ni-ico">◷</span><span data-i18n="Dividends">Dividends</span></a>
-        <a class="nav-item" href="#/reports" data-page="reports"><span class="ni-ico">▥</span><span data-i18n="Reports">Reports</span></a>
-
-        <div class="nav-sep"></div>
-        <a class="nav-item" href="#/brokers" data-page="brokers"><span class="ni-ico">▢</span><span data-i18n="Brokers">Brokers</span></a>
-
-        <div class="nav-sep"></div>
-        <a class="nav-item" href="#/settings" data-page="settings"><span class="ni-ico">⚙</span><span data-i18n="Settings">Settings</span></a>
-        <a class="nav-item" href="#/help" data-page="help"><span class="ni-ico">?</span><span data-i18n="Help">Help</span></a>
+        <button class="nav-item" id="moreBtnSide" type="button"><span class="ni-ico">⋯</span><span data-i18n="More">More</span></button>
       </nav>
 
       <div class="sidebar-foot">
@@ -42,14 +34,12 @@
     <main class="main">
       <!-- Topbar -->
       <header class="topbar">
-        <button class="icon-btn only-mobile" id="menuBtn" aria-label="Open menu">☰</button>
         <div class="topbar-title">
           <h1 id="pageTitle">Dashboard</h1>
           <p class="muted" id="pageSubtitle">Welcome back — here is your portfolio at a glance.</p>
         </div>
         <div class="topbar-actions">
           <button class="btn ghost" id="exportBtn"><span class="btn-ico">⭳</span><span data-i18n="Export CSV">Export CSV</span></button>
-          <button class="btn primary only-desktop" id="addTxBtn"><span class="btn-ico">+</span><span data-i18n="Add Transaction">Add Transaction</span></button>
           <button class="btn ghost" id="langBtn" title="切换语言 / Switch language">EN / 中文</button>
           <button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle dark / light">◐</button>
         </div>
@@ -61,14 +51,26 @@
     </main>
   </div>
 
-  <!-- ===== Mobile bottom nav ===== -->
+  <!-- ===== Mobile bottom nav — same 5 primary items ===== -->
   <nav class="bottom-nav" aria-label="Mobile">
     <a class="bn-item" href="#/dashboard" data-page="dashboard"><span>▦</span><span data-i18n="Dashboard">Dashboard</span></a>
     <a class="bn-item" href="#/portfolio" data-page="portfolio"><span>▤</span><span data-i18n="Portfolio">Portfolio</span></a>
     <a class="bn-item add" href="#/add" data-page="add"><span>＋</span><span data-i18n="Add">Add</span></a>
     <a class="bn-item" href="#/dividends" data-page="dividends"><span>◷</span><span data-i18n="Dividends">Dividends</span></a>
-    <a class="bn-item" href="#/more" id="moreBtn"><span>⋯</span><span data-i18n="More">More</span></a>
+    <button class="bn-item" id="moreBtn" type="button"><span>⋯</span><span data-i18n="More">More</span></button>
   </nav>
+
+  <!-- ===== "More" menu — same overlay on desktop and mobile ===== -->
+  <div class="sheet-backdrop" id="moreSheet" hidden>
+    <div class="more-sheet" role="dialog" aria-modal="true" aria-label="More">
+      <div class="more-head"><strong data-i18n="More">More</strong><button class="icon-btn" id="moreClose" aria-label="Close">✕</button></div>
+      <a class="more-item" href="#/records" data-page="records"><span class="ni-ico">⇄</span><span data-i18n="Records">Records</span><span class="more-sub" data-i18n="All transactions, cash & dividends">All transactions, cash &amp; dividends</span></a>
+      <a class="more-item" href="#/reports" data-page="reports"><span class="ni-ico">▥</span><span data-i18n="Reports">Reports</span><span class="more-sub" data-i18n="Portfolio, dividend, cash-flow, performance">Portfolio, dividend, cash-flow, performance</span></a>
+      <a class="more-item" href="#/brokers" data-page="brokers"><span class="ni-ico">▢</span><span data-i18n="Brokers">Brokers</span><span class="more-sub" data-i18n="Accounts & reconciliation">Accounts &amp; reconciliation</span></a>
+      <a class="more-item" href="#/settings" data-page="settings"><span class="ni-ico">⚙</span><span data-i18n="Settings">Settings</span><span class="more-sub" data-i18n="Currency, preferences, import & backup">Currency, preferences, import &amp; backup</span></a>
+      <a class="more-item" href="#/help" data-page="help"><span class="ni-ico">?</span><span data-i18n="Help">Help</span><span class="more-sub" data-i18n="Guides & FAQ">Guides &amp; FAQ</span></a>
+    </div>
+  </div>
 
   <!-- ===== Calculation breakdown modal ===== -->
   <div class="modal-backdrop" id="modal" hidden>
@@ -83,7 +85,7 @@
 
   <div class="toast" id="toast" hidden></div>
 
-  <script src="data.js?v=36"></script>
-  <script src="app.js?v=36"></script>
+  <script src="data.js?v=38"></script>
+  <script src="app.js?v=38"></script>
 </body>
 </html>

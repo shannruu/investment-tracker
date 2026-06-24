@@ -379,6 +379,35 @@ const ZH = {
   "Portfolio Value Over Time": "投资组合市值随时间变化", "incl. cash": "含现金",
   "Market value incl. cash, captured once per day.": "市值（含现金），每天记录一次。",
   "History builds automatically — one point per day as you use the app.": "历史会自动累积 — 您每天使用应用时记录一个数据点。",
+  // Refactor — 5-item nav, More sheet, Records, Add flow, dashboard hero
+  "Records": "记录", "More": "更多",
+  "All transactions, cash & dividends": "所有交易、现金与股息",
+  "Portfolio, dividend, cash-flow, performance": "投资组合、股息、现金流、业绩",
+  "Accounts & reconciliation": "账户与对账",
+  "Currency, preferences, import & backup": "货币、偏好、导入与备份",
+  "Guides & FAQ": "指南与常见问题",
+  "All": "全部", "Buy / Sell": "买入 / 卖出", "Cash": "现金", "FX": "外汇",
+  "records": "条记录", "Account": "账户", "Ticker / Detail": "代码 / 明细", "Amount (MYR)": "金额（MYR）",
+  "No records in this view yet.": "此视图暂无记录。",
+  "No transactions yet. Tap ＋ Add to record your first deposit or investment.": "暂无交易。点击 ＋ 添加，记录您的第一笔存款或投资。",
+  "fee": "费用", "Available Cash": "可用现金",
+  "What do you want to record?": "您想记录什么？", "Other record types": "其他记录类型",
+  "Pick a type, then fill only what's needed.": "先选择类型，然后只填写所需字段。",
+  "Pick what to record": "选择要记录的内容", "Change type": "更改类型", "Withdraw": "取款",
+  "Fees, taxes & details": "费用、税费与明细", "Go to Brokers": "前往券商",
+  "Add a broker first (More → Brokers), then you can record transactions.": "请先添加券商（更多 → 券商），然后才能记录交易。",
+  "Add a transaction": "添加交易", "Edit": "编辑", "Record a transaction": "记录一笔交易",
+  "All your transactions, cash and dividends in one ledger.": "所有交易、现金和股息集中在一个账本中。",
+  "Pick a type, then fill only what's needed.": "先选择类型，然后只填写所需字段。",
+  // Dashboard hero
+  "Net Worth": "净资产", "Total P/L": "总盈亏", "Price P/L": "价格盈亏", "how": "如何计算",
+  "Holdings": "持仓", "Principal Invested": "已投入本金", "Dividends YTD": "今年至今股息",
+  "By market value": "按市值", "Calendar": "日历", "View all": "查看全部", "Recent Activity": "近期活动",
+  "Top Holdings": "主要持仓", "Asset Allocation": "资产配置", "Upcoming Dividends": "即将派发股息",
+  // Tour (updated steps)
+  "Open More to reach Brokers — add your investment app first. Every transaction belongs to a broker.": "打开「更多」进入券商 — 请先添加您的投资平台。每笔交易都属于某个券商。",
+  "Tap Add to record cash you put into a broker. Pick type Deposit.": "点击「添加」记录您投入券商的现金，类型选择「存款」。",
+  "Choose a type first — then only the fields that type needs appear. Buy and Sell create and update your holdings automatically.": "先选择类型 — 然后只显示该类型所需的字段。买入和卖出会自动创建并更新您的持仓。",
   // Misc
   "Portfolio": "投资组合",
 };
@@ -1091,16 +1120,17 @@ function portfolioHealth() {
  * PAGE: DASHBOARD
  * ========================================================================== */
 function pageDashboard() {
-  const cards = dashboardCards();
-  const cardsHtml = cards.map((c, i) => `
-    <article class="card ${c.feature ? "feature" : ""}" data-card="${i}" tabindex="0" role="button" aria-label="${c.label}, show calculation">
-      <div class="c-label">${c.label}
-        ${c.badge ? `<span class="badge ${c.badge.cls}" style="margin-left:6px">${c.badge.text}</span>` : ""}
-        <span class="calc-hint">ⓘ how</span></div>
-      <div class="c-value ${c.valCls || ""}">${c.value}</div>
-      <div class="c-sub">${c.sub}</div></article>`).join("");
-
   const isEmpty = ALL_TRANSACTIONS.length === 0 && HOLDINGS.length === 0;
+
+  const netWorth = (T.portfolioValue || 0) + (T.totalCash || 0);
+  const returnIsTotal = SETTINGS.returnMode !== "price";
+  const shownReturn = returnIsTotal ? T.totalReturn : T.priceReturn;
+  const shownPct = T.netCapitalInvested ? (shownReturn / T.netCapitalInvested) * 100 : 0;
+  const up = shownReturn >= 0;
+  const yr = todayISO().slice(0, 4);
+  const divYTD = ALL_TRANSACTIONS
+    .filter((x) => x.type === "Dividend" && x.status !== "Expected" && (x.payDate || x.date || "").slice(0, 4) === yr)
+    .reduce((s, d) => s + divNetMYR(d), 0);
 
   const holdingsRows = [...T.holdings].sort((a, b) => b.marketValue - a.marketValue).slice(0, 8).map((h) => `
     <tr><td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a><div class="sub">${h.company || ""}</div></td>
@@ -1131,41 +1161,64 @@ function pageDashboard() {
     <button class="seg-btn ${SETTINGS.returnMode === "price" ? "on" : ""}" data-return="price">${t("Price return only")}</button>
     <button class="seg-btn ${SETTINGS.returnMode !== "price" ? "on" : ""}" data-return="total">${t("Total return")}</button></div>`;
 
+  // Calc breakdowns for the two hero figures (click to see "how").
+  const calcs = {
+    nw: { title: "Net Worth", rows: [
+      { op: "+", label: "Current Portfolio Value", val: fmt(T.portfolioValue) },
+      { op: "+", label: "Available cash (all brokers)", val: fmt(T.totalCash || 0) }], total: netWorth },
+    pl: { title: returnIsTotal ? "Total Return" : "Price Return", rows: [
+      { op: "+", label: "Unrealized P/L", val: signed(T.unrealizedPL) },
+      { op: "+", label: "Realized P/L", val: signed(T.realizedPL) },
+      ...(returnIsTotal ? [{ op: "+", label: "Net Dividends", val: signed(T.netDividends) }] : []),
+      { op: "−", label: "Total Fees", val: fmt(T.totalFees) }], total: shownReturn },
+  };
+
+  const hero = `<section class="hero">
+    <article class="hero-card net" data-card="nw" tabindex="0" role="button" aria-label="${t("Net Worth")}, show calculation">
+      <div class="hero-label">${t("Net Worth")} <span class="calc-hint">ⓘ ${t("how")}</span></div>
+      <div class="hero-value">${money(netWorth)}</div>
+      <div class="hero-sub muted">${t("Holdings")} ${money(T.portfolioValue)} · ${t("Cash")} ${money(T.totalCash || 0)}</div>
+    </article>
+    <article class="hero-card pl ${up ? "is-up" : "is-down"}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total P/L") : t("Price P/L")}, show calculation">
+      <div class="hero-label">${returnIsTotal ? t("Total P/L") : t("Price P/L")} <span class="calc-hint">ⓘ ${t("how")}</span></div>
+      <div class="hero-value ${cls(shownReturn)}">${up ? "▲" : "▼"} ${signed(shownReturn)}</div>
+      <div class="hero-sub ${cls(shownReturn)}">${pctTxt(shownPct)} · ${t("on net capital")}</div>
+    </article>
+  </section>`;
+
   const html = `
     ${isEmpty ? onboardingHTML() : ""}
-    <div class="quick-summary">
-      <span class="qs-item"><strong>${T.holdings.length}</strong> ${t("Holdings")}</span>
-      <span class="qs-item"><strong>${BROKERS.filter((b) => !b.archived).length}</strong> ${t("Accounts")}</span>
-      <span class="qs-item"><strong>${ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status === "Expected").length}</strong> ${t("Upcoming Dividends")}</span>
-      <span class="qs-item"><strong>${ALL_TRANSACTIONS.length}</strong> ${t("Transactions")}</span>
-    </div>
+    ${hero}
     <div class="dash-meta">
       <span class="muted">${LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet")}</span>
       ${toggle}
     </div>
-    <section class="cards">${cardsHtml}</section>
+    <div class="mini-cards dash-minis">
+      ${miniCard(t("Principal Invested"), money(T.netCapitalInvested))}
+      ${miniCard(t("Dividends YTD"), money(divYTD), divYTD ? "pos" : "")}
+      ${miniCard(t("Available Cash"), money(T.totalCash || 0))}
+    </div>
     <section class="warn-wrap">${warningsHTML()}</section>
-    ${insightsHTML()}
+    <section class="grid-2">
+      ${panel("Asset Allocation", donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), "Portfolio", money(T.portfolioValue).replace(".00","")), `<span class="badge subtle">${t("By market value")}</span>`)}
+      ${panel("Upcoming Dividends", table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}
+    </section>
+    ${panel("Recent Activity", table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Amount",num:1}], recentRows), `<a class="link" href="#/records">${t("All")} →</a>`)}
+    ${panel("Top Holdings", table(
+      [{label:"Holding"},{label:"Broker"},{label:"Market"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Net Div",num:1},{label:"Total Return",num:1}],
+      holdingsRows), `<a class="link" href="#/portfolio">${t("View all")} →</a>`)}
     ${T.holdings.length ? panel("Portfolio Value Over Time", (() => {
       const series = PV_HISTORY.map((p) => ({ month: p.date.slice(5), value: p.value }));
       return series.length >= 2
         ? `<div class="chart">${lineChartSVG(series)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Market value incl. cash, captured once per day.")}</p>`
         : emptyState(t("History builds automatically — one point per day as you use the app."));
     })(), `<span class="badge subtle">${t("incl. cash")}</span>`) : ""}
-    <section class="grid-2">
-      ${panel("Asset Allocation", donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), "Portfolio", money(T.portfolioValue).replace(".00","")), `<span class="badge subtle">By market value</span>`)}
-      ${panel("Upcoming Dividends", table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows), `<a class="link" href="#/dividends">Calendar →</a>`)}
-    </section>
-    ${panel("Top Holdings", table(
-      [{label:"Holding"},{label:"Broker"},{label:"Market"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Net Div",num:1},{label:"Total Return",num:1}],
-      holdingsRows), `<a class="link" href="#/portfolio">View all →</a>`)}
-    ${panel("Recent Transactions", table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Amount",num:1}], recentRows), `<a class="link" href="#/transactions">All →</a>`)}`;
+    ${insightsHTML()}`;
 
   return { title: "Dashboard", subtitle: "Welcome back — here is your portfolio at a glance.", html,
     mount() {
-      $$(".card[data-card]").forEach((el) => {
-        const i = +el.dataset.card;
-        const open = () => showCalc(cards[i].calc);
+      $$("[data-card]").forEach((el) => {
+        const open = () => showCalc(calcs[el.dataset.card]);
         el.addEventListener("click", open);
         el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
       });
@@ -1458,30 +1511,41 @@ function portfolioTable() {
  * ========================================================================== */
 let editingTxId = null;  // P0.1: id of the transaction currently being edited
 
-function pageTransactions() {
-  const editing = editingTxId ? ALL_TRANSACTIONS.find((x) => x.id === editingTxId) : null;
-  if (editingTxId && !editing) editingTxId = null;  // stale id guard
+/* =============================================================================
+ * PAGE: RECORDS — unified ledger (Transactions + Cash + Dividend history)
+ * ========================================================================== */
+let recordsTab = "all";   // all | buysell | cash | dividends | fx
+const RECORD_GROUPS = {
+  buysell: ["Buy", "Sell", "Stock split", "DRIP / Reinvested"],
+  cash: ["Deposit", "Withdrawal", "Fee", "Tax withholding", "Interest / cash yield", "Transfer between brokers"],
+  dividends: ["Dividend"],
+  fx: ["Currency Exchange"],
+};
+function recordMatchesTab(x, tab) {
+  if (tab === "all") return true;
+  return (RECORD_GROUPS[tab] || []).includes(x.type);
+}
 
-  const formPanel = BROKERS.length === 0
-    ? `<section class="panel"><div class="panel-head"><h2>Add Transaction</h2></div>
-        <p class="muted">${t("Add a broker first (Brokers page), then you can record transactions.")}</p></section>`
-    : `<section class="panel" id="addTxPanel">
-        <div class="panel-head"><h2>${editing ? t("Edit Transaction") : t("Add Transaction")}</h2>
-          ${editing ? `<button class="btn ghost" id="cancelEdit">${t("Cancel edit")}</button>` : `<button class="btn ghost" id="toggleForm">Hide</button>`}</div>
-        ${addTxForm(editing)}</section>`;
-  const html = `${formPanel}
-    ${panel("All Transactions", `<div id="txBody">${txTable()}</div>`, `<span class="badge subtle" id="txCount">${ALL_TRANSACTIONS.length} ${t("records")}</span>`)}`;
+function pageRecords() {
+  const tabs = [["all", "All"], ["buysell", "Buy / Sell"], ["cash", "Cash"], ["dividends", "Dividends"], ["fx", "FX"]];
+  const nav = `<div class="seg records-tabs" role="tablist">${tabs.map(([k, lbl]) =>
+    `<button class="seg-btn ${recordsTab === k ? "on" : ""}" data-rectab="${k}">${t(lbl)}</button>`).join("")}</div>`;
+  const list = ALL_TRANSACTIONS.filter((x) => recordMatchesTab(x, recordsTab));
+  const addBtn = BROKERS.length ? `<a class="btn primary" href="#/add">＋ ${t("Add")}</a>` : "";
+  const html = `${nav}
+    ${panel("Records", `<div id="recBody">${recordsTable(list)}</div>`, `<span class="badge subtle">${list.length} ${t("records")}</span> ${addBtn}`)}
+    ${recordsTab === "cash" ? cashExtrasHTML() : ""}`;
 
-  return { title: "Transactions", subtitle: "Record deposits, trades, dividends, fees and exchanges.", html,
+  return { title: "Records", subtitle: "All your transactions, cash and dividends in one ledger.", html,
     mount() {
-      // Delegated row actions: edit + delete. Transactions are the source of truth.
-      $("#txBody").addEventListener("click", (e) => {
+      $$("[data-rectab]").forEach((b) => b.addEventListener("click", () => { recordsTab = b.dataset.rectab; render(); }));
+      $("#recBody").addEventListener("click", (e) => {
         const ed = e.target.closest("[data-edit-tx]");
-        if (ed) { editingTxId = ed.dataset.editTx; render(); const p = $("#addTxPanel"); if (p) p.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+        if (ed) { editingTxId = ed.dataset.editTx; location.hash = "#/add"; return; }
         const b = e.target.closest("[data-del-tx]");
         if (!b) return;
         const tx = ALL_TRANSACTIONS.find((x) => x.id === b.dataset.delTx);
-        // F2: deleting a Buy that has later Sells of the same stock distorts realized P/L.
+        // Deleting a Buy that has later Sells of the same stock distorts realized P/L.
         const buyWithSells = tx && tx.type === "Buy" && ALL_TRANSACTIONS.some((x) =>
           x.type === "Sell" && x.brokerId === tx.brokerId && (x.ticker || "").toUpperCase() === (tx.ticker || "").toUpperCase());
         const msg = buyWithSells
@@ -1494,147 +1558,268 @@ function pageTransactions() {
         pruneOrphans();
         saveStore(); toast(t("Transaction removed")); render();
       });
-      const cancel = $("#cancelEdit");
-      if (cancel) cancel.addEventListener("click", () => { editingTxId = null; render(); });
-      const form = $("#txForm");
-      if (!form) return;  // no brokers yet → no form to wire
-      const typeSel = $("#txType");
-      const ccySel = $("#txCcy");
-      const show = (sel, on) => { const el = $(sel); if (el) el.style.display = on ? "" : "none"; };
-      const syncFields = () => {
-        const tp = typeSel.value;
-        const trade = (tp === "Buy" || tp === "Sell");
-        const fx = tp === "Currency Exchange";
-        show(".fld-ticker", trade || tp === "Dividend" || tp === "Stock split");
-        show(".fld-company", trade);
-        show(".fld-market", trade);
-        show(".fld-fee", trade || fx);
-        show("#tradeFields", trade);
-        show(".fld-amount", !trade && tp !== "Stock split" && tp !== "Dividend" && !fx);
-        show("#divFields", tp === "Dividend");
-        show("#splitFields", tp === "Stock split");
-        show("#transferFields", tp === "Transfer between brokers");
-        show("#fxFields", fx);
-        show("#oversellWrap", tp === "Sell");
-      };
-      // Live show the implied exchange rate from the From/To amounts the user types.
-      const fromAmt = form.querySelector('[name="fromAmount"]');
-      const toAmt = form.querySelector('[name="toAmount"]');
-      const toCcySel = form.querySelector('[name="toCurrency"]');
-      const impl = form.querySelector('[name="impliedRate"]');
-      const updateImplied = () => {
-        const f = parseFloat(fromAmt.value) || 0, tt = parseFloat(toAmt.value) || 0;
-        if (impl) impl.value = (f > 0 && tt > 0) ? `1 ${ccySel.value} = ${(tt / f).toFixed(6)} ${toCcySel.value}` : "—";
-      };
-      if (fromAmt && toAmt) {
-        [fromAmt, toAmt].forEach((el) => el.addEventListener("input", updateImplied));
-        if (toCcySel) toCcySel.addEventListener("change", updateImplied);
-        ccySel.addEventListener("change", updateImplied);
-        updateImplied();
-      }
-      const syncFx = () => {
-        const fxEl = $("#txFx");
-        if (fxEl && !fxEl.value) fxEl.value = FX.rates[ccySel.value] || 1;
-      };
-      typeSel.addEventListener("change", syncFields);
-      ccySel.addEventListener("change", () => { $("#txFx").value = FX.rates[ccySel.value] || 1; });
-      syncFields(); syncFx();
-
-      // Auto-lookup the stock when the ticker is entered (Buy/Sell/Dividend/Split)
-      const tickerEl = form.querySelector('[name="ticker"]');
-      const doLookup = () => {
-        const tp = typeSel.value;
-        if (tp === "Buy" || tp === "Sell" || tp === "Dividend" || tp === "Stock split") {
-          autofillFromTicker(form, $("#lookupStatus"), { fillPrice: tp === "Buy" || tp === "Sell" });
-        }
-      };
-      if (tickerEl) {
-        tickerEl.addEventListener("change", doLookup);
-        tickerEl.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); doLookup(); } });
-      }
-      attachAutocomplete(form, $("#lookupStatus"), { fillPrice: true });
-
-      $("#toggleForm").addEventListener("click", () => {
-        const f = $("#txForm");
-        const hidden = f.style.display === "none";
-        f.style.display = hidden ? "" : "none";
-        $("#toggleForm").textContent = hidden ? t("Hide") : t("Show");
-      });
-
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const d = Object.fromEntries(new FormData(form).entries());
-        const type = d.type, currency = d.currency;
-        const fxRate = d.fxRate ? parseFloat(d.fxRate) : (FX.rates[currency] || 1);
-        const fee = parseFloat(d.fee) || 0;
-        let tax = parseFloat(d.tax) || 0;                       // dividend withholding tax
-        if (type === "Buy" || type === "Sell") tax = parseFloat(d.tradeTax) || 0;  // trade taxes
-        let qty = d.qty ? parseFloat(d.qty) : null;
-        let price = d.price ? parseFloat(d.price) : null;
-        let gross = parseFloat(d.amount) || 0;
-        if (type === "Dividend") gross = parseFloat(d.divGross) || 0;
-        const ticker = (d.ticker || "").trim().toUpperCase();
-        if (type === "Buy" || type === "Sell") gross = (qty || 0) * (price || 0);
-        if (type === "Stock split") qty = parseFloat(d.splitRatio) || 1;
-
-        // --- Validation (P0 bug fix) ---
-        const bad = (msg) => { toast(msg); return true; };
-        if (type === "Buy" || type === "Sell") {
-          if (!ticker) return void bad(t("Enter a ticker."));
-          if (!(qty > 0)) return void bad(t("Enter a quantity greater than 0."));
-          if (!(price > 0)) return void bad(t("Enter a price greater than 0."));
-        } else if (type === "Dividend") {
-          if (!ticker) return void bad(t("Enter a ticker."));
-          if (!(gross > 0)) return void bad(t("Enter a gross dividend greater than 0."));
-        } else if (type === "Currency Exchange") {
-          /* validated below */
-        } else if (type === "Stock split") {
-          if (!(qty > 0)) return void bad(t("Enter a split ratio greater than 0."));
-        } else { // Deposit, Withdrawal, Fee, Tax withholding, Interest, Transfer
-          if (!(gross > 0)) return void bad(t("Enter an amount greater than 0."));
-          if (type === "Transfer between brokers" && d.toBroker === d.broker) return void bad(t("Choose a different destination broker."));
-        }
-
-        // Prevent overselling unless overridden — exclude the tx being edited (F1).
-        if (type === "Sell" && !d.override) {
-          const held = sharesHeldExcluding(d.broker, ticker, editingTxId);
-          if ((qty || 0) > held + 1e-9) return void bad(`${t("You only hold")} ${fmt(held, { maximumFractionDigits: 4 })} ${t("shares — tick the override to sell more.")}`);
-        }
-
-        // --- Currency Exchange specifics (P0.3) ---
-        let extra = {};
-        if (type === "Currency Exchange") {
-          const fromCurrency = currency;
-          const toCurrency = d.toCurrency;
-          const fromAmount = parseFloat(d.fromAmount) || 0;
-          const toAmount = parseFloat(d.toAmount) || 0;
-          if (!(fromAmount > 0)) return void bad(t("Enter an amount to convert."));
-          if (!(toAmount > 0)) return void bad(t("Enter the amount you received."));
-          if (!toCurrency || toCurrency === fromCurrency) return void bad(t("Choose a different destination currency."));
-          const exchangeRate = toAmount / fromAmount;  // implied To-per-From rate
-          gross = fromAmount;
-          extra = { fromCurrency, toCurrency, fromAmount, toAmount, exchangeRate };
-        }
-
-        const record = { id: editingTxId || uid("t"), date: d.date, brokerId: d.broker, type,
-          ticker: ticker || "—", company: (d.company || "").trim(), market: (d.market || "").trim(),
-          currency, qty, price, gross, fee, tax, fxRate, myrEquivalent: gross * fxRate,
-          status: type === "Dividend" ? (d.status || "Received") : undefined,
-          exDate: d.exDate || undefined, payDate: d.payDate || undefined,
-          toBrokerId: type === "Transfer between brokers" ? d.toBroker : undefined,
-          override: !!d.override, notes: (d.notes || "").trim() || undefined, ...extra };
-
-        if (editingTxId) {
-          const i = ALL_TRANSACTIONS.findIndex((x) => x.id === editingTxId);
-          if (i >= 0) ALL_TRANSACTIONS[i] = record; else ALL_TRANSACTIONS.unshift(record);
-          editingTxId = null;
-          saveStore(); toast(t("Transaction updated")); render();
-        } else {
-          ALL_TRANSACTIONS.unshift(record);
-          saveStore(); toast(t("Transaction added")); render();
-        }
-      });
+      if (recordsTab === "cash") mountCashExtras();
     } };
+}
+
+/* One unified ledger table: base-currency (MYR) primary, original currency noted. */
+function recordsTable(list) {
+  if (!ALL_TRANSACTIONS.length) return emptyState(t("No transactions yet. Tap ＋ Add to record your first deposit or investment."));
+  if (!list.length) return emptyState(t("No records in this view yet."));
+  const sorted = [...list].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  const rows = sorted.map((tx) => {
+    const fxr = tx.fxRate || FX.rates[tx.currency] || 1;
+    const myr = tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * fxr;
+    const isTrade = tx.type === "Buy" || tx.type === "Sell";
+    const detail = isTrade && tx.qty != null
+      ? `<div class="sub">${fmt(tx.qty, { maximumFractionDigits: 4 })} @ ${tx.currency} ${fmt(tx.price)}</div>` : "";
+    const orig = tx.type === "Currency Exchange"
+      ? `${tx.currency} ${fmt(tx.gross || 0)} → ${tx.toCurrency || ""} ${fmt(tx.toAmount || 0)}`
+      : `${tx.currency} ${fmt(tx.gross || 0)}${tx.fee ? ` · ${t("fee")} ${fmt(tx.fee)}` : ""}`;
+    return `<tr>
+      <td>${fmtDate(tx.date)}</td>
+      <td>${typeChip(tx.type)}</td>
+      <td class="sub">${brokerName(tx.brokerId)}</td>
+      <td class="ticker">${tx.ticker && tx.ticker !== "—" ? tx.ticker : "—"}${detail}</td>
+      <td class="num">${money(myr)}<div class="fx-note">${orig}</div></td>
+      <td class="num">
+        <button class="icon-btn row-edit" data-edit-tx="${tx.id}" title="${t("Edit")}" aria-label="${t("Edit")}">✎</button>
+        <button class="icon-btn row-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button></td></tr>`;
+  }).join("");
+  return table([{label:"Date"},{label:"Type"},{label:"Account"},{label:"Ticker / Detail"},{label:"Amount (MYR)",num:1},{label:"",num:1}], rows);
+}
+
+/* =============================================================================
+ * PAGE: ADD — pick a type first, then a focused form (only relevant fields)
+ * ========================================================================== */
+const ADD_SLUGS = { buy: "Buy", sell: "Sell", deposit: "Deposit", withdraw: "Withdrawal",
+  dividend: "Dividend", fx: "Currency Exchange", fee: "Fee", tax: "Tax withholding",
+  interest: "Interest / cash yield", split: "Stock split", transfer: "Transfer between brokers" };
+
+function pageAdd() {
+  if (!BROKERS.length) {
+    return { title: "Add", subtitle: "Record a transaction", html:
+      panel("Add a transaction", `<p class="muted">${t("Add a broker first (More → Brokers), then you can record transactions.")}</p>
+        <div class="form-actions"><a class="btn primary" href="#/brokers">${t("Go to Brokers")}</a></div>`) };
+  }
+  const editing = editingTxId ? ALL_TRANSACTIONS.find((x) => x.id === editingTxId) : null;
+  if (editingTxId && !editing) editingTxId = null;
+  const slug = decodeURIComponent((location.hash.split("/")[2] || ""));
+  const type = editing ? editing.type : ADD_SLUGS[slug];
+
+  if (!type) {
+    const primary = [["buy","Buy","▲"],["sell","Sell","▼"],["deposit","Deposit","⤓"],["withdraw","Withdraw","⤒"],["dividend","Dividend","◷"],["fx","FX","⇄"]];
+    const more = [["fee","Fee"],["tax","Tax withholding"],["interest","Interest / cash yield"],["split","Stock split"],["transfer","Transfer between brokers"]];
+    const html = panel("What do you want to record?", `
+      <div class="type-picker">${primary.map(([s, lbl, ic]) =>
+        `<a class="tp-btn" href="#/add/${s}"><span class="tp-ico">${ic}</span><span>${t(lbl)}</span></a>`).join("")}</div>
+      <details class="more-fields" style="margin-top:14px"><summary>${t("Other record types")}</summary>
+        <div class="type-picker small">${more.map(([s, lbl]) =>
+          `<a class="tp-btn" href="#/add/${s}"><span>${t(lbl)}</span></a>`).join("")}</div></details>`);
+    return { title: "Add", subtitle: "Pick a type, then fill only what's needed.", html };
+  }
+
+  const html = `
+    <p style="margin:-4px 0 12px"><a class="link" href="#/add">← ${t("Change type")}</a></p>
+    ${panel((editing ? t("Edit") + " · " : "") + t(type), addForm2(type, editing))}`;
+  return { title: editing ? "Edit Record" : "Add", subtitle: editing ? t(type) : t(type), html,
+    mount() { mountAddForm(type); } };
+}
+
+/* The focused per-type form. Field NAMES match wireTxSubmit so one submit path serves all. */
+function addForm2(type, editing) {
+  const e = editing || {};
+  const sel = (val, cur) => (val === cur ? " selected" : "");
+  const v = (x) => (x == null ? "" : x);
+  const selectable = BROKERS.filter((b) => !b.archived || b.id === e.brokerId || b.id === e.toBrokerId);
+  const defBroker = e.brokerId || (selectable[0] && selectable[0].id) || "";
+  const brokerCcy = (id) => { const b = BROKERS.find((x) => x.id === id); return b ? b.currency : FX.base; };
+  const defCcy = e.currency || brokerCcy(defBroker) || FX.base;
+  const brokerOpts = (cur) => selectable.map((b) => `<option value="${b.id}"${sel(b.id, cur)}>${b.name}</option>`).join("");
+  const ccyOpts = (cur) => Object.keys(FX.rates).map((c) => `<option value="${c}"${sel(c, cur)}>${c}</option>`).join("");
+  const dateVal = e.date || todayISO();
+  const tickerVal = e.ticker && e.ticker !== "—" ? e.ticker : "";
+  const isTrade = type === "Buy" || type === "Sell";
+  const fxRow = `<label>${t("FX rate to")} ${FX.base}<input type="number" step="any" name="fxRate" id="afFx" value="${v(e.fxRate)}" placeholder="1.0"></label>`;
+
+  const head = `
+    <label>${t("Broker")}<select name="broker" id="afBroker" required>${brokerOpts(defBroker)}</select></label>
+    <label>${t("Date")}<input type="date" name="date" value="${dateVal}" required></label>`;
+
+  let core = "", extra = "";
+  if (isTrade) {
+    core = `
+      <label>${t("Ticker")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL" autocomplete="off"></label>
+      <label>${t("Currency")}<select name="currency" id="afCcy" required>${ccyOpts(defCcy)}</select></label>
+      <label>${t("Quantity / Shares")}<input type="number" step="any" name="qty" value="${v(e.qty)}" placeholder="0"></label>
+      <label>${t("Price / Share")}<input type="number" step="any" name="price" value="${v(e.price)}" placeholder="0.00"></label>`;
+    extra = `
+      <label>${t("Fee")}<input type="number" step="any" name="fee" value="${v(e.fee)}" placeholder="0.00"></label>
+      <label>${t("Taxes")}<input type="number" step="any" name="tradeTax" value="${v(e.tax)}" placeholder="0.00"></label>
+      ${fxRow}
+      <label>${t("Company Name")}<input type="text" name="company" value="${v(e.company)}" placeholder="${t("optional")}"></label>
+      <label>${t("Market")}<input type="text" name="market" value="${v(e.market)}" placeholder="NASDAQ"></label>`;
+  } else if (type === "Dividend") {
+    core = `
+      <label>${t("Ticker")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL" autocomplete="off"></label>
+      <label>${t("Currency")}<select name="currency" id="afCcy" required>${ccyOpts(defCcy)}</select></label>
+      <label>${t("Gross dividend")}<input type="number" step="any" name="divGross" value="${type === "Dividend" ? v(e.gross) : ""}" placeholder="0.00"></label>`;
+    extra = `
+      <label>${t("Withholding Tax")}<input type="number" step="any" name="tax" value="${v(e.tax)}" placeholder="0.00"></label>
+      <label>${t("Ex-dividend Date")}<input type="date" name="exDate" value="${v(e.exDate)}"></label>
+      <label>${t("Payment Date")}<input type="date" name="payDate" value="${v(e.payDate)}"></label>
+      <label>${t("Status")}<select name="status"><option value="Received"${sel("Received", e.status)}>${t("Received")}</option><option value="Expected"${sel("Expected", e.status)}>${t("Expected")}</option></select></label>
+      ${fxRow}`;
+  } else if (type === "Currency Exchange") {
+    core = `
+      <label>${t("From currency")}<select name="currency" id="afCcy" required>${ccyOpts(defCcy)}</select></label>
+      <label>${t("From amount")}<input type="number" step="any" name="fromAmount" value="${v(e.fromAmount)}" placeholder="0.00"></label>
+      <label>${t("To currency")}<select name="toCurrency">${ccyOpts(e.toCurrency)}</select></label>
+      <label>${t("To amount (received)")}<input type="number" step="any" name="toAmount" value="${v(e.toAmount)}" placeholder="0.00"></label>
+      <label>${t("Implied rate")}<input type="text" name="impliedRate" value="" readonly placeholder="—"></label>`;
+    extra = `<label>${t("Fee")}<input type="number" step="any" name="fee" value="${v(e.fee)}" placeholder="0.00"></label>${fxRow}`;
+  } else if (type === "Stock split") {
+    core = `
+      <label>${t("Ticker")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL" autocomplete="off"></label>
+      <label>${t("Currency")}<select name="currency" id="afCcy" required>${ccyOpts(defCcy)}</select></label>
+      <label>${t("Split ratio (new ÷ old)")}<input type="number" step="any" name="splitRatio" value="${type === "Stock split" ? v(e.qty) : ""}" placeholder="2"></label>`;
+  } else if (type === "Transfer between brokers") {
+    core = `
+      <label>${t("Currency")}<select name="currency" id="afCcy" required>${ccyOpts(defCcy)}</select></label>
+      <label>${t("Amount (gross)")}<input type="number" step="any" name="amount" value="${v(e.gross)}" placeholder="0.00"></label>
+      <label>${t("To broker")}<select name="toBroker">${brokerOpts(e.toBrokerId)}</select></label>`;
+    extra = fxRow;
+  } else { // Deposit, Withdrawal, Fee, Tax withholding, Interest / cash yield
+    core = `
+      <label>${t("Currency")}<select name="currency" id="afCcy" required>${ccyOpts(defCcy)}</select></label>
+      <label>${t("Amount (gross)")}<input type="number" step="any" name="amount" value="${v(e.gross)}" placeholder="0.00"></label>`;
+    extra = fxRow;
+  }
+
+  const oversell = type === "Sell"
+    ? `<label class="check" id="oversellWrap"><input type="checkbox" name="override" ${e.override ? "checked" : ""}> ${t("Allow selling more shares than currently held (override)")}</label>` : "";
+  const needsTicker = isTrade || type === "Dividend" || type === "Stock split";
+
+  return `<form id="txForm" class="form" autocomplete="off">
+    <input type="hidden" name="type" value="${type}">
+    <div class="form-grid">${head}${core}</div>
+    ${needsTicker ? `<div class="lookup-status muted" id="lookupStatus"></div>` : ""}
+    ${extra ? `<details class="more-fields"><summary>${t("Fees, taxes & details")}</summary><div class="form-grid">${extra}</div></details>` : ""}
+    ${oversell}
+    <label class="block">${t("Notes")}<input type="text" name="notes" value="${v(e.notes)}" placeholder="${t("optional")}"></label>
+    <div class="form-actions">
+      <button type="submit" class="btn primary">${editing ? t("Update Transaction") : t("Save Transaction")}</button>
+      <a class="btn ghost" href="#/records">${t("Cancel")}</a>
+    </div>
+  </form>`;
+}
+
+function mountAddForm(type) {
+  const form = $("#txForm"); if (!form) return;
+  wireTxSubmit(form);
+  const brokerSel = $("#afBroker"), ccySel = $("#afCcy"), fxEl = $("#afFx");
+  const setFxFromCcy = () => { if (fxEl) fxEl.value = FX.rates[ccySel ? ccySel.value : FX.base] || 1; };
+  if (brokerSel && ccySel) brokerSel.addEventListener("change", () => {
+    const b = BROKERS.find((x) => x.id === brokerSel.value);
+    if (b && FX.rates[b.currency]) { ccySel.value = b.currency; setFxFromCcy(); }
+  });
+  if (ccySel) ccySel.addEventListener("change", setFxFromCcy);
+  if (fxEl && !fxEl.value) setFxFromCcy();
+
+  // Currency Exchange: live implied rate
+  const fromAmt = form.querySelector('[name="fromAmount"]'), toAmt = form.querySelector('[name="toAmount"]'),
+        toCcy = form.querySelector('[name="toCurrency"]'), impl = form.querySelector('[name="impliedRate"]');
+  if (fromAmt && toAmt) {
+    const upd = () => { const f = parseFloat(fromAmt.value) || 0, tt = parseFloat(toAmt.value) || 0;
+      if (impl) impl.value = (f > 0 && tt > 0) ? `1 ${ccySel.value} = ${(tt / f).toFixed(6)} ${toCcy.value}` : "—"; };
+    [fromAmt, toAmt].forEach((el) => el.addEventListener("input", upd));
+    if (toCcy) toCcy.addEventListener("change", upd);
+    if (ccySel) ccySel.addEventListener("change", upd);
+    upd();
+  }
+  // Ticker autocomplete + auto-fill
+  const tickerEl = form.querySelector('[name="ticker"]');
+  if (tickerEl) {
+    const doLookup = () => autofillFromTicker(form, $("#lookupStatus"), { fillPrice: type === "Buy" || type === "Sell" });
+    tickerEl.addEventListener("change", doLookup);
+    tickerEl.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); doLookup(); } });
+    attachAutocomplete(form, $("#lookupStatus"), { fillPrice: type === "Buy" || type === "Sell" });
+  }
+}
+
+/* Extracted submit path — validation, oversell guard, FX, build record, save. */
+function wireTxSubmit(form) {
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const d = Object.fromEntries(new FormData(form).entries());
+    const type = d.type, currency = d.currency;
+    const fxRate = d.fxRate ? parseFloat(d.fxRate) : (FX.rates[currency] || 1);
+    const fee = parseFloat(d.fee) || 0;
+    let tax = parseFloat(d.tax) || 0;                       // dividend withholding tax
+    if (type === "Buy" || type === "Sell") tax = parseFloat(d.tradeTax) || 0;  // trade taxes
+    let qty = d.qty ? parseFloat(d.qty) : null;
+    let price = d.price ? parseFloat(d.price) : null;
+    let gross = parseFloat(d.amount) || 0;
+    if (type === "Dividend") gross = parseFloat(d.divGross) || 0;
+    const ticker = (d.ticker || "").trim().toUpperCase();
+    if (type === "Buy" || type === "Sell") gross = (qty || 0) * (price || 0);
+    if (type === "Stock split") qty = parseFloat(d.splitRatio) || 1;
+
+    const bad = (msg) => { toast(msg); return true; };
+    if (type === "Buy" || type === "Sell") {
+      if (!ticker) return void bad(t("Enter a ticker."));
+      if (!(qty > 0)) return void bad(t("Enter a quantity greater than 0."));
+      if (!(price > 0)) return void bad(t("Enter a price greater than 0."));
+    } else if (type === "Dividend") {
+      if (!ticker) return void bad(t("Enter a ticker."));
+      if (!(gross > 0)) return void bad(t("Enter a gross dividend greater than 0."));
+    } else if (type === "Currency Exchange") {
+      /* validated below */
+    } else if (type === "Stock split") {
+      if (!(qty > 0)) return void bad(t("Enter a split ratio greater than 0."));
+    } else { // Deposit, Withdrawal, Fee, Tax withholding, Interest, Transfer
+      if (!(gross > 0)) return void bad(t("Enter an amount greater than 0."));
+      if (type === "Transfer between brokers" && d.toBroker === d.broker) return void bad(t("Choose a different destination broker."));
+    }
+
+    if (type === "Sell" && !d.override) {
+      const held = sharesHeldExcluding(d.broker, ticker, editingTxId);
+      if ((qty || 0) > held + 1e-9) return void bad(`${t("You only hold")} ${fmt(held, { maximumFractionDigits: 4 })} ${t("shares — tick the override to sell more.")}`);
+    }
+
+    let extra = {};
+    if (type === "Currency Exchange") {
+      const fromCurrency = currency;
+      const toCurrency = d.toCurrency;
+      const fromAmount = parseFloat(d.fromAmount) || 0;
+      const toAmount = parseFloat(d.toAmount) || 0;
+      if (!(fromAmount > 0)) return void bad(t("Enter an amount to convert."));
+      if (!(toAmount > 0)) return void bad(t("Enter the amount you received."));
+      if (!toCurrency || toCurrency === fromCurrency) return void bad(t("Choose a different destination currency."));
+      const exchangeRate = toAmount / fromAmount;
+      gross = fromAmount;
+      extra = { fromCurrency, toCurrency, fromAmount, toAmount, exchangeRate };
+    }
+
+    const record = { id: editingTxId || uid("t"), date: d.date, brokerId: d.broker, type,
+      ticker: ticker || "—", company: (d.company || "").trim(), market: (d.market || "").trim(),
+      currency, qty, price, gross, fee, tax, fxRate, myrEquivalent: gross * fxRate,
+      status: type === "Dividend" ? (d.status || "Received") : undefined,
+      exDate: d.exDate || undefined, payDate: d.payDate || undefined,
+      toBrokerId: type === "Transfer between brokers" ? d.toBroker : undefined,
+      override: !!d.override, notes: (d.notes || "").trim() || undefined, ...extra };
+
+    const wasEditing = !!editingTxId;
+    if (wasEditing) {
+      const i = ALL_TRANSACTIONS.findIndex((x) => x.id === editingTxId);
+      if (i >= 0) ALL_TRANSACTIONS[i] = record; else ALL_TRANSACTIONS.unshift(record);
+    } else {
+      ALL_TRANSACTIONS.unshift(record);
+    }
+    editingTxId = null;
+    saveStore(); toast(wasEditing ? t("Transaction updated") : t("Transaction added"));
+    location.hash = "#/records";
+  });
 }
 
 function availableShares(brokerId, ticker) {
@@ -1657,104 +1842,13 @@ function sharesHeldExcluding(brokerId, ticker, excludeId) {
   return shares;
 }
 
-function addTxForm(editing) {
-  const e = editing || {};
-  const sel = (val, cur) => (val === cur ? " selected" : "");
-  const v = (x) => (x == null ? "" : x);
-  // Active brokers only, plus the brokers referenced by the record being edited.
-  const selectable = BROKERS.filter((b) => !b.archived || b.id === e.brokerId || b.id === e.toBrokerId);
-  const brokerOpts = (cur) => selectable.map((b) => `<option value="${b.id}"${sel(b.id, cur)}>${b.name}</option>`).join("");
-  const ccyOpts = (cur) => Object.keys(FX.rates).map((c) => `<option value="${c}"${sel(c, cur)}>${c}</option>`).join("");
-  const types = ["Deposit","Withdrawal","Buy","Sell","Dividend","Fee","Tax withholding",
-    "Stock split","Transfer between brokers","Interest / cash yield","Currency Exchange"];
-  const typeOpts = types.map((tp) => `<option value="${tp}"${sel(tp, e.type)}>${t(tp)}</option>`).join("");
-  const cashType = e.type && !["Buy","Sell","Dividend","Stock split","Currency Exchange"].includes(e.type);
-  const tickerVal = e.ticker && e.ticker !== "—" ? e.ticker : "";
-  const dateVal = e.date || todayISO();
-  return `<form id="txForm" class="form" autocomplete="off">
-    <div class="form-grid">
-      <label>${t("Date")}<input type="date" name="date" value="${dateVal}" required></label>
-      <label>${t("Broker")}<select name="broker" required>${brokerOpts(e.brokerId)}</select></label>
-      <label>${t("Transaction Type")}<select name="type" id="txType" required>${typeOpts}</select></label>
-      <label>${t("Currency")}<select name="currency" id="txCcy" required>${ccyOpts(e.currency)}</select></label>
-      <label class="fld-ticker">${t("Ticker")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL"></label>
-      <label class="fld-company">${t("Company Name")}<input type="text" name="company" value="${v(e.company)}" placeholder="${t("optional")}"></label>
-      <label class="fld-market">${t("Market")}<input type="text" name="market" value="${v(e.market)}" placeholder="NASDAQ"></label>
-      <label class="fld-amount">${t("Amount (gross)")}<input type="number" step="any" name="amount" value="${cashType ? v(e.gross) : ""}" placeholder="0.00"></label>
-      <label class="fld-fee">${t("Fee")}<input type="number" step="any" name="fee" value="${v(e.fee)}" placeholder="0.00"></label>
-      <label>${t("FX rate to")} ${FX.base}<input type="number" step="any" name="fxRate" id="txFx" value="${v(e.fxRate)}" placeholder="1.0"></label>
-    </div>
-    <div class="lookup-status muted" id="lookupStatus"></div>
-    <div class="form-grid" id="tradeFields">
-      <label>${t("Quantity / Shares")}<input type="number" step="any" name="qty" value="${e.type === "Buy" || e.type === "Sell" ? v(e.qty) : ""}" placeholder="0"></label>
-      <label>${t("Price / Share")}<input type="number" step="any" name="price" value="${e.type === "Buy" || e.type === "Sell" ? v(e.price) : ""}" placeholder="0.00"></label>
-      <label>${t("Taxes")}<input type="number" step="any" name="tradeTax" value="${e.type === "Buy" || e.type === "Sell" ? v(e.tax) : ""}" placeholder="0.00"></label>
-    </div>
-    <div class="form-grid" id="divFields">
-      <label>${t("Gross dividend")}<input type="number" step="any" name="divGross" value="${e.type === "Dividend" ? v(e.gross) : ""}" placeholder="0.00"></label>
-      <label>${t("Withholding Tax")}<input type="number" step="any" name="tax" value="${v(e.tax)}" placeholder="0.00"></label>
-      <label>${t("Ex-dividend Date")}<input type="date" name="exDate" value="${v(e.exDate)}"></label>
-      <label>${t("Payment Date")}<input type="date" name="payDate" value="${v(e.payDate)}"></label>
-      <label>${t("Status")}<select name="status"><option value="Received"${sel("Received", e.status)}>${t("Received")}</option><option value="Expected"${sel("Expected", e.status)}>${t("Expected")}</option></select></label>
-    </div>
-    <div class="form-grid" id="splitFields">
-      <label>${t("Split ratio (new ÷ old)")}<input type="number" step="any" name="splitRatio" value="${e.type === "Stock split" ? v(e.qty) : ""}" placeholder="2"></label>
-    </div>
-    <div class="form-grid" id="transferFields">
-      <label>${t("To broker")}<select name="toBroker">${brokerOpts(e.toBrokerId)}</select></label>
-    </div>
-    <div class="form-grid" id="fxFields">
-      <label>${t("From amount")}<input type="number" step="any" name="fromAmount" value="${e.type === "Currency Exchange" ? v(e.fromAmount) : ""}" placeholder="0.00"></label>
-      <label>${t("To currency")}<select name="toCurrency">${ccyOpts(e.toCurrency)}</select></label>
-      <label>${t("To amount (received)")}<input type="number" step="any" name="toAmount" value="${e.type === "Currency Exchange" ? v(e.toAmount) : ""}" placeholder="0.00"></label>
-      <label>${t("Implied rate")}<input type="text" name="impliedRate" value="" readonly placeholder="—"></label>
-    </div>
-    <label class="block">${t("Notes")}<input type="text" name="notes" value="${v(e.notes)}" placeholder="${t("optional")}"></label>
-    <label id="oversellWrap" class="check"><input type="checkbox" name="override" ${e.override ? "checked" : ""}> ${t("Allow selling more shares than currently held (override)")}</label>
-    <div class="form-actions">
-      <button type="submit" class="btn primary">${editing ? t("Update Transaction") : t("Save Transaction")}</button>
-      <button type="reset" class="btn ghost">${t("Clear")}</button>
-    </div>
-  </form>`;
-}
-
-function txTable() {
-  if (!ALL_TRANSACTIONS.length) return emptyState(t("No transactions yet. Add your first deposit or investment to begin."));
-  const rows = ALL_TRANSACTIONS.map((tx) => {
-    const myr = tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * (tx.fxRate || FX.rates[tx.currency] || 1);
-    return `<tr>
-      <td>${fmtDate(tx.date)}</td><td>${typeChip(tx.type)}</td><td class="ticker">${tx.ticker || "—"}</td>
-      <td class="sub">${brokerName(tx.brokerId)}</td>
-      <td class="num">${tx.qty != null ? fmt(tx.qty, { maximumFractionDigits: 4 }) : "—"}</td>
-      <td class="num">${tx.gross != null ? tx.currency + " " + fmt(tx.gross) : "—"}</td>
-      <td class="num">${tx.fee ? tx.currency + " " + fmt(tx.fee) : "—"}</td>
-      <td class="num">${tx.fxRate ? fmt(tx.fxRate, { maximumFractionDigits: 4 }) : "—"}</td>
-      <td class="num">${money(myr)}</td>
-      <td class="num">
-        <button class="icon-btn row-edit" data-edit-tx="${tx.id}" title="${t("Edit")}" aria-label="${t("Edit")}">✎</button>
-        <button class="icon-btn row-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button></td></tr>`;
-  }).join("");
-  return table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Qty",num:1},{label:"Gross",num:1},{label:"Fee",num:1},{label:"FX Rate",num:1},{label:"MYR",num:1},{label:"",num:1}], rows);
-}
-
-/* =============================================================================
- * PAGE: CASH LEDGER  (+ reconciliation)
- * ========================================================================== */
-function pageCash() {
-  const cashTypes = ["Deposit", "Withdrawal", "Interest / cash yield", "Fee", "Tax withholding", "Transfer between brokers", "Currency Exchange"];
-  const cashTx = ALL_TRANSACTIONS.filter((x) => cashTypes.includes(x.type) || (x.type === "Dividend" && x.status !== "Expected"));
-  const rows = cashTx.map((c) => {
-    const myr = c.myrEquivalent != null ? c.myrEquivalent : (+c.gross || 0) * (c.fxRate || FX.rates[c.currency] || 1);
-    return `<tr><td>${fmtDate(c.date)}</td><td class="sub">${brokerName(c.brokerId)}</td><td>${typeChip(c.type)}</td>
-      <td class="num">${fmt(c.gross)}</td><td>${c.currency}</td>
-      <td class="num">${c.fxRate ? fmt(c.fxRate, { maximumFractionDigits: 4 }) : "1.00"}</td>
-      <td class="num">${money(myr)}</td></tr>`;
-  }).join("");
-
+/* Cash-tab extras on Records: balances summary, per-currency balances, reconciliation. */
+function cashExtrasHTML() {
   const summary = `<div class="mini-cards">
-    ${miniCard("Total Deposits", money(T.totalDeposits))}
-    ${miniCard("Total Withdrawals", money(T.totalWithdrawals))}
-    ${miniCard("Net Cash Added", money(T.netCapitalInvested), cls(T.netCapitalInvested))}</div>`;
+    ${miniCard(t("Total Deposits"), money(T.totalDeposits))}
+    ${miniCard(t("Total Withdrawals"), money(T.totalWithdrawals))}
+    ${miniCard(t("Net Cash Added"), money(T.netCapitalInvested), cls(T.netCapitalInvested))}
+    ${miniCard(t("Available Cash"), money(T.totalCash || 0))}</div>`;
 
   const recRows = BROKERS.map((b) => {
     const calc = T.brokerCash[b.id] || 0;
@@ -1774,37 +1868,32 @@ function pageCash() {
       <td class="num"><button class="btn ghost" data-recon-broker="${b.id}">${t("Update")}</button></td></tr>`;
   }).join("");
 
-  // Per-currency cash balances (P-fix #2)
   const ccyRows = BROKERS.map((b) => {
     const byc = T.brokerCashByCcy[b.id] || {};
     return Object.keys(byc).filter((c) => Math.abs(byc[c]) > 0.005).map((c) =>
       `<tr><td>${b.name}</td><td>${c}</td><td class="num ${byc[c] < 0 ? "neg" : ""}">${fmt(byc[c])}</td><td class="num">${money(byc[c] * (FX.rates[c] || 1))}</td></tr>`).join("");
   }).join("");
 
-  const html = `
-    ${summary}
+  return `${summary}
     ${panel("Cash Balances by Currency", table(
       [{label:"Broker"},{label:"Currency"},{label:"Balance",num:1},{label:"In MYR",num:1}], ccyRows))}
-    ${panel("Cash Movements", table(
-      [{label:"Date"},{label:"Broker"},{label:"Type"},{label:"Amount",num:1},{label:"Currency"},{label:"FX Rate",num:1},{label:"Amount in MYR",num:1}], rows))}
     ${panel("Broker Cash Reconciliation", table(
       [{label:"Broker"},{label:"Calculated Balance",num:1},{label:"Actual Balance",num:1},{label:"Difference",num:1},{label:"Status"},{label:"",num:1}], recRows),
-      `<span class="badge subtle">${t("Calculated = Deposits − Buys − Fees + Sells + Net Dividends − Withdrawals")}</span>`)}
-    <section class="warn-wrap">${warningsHTML()}</section>`;
-  return { title: "Cash Ledger", subtitle: "How much cash you actually put into each investment app.", html,
-    mount() {
-      $$("[data-recon-broker]").forEach((btn) => btn.addEventListener("click", () => {
-        const id = btn.dataset.reconBroker;
-        const chk = RECON_CHECKS[id] || {};
-        const a = prompt(`${t("Actual cash balance for")} ${brokerName(id)} (${FX.base})`, chk.actual != null ? chk.actual : "");
-        if (a == null) return;
-        const actual = parseFloat(a);
-        if (isNaN(actual)) { toast(t("Enter a valid number.")); return; }
-        const note = prompt(t("Note (optional)"), chk.note || "") || "";
-        RECON_CHECKS[id] = { actual, date: new Date().toISOString().slice(0, 10), note };
-        saveStore(); toast(t("Reconciliation saved")); render();
-      }));
-    } };
+      `<span class="badge subtle">${t("Calculated = Deposits − Buys − Fees + Sells + Net Dividends − Withdrawals")}</span>`)}`;
+}
+
+function mountCashExtras() {
+  $$("[data-recon-broker]").forEach((btn) => btn.addEventListener("click", () => {
+    const id = btn.dataset.reconBroker;
+    const chk = RECON_CHECKS[id] || {};
+    const a = prompt(`${t("Actual cash balance for")} ${brokerName(id)} (${FX.base})`, chk.actual != null ? chk.actual : "");
+    if (a == null) return;
+    const actual = parseFloat(a);
+    if (isNaN(actual)) { toast(t("Enter a valid number.")); return; }
+    const note = prompt(t("Note (optional)"), chk.note || "") || "";
+    RECON_CHECKS[id] = { actual, date: new Date().toISOString().slice(0, 10), note };
+    saveStore(); toast(t("Reconciliation saved")); render();
+  }));
 }
 
 function miniCard(label, value, valCls = "") {
@@ -2358,14 +2447,14 @@ let tourIdx = -1;
 let TOUR_SEEN = false;
 function tourSteps() {
   return [
-    { route: "dashboard", selector: '.sidebar [data-page="brokers"]', fallback: '[data-page="brokers"]',
-      title: t("Step 1 · Add a broker"), text: t("Start here. Click Brokers to add your investment app — every transaction belongs to a broker.") },
+    { route: "dashboard", selector: "#moreBtnSide", fallback: "#moreBtn",
+      title: t("Step 1 · Add a broker"), text: t("Open More to reach Brokers — add your investment app first. Every transaction belongs to a broker.") },
     { route: "brokers", selector: "#brokerForm",
       title: t("Add your broker"), text: t("Enter the broker name and currency, then click Add Broker.") },
-    { route: "dashboard", selector: "#addTxBtn",
-      title: t("Step 2 · Record a deposit"), text: t("Use Add Transaction to record cash you put into a broker. Pick type Deposit.") },
-    { route: "transactions", selector: "#txType",
-      title: t("Pick the transaction type"), text: t("Choose the type here. Buy and Sell create and update your holdings automatically.") },
+    { route: "dashboard", selector: '[data-page="add"]', fallback: ".bn-item.add",
+      title: t("Step 2 · Record a deposit"), text: t("Tap Add to record cash you put into a broker. Pick type Deposit.") },
+    { route: "add", selector: ".type-picker", fallback: "#txForm",
+      title: t("Pick what to record"), text: t("Choose a type first — then only the fields that type needs appear. Buy and Sell create and update your holdings automatically.") },
     { route: "portfolio", selector: "#holdingsBody",
       title: t("Step 3 · Set a current price"), text: t("After a Buy your holding appears here. Use the ＄ button to type a current price (manual, not live).") },
     { route: "settings", selector: "#expJson",
@@ -2992,24 +3081,31 @@ function toast(msg) {
 }
 
 /* =============================================================================
+ * "MORE" SHEET — secondary navigation (Records, Reports, Brokers, Settings, Help)
+ * ========================================================================== */
+function openMoreSheet() { const s = $("#moreSheet"); if (s) s.hidden = false; }
+function closeMoreSheet() { const s = $("#moreSheet"); if (s) s.hidden = true; }
+function toggleMoreSheet() { const s = $("#moreSheet"); if (s) s.hidden = !s.hidden; }
+
+/* =============================================================================
  * ROUTER
  * ========================================================================== */
 const PAGES = {
-  dashboard: pageDashboard, portfolio: pagePortfolio, transactions: pageTransactions,
-  cash: pageCash, dividends: pageDividends, reports: pageReports,
+  dashboard: pageDashboard, portfolio: pagePortfolio, records: pageRecords, add: pageAdd,
+  dividends: pageDividends, reports: pageReports,
   brokers: pageBrokers, settings: pageSettings, help: pageHelp, holding: pageHolding,
 };
 
 function currentPageKey() {
   let key = (location.hash || "#/dashboard").replace(/^#\/?/, "").split("/")[0] || "dashboard";
-  if (key === "add") key = "transactions";  // bottom-nav "Add" → transactions form
+  if (key === "transactions" || key === "cash") key = "records";  // merged ledger
   if (key === "more") key = "dashboard";
   return PAGES[key] ? key : "dashboard";
 }
 
 function render() {
   const key = currentPageKey();
-  if (key !== "transactions") editingTxId = null;  // P0.3: don't keep edit mode when leaving
+  if (key !== "add") editingTxId = null;  // don't keep edit mode when leaving the Add flow
   const root = $("#page");
   try {
     const page = PAGES[key]();
@@ -3029,11 +3125,11 @@ function render() {
       <span class="muted">If you just updated the files, do a hard refresh (Ctrl+Shift+R) to clear the cache.</span></div></div>`;
   }
 
-  // active nav state
-  $$("[data-page]").forEach((el) => el.classList.toggle("active", el.dataset.page === key
-    || (el.dataset.page === "add" && key === "transactions" && (location.hash || "").includes("add"))));
-  // close mobile sidebar after navigation
-  $("#sidebar").classList.remove("open");
+  // active nav state — "More" stays highlighted while on a secondary page
+  const secondary = ["records", "reports", "brokers", "settings", "help"];
+  $$("[data-page]").forEach((el) => el.classList.toggle("active", el.dataset.page === key));
+  $$("#moreBtn, #moreBtnSide").forEach((el) => el.classList.toggle("active", secondary.includes(key)));
+  closeMoreSheet();
 }
 
 /* =============================================================================
@@ -3067,12 +3163,15 @@ function init() {
     if (currentPageKey() === "settings") reflectThemeChoice();
   });
   $("#exportBtn").addEventListener("click", exportCashCSV);
-  $("#addTxBtn").addEventListener("click", () => { location.hash = "#/transactions"; });
   $("#modalClose").addEventListener("click", closeModal);
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
-  $("#menuBtn").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
-  $("#moreBtn").addEventListener("click", (e) => { e.preventDefault(); $("#sidebar").classList.toggle("open"); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeModal(); closeMoreSheet(); } });
+  // "More" overlay — identical behaviour from the sidebar (desktop) and bottom nav (mobile)
+  $("#moreBtn").addEventListener("click", (e) => { e.preventDefault(); toggleMoreSheet(); });
+  $("#moreBtnSide").addEventListener("click", (e) => { e.preventDefault(); toggleMoreSheet(); });
+  $("#moreClose").addEventListener("click", closeMoreSheet);
+  $("#moreSheet").addEventListener("click", (e) => { if (e.target.id === "moreSheet") closeMoreSheet(); });
+  $$("#moreSheet .more-item").forEach((a) => a.addEventListener("click", closeMoreSheet));
 
   window.addEventListener("hashchange", render);
   if (!location.hash) location.hash = "#/dashboard";
