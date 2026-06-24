@@ -44,18 +44,27 @@ module.exports = async (req, res) => {
     const prev = m.chartPreviousClose != null ? m.chartPreviousClose : (m.previousClose != null ? m.previousClose : m.regularMarketPrice);
     const price = m.regularMarketPrice;
 
-    // Best-effort company name via Yahoo search (chart meta doesn't carry it).
+    // Best-effort company name + sector/industry/country via Yahoo search + profile.
     let name = m.shortName || m.longName || null;
-    if (!name) {
+    let sector = null, industry = null, country = null;
+    try {
+      const s = await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(symbol)}&quotesCount=3&newsCount=0`, { headers });
+      if (s.ok) {
+        const sd = await s.json();
+        const q = (sd.quotes || []).find((x) => x.symbol === (m.symbol || symbol)) || (sd.quotes || [])[0];
+        if (q) { name = name || q.longname || q.shortname || null; sector = q.sector || null; industry = q.industry || null; }
+      }
+    } catch (e) { /* ignore */ }
+    // assetProfile carries sector/industry/country (may 401 — best-effort)
+    if (!sector || !country) {
       try {
-        const s = await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(symbol)}&quotesCount=3&newsCount=0`,
-          { headers: { "User-Agent": "Mozilla/5.0 (compatible; InvestmentLedger/1.0)" } });
-        if (s.ok) {
-          const sd = await s.json();
-          const q = (sd.quotes || []).find((x) => x.symbol === (m.symbol || symbol)) || (sd.quotes || [])[0];
-          if (q) name = q.longname || q.shortname || null;
+        const p = await fetch(`https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=assetProfile`, { headers });
+        if (p.ok) {
+          const pd = await p.json();
+          const ap = pd && pd.quoteSummary && pd.quoteSummary.result && pd.quoteSummary.result[0] && pd.quoteSummary.result[0].assetProfile;
+          if (ap) { sector = sector || ap.sector || null; industry = industry || ap.industry || null; country = ap.country || null; }
         }
-      } catch (e) { /* name stays null */ }
+      } catch (e) { /* ignore */ }
     }
 
     // Cache at the edge for a minute to be gentle on the upstream.
@@ -63,6 +72,9 @@ module.exports = async (req, res) => {
     res.status(200).json({
       symbol: m.symbol || symbol,
       name,
+      sector,
+      industry,
+      country,
       price,
       currency: m.currency || null,
       previousClose: prev,

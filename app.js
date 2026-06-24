@@ -9,7 +9,24 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 const brokerName = (id) => (BROKERS.find((b) => b.id === id) || {}).name || id;
 const toBase = (amount, ccy) => amount * (FX.rates[ccy] ?? 1);
-const countryForTicker = (t) => (/\.KL$/.test(t) ? "Malaysia" : "United States");
+
+/* Yahoo ticker suffix → [country, currency]. No suffix = United States. */
+const MARKET_MAP = {
+  KL: ["Malaysia", "MYR"], SI: ["Singapore", "SGD"], HK: ["Hong Kong", "HKD"], T: ["Japan", "JPY"],
+  L: ["United Kingdom", "GBP"], AX: ["Australia", "AUD"], TO: ["Canada", "CAD"], V: ["Canada", "CAD"],
+  SS: ["China", "CNY"], SZ: ["China", "CNY"], TW: ["Taiwan", "TWD"], TWO: ["Taiwan", "TWD"],
+  KS: ["South Korea", "KRW"], KQ: ["South Korea", "KRW"], BK: ["Thailand", "THB"], JK: ["Indonesia", "IDR"],
+  NS: ["India", "INR"], BO: ["India", "INR"], SW: ["Switzerland", "CHF"], PA: ["France", "EUR"],
+  DE: ["Germany", "EUR"], F: ["Germany", "EUR"], MI: ["Italy", "EUR"], AS: ["Netherlands", "EUR"],
+  MC: ["Spain", "EUR"], HE: ["Finland", "EUR"], ST: ["Sweden", "SEK"], OL: ["Norway", "NOK"], CO: ["Denmark", "DKK"],
+};
+function marketInfo(ticker) {
+  const m = String(ticker || "").toUpperCase().match(/\.([A-Z]+)$/);
+  if (m && MARKET_MAP[m[1]]) return { country: MARKET_MAP[m[1]][0], currency: MARKET_MAP[m[1]][1] };
+  return { country: "United States", currency: "USD" };
+}
+// Prefer a stored country (from the stock lookup); fall back to the suffix map.
+const countryForTicker = (ticker, stored) => stored || marketInfo(ticker).country;
 
 const fmt = (n, opts = {}) => {
   const o = { minimumFractionDigits: 2, maximumFractionDigits: 2, ...opts };
@@ -240,6 +257,128 @@ const ZH = {
   "Auto-lookup works on the deployed site.": "自动查询在已部署的网站上可用。",
   "Live lookup only works on your deployed website, not when you open the file locally. Commit, push, and try it on your Vercel URL.": "实时查询仅在您已部署的网站上可用，本地打开文件时无法使用。请提交、推送后在您的 Vercel 网址上尝试。",
   "check the code, or that /api is deployed on Vercel.": "请检查代码，或确认 /api 已部署到 Vercel。",
+  // P0 — edit / validation / currency exchange / negative cash
+  "Edit Transaction": "编辑交易", "Cancel edit": "取消编辑", "Edit": "编辑",
+  "Update Transaction": "更新交易", "Transaction updated": "交易已更新",
+  "From amount": "兑出金额", "Exchange rate (To ÷ From)": "汇率（兑入 ÷ 兑出）",
+  "To currency": "兑入货币", "To amount": "兑入金额",
+  "Enter a ticker.": "请输入股票代码。", "Enter a quantity greater than 0.": "请输入大于 0 的数量。",
+  "Enter a price greater than 0.": "请输入大于 0 的价格。", "Enter a gross dividend greater than 0.": "请输入大于 0 的总股息。",
+  "Enter a split ratio greater than 0.": "请输入大于 0 的拆股比例。", "Enter an amount greater than 0.": "请输入大于 0 的金额。",
+  "Choose a different destination broker.": "请选择不同的目标券商。", "Enter an amount to convert.": "请输入要兑换的金额。",
+  "Enter an exchange rate.": "请输入汇率。", "Choose a different destination currency.": "请选择不同的目标货币。",
+  "Negative cash balance": "现金余额为负",
+  "A buy, fee or withdrawal exceeds the cash recorded for this broker. Add a deposit or check the entries.": "买入、费用或取款超过了该券商记录的现金。请添加存款或检查记录。",
+  "Realized gain/loss from": "已实现盈亏，来自", "currency-exchange transaction(s), valued at current rates.": "笔货币兑换交易，按当前汇率估值。",
+  // Phase 0/1 — brokers, taxes, XIRR, forecast, analytics
+  "Taxes": "税费", "Accounts": "账户",
+  "Archive": "归档", "Unarchive": "取消归档", "Archived": "已归档",
+  "Show archived": "显示已归档", "Hide archived": "隐藏已归档",
+  "Update Broker": "更新券商", "Edit Broker": "编辑券商", "Broker updated": "已更新券商",
+  "Broker archived": "券商已归档", "Broker unarchived": "已取消归档", "Enter a broker name.": "请输入券商名称。",
+  "No brokers yet. Add your first one below.": "暂无券商。在下方添加第一个。",
+  "This broker still has records. Remove it anyway? (Consider Archive instead.)": "该券商仍有记录。仍要删除吗？（建议改为归档。）",
+  "Money-weighted annual return": "资金加权年化回报",
+  "XIRR = the annual rate that makes the net present value of your dated deposits, withdrawals and today's account value equal zero.": "XIRR = 使您的带日期存款、取款与今日账户总值的净现值为零的年化利率。",
+  "XIRR (money-weighted return)": "XIRR（资金加权回报）",
+  "Deposits = cash in (−), Withdrawals = cash out (+)": "存款 = 现金流入（−），取款 = 现金流出（+）",
+  "Terminal value today = holdings + cash": "今日终值 = 持仓 + 现金",
+  "Solved so discounted flows net to 0": "求解使折现现金流之和为 0",
+  "Not enough cash-flow history": "现金流历史不足",
+  "Run-rate estimate from your trailing-12-month dividends": "基于过去 12 个月股息的运行率估算",
+  "Estimate only — not a guarantee.": "仅为估算 — 并非保证。",
+  "Next Month (est.)": "下月（估）", "Next Quarter (est.)": "下季（估）", "Next Year (est.)": "下年（估）",
+  "Confirmed 'Expected' dividends in window": "窗口内已确认的“预期”股息",
+  "next month": "下月", "next quarter": "下季", "next year": "下年",
+  "How is the forecast calculated?": "预测是如何计算的？",
+  "Net Dividends (Lifetime)": "净股息（累计）", "Net (MYR)": "净额 (MYR)", "Month": "月份", "Quarter": "季度",
+  "Dividend Forecast": "股息预测", "Monthly Dividend Income": "每月股息收入",
+  "Quarterly Dividend Income": "每季股息收入", "Annual Dividend Income": "每年股息收入",
+  "MoM Δ": "环比", "QoQ Δ": "季度环比", "YoY": "同比",
+  "Year-over-year growth": "同比增长", "vs": "对比",
+  // Holding detail
+  "Back to Portfolio": "返回投资组合", "Holding detail": "持仓明细",
+  "Shares Held": "持有股数", "Average Cost": "平均成本", "share": "股",
+  "Set price": "设置价格", "Realized P/L": "已实现盈亏", "Net Dividends": "净股息",
+  "price": "价格", "FX": "汇率", "Manual": "手动",
+  "Transactions": "交易记录",
+  "No transactions for this holding.": "此持仓暂无交易。",
+  "No dividends recorded for this holding.": "此持仓暂无股息记录。",
+  "This holding no longer exists (fully sold or deleted). Its realized P/L still counts in your totals.": "此持仓已不存在（已全部卖出或删除）。其已实现盈亏仍计入您的总额。",
+  // Multi-currency cash + FX split fixes
+  "To amount (received)": "兑入金额（收到）", "Implied rate": "隐含汇率",
+  "Enter the amount you received.": "请输入您收到的金额。",
+  "Cash Balances by Currency": "按货币的现金余额", "Balance": "余额", "In MYR": "折合 MYR",
+  "Unrealized FX translation on foreign holdings.": "外币持仓的未实现汇率折算。",
+  "Price-only unrealized": "仅价格未实现", "Total unrealized = price + FX.": "未实现合计 = 价格 + 汇率。",
+  "This Buy has later Sell transactions for the same stock. Deleting it will make those sells exceed shares held and distort realized P/L. Delete anyway?":
+    "此买入之后还有同一股票的卖出交易。删除它会使那些卖出超过持有股数并扭曲已实现盈亏。仍要删除吗？",
+  // Phase 2 — Allocation (F2)
+  "Allocation": "配置", "By Country": "按国家", "By Sector": "按行业",
+  "By Currency": "按货币", "By Brokerage": "按券商", "No priced holdings yet.": "暂无已定价持仓。",
+  "Group": "分组", "Value": "市值", "%": "%",
+  // Phase 2 — Portfolio Health (F6)
+  "Portfolio Health": "投资组合健康度", "Largest Position": "最大持仓",
+  "Largest Winner": "最大盈利", "Largest Loser": "最大亏损",
+  "Dividend Yield (TTM)": "股息率（近12个月）", "Cash Allocation": "现金占比",
+  "Diversification Score": "分散度评分", "effective holdings": "有效持仓数",
+  "Objective analytics only — not financial advice.": "仅客观分析 — 非投资建议。",
+  // Phase 2 — Reports (F3)
+  "Holdings": "持仓", "Cash Flow": "现金流", "Performance": "业绩表现",
+  "Lifetime Net Dividends": "累计净股息", "Realized Return": "已实现收益",
+  "Unrealized Return": "未实现收益", "Total Return": "总收益",
+  "Total Deposits": "存款总额", "Total Withdrawals": "取款总额", "Net Cash Added": "净投入现金",
+  "Monthly": "按月", "Quarterly": "按季", "Annual": "按年",
+  // Phase 2 — Holding Detail extras (F1)
+  "Cost Basis Over Time": "成本随时间变化", "Dividend Income Over Time": "股息收入随时间变化",
+  "Cumulative cost — historical market prices are not stored.": "累计成本 — 不存储历史市场价格。",
+  "Add at least two trades to see a trend.": "至少需要两笔交易才能显示趋势。",
+  "Not enough dividend history yet.": "股息历史不足。",
+  "Dividend Summary": "股息汇总", "Total Dividends Received": "已收股息合计",
+  "Next Year (est.)": "明年（预估）",
+  "Forecast is a run-rate estimate from this holding's trailing-12-month dividends.": "预测基于此持仓近12个月股息的年化估算。",
+  "Upcoming Dividends": "即将派发股息", "Expected Net": "预期净额", "Cost Basis": "成本基础",
+  // Phase 2 — Settings (F4)
+  "Preferences": "偏好设置", "Date format": "日期格式", "Time zone": "时区",
+  "Device local": "设备本地", "Cost Basis Method": "成本计算方法", "Method": "方法",
+  "Average Cost": "平均成本法", "FIFO — not yet implemented": "先进先出 — 尚未实现",
+  "FIFO is not implemented yet.": "先进先出法尚未实现。",
+  "Time zone is used as a display reference for dates; stored dates are never altered.": "时区仅用作日期的显示参考；存储的日期不会被更改。",
+  "Average Cost is the active method for all gain/loss figures. FIFO is planned and currently disabled.": "所有盈亏数字均采用平均成本法。先进先出法在计划中，目前已禁用。",
+  "Preferences saved": "偏好已保存",
+  // Phase 2 — CSV Import (F5)
+  "Import from CSV": "从 CSV 导入", "Download CSV template": "下载 CSV 模板", "Upload CSV": "上传 CSV",
+  "Bulk-add transactions (deposits, withdrawals, buys, sells, dividends) from a spreadsheet. Download the template, fill it in, then upload to preview before anything is saved.": "从电子表格批量添加交易（存款、取款、买入、卖出、股息）。下载模板填写后上传，保存前可先预览。",
+  "The file has no data rows.": "文件没有数据行。",
+  "Missing required columns: Date, Broker and Type.": "缺少必填列：日期、券商和类型。",
+  "Date must be YYYY-MM-DD": "日期必须为 YYYY-MM-DD", "Unknown broker": "未知券商",
+  "Unsupported type": "不支持的类型", "No FX rate for": "没有汇率：",
+  "Quantity required": "需要数量", "Price required": "需要价格", "Ticker required": "需要代码",
+  "Amount required": "需要金额", "Could not read that file.": "无法读取该文件。",
+  "rows ready to import": "行可导入", "rows": "行", "ready": "就绪", "with errors": "有错误",
+  "Ready": "就绪", "Ccy": "货币", "Status": "状态", "Amount": "金额",
+  "Import valid rows": "导入有效行", "Cancel": "取消",
+  "Rows with errors are skipped. Fix them in your spreadsheet and re-upload.": "有错误的行将被跳过。请在电子表格中修正后重新上传。",
+  "No valid rows to import.": "没有可导入的有效行。", "transactions imported": "笔交易已导入",
+  // F5 round 2 — exchange/transfer/dups/broker-create
+  "To Currency must differ": "兑入货币必须不同", "To Amount required": "需要兑入金额",
+  "To Broker must differ": "目标券商必须不同", "Unknown To Broker": "未知目标券商",
+  "Create broker first": "请先创建券商", "Duplicate — skipped": "重复 — 已跳过",
+  "duplicate": "重复", "need broker": "缺券商", "Duplicate": "重复",
+  "Missing brokers": "缺少券商", "Create": "创建", "broker(s)": "个券商",
+  "broker(s) created": "个券商已创建", "brokers created": "个券商已创建",
+  "Duplicates already in your ledger are skipped automatically.": "账本中已存在的重复项将被自动跳过。",
+  // Report panel titles + table headers (translateDOM text-node matches)
+  "Export": "导出", "Cash Ledger CSV": "现金账本 CSV", "Transactions CSV": "交易 CSV", "Dividends CSV": "股息 CSV",
+  "Deposits": "存款", "Withdrawals": "取款", "Currency Exchanges": "货币兑换",
+  "Profit / Loss by Broker": "按券商盈亏", "Fees Paid by Broker": "按券商已付费用",
+  "Month": "月份", "Quarter": "季度", "Year": "年份", "Net (MYR)": "净额（MYR）",
+  "Shares": "股数", "Avg Cost": "平均成本", "Market Value": "市值", "Unrealized": "未实现",
+  "Date": "日期", "Type": "类型", "Ticker": "代码", "Broker": "券商",
+  "on net capital": "占净投入资本", "money-weighted": "资金加权", "on cost": "占成本",
+  "Portfolio Value Over Time": "投资组合市值随时间变化", "incl. cash": "含现金",
+  "Market value incl. cash, captured once per day.": "市值（含现金），每天记录一次。",
+  "History builds automatically — one point per day as you use the app.": "历史会自动累积 — 您每天使用应用时记录一个数据点。",
   // Misc
   "Portfolio": "投资组合",
 };
@@ -280,8 +419,15 @@ function translateDOM(root) {
 function fmtDate(iso) {
   if (!iso || iso === "—") return "—";
   const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
   const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  return `${d} ${months[m - 1]} ${y}`;
+  const pad = (n) => String(n).padStart(2, "0");
+  switch ((typeof SETTINGS !== "undefined" && SETTINGS.dateFormat) || "D MMM YYYY") {
+    case "YYYY-MM-DD": return `${y}-${pad(m)}-${pad(d)}`;
+    case "DD/MM/YYYY": return `${pad(d)}/${pad(m)}/${y}`;
+    case "MM/DD/YYYY": return `${pad(m)}/${pad(d)}/${y}`;
+    default:           return `${d} ${months[m - 1]} ${y}`;
+  }
 }
 function fmtDateTime(iso) {
   if (!iso) return "—";
@@ -289,9 +435,26 @@ function fmtDateTime(iso) {
   if (isNaN(dt)) return iso;
   return `${fmtDate(dt.toISOString().slice(0, 10))}, ${dt.toTimeString().slice(0, 5)}`;
 }
+/* "Today" honouring SETTINGS.timeZone (blank = device local). Used for every
+ * day-count / forecast window so the Time Zone preference actually takes effect. */
+function todayParts() {
+  const tz = (typeof SETTINGS !== "undefined" && SETTINGS.timeZone) || "";
+  const d = new Date();
+  if (tz) {
+    try {
+      const s = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+      const [y, m, day] = s.split("-").map(Number);
+      if (y && m && day) return { y, m, day };
+    } catch (e) { /* invalid tz → fall back to local */ }
+  }
+  return { y: d.getFullYear(), m: d.getMonth() + 1, day: d.getDate() };
+}
+function todayDate() { const p = todayParts(); return new Date(p.y, p.m - 1, p.day); }
+function todayISO() { const p = todayParts(); const z = (n) => String(n).padStart(2, "0"); return `${p.y}-${z(p.m)}-${z(p.day)}`; }
+
 function daysUntil(iso) {
   if (!iso) return NaN;
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const today = todayDate(); today.setHours(0, 0, 0, 0);
   const target = new Date(iso + "T00:00:00");
   return Math.round((target - today) / 86400000);
 }
@@ -300,6 +463,59 @@ function daysSince(iso) {
   const dt = new Date(iso);
   if (isNaN(dt)) return Infinity;
   return Math.floor((Date.now() - dt.getTime()) / 86400000);
+}
+
+/* =============================================================================
+ * XIRR — money-weighted return on dated EXTERNAL cash flows.
+ * Convention: money you put IN = negative; money you take OUT = positive; the
+ * current account value (holdings MV + cash) is a positive terminal flow today.
+ * Dividends/fees/trades are INTERNAL (already inside the terminal value) so they
+ * are NOT separate flows. Solved with Newton-Raphson, bisection fallback.
+ * ========================================================================== */
+function xirr(flows) {
+  const amts = flows.map((f) => f.amount);
+  if (!amts.some((a) => a > 0) || !amts.some((a) => a < 0)) return null;  // need both signs
+  const t0 = flows[0].date.getTime();
+  const yrs = flows.map((f) => (f.date.getTime() - t0) / (365 * 86400000));
+  const npv = (r) => flows.reduce((s, f, i) => s + f.amount / Math.pow(1 + r, yrs[i]), 0);
+  const dnpv = (r) => flows.reduce((s, f, i) => s - yrs[i] * f.amount / Math.pow(1 + r, yrs[i] + 1), 0);
+  let r = 0.1;
+  for (let i = 0; i < 80; i++) {
+    const f = npv(r), d = dnpv(r);
+    if (Math.abs(f) < 1e-7) return r;
+    if (!d) break;
+    let nx = r - f / d;
+    if (nx <= -0.9999) nx = -0.9999 + 1e-6;
+    if (!isFinite(nx)) break;
+    if (Math.abs(nx - r) < 1e-10) return nx;
+    r = nx;
+  }
+  // Bisection fallback over [-0.9999, 10]
+  let lo = -0.9999, hi = 10, flo = npv(lo);
+  if (!isFinite(flo)) return null;
+  for (let i = 0; i < 200; i++) {
+    const mid = (lo + hi) / 2, fm = npv(mid);
+    if (Math.abs(fm) < 1e-7) return mid;
+    if ((flo < 0) === (fm < 0)) { lo = mid; flo = fm; } else { hi = mid; }
+  }
+  return (lo + hi) / 2;
+}
+function xirrPercent(txns, terminalValue) {
+  const flows = [];
+  txns.forEach((tx) => {
+    const fx = (tx.fxRate != null && tx.fxRate !== "") ? +tx.fxRate : (FX.rates[tx.currency] || 1);
+    const myr = (+tx.gross || 0) * fx;
+    if (tx.type === "Deposit") flows.push({ date: new Date(tx.date), amount: -myr });
+    else if (tx.type === "Withdrawal") flows.push({ date: new Date(tx.date), amount: myr });
+  });
+  if (!flows.length) return null;
+  flows.push({ date: new Date(), amount: terminalValue });
+  flows.sort((a, b) => a.date - b.date);
+  // Need a meaningful time span — annualising < 1 week of history is misleading.
+  const spanDays = (flows[flows.length - 1].date - flows[0].date) / 86400000;
+  if (spanDays < 7) return null;
+  const r = xirr(flows);
+  return (r == null || !isFinite(r)) ? null : r * 100;
 }
 
 /* =============================================================================
@@ -318,7 +534,7 @@ function computeTotals() {
   const lots = {};
   const ensureLot = (brokerId, ticker, meta = {}) => {
     const k = keyOf(brokerId, ticker);
-    if (!lots[k]) lots[k] = { ticker, brokerId, company: "", market: "", currency: FX.base, shares: 0, costMYR: 0, netDivMYR: 0 };
+    if (!lots[k]) lots[k] = { ticker, brokerId, company: "", market: "", currency: FX.base, shares: 0, costMYR: 0, costLocal: 0, netDivMYR: 0, realizedMYR: 0 };
     const l = lots[k];
     if (meta.company && !l.company) l.company = meta.company;
     if (meta.market && !l.market) l.market = meta.market;
@@ -330,14 +546,17 @@ function computeTotals() {
   HOLDINGS.forEach((h) => {
     const fx = h.openingFxRate || curFx(h.currency);
     const l = ensureLot(h.brokerId, h.ticker, h);
+    const localCost = (+h.shares || 0) * (+h.avgCost || 0);
     l.shares += +h.shares || 0;
-    l.costMYR += (+h.shares || 0) * (+h.avgCost || 0) * fx;
+    l.costLocal += localCost;          // cost in the holding's own currency
+    l.costMYR += localCost * fx;        // cost in base currency at historical FX
     if (h.netDividends) l.netDivMYR += +h.netDividends;
   });
 
+  // PER-CURRENCY cash ledger: cash[brokerId][currency] = amount in that currency.
   const cash = {};
-  BROKERS.forEach((b) => (cash[b.id] = 0));
-  const addCash = (id, amt) => { cash[id] = (cash[id] || 0) + amt; };
+  BROKERS.forEach((b) => (cash[b.id] = {}));
+  const addCash = (id, ccy, amt) => { if (!cash[id]) cash[id] = {}; cash[id][ccy] = (cash[id][ccy] || 0) + amt; };
 
   let totalDeposits = 0, totalWithdrawals = 0, netDividends = 0, totalFees = 0, realizedPL = 0;
   const oversells = [];
@@ -346,60 +565,90 @@ function computeTotals() {
   const txns = [...ALL_TRANSACTIONS].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   txns.forEach((tx) => {
     const fx = histFx(tx);
-    const grossMYR = (+tx.gross || 0) * fx;
-    const feeMYR = (+tx.fee || 0) * fx;
-    const taxMYR = (+tx.tax || 0) * fx;
+    const ccy = tx.currency || FX.base;
+    const gross = +tx.gross || 0, fee = +tx.fee || 0, taxv = +tx.tax || 0;
+    const grossMYR = gross * fx, feeMYR = fee * fx, taxMYR = taxv * fx;
     const q = +tx.qty || 0, price = +tx.price || 0;
     switch (tx.type) {
-      case "Deposit": totalDeposits += grossMYR; addCash(tx.brokerId, grossMYR); break;
-      case "Withdrawal": totalWithdrawals += grossMYR; addCash(tx.brokerId, -grossMYR); break;
-      case "Interest / cash yield": addCash(tx.brokerId, grossMYR); break;
-      case "Fee": totalFees += grossMYR; addCash(tx.brokerId, -grossMYR); break;
-      case "Tax withholding": totalFees += grossMYR; addCash(tx.brokerId, -grossMYR); break;
+      case "Deposit": totalDeposits += grossMYR; addCash(tx.brokerId, ccy, gross); break;
+      case "Withdrawal": totalWithdrawals += grossMYR; addCash(tx.brokerId, ccy, -gross); break;
+      case "Interest / cash yield": addCash(tx.brokerId, ccy, gross); break;
+      case "Fee": totalFees += grossMYR; addCash(tx.brokerId, ccy, -gross); break;
+      case "Tax withholding": totalFees += grossMYR; addCash(tx.brokerId, ccy, -gross); break;
       case "Buy": {
+        // Commission + taxes are CAPITALISED into cost basis (not double-counted as fees).
         const l = ensureLot(tx.brokerId, tx.ticker, tx);
-        l.shares += q; l.costMYR += q * price * fx + feeMYR;
-        totalFees += feeMYR; addCash(tx.brokerId, -(grossMYR + feeMYR)); break;
+        const localCost = q * price + fee + taxv;
+        l.shares += q; l.costLocal += localCost; l.costMYR += localCost * fx;
+        addCash(tx.brokerId, ccy, -(gross + fee + taxv)); break;
       }
       case "Sell": {
         const l = ensureLot(tx.brokerId, tx.ticker, tx);
         if (q > l.shares + 1e-9 && !tx.override) oversells.push({ ticker: tx.ticker, brokerId: tx.brokerId });
-        const avg = l.shares > 0 ? l.costMYR / l.shares : 0;
+        const avgMYR = l.shares > 0 ? l.costMYR / l.shares : 0;
+        const avgLocal = l.shares > 0 ? l.costLocal / l.shares : 0;
         const proceedsMYR = q * price * fx;
-        realizedPL += proceedsMYR - avg * q - feeMYR;
-        l.shares -= q; l.costMYR -= avg * q;
-        if (l.shares < 1e-9) { l.shares = Math.max(0, l.shares); l.costMYR = Math.max(0, l.costMYR); }
-        totalFees += feeMYR; addCash(tx.brokerId, grossMYR - feeMYR); break;
+        const realizedThis = proceedsMYR - avgMYR * q - feeMYR - taxMYR;   // nets commission + taxes
+        realizedPL += realizedThis; l.realizedMYR += realizedThis;
+        l.shares -= q; l.costMYR -= avgMYR * q; l.costLocal -= avgLocal * q;
+        if (l.shares < 1e-9) { l.shares = 0; l.costMYR = Math.max(0, l.costMYR); l.costLocal = Math.max(0, l.costLocal); }
+        addCash(tx.brokerId, ccy, gross - fee - taxv); break;
       }
       case "Dividend": {
         if (tx.status !== "Expected") {
-          const netMYR = grossMYR - taxMYR;
-          netDividends += netMYR; addCash(tx.brokerId, netMYR);
-          ensureLot(tx.brokerId, tx.ticker, tx).netDivMYR += netMYR;
+          const net = gross - taxv;
+          netDividends += net * fx; addCash(tx.brokerId, ccy, net);
+          ensureLot(tx.brokerId, tx.ticker, tx).netDivMYR += net * fx;
         }
         break;
       }
       case "Stock split": { ensureLot(tx.brokerId, tx.ticker, tx).shares *= (q || 1); break; }
       case "Transfer between brokers": {
-        addCash(tx.brokerId, -grossMYR); if (tx.toBrokerId) addCash(tx.toBrokerId, grossMYR); break;
+        addCash(tx.brokerId, ccy, -gross); if (tx.toBrokerId) addCash(tx.toBrokerId, ccy, gross); break;
       }
-      case "FX conversion": break; // moves cash between currencies; MYR value ~neutral
+      case "FX conversion":
+      case "Currency Exchange": {
+        // Move money between currency buckets at the ENTERED amounts (value-faithful, no phantom gain).
+        const fromCcy = tx.fromCurrency || ccy, toCcy = tx.toCurrency;
+        const fromAmt = +tx.fromAmount || gross || 0, toAmt = +tx.toAmount || 0;
+        addCash(tx.brokerId, fromCcy, -(fromAmt + fee));
+        if (toCcy) addCash(tx.brokerId, toCcy, toAmt);
+        totalFees += fee * (FX.rates[fromCcy] || 1);
+        break;
+      }
       default: break;
     }
+  });
+
+  // MYR-equivalent cash per broker (at CURRENT FX) + the raw per-currency breakdown.
+  const brokerCash = {}, brokerCashByCcy = {};
+  Object.keys(cash).forEach((id) => {
+    brokerCashByCcy[id] = cash[id];
+    brokerCash[id] = Object.keys(cash[id]).reduce((s, c) => s + cash[id][c] * curFx(c), 0);
   });
 
   const holdings = Object.values(lots).filter((l) => Math.abs(l.shares) > 1e-9).map((l) => {
     const cp = CURRENT_PRICES[l.ticker];
     const hasPrice = !!cp && cp.price != null;
     const priceCcy = hasPrice ? cp.currency : l.currency;
-    const marketValue = hasPrice ? l.shares * (+cp.price) * curFx(priceCcy) : l.costMYR;
     const costBasis = l.costMYR;
-    const avgCost = l.shares > 0 ? l.costMYR / l.shares : 0;
-    const unrealized = marketValue - costBasis;
+    const avgCost = l.shares > 0 ? l.costMYR / l.shares : 0;          // MYR/share (historical)
+    const avgCostLocal = l.shares > 0 ? l.costLocal / l.shares : 0;   // original ccy/share
+    let marketValue, unrealized, priceUnrealized, fxUnrealized;
+    if (hasPrice) {
+      marketValue = l.shares * (+cp.price) * curFx(priceCcy);
+      priceUnrealized = (+cp.price - avgCostLocal) * l.shares * curFx(priceCcy);  // price effect @ current FX
+      unrealized = marketValue - costBasis;
+      fxUnrealized = unrealized - priceUnrealized;                                // FX translation on cost
+    } else {
+      marketValue = costBasis; unrealized = 0; priceUnrealized = 0; fxUnrealized = 0;
+    }
     const unrealizedPct = costBasis ? (unrealized / costBasis) * 100 : 0;
     const totalReturn = unrealized + l.netDivMYR;
-    return { ...l, costBasis, marketValue, avgCost, unrealized, unrealizedPct,
-      netDividends: l.netDivMYR, totalReturn,
+    const meta = STOCK_META[l.ticker] || {};
+    return { ...l, costBasis, marketValue, avgCost, avgCostLocal, unrealized, unrealizedPct, priceUnrealized, fxUnrealized,
+      realized: l.realizedMYR || 0, netDividends: l.netDivMYR, totalReturn,
+      country: meta.country || marketInfo(l.ticker).country, sector: meta.sector || null, industry: meta.industry || null,
       hasPrice, currentPrice: hasPrice ? +cp.price : null, currentPriceCcy: priceCcy,
       currentPriceDate: hasPrice ? cp.date : null,
       priceSource: hasPrice ? (cp.source || "manual") : null,
@@ -409,15 +658,24 @@ function computeTotals() {
 
   const portfolioValue = holdings.reduce((s, h) => s + h.marketValue, 0);
   const unrealizedPL = holdings.reduce((s, h) => s + h.unrealized, 0);
+  const priceUnrealizedPL = holdings.reduce((s, h) => s + h.priceUnrealized, 0);
+  const fxUnrealizedPL = holdings.reduce((s, h) => s + h.fxUnrealized, 0);
   const netCapitalInvested = totalDeposits - totalWithdrawals;
   const priceReturn = unrealizedPL + realizedPL - totalFees;
   const totalReturn = unrealizedPL + realizedPL + netDividends - totalFees;
   const totalReturnPct = netCapitalInvested ? (totalReturn / netCapitalInvested) * 100 : 0;
   const missingPrices = holdings.filter((h) => !h.hasPrice).length;
+  // Negative cash detection per (broker, currency) — allowed, but flagged.
+  const negativeCash = [];
+  Object.keys(cash).forEach((id) => Object.keys(cash[id]).forEach((c) => {
+    if (cash[id][c] < -0.005) negativeCash.push({ brokerId: id, currency: c, amount: cash[id][c], amountMYR: cash[id][c] * curFx(c) });
+  }));
+  const totalCash = Object.values(brokerCash).reduce((s, c) => s + c, 0);
+  const xirrValue = xirrPercent(txns, portfolioValue + totalCash);
 
   return { totalDeposits, totalWithdrawals, netCapitalInvested, portfolioValue,
-    netDividends, unrealizedPL, realizedPL, totalFees, priceReturn, totalReturn, totalReturnPct,
-    holdings, brokerCash: cash, oversells, missingPrices };
+    netDividends, unrealizedPL, realizedPL, totalFees, priceUnrealizedPL, fxUnrealizedPL, priceReturn, totalReturn, totalReturnPct,
+    holdings, brokerCash, brokerCashByCcy, oversells, missingPrices, negativeCash, xirr: xirrValue, totalCash };
 }
 /* =============================================================================
  * PERSISTENCE — saves everything to the browser (localStorage) so your data
@@ -427,27 +685,50 @@ const STORE_KEY = "il-data-v2";
 function uid(prefix) { return prefix + Math.random().toString(36).slice(2, 8); }
 
 function snapshot() {
-  return { version: 3, lastSaved: LAST_SAVED,
+  return { version: 4, lastSaved: LAST_SAVED,
     BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS,
-    CURRENT_PRICES, RECON_CHECKS, SETTINGS, USER, FX };
+    CURRENT_PRICES, STOCK_META, RECON_CHECKS, SETTINGS, USER, FX, PV_HISTORY };
 }
 function assignObj(target, next) {
   if (!next || typeof next !== "object") return;
   Object.keys(target).forEach((k) => delete target[k]);
   Object.assign(target, next);
 }
+/* F3: drop manual/live prices for tickers no longer referenced by any transaction
+ * or opening holding (keeps STOCK_META metadata cache, which is harmless). */
+function pruneOrphans() {
+  const used = new Set();
+  ALL_TRANSACTIONS.forEach((x) => { if (x.ticker && x.ticker !== "—") used.add(x.ticker.toUpperCase()); });
+  HOLDINGS.forEach((h) => { if (h.ticker) used.add(h.ticker.toUpperCase()); });
+  Object.keys(CURRENT_PRICES).forEach((tk) => { if (!used.has(tk.toUpperCase())) delete CURRENT_PRICES[tk]; });
+}
+/* Upsert today's portfolio market value (incl. cash) into PV_HISTORY. One point
+ * per day: updates today's point if it already exists, else appends. Capped. */
+function recordPvSnapshot() {
+  if (typeof T === "undefined" || !T) return;
+  const value = +((T.portfolioValue || 0) + (T.totalCash || 0)).toFixed(2);
+  const today = todayISO();
+  const last = PV_HISTORY[PV_HISTORY.length - 1];
+  if (last && last.date === today) last.value = value;
+  else PV_HISTORY.push({ date: today, value });
+  if (PV_HISTORY.length > 1000) PV_HISTORY.splice(0, PV_HISTORY.length - 1000);
+}
 function saveStore() {
   try {
+    pruneOrphans();
+    recompute();             // T reflects the latest data before we snapshot value
+    recordPvSnapshot();
     LAST_SAVED = new Date().toISOString();
     localStorage.setItem(STORE_KEY, JSON.stringify(snapshot()));
-    recompute();
   } catch (e) {}
 }
 function replaceArr(arr, next) { arr.length = 0; if (Array.isArray(next)) next.forEach((x) => arr.push(x)); }
 function applySnapshot(s) {
   replaceArr(BROKERS, s.BROKERS); replaceArr(HOLDINGS, s.HOLDINGS);
   replaceArr(ALL_TRANSACTIONS, s.ALL_TRANSACTIONS); replaceArr(UPCOMING_DIVIDENDS, s.UPCOMING_DIVIDENDS);
+  if (s.PV_HISTORY) replaceArr(PV_HISTORY, s.PV_HISTORY);
   assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(RECON_CHECKS, s.RECON_CHECKS);
+  assignObj(STOCK_META, s.STOCK_META);
   if (s.SETTINGS) Object.assign(SETTINGS, s.SETTINGS);
   if (s.USER) Object.assign(USER, s.USER);
   if (s.lastSaved) LAST_SAVED = s.lastSaved;
@@ -470,6 +751,16 @@ loadStore();  // hydrate from the browser before the first calculation
 let T = computeTotals();
 function recompute() { T = computeTotals(); }  // call after data/rates change
 
+// Capture one portfolio-value point on first open each day (persist only if a new day).
+(function captureDailyOnLoad() {
+  if (!ALL_TRANSACTIONS.length) return;            // nothing to chart yet
+  const today = todayISO();
+  const last = PV_HISTORY[PV_HISTORY.length - 1];
+  if (last && last.date === today) return;         // already have today's point
+  recordPvSnapshot();
+  try { LAST_SAVED = new Date().toISOString(); localStorage.setItem(STORE_KEY, JSON.stringify(snapshot())); } catch (e) {}
+})();
+
 /* =============================================================================
  * LIVE EXCHANGE RATES (free, no API key)
  * Returns how many BASE units 1 unit of `from` is worth (i.e. from -> base).
@@ -478,6 +769,15 @@ function recompute() { T = computeTotals(); }  // call after data/rates change
 let FX_STATUS = "";  // shown under the Exchange Rates panel; survives re-render
 const COMMON_CCY = ["USD","EUR","GBP","SGD","HKD","CNY","JPY","AUD","CAD","CHF",
   "INR","IDR","THB","KRW","TWD","PHP","VND","NZD","AED","SAR","MYR","SGD"];
+
+const DATE_FORMATS = [
+  { k: "D MMM YYYY", label: "24 Jun 2026" },
+  { k: "YYYY-MM-DD", label: "2026-06-24" },
+  { k: "DD/MM/YYYY", label: "24/06/2026" },
+  { k: "MM/DD/YYYY", label: "06/24/2026" },
+];
+const TIME_ZONES = ["Asia/Kuala_Lumpur","Asia/Singapore","Asia/Hong_Kong","Asia/Shanghai","Asia/Tokyo",
+  "Australia/Sydney","Europe/London","Europe/Paris","America/New_York","America/Los_Angeles","UTC"];
 
 async function fetchRatesAgainstBase(base) {
   // open.er-api.com: data.rates[X] = how many X per 1 base
@@ -515,6 +815,57 @@ async function fetchQuote(symbol) {
   } catch (e) { /* network / no backend */ }
   return null;
 }
+/* Search the market for matching stocks (code or name) → [{symbol,name,exchange}]. */
+async function searchSymbols(q) {
+  try {
+    const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+    if (!r.ok) return [];
+    const d = await r.json();
+    return d.results || [];
+  } catch (e) { return []; }
+}
+
+/* Attach a "type a code or name → pick a stock" dropdown to a ticker input. */
+function attachAutocomplete(form, statusEl, opts = {}) {
+  const input = form.querySelector('[name="ticker"]');
+  if (!input || !LIVE_ENABLED) return;
+  const host = input.closest("label") || input.parentElement;
+  host.classList.add("ac-host");
+  let menu = host.querySelector(".ac-menu");
+  if (!menu) { menu = document.createElement("div"); menu.className = "ac-menu"; menu.hidden = true; host.appendChild(menu); }
+  let timer = null;
+  const close = () => { menu.hidden = true; menu.innerHTML = ""; };
+
+  input.setAttribute("autocomplete", "off");
+  input.addEventListener("input", () => {
+    const q = input.value.trim();
+    clearTimeout(timer);
+    if (q.length < 1) { close(); return; }
+    timer = setTimeout(async () => {
+      const results = await searchSymbols(q);
+      if (!results.length) { close(); return; }
+      menu._results = results;
+      menu.innerHTML = results.map((r, i) =>
+        `<button type="button" class="ac-item" data-i="${i}">
+          <span class="ac-sym">${r.symbol}</span>
+          <span class="ac-name">${r.name || ""}</span>
+          <span class="ac-exch">${r.exchange || ""}</span></button>`).join("");
+      menu.hidden = false;
+    }, 260);
+  });
+  // mousedown fires before the input's blur, so the pick isn't lost
+  menu.addEventListener("mousedown", (e) => {
+    const item = e.target.closest(".ac-item");
+    if (!item) return;
+    e.preventDefault();
+    const r = menu._results[+item.dataset.i];
+    input.value = r.symbol;
+    close();
+    autofillFromTicker(form, statusEl, opts);
+  });
+  input.addEventListener("blur", () => setTimeout(close, 150));
+}
+
 /* Turn a user-typed code into a Yahoo symbol.
  * Bursa Malaysia codes are 4–5 digit numbers (e.g. 5555 → 5555.KL). */
 function normalizeSymbol(input) {
@@ -553,6 +904,10 @@ async function autofillFromTicker(form, statusEl, opts = {}) {
   }
   // Fill price only if empty (don't clobber a price the user already typed)
   if (opts.fillPrice) { const pe = form.querySelector('[name="price"]'); if (pe && !pe.value) pe.value = q.price; }
+  // Cache stock metadata (name, exchange, country, sector, industry) for grouping/detail
+  STOCK_META[q.symbol || symbol] = { name: q.name || null, exchange: q.exchange || null,
+    currency: q.currency || null, country: q.country || marketInfo(symbol).country,
+    sector: q.sector || null, industry: q.industry || null };
   // Remember the current market price for valuation (clearly labelled "Live")
   if (q.currency) CURRENT_PRICES[q.symbol || symbol] = { price: +q.price, currency: q.currency, date: new Date().toISOString().slice(0, 10), source: "live", fetchedAt: new Date().toISOString(), changePct: q.changePct };
   if (statusEl) { statusEl.innerHTML = `✓ ${q.name || q.symbol} · ${q.currency || ""} ${fmt(q.price)} <span class="live-price">${t("Live")}</span>`; statusEl.className = "lookup-status ok"; }
@@ -606,16 +961,20 @@ function lineChartSVG(series) {
   if (!series || series.length < 2) return emptyState(t("No portfolio history yet."));
   const W = 640, H = 240, padL = 52, padR = 16, padT = 16, padB = 28;
   const vals = series.map((d) => d.value);
-  const min = Math.min(...vals) * 0.97, max = Math.max(...vals) * 1.03;
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  if (hi - lo < 1e-9) { const pad = Math.abs(hi) * 0.1 || 1; lo -= pad; hi += pad; }  // flat series → give it room
+  else { const m = (hi - lo) * 0.06; lo -= m; hi += m; }
+  const min = lo, max = hi;
   const x = (i) => padL + (i * (W - padL - padR)) / (series.length - 1);
   const y = (v) => padT + (1 - (v - min) / (max - min)) * (H - padT - padB);
   const line = series.map((d, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(d.value).toFixed(1)}`).join(" ");
   const area = `${line} L${x(series.length - 1).toFixed(1)},${H - padB} L${padL},${H - padB} Z`;
+  const ylab = (v) => max >= 10000 ? Math.round(v / 1000) + "k" : (max >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v));
   let grid = "";
   for (let g = 0; g <= 4; g++) {
     const v = min + ((max - min) * g) / 4, yy = y(v);
     grid += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" class="grid"/>
-             <text x="${padL - 8}" y="${yy + 4}" class="ylab">${Math.round(v / 1000)}k</text>`;
+             <text x="${padL - 8}" y="${yy + 4}" class="ylab">${ylab(v)}</text>`;
   }
   const xlabs = series.map((d, i) => (i % 2 === 0) ? `<text x="${x(i)}" y="${H - 8}" class="xlab">${d.month}</text>` : "").join("");
   const dots = series.map((d, i) => `<circle cx="${x(i)}" cy="${y(d.value)}" r="${i === series.length - 1 ? 4 : 2.5}" class="dot"/>`).join("");
@@ -661,6 +1020,74 @@ function groupSum(items, keyFn, valFn) {
 }
 
 /* =============================================================================
+ * SHARED ANALYTICS — allocation, portfolio health (reused by Reports & Dashboard)
+ * ========================================================================== */
+function allocationData() {
+  const hs = T.holdings;
+  return {
+    total: T.portfolioValue || 0,
+    byCountry: groupSum(hs, (h) => h.country || "Others", (h) => h.marketValue),
+    bySector: groupSum(hs, (h) => h.sector || "Others", (h) => h.marketValue),
+    byCurrency: groupSum(hs, (h) => h.currency || "—", (h) => h.marketValue),
+    byBroker: groupSum(hs, (h) => brokerName(h.brokerId), (h) => h.marketValue),
+  };
+}
+/* Donut + percentage table for one allocation breakdown. */
+function allocationPanel(title, rows, total) {
+  const sorted = [...rows].filter((r) => r.value > 0).sort((a, b) => b.value - a.value);
+  if (!sorted.length) return panel(title, emptyState(t("No priced holdings yet.")));
+  const tableRows = sorted.map((r) => `<tr><td>${r.label}</td><td class="num">${money(r.value)}</td>
+    <td class="num">${total ? fmt((r.value / total) * 100, { maximumFractionDigits: 1 }) : "0"}%</td></tr>`).join("");
+  return panel(title, `${donutHTML(sorted.map((r) => ({ label: r.label, value: r.value })), title.replace(/^.* /, ""), "")}
+    ${table([{label:"Group"},{label:"Value",num:1},{label:"%",num:1}], tableRows)}`);
+}
+
+/* Trailing-12-month NET dividends in base currency (reused for yield + forecast). */
+function ttmDividends() {
+  const now = todayDate(); const cutoff = new Date(now); cutoff.setFullYear(now.getFullYear() - 1);
+  return ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status !== "Expected").reduce((s, d) => {
+    const dt = new Date((d.payDate || d.date) + "T00:00:00");
+    return (!isNaN(dt) && dt >= cutoff && dt <= now) ? s + ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1) : s;
+  }, 0);
+}
+
+/* Portfolio Health panel — objective analytics only. */
+function insightsHTML() {
+  if (!T.holdings.length) return "";
+  const hp = portfolioHealth();
+  const pct = (h) => hp.pv ? ` <span class="sub">(${fmt(h.marketValue / hp.pv * 100, { maximumFractionDigits: 1 })}%)</span>` : "";
+  const card = (label, val, sub) => `<div class="mini-card"><div class="mc-label">${label}</div><div class="mc-value">${val}</div>${sub ? `<div class="mc-sub muted">${sub}</div>` : ""}</div>`;
+  return panel("Portfolio Health", `<div class="mini-cards">
+    ${card(t("Largest Position"), hp.largest ? `${hp.largest.ticker}${pct(hp.largest)}` : "—", hp.largest ? money(hp.largest.marketValue) : "")}
+    ${card(t("Largest Winner"), (hp.winner && hp.winner.unrealized > 0) ? hp.winner.ticker : "—", (hp.winner && hp.winner.unrealized > 0) ? `<span class="pos">${signed(hp.winner.unrealized)}</span>` : t("none"))}
+    ${card(t("Largest Loser"), (hp.loser && hp.loser.unrealized < 0) ? hp.loser.ticker : "—", (hp.loser && hp.loser.unrealized < 0) ? `<span class="neg">${signed(hp.loser.unrealized)}</span>` : t("none"))}
+    ${card(t("Dividend Yield (TTM)"), hp.yieldEst != null ? fmt(hp.yieldEst, { maximumFractionDigits: 2 }) + "%" : "—", t("trailing 12m ÷ value"))}
+    ${card(t("Cash Allocation"), hp.cashAlloc != null ? fmt(hp.cashAlloc, { maximumFractionDigits: 1 }) + "%" : "—", t("of total net value"))}
+    ${card(t("Diversification Score"), `${hp.divScore}/100`, `${fmt(hp.effectiveN, { maximumFractionDigits: 1 })} ${t("effective holdings")}`)}
+  </div><p class="muted" style="margin:10px 0 0;font-size:12px">${t("Objective analytics only — not financial advice.")}</p>`);
+}
+
+/* Objective portfolio-health metrics (no advice). */
+function portfolioHealth() {
+  const hs = T.holdings, pv = T.portfolioValue || 0;
+  const totalNav = pv + (T.totalCash || 0);
+  const priced = hs.filter((h) => h.hasPrice);
+  const maxBy = (arr, f) => arr.reduce((m, h) => (m == null || f(h) > f(m) ? h : m), null);
+  const minBy = (arr, f) => arr.reduce((m, h) => (m == null || f(h) < f(m) ? h : m), null);
+  const largest = maxBy(hs, (h) => h.marketValue);
+  const winner = maxBy(priced, (h) => h.unrealized);
+  const loser = minBy(priced, (h) => h.unrealized);
+  const ttm = ttmDividends();
+  const yieldEst = pv ? (ttm / pv) * 100 : null;
+  const cashAlloc = totalNav ? (T.totalCash / totalNav) * 100 : null;
+  // Diversification via Herfindahl-Hirschman index of position weights.
+  const hhi = pv ? hs.reduce((s, h) => s + Math.pow(h.marketValue / pv, 2), 0) : 0;
+  const effectiveN = hhi ? 1 / hhi : 0;
+  const divScore = hs.length ? Math.round(Math.max(0, Math.min(100, (1 - hhi) * 100))) : 0;
+  return { largest, winner, loser, ttm, yieldEst, cashAlloc, totalNav, hhi, effectiveN, divScore, pv };
+}
+
+/* =============================================================================
  * PAGE: DASHBOARD
  * ========================================================================== */
 function pageDashboard() {
@@ -676,13 +1103,13 @@ function pageDashboard() {
   const isEmpty = ALL_TRANSACTIONS.length === 0 && HOLDINGS.length === 0;
 
   const holdingsRows = [...T.holdings].sort((a, b) => b.marketValue - a.marketValue).slice(0, 8).map((h) => `
-    <tr><td><div class="ticker">${h.ticker}</div><div class="sub">${h.company || ""}</div></td>
+    <tr><td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a><div class="sub">${h.company || ""}</div></td>
       <td><span class="chip">${brokerName(h.brokerId)}</span></td><td class="sub">${h.market || "—"}</td>
       <td class="num">${fmt(h.shares, { maximumFractionDigits: 4 })}</td>
       <td class="num">${money(h.avgCost)}</td>
       <td class="num">${h.hasPrice ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}<div class="fx-note ${h.priceSource === "live" ? "live-price" : "manual-price"}">${h.priceSource === "live" ? t("Live") : t("Manual price")}</div>` : `<span class="muted">—</span>`}</td>
       <td class="num">${money(h.marketValue)}</td>
-      <td class="num ${cls(h.unrealized)}">${signed(h.unrealized)}<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div></td>
+      <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
       <td class="num">${fmt(h.netDividends)}</td><td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td></tr>`).join("");
 
   // Upcoming dividends derived from "Expected" dividend transactions.
@@ -706,12 +1133,25 @@ function pageDashboard() {
 
   const html = `
     ${isEmpty ? onboardingHTML() : ""}
+    <div class="quick-summary">
+      <span class="qs-item"><strong>${T.holdings.length}</strong> ${t("Holdings")}</span>
+      <span class="qs-item"><strong>${BROKERS.filter((b) => !b.archived).length}</strong> ${t("Accounts")}</span>
+      <span class="qs-item"><strong>${ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status === "Expected").length}</strong> ${t("Upcoming Dividends")}</span>
+      <span class="qs-item"><strong>${ALL_TRANSACTIONS.length}</strong> ${t("Transactions")}</span>
+    </div>
     <div class="dash-meta">
       <span class="muted">${LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet")}</span>
       ${toggle}
     </div>
     <section class="cards">${cardsHtml}</section>
     <section class="warn-wrap">${warningsHTML()}</section>
+    ${insightsHTML()}
+    ${T.holdings.length ? panel("Portfolio Value Over Time", (() => {
+      const series = PV_HISTORY.map((p) => ({ month: p.date.slice(5), value: p.value }));
+      return series.length >= 2
+        ? `<div class="chart">${lineChartSVG(series)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Market value incl. cash, captured once per day.")}</p>`
+        : emptyState(t("History builds automatically — one point per day as you use the app."));
+    })(), `<span class="badge subtle">${t("incl. cash")}</span>`) : ""}
     <section class="grid-2">
       ${panel("Asset Allocation", donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), "Portfolio", money(T.portfolioValue).replace(".00","")), `<span class="badge subtle">By market value</span>`)}
       ${panel("Upcoming Dividends", table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows), `<a class="link" href="#/dividends">Calendar →</a>`)}
@@ -794,6 +1234,13 @@ function dashboardCards() {
       calc: { title: "Profit / Loss", rows: [
         { op: "+", label: "Unrealized P/L (current value − remaining cost basis)", val: signed(T.unrealizedPL) },
         { op: "+", label: "Realized P/L (proceeds − cost basis of sold − fees)", val: signed(T.realizedPL) }], total: T.unrealizedPL + T.realizedPL } },
+    { label: "XIRR", value: T.xirr == null ? "—" : pctTxt(T.xirr), valCls: T.xirr == null ? "" : cls(T.xirr),
+      sub: tip("Money-weighted annual return", "XIRR = the annual rate that makes the net present value of your dated deposits, withdrawals and today's account value equal zero."),
+      calc: { title: "XIRR (money-weighted return)", rows: [
+        { op: "•", label: "Deposits = cash in (−), Withdrawals = cash out (+)", val: "" },
+        { op: "•", label: "Terminal value today = holdings + cash", val: fmt(T.portfolioValue + (T.totalCash || 0)) },
+        { op: "•", label: "Solved so discounted flows net to 0", val: "" }],
+        total: T.xirr == null ? 0 : T.xirr, totalFmt: T.xirr == null ? t("Not enough cash-flow history") : pctTxt(T.xirr) } },
   ];
 }
 
@@ -814,6 +1261,9 @@ function warningsHTML() {
       items.push({ level: "crit", html: `<strong>${t("Cash difference")} — ${brokerName(bid)}.</strong> ${t("Calculated")} ${money(calc)} ${t("vs actual")} ${money(+chk.actual)} (${t("difference")} ${money(Math.abs(diff))}). ${t("Check for a missing fee, dividend or transfer.")}` });
     }
   });
+  // Negative cash balance per (broker, currency)
+  (T.negativeCash || []).forEach((n) => items.push({ level: "crit", html:
+    `<strong>${t("Negative cash balance")} — ${brokerName(n.brokerId)}: ${n.currency} ${fmt(n.amount)} (${money(n.amountMYR)}).</strong> ${t("A buy, fee or withdrawal exceeds the cash recorded for this broker. Add a deposit or check the entries.")}` }));
   // Missing current prices
   if (T.missingPrices > 0) items.push({ level: "warn", html: `${T.missingPrices} ${t("holding(s) have no current price set — portfolio value uses cost as a placeholder.")}` });
   // Stale live prices (fetched > 2 days ago)
@@ -848,7 +1298,7 @@ function pagePortfolio() {
   const byCcy = donutHTML(groupSum(T.holdings, (h) => h.currency, (h) => h.marketValue), "By currency", "");
 
   const ccyOpts = Object.keys(FX.rates).map((c) => `<option>${c}</option>`).join("");
-  const brokerOpts = BROKERS.map((b) => `<option value="${b.id}">${b.name}</option>`).join("");
+  const brokerOpts = BROKERS.filter((b) => !b.archived).map((b) => `<option value="${b.id}">${b.name}</option>`).join("");
   const holdingForm = BROKERS.length === 0
     ? `<p class="muted">${t("Add a broker first (Brokers page), then you can add holdings.")}</p>`
     : `<p class="muted" style="margin:-4px 0 12px">${t("Use this only for investments you owned before you started tracking in Investment Ledger. New purchases should be entered as Buy transactions.")}</p>
@@ -946,6 +1396,7 @@ function pagePortfolio() {
       if (hf) {
         const ht = hf.querySelector('[name="ticker"]');
         if (ht) ht.addEventListener("change", () => autofillFromTicker(hf, $("#holdingLookup"), { fillPrice: false }));
+        attachAutocomplete(hf, $("#holdingLookup"), { fillPrice: false });
       }
       if (hf) hf.addEventListener("submit", (e) => {
         e.preventDefault();
@@ -983,7 +1434,7 @@ function portfolioTable() {
       ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}${priceTag}`
       : `<span class="muted">—</span><div class="fx-note">${t("No price set")}</div>`;
     return `<tr>
-      <td><div class="ticker">${h.ticker}</div><div class="sub">${h.company || ""}</div></td>
+      <td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a><div class="sub">${h.company || ""}</div></td>
       <td><span class="chip">${brokerName(h.brokerId)}</span></td><td class="sub">${h.market || "—"}</td>
       <td class="num">${fmt(h.shares, { maximumFractionDigits: 4 })}</td>
       <td class="num">${money(h.avgCost)}<div class="fx-note">${t("avg, MYR")}</div></td>
@@ -991,7 +1442,7 @@ function portfolioTable() {
       <td class="num">${money(h.costBasis)}</td>
       <td class="num">${money(h.marketValue)}</td>
       <td class="num">${fmt(alloc, { maximumFractionDigits: 1 })}%</td>
-      <td class="num ${cls(h.unrealized)}">${signed(h.unrealized)}<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div></td>
+      <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
       <td class="num">${fmt(h.netDividends)}</td>
       <td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td>
       <td class="num">
@@ -1005,27 +1456,46 @@ function portfolioTable() {
 /* =============================================================================
  * PAGE: TRANSACTIONS  (list + working Add Transaction form)
  * ========================================================================== */
+let editingTxId = null;  // P0.1: id of the transaction currently being edited
+
 function pageTransactions() {
+  const editing = editingTxId ? ALL_TRANSACTIONS.find((x) => x.id === editingTxId) : null;
+  if (editingTxId && !editing) editingTxId = null;  // stale id guard
+
   const formPanel = BROKERS.length === 0
     ? `<section class="panel"><div class="panel-head"><h2>Add Transaction</h2></div>
         <p class="muted">${t("Add a broker first (Brokers page), then you can record transactions.")}</p></section>`
     : `<section class="panel" id="addTxPanel">
-        <div class="panel-head"><h2>Add Transaction</h2><button class="btn ghost" id="toggleForm">Hide</button></div>
-        ${addTxForm()}</section>`;
+        <div class="panel-head"><h2>${editing ? t("Edit Transaction") : t("Add Transaction")}</h2>
+          ${editing ? `<button class="btn ghost" id="cancelEdit">${t("Cancel edit")}</button>` : `<button class="btn ghost" id="toggleForm">Hide</button>`}</div>
+        ${addTxForm(editing)}</section>`;
   const html = `${formPanel}
     ${panel("All Transactions", `<div id="txBody">${txTable()}</div>`, `<span class="badge subtle" id="txCount">${ALL_TRANSACTIONS.length} ${t("records")}</span>`)}`;
 
   return { title: "Transactions", subtitle: "Record deposits, trades, dividends, fees and exchanges.", html,
     mount() {
-      // Delete a transaction (delegated). Transactions are the source of truth.
+      // Delegated row actions: edit + delete. Transactions are the source of truth.
       $("#txBody").addEventListener("click", (e) => {
+        const ed = e.target.closest("[data-edit-tx]");
+        if (ed) { editingTxId = ed.dataset.editTx; render(); const p = $("#addTxPanel"); if (p) p.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
         const b = e.target.closest("[data-del-tx]");
         if (!b) return;
-        if (!confirm(t("Delete this transaction? Holdings and balances will be recalculated."))) return;
+        const tx = ALL_TRANSACTIONS.find((x) => x.id === b.dataset.delTx);
+        // F2: deleting a Buy that has later Sells of the same stock distorts realized P/L.
+        const buyWithSells = tx && tx.type === "Buy" && ALL_TRANSACTIONS.some((x) =>
+          x.type === "Sell" && x.brokerId === tx.brokerId && (x.ticker || "").toUpperCase() === (tx.ticker || "").toUpperCase());
+        const msg = buyWithSells
+          ? t("This Buy has later Sell transactions for the same stock. Deleting it will make those sells exceed shares held and distort realized P/L. Delete anyway?")
+          : t("Delete this transaction? Holdings and balances will be recalculated.");
+        if (!confirm(msg)) return;
         const i = ALL_TRANSACTIONS.findIndex((x) => x.id === b.dataset.delTx);
         if (i >= 0) ALL_TRANSACTIONS.splice(i, 1);
+        if (editingTxId === b.dataset.delTx) editingTxId = null;
+        pruneOrphans();
         saveStore(); toast(t("Transaction removed")); render();
       });
+      const cancel = $("#cancelEdit");
+      if (cancel) cancel.addEventListener("click", () => { editingTxId = null; render(); });
       const form = $("#txForm");
       if (!form) return;  // no brokers yet → no form to wire
       const typeSel = $("#txType");
@@ -1034,17 +1504,34 @@ function pageTransactions() {
       const syncFields = () => {
         const tp = typeSel.value;
         const trade = (tp === "Buy" || tp === "Sell");
+        const fx = tp === "Currency Exchange";
         show(".fld-ticker", trade || tp === "Dividend" || tp === "Stock split");
         show(".fld-company", trade);
         show(".fld-market", trade);
-        show(".fld-fee", trade);
+        show(".fld-fee", trade || fx);
         show("#tradeFields", trade);
-        show(".fld-amount", !trade && tp !== "Stock split" && tp !== "Dividend");
+        show(".fld-amount", !trade && tp !== "Stock split" && tp !== "Dividend" && !fx);
         show("#divFields", tp === "Dividend");
         show("#splitFields", tp === "Stock split");
         show("#transferFields", tp === "Transfer between brokers");
+        show("#fxFields", fx);
         show("#oversellWrap", tp === "Sell");
       };
+      // Live show the implied exchange rate from the From/To amounts the user types.
+      const fromAmt = form.querySelector('[name="fromAmount"]');
+      const toAmt = form.querySelector('[name="toAmount"]');
+      const toCcySel = form.querySelector('[name="toCurrency"]');
+      const impl = form.querySelector('[name="impliedRate"]');
+      const updateImplied = () => {
+        const f = parseFloat(fromAmt.value) || 0, tt = parseFloat(toAmt.value) || 0;
+        if (impl) impl.value = (f > 0 && tt > 0) ? `1 ${ccySel.value} = ${(tt / f).toFixed(6)} ${toCcySel.value}` : "—";
+      };
+      if (fromAmt && toAmt) {
+        [fromAmt, toAmt].forEach((el) => el.addEventListener("input", updateImplied));
+        if (toCcySel) toCcySel.addEventListener("change", updateImplied);
+        ccySel.addEventListener("change", updateImplied);
+        updateImplied();
+      }
       const syncFx = () => {
         const fxEl = $("#txFx");
         if (fxEl && !fxEl.value) fxEl.value = FX.rates[ccySel.value] || 1;
@@ -1065,6 +1552,7 @@ function pageTransactions() {
         tickerEl.addEventListener("change", doLookup);
         tickerEl.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); doLookup(); } });
       }
+      attachAutocomplete(form, $("#lookupStatus"), { fillPrice: true });
 
       $("#toggleForm").addEventListener("click", () => {
         const f = $("#txForm");
@@ -1079,7 +1567,8 @@ function pageTransactions() {
         const type = d.type, currency = d.currency;
         const fxRate = d.fxRate ? parseFloat(d.fxRate) : (FX.rates[currency] || 1);
         const fee = parseFloat(d.fee) || 0;
-        const tax = parseFloat(d.tax) || 0;
+        let tax = parseFloat(d.tax) || 0;                       // dividend withholding tax
+        if (type === "Buy" || type === "Sell") tax = parseFloat(d.tradeTax) || 0;  // trade taxes
         let qty = d.qty ? parseFloat(d.qty) : null;
         let price = d.price ? parseFloat(d.price) : null;
         let gross = parseFloat(d.amount) || 0;
@@ -1088,23 +1577,62 @@ function pageTransactions() {
         if (type === "Buy" || type === "Sell") gross = (qty || 0) * (price || 0);
         if (type === "Stock split") qty = parseFloat(d.splitRatio) || 1;
 
-        // Prevent overselling unless overridden
-        if (type === "Sell" && !d.override) {
-          const held = availableShares(d.broker, ticker);
-          if ((qty || 0) > held + 1e-9) {
-            toast(`${t("You only hold")} ${fmt(held, { maximumFractionDigits: 4 })} ${t("shares — tick the override to sell more.")}`);
-            return;
-          }
+        // --- Validation (P0 bug fix) ---
+        const bad = (msg) => { toast(msg); return true; };
+        if (type === "Buy" || type === "Sell") {
+          if (!ticker) return void bad(t("Enter a ticker."));
+          if (!(qty > 0)) return void bad(t("Enter a quantity greater than 0."));
+          if (!(price > 0)) return void bad(t("Enter a price greater than 0."));
+        } else if (type === "Dividend") {
+          if (!ticker) return void bad(t("Enter a ticker."));
+          if (!(gross > 0)) return void bad(t("Enter a gross dividend greater than 0."));
+        } else if (type === "Currency Exchange") {
+          /* validated below */
+        } else if (type === "Stock split") {
+          if (!(qty > 0)) return void bad(t("Enter a split ratio greater than 0."));
+        } else { // Deposit, Withdrawal, Fee, Tax withholding, Interest, Transfer
+          if (!(gross > 0)) return void bad(t("Enter an amount greater than 0."));
+          if (type === "Transfer between brokers" && d.toBroker === d.broker) return void bad(t("Choose a different destination broker."));
         }
 
-        ALL_TRANSACTIONS.unshift({ id: uid("t"), date: d.date, brokerId: d.broker, type,
+        // Prevent overselling unless overridden — exclude the tx being edited (F1).
+        if (type === "Sell" && !d.override) {
+          const held = sharesHeldExcluding(d.broker, ticker, editingTxId);
+          if ((qty || 0) > held + 1e-9) return void bad(`${t("You only hold")} ${fmt(held, { maximumFractionDigits: 4 })} ${t("shares — tick the override to sell more.")}`);
+        }
+
+        // --- Currency Exchange specifics (P0.3) ---
+        let extra = {};
+        if (type === "Currency Exchange") {
+          const fromCurrency = currency;
+          const toCurrency = d.toCurrency;
+          const fromAmount = parseFloat(d.fromAmount) || 0;
+          const toAmount = parseFloat(d.toAmount) || 0;
+          if (!(fromAmount > 0)) return void bad(t("Enter an amount to convert."));
+          if (!(toAmount > 0)) return void bad(t("Enter the amount you received."));
+          if (!toCurrency || toCurrency === fromCurrency) return void bad(t("Choose a different destination currency."));
+          const exchangeRate = toAmount / fromAmount;  // implied To-per-From rate
+          gross = fromAmount;
+          extra = { fromCurrency, toCurrency, fromAmount, toAmount, exchangeRate };
+        }
+
+        const record = { id: editingTxId || uid("t"), date: d.date, brokerId: d.broker, type,
           ticker: ticker || "—", company: (d.company || "").trim(), market: (d.market || "").trim(),
           currency, qty, price, gross, fee, tax, fxRate, myrEquivalent: gross * fxRate,
           status: type === "Dividend" ? (d.status || "Received") : undefined,
           exDate: d.exDate || undefined, payDate: d.payDate || undefined,
           toBrokerId: type === "Transfer between brokers" ? d.toBroker : undefined,
-          override: !!d.override, notes: (d.notes || "").trim() || undefined });
-        saveStore(); toast(t("Transaction added")); render();
+          override: !!d.override, notes: (d.notes || "").trim() || undefined, ...extra };
+
+        if (editingTxId) {
+          const i = ALL_TRANSACTIONS.findIndex((x) => x.id === editingTxId);
+          if (i >= 0) ALL_TRANSACTIONS[i] = record; else ALL_TRANSACTIONS.unshift(record);
+          editingTxId = null;
+          saveStore(); toast(t("Transaction updated")); render();
+        } else {
+          ALL_TRANSACTIONS.unshift(record);
+          saveStore(); toast(t("Transaction added")); render();
+        }
       });
     } };
 }
@@ -1114,47 +1642,77 @@ function availableShares(brokerId, ticker) {
   return h ? h.shares : 0;
 }
 
-function addTxForm() {
-  const brokerOpts = BROKERS.map((b) => `<option value="${b.id}">${b.name}</option>`).join("");
+/* Shares held for (broker, ticker), DERIVED from transactions but EXCLUDING one id.
+ * Used by the oversell check so editing a Sell doesn't count its own old version (F1). */
+function sharesHeldExcluding(brokerId, ticker, excludeId) {
+  const tk = (ticker || "").toUpperCase();
+  let shares = 0;
+  HOLDINGS.forEach((h) => { if (h.brokerId === brokerId && (h.ticker || "").toUpperCase() === tk) shares += +h.shares || 0; });
+  [...ALL_TRANSACTIONS].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)).forEach((x) => {
+    if (x.id === excludeId || x.brokerId !== brokerId || (x.ticker || "").toUpperCase() !== tk) return;
+    if (x.type === "Buy") shares += +x.qty || 0;
+    else if (x.type === "Sell") shares -= +x.qty || 0;
+    else if (x.type === "Stock split") shares *= (+x.qty || 1);
+  });
+  return shares;
+}
+
+function addTxForm(editing) {
+  const e = editing || {};
+  const sel = (val, cur) => (val === cur ? " selected" : "");
+  const v = (x) => (x == null ? "" : x);
+  // Active brokers only, plus the brokers referenced by the record being edited.
+  const selectable = BROKERS.filter((b) => !b.archived || b.id === e.brokerId || b.id === e.toBrokerId);
+  const brokerOpts = (cur) => selectable.map((b) => `<option value="${b.id}"${sel(b.id, cur)}>${b.name}</option>`).join("");
+  const ccyOpts = (cur) => Object.keys(FX.rates).map((c) => `<option value="${c}"${sel(c, cur)}>${c}</option>`).join("");
   const types = ["Deposit","Withdrawal","Buy","Sell","Dividend","Fee","Tax withholding",
-    "Stock split","Transfer between brokers","Interest / cash yield","FX conversion"];
-  const typeOpts = types.map((tp) => `<option value="${tp}">${t(tp)}</option>`).join("");
-  const ccyOpts = Object.keys(FX.rates).map((c) => `<option value="${c}">${c}</option>`).join("");
+    "Stock split","Transfer between brokers","Interest / cash yield","Currency Exchange"];
+  const typeOpts = types.map((tp) => `<option value="${tp}"${sel(tp, e.type)}>${t(tp)}</option>`).join("");
+  const cashType = e.type && !["Buy","Sell","Dividend","Stock split","Currency Exchange"].includes(e.type);
+  const tickerVal = e.ticker && e.ticker !== "—" ? e.ticker : "";
+  const dateVal = e.date || todayISO();
   return `<form id="txForm" class="form" autocomplete="off">
     <div class="form-grid">
-      <label>${t("Date")}<input type="date" name="date" value="${new Date().toISOString().slice(0,10)}" required></label>
-      <label>${t("Broker")}<select name="broker" required>${brokerOpts}</select></label>
+      <label>${t("Date")}<input type="date" name="date" value="${dateVal}" required></label>
+      <label>${t("Broker")}<select name="broker" required>${brokerOpts(e.brokerId)}</select></label>
       <label>${t("Transaction Type")}<select name="type" id="txType" required>${typeOpts}</select></label>
-      <label>${t("Currency")}<select name="currency" id="txCcy" required>${ccyOpts}</select></label>
-      <label class="fld-ticker">${t("Ticker")}<input type="text" name="ticker" placeholder="AAPL"></label>
-      <label class="fld-company">${t("Company Name")}<input type="text" name="company" placeholder="${t("optional")}"></label>
-      <label class="fld-market">${t("Market")}<input type="text" name="market" placeholder="NASDAQ"></label>
-      <label class="fld-amount">${t("Amount (gross)")}<input type="number" step="any" name="amount" placeholder="0.00"></label>
-      <label class="fld-fee">${t("Fee")}<input type="number" step="any" name="fee" placeholder="0.00"></label>
-      <label>${t("FX rate to")} ${FX.base}<input type="number" step="any" name="fxRate" id="txFx" placeholder="1.0"></label>
+      <label>${t("Currency")}<select name="currency" id="txCcy" required>${ccyOpts(e.currency)}</select></label>
+      <label class="fld-ticker">${t("Ticker")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL"></label>
+      <label class="fld-company">${t("Company Name")}<input type="text" name="company" value="${v(e.company)}" placeholder="${t("optional")}"></label>
+      <label class="fld-market">${t("Market")}<input type="text" name="market" value="${v(e.market)}" placeholder="NASDAQ"></label>
+      <label class="fld-amount">${t("Amount (gross)")}<input type="number" step="any" name="amount" value="${cashType ? v(e.gross) : ""}" placeholder="0.00"></label>
+      <label class="fld-fee">${t("Fee")}<input type="number" step="any" name="fee" value="${v(e.fee)}" placeholder="0.00"></label>
+      <label>${t("FX rate to")} ${FX.base}<input type="number" step="any" name="fxRate" id="txFx" value="${v(e.fxRate)}" placeholder="1.0"></label>
     </div>
     <div class="lookup-status muted" id="lookupStatus"></div>
     <div class="form-grid" id="tradeFields">
-      <label>${t("Quantity / Shares")}<input type="number" step="any" name="qty" placeholder="0"></label>
-      <label>${t("Price / Share")}<input type="number" step="any" name="price" placeholder="0.00"></label>
+      <label>${t("Quantity / Shares")}<input type="number" step="any" name="qty" value="${e.type === "Buy" || e.type === "Sell" ? v(e.qty) : ""}" placeholder="0"></label>
+      <label>${t("Price / Share")}<input type="number" step="any" name="price" value="${e.type === "Buy" || e.type === "Sell" ? v(e.price) : ""}" placeholder="0.00"></label>
+      <label>${t("Taxes")}<input type="number" step="any" name="tradeTax" value="${e.type === "Buy" || e.type === "Sell" ? v(e.tax) : ""}" placeholder="0.00"></label>
     </div>
     <div class="form-grid" id="divFields">
-      <label>${t("Gross dividend")}<input type="number" step="any" name="divGross" placeholder="0.00"></label>
-      <label>${t("Withholding Tax")}<input type="number" step="any" name="tax" placeholder="0.00"></label>
-      <label>${t("Ex-dividend Date")}<input type="date" name="exDate"></label>
-      <label>${t("Payment Date")}<input type="date" name="payDate"></label>
-      <label>${t("Status")}<select name="status"><option value="Received">${t("Received")}</option><option value="Expected">${t("Expected")}</option></select></label>
+      <label>${t("Gross dividend")}<input type="number" step="any" name="divGross" value="${e.type === "Dividend" ? v(e.gross) : ""}" placeholder="0.00"></label>
+      <label>${t("Withholding Tax")}<input type="number" step="any" name="tax" value="${v(e.tax)}" placeholder="0.00"></label>
+      <label>${t("Ex-dividend Date")}<input type="date" name="exDate" value="${v(e.exDate)}"></label>
+      <label>${t("Payment Date")}<input type="date" name="payDate" value="${v(e.payDate)}"></label>
+      <label>${t("Status")}<select name="status"><option value="Received"${sel("Received", e.status)}>${t("Received")}</option><option value="Expected"${sel("Expected", e.status)}>${t("Expected")}</option></select></label>
     </div>
     <div class="form-grid" id="splitFields">
-      <label>${t("Split ratio (new ÷ old)")}<input type="number" step="any" name="splitRatio" placeholder="2"></label>
+      <label>${t("Split ratio (new ÷ old)")}<input type="number" step="any" name="splitRatio" value="${e.type === "Stock split" ? v(e.qty) : ""}" placeholder="2"></label>
     </div>
     <div class="form-grid" id="transferFields">
-      <label>${t("To broker")}<select name="toBroker">${brokerOpts}</select></label>
+      <label>${t("To broker")}<select name="toBroker">${brokerOpts(e.toBrokerId)}</select></label>
     </div>
-    <label class="block">${t("Notes")}<input type="text" name="notes" placeholder="${t("optional")}"></label>
-    <label id="oversellWrap" class="check"><input type="checkbox" name="override"> ${t("Allow selling more shares than currently held (override)")}</label>
+    <div class="form-grid" id="fxFields">
+      <label>${t("From amount")}<input type="number" step="any" name="fromAmount" value="${e.type === "Currency Exchange" ? v(e.fromAmount) : ""}" placeholder="0.00"></label>
+      <label>${t("To currency")}<select name="toCurrency">${ccyOpts(e.toCurrency)}</select></label>
+      <label>${t("To amount (received)")}<input type="number" step="any" name="toAmount" value="${e.type === "Currency Exchange" ? v(e.toAmount) : ""}" placeholder="0.00"></label>
+      <label>${t("Implied rate")}<input type="text" name="impliedRate" value="" readonly placeholder="—"></label>
+    </div>
+    <label class="block">${t("Notes")}<input type="text" name="notes" value="${v(e.notes)}" placeholder="${t("optional")}"></label>
+    <label id="oversellWrap" class="check"><input type="checkbox" name="override" ${e.override ? "checked" : ""}> ${t("Allow selling more shares than currently held (override)")}</label>
     <div class="form-actions">
-      <button type="submit" class="btn primary">${t("Save Transaction")}</button>
+      <button type="submit" class="btn primary">${editing ? t("Update Transaction") : t("Save Transaction")}</button>
       <button type="reset" class="btn ghost">${t("Clear")}</button>
     </div>
   </form>`;
@@ -1172,7 +1730,9 @@ function txTable() {
       <td class="num">${tx.fee ? tx.currency + " " + fmt(tx.fee) : "—"}</td>
       <td class="num">${tx.fxRate ? fmt(tx.fxRate, { maximumFractionDigits: 4 }) : "—"}</td>
       <td class="num">${money(myr)}</td>
-      <td class="num"><button class="icon-btn row-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button></td></tr>`;
+      <td class="num">
+        <button class="icon-btn row-edit" data-edit-tx="${tx.id}" title="${t("Edit")}" aria-label="${t("Edit")}">✎</button>
+        <button class="icon-btn row-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button></td></tr>`;
   }).join("");
   return table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Qty",num:1},{label:"Gross",num:1},{label:"Fee",num:1},{label:"FX Rate",num:1},{label:"MYR",num:1},{label:"",num:1}], rows);
 }
@@ -1181,7 +1741,7 @@ function txTable() {
  * PAGE: CASH LEDGER  (+ reconciliation)
  * ========================================================================== */
 function pageCash() {
-  const cashTypes = ["Deposit", "Withdrawal", "Interest / cash yield", "Fee", "Tax withholding", "Transfer between brokers"];
+  const cashTypes = ["Deposit", "Withdrawal", "Interest / cash yield", "Fee", "Tax withholding", "Transfer between brokers", "Currency Exchange"];
   const cashTx = ALL_TRANSACTIONS.filter((x) => cashTypes.includes(x.type) || (x.type === "Dividend" && x.status !== "Expected"));
   const rows = cashTx.map((c) => {
     const myr = c.myrEquivalent != null ? c.myrEquivalent : (+c.gross || 0) * (c.fxRate || FX.rates[c.currency] || 1);
@@ -1214,8 +1774,17 @@ function pageCash() {
       <td class="num"><button class="btn ghost" data-recon-broker="${b.id}">${t("Update")}</button></td></tr>`;
   }).join("");
 
+  // Per-currency cash balances (P-fix #2)
+  const ccyRows = BROKERS.map((b) => {
+    const byc = T.brokerCashByCcy[b.id] || {};
+    return Object.keys(byc).filter((c) => Math.abs(byc[c]) > 0.005).map((c) =>
+      `<tr><td>${b.name}</td><td>${c}</td><td class="num ${byc[c] < 0 ? "neg" : ""}">${fmt(byc[c])}</td><td class="num">${money(byc[c] * (FX.rates[c] || 1))}</td></tr>`).join("");
+  }).join("");
+
   const html = `
     ${summary}
+    ${panel("Cash Balances by Currency", table(
+      [{label:"Broker"},{label:"Currency"},{label:"Balance",num:1},{label:"In MYR",num:1}], ccyRows))}
     ${panel("Cash Movements", table(
       [{label:"Date"},{label:"Broker"},{label:"Type"},{label:"Amount",num:1},{label:"Currency"},{label:"FX Rate",num:1},{label:"Amount in MYR",num:1}], rows))}
     ${panel("Broker Cash Reconciliation", table(
@@ -1240,6 +1809,50 @@ function pageCash() {
 
 function miniCard(label, value, valCls = "") {
   return `<div class="mini-card"><div class="mc-label">${label}</div><div class="mc-value ${valCls}">${value}</div></div>`;
+}
+
+/* Net dividend of one record, in base currency (gross − tax, at historical FX). */
+function divNetMYR(d) { return ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1); }
+
+/* Aggregate received dividends by month / quarter / year (base currency). */
+function dividendByPeriod(received) {
+  const byMonth = {}, byQuarter = {}, byYear = {};
+  received.forEach((d) => {
+    const date = d.payDate || d.date || "";
+    if (date.length < 7) return;
+    const y = date.slice(0, 4), m = date.slice(5, 7);
+    const q = "Q" + (Math.floor((+m - 1) / 3) + 1);
+    const net = divNetMYR(d);
+    byMonth[`${y}-${m}`] = (byMonth[`${y}-${m}`] || 0) + net;
+    byQuarter[`${y} ${q}`] = (byQuarter[`${y} ${q}`] || 0) + net;
+    byYear[y] = (byYear[y] || 0) + net;
+  });
+  return { byMonth, byQuarter, byYear };
+}
+
+/* Dividend forecast.
+ * METHOD (documented): a run-rate from your trailing-12-month (TTM) RECEIVED dividends —
+ *   Next Year ≈ TTM, Next Quarter ≈ TTM ÷ 4, Next Month ≈ TTM ÷ 12.
+ * Separately, we also sum any dividends you explicitly marked "Expected" whose payment
+ * date falls inside the window (confirmed pipeline). The two are shown side by side so a
+ * run-rate estimate is never confused with confirmed amounts. */
+function dividendForecast(received, expected) {
+  const now = todayDate();
+  const cutoff = new Date(now); cutoff.setFullYear(now.getFullYear() - 1);
+  const ttm = received.reduce((s, d) => {
+    const dt = new Date((d.payDate || d.date) + "T00:00:00");
+    return (!isNaN(dt) && dt >= cutoff && dt <= now) ? s + divNetMYR(d) : s;
+  }, 0);
+  const expWindow = (days) => {
+    const end = new Date(now); end.setDate(now.getDate() + days);
+    return expected.reduce((s, d) => {
+      if (!d.payDate) return s;
+      const dt = new Date(d.payDate + "T00:00:00");
+      return (!isNaN(dt) && dt >= now && dt <= end) ? s + divNetMYR(d) : s;
+    }, 0);
+  };
+  return { ttm, nextMonth: ttm / 12, nextQuarter: ttm / 4, nextYear: ttm,
+    expMonth: expWindow(31), expQuarter: expWindow(92), expYear: expWindow(365) };
 }
 
 /* =============================================================================
@@ -1271,15 +1884,59 @@ function pageDividends() {
 
   const grossBase = received.reduce((s, d) => s + (+d.gross || 0) * (d.fxRate || FX.rates[d.currency] || 1), 0);
   const taxBase = received.reduce((s, d) => s + (+d.tax || 0) * (d.fxRate || FX.rates[d.currency] || 1), 0);
-  const taxByCountry = groupSum(received, (d) => countryForTicker(d.ticker), (d) => (+d.tax || 0) * (d.fxRate || FX.rates[d.currency] || 1));
+  const taxByCountry = groupSum(received, (d) => countryForTicker(d.ticker, (STOCK_META[d.ticker] || {}).country), (d) => (+d.tax || 0) * (d.fxRate || FX.rates[d.currency] || 1));
   const taxRows = taxByCountry.filter((c) => c.value > 0).map((c) => `<tr><td>${c.label}</td><td class="num neg">${money(c.value)}</td></tr>`).join("");
+
+  // Analytics + forecast (P1.2/3/4) — with month-over-month, quarter-over-quarter, year-over-year trend.
+  const periods = dividendByPeriod(received);
+
+  const monthsAsc = Object.keys(periods.byMonth).sort();
+  const monthRows = monthsAsc.map((k, i) => ({ k, val: periods.byMonth[k], delta: i > 0 ? periods.byMonth[k] - periods.byMonth[monthsAsc[i - 1]] : null }))
+    .reverse().slice(0, 12).map((r) => `<tr><td>${r.k}</td><td class="num pos">${money(r.val)}</td>
+      <td class="num ${r.delta == null ? "" : cls(r.delta)}">${r.delta == null ? "—" : signed(r.delta)}</td></tr>`).join("");
+
+  const qAsc = Object.keys(periods.byQuarter).sort();
+  const quarterRows = qAsc.map((k, i) => { const prev = i > 0 ? periods.byQuarter[qAsc[i - 1]] : null; const val = periods.byQuarter[k];
+      return { k, val, delta: prev != null ? val - prev : null, pct: prev ? ((val - prev) / prev) * 100 : null }; })
+    .reverse().slice(0, 8).map((r) => `<tr><td>${r.k}</td><td class="num pos">${money(r.val)}</td>
+      <td class="num ${r.delta == null ? "" : cls(r.delta)}">${r.delta == null ? "—" : signed(r.delta)}${r.pct != null ? ` <span class="fx-note ${cls(r.pct)}">${pctTxt(r.pct)}</span>` : ""}</td></tr>`).join("");
+
+  const yearsAsc = Object.keys(periods.byYear).sort();
+  const yearRows = yearsAsc.map((k, i) => { const prev = i > 0 ? periods.byYear[yearsAsc[i - 1]] : null; const val = periods.byYear[k];
+      return { k, val, yoy: prev ? ((val - prev) / prev) * 100 : null }; })
+    .reverse().map((r) => `<tr><td>${r.k}</td><td class="num pos">${money(r.val)}</td>
+      <td class="num ${r.yoy == null ? "" : cls(r.yoy)}">${r.yoy == null ? "—" : pctTxt(r.yoy)}</td></tr>`).join("");
+
+  const thisY = yearsAsc[yearsAsc.length - 1], lastY = yearsAsc[yearsAsc.length - 2];
+  const yoyGrowth = (lastY && periods.byYear[lastY]) ? ((periods.byYear[thisY] - periods.byYear[lastY]) / periods.byYear[lastY]) * 100 : null;
+
+  const fc = dividendForecast(received, expected);
+  const hasExp = fc.expMonth || fc.expQuarter || fc.expYear;
 
   const html = `
     <div class="mini-cards">
       ${miniCard("Gross Dividends", money(grossBase))}
       ${miniCard("Withholding Tax", money(taxBase), "neg")}
-      ${miniCard("Net Dividends", money(grossBase - taxBase), "pos")}</div>
+      ${miniCard("Net Dividends (Lifetime)", money(grossBase - taxBase), "pos")}</div>
+
+    ${panel("Dividend Forecast", `
+      <p class="muted" style="margin:-4px 0 12px">${t("Run-rate estimate from your trailing-12-month dividends")} (${money(fc.ttm)}). ${t("Estimate only — not a guarantee.")}</p>
+      <div class="mini-cards">
+        ${miniCard(t("Next Month (est.)"), money(fc.nextMonth))}
+        ${miniCard(t("Next Quarter (est.)"), money(fc.nextQuarter))}
+        ${miniCard(t("Next Year (est.)"), money(fc.nextYear))}</div>
+      ${hasExp ? `<p class="muted" style="margin:12px 0 0">${t("Confirmed 'Expected' dividends in window")}: ${t("next month")} ${money(fc.expMonth)} · ${t("next quarter")} ${money(fc.expQuarter)} · ${t("next year")} ${money(fc.expYear)}</p>` : ""}
+      <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`)}
+
     ${panel("Upcoming Dividends", table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], upcomingRows))}
+
+    <section class="grid-2">
+      ${panel("Monthly Dividend Income", table([{label:"Month"},{label:"Net (MYR)",num:1},{label:"MoM Δ",num:1}], monthRows))}
+      ${panel("Quarterly Dividend Income", table([{label:"Quarter"},{label:"Net (MYR)",num:1},{label:"QoQ Δ",num:1}], quarterRows))}
+    </section>
+    ${panel("Annual Dividend Income", `${yoyGrowth != null ? `<p class="muted" style="margin:-4px 0 12px">${t("Year-over-year growth")}: <strong class="${cls(yoyGrowth)}">${pctTxt(yoyGrowth)}</strong> (${thisY} ${t("vs")} ${lastY})</p>` : ""}
+      ${table([{label:"Year"},{label:"Net (MYR)",num:1},{label:"YoY",num:1}], yearRows)}`)}
+
     ${panel("Dividend History", table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], histRows))}
     ${panel("Dividend Tax Paid by Country", table([{label:"Country"},{label:"Withholding Tax (MYR)",num:1}], taxRows))}`;
   return { title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html };
@@ -1288,49 +1945,92 @@ function pageDividends() {
 /* =============================================================================
  * PAGE: REPORTS
  * ========================================================================== */
-function pageReports() {
-  const plByHolding = [...T.holdings].sort((a, b) => b.totalReturn - a.totalReturn).map((h) => `<tr>
-    <td class="ticker">${h.ticker}</td><td class="num ${cls(h.unrealized)}">${signed(h.unrealized)}</td>
-    <td class="num">${fmt(h.netDividends)}</td><td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td></tr>`).join("");
+let reportTab = "portfolio";   // F3: portfolio | dividend | cashflow | performance
 
-  const plByBroker = groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.totalReturn)
-    .map((b) => `<tr><td>${b.label}</td><td class="num ${cls(b.value)}">${signed(b.value)}</td></tr>`).join("");
+function reportPortfolio() {
+  const a = allocationData();
+  const holdRows = [...T.holdings].sort((x, y) => y.marketValue - x.marketValue).map((h) => `<tr>
+    <td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a></td>
+    <td class="num">${fmt(h.shares, { maximumFractionDigits: 4 })}</td><td class="num">${money(h.avgCost)}</td>
+    <td class="num">${money(h.marketValue)}</td><td class="num">${a.total ? fmt(h.marketValue / a.total * 100, { maximumFractionDigits: 1 }) : "0"}%</td>
+    <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : "—"}</td>
+    <td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td></tr>`).join("");
+  return `
+    ${panel("Holdings", table([{label:"Holding"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Market Value",num:1},{label:"Allocation",num:1},{label:"Unrealized",num:1},{label:"Total Return",num:1}], holdRows))}
+    <h3 class="report-h">${t("Allocation")}</h3>
+    <section class="grid-2">
+      ${allocationPanel(t("By Country"), a.byCountry, a.total)}
+      ${allocationPanel(t("By Sector"), a.bySector, a.total)}
+    </section>
+    <section class="grid-2">
+      ${allocationPanel(t("By Currency"), a.byCurrency, a.total)}
+      ${allocationPanel(t("By Brokerage"), a.byBroker, a.total)}
+    </section>`;
+}
 
-  const divByYear = groupSum(
-    ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status !== "Expected"),
-    (d) => (d.payDate || d.date || "----").slice(0, 4),
-    (d) => ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1))
-    .map((y) => `<tr><td>${y.label}</td><td class="num pos">${money(y.value)}</td></tr>`).join("");
+function reportDividend() {
+  const received = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status !== "Expected");
+  const periods = dividendByPeriod(received);
+  const lifetime = Object.values(periods.byYear).reduce((s, v) => s + v, 0);
+  const rows = (obj) => Object.keys(obj).sort().reverse().map((k) => `<tr><td>${k}</td><td class="num pos">${money(obj[k])}</td></tr>`).join("");
+  return `
+    <div class="mini-cards">${miniCard(t("Lifetime Net Dividends"), money(lifetime), "pos")}${miniCard(t("Dividend Yield (TTM)"), (T.portfolioValue ? fmt(ttmDividends() / T.portfolioValue * 100, { maximumFractionDigits: 2 }) + "%" : "—"))}</div>
+    <section class="grid-2">
+      ${panel("Monthly", table([{label:"Month"},{label:"Net (MYR)",num:1}], rows(periods.byMonth)))}
+      ${panel("Quarterly", table([{label:"Quarter"},{label:"Net (MYR)",num:1}], rows(periods.byQuarter)))}
+    </section>
+    ${panel("Annual", table([{label:"Year"},{label:"Net (MYR)",num:1}], rows(periods.byYear)))}`;
+}
 
-  const feesByBroker = groupSum(ALL_TRANSACTIONS.filter((t) => t.fee), (t) => brokerName(t.brokerId), (t) => toBase(t.fee, t.currency))
-    .map((b) => `<tr><td>${b.label}</td><td class="num neg">${money(b.value)}</td></tr>`).join("");
+function reportCashflow() {
+  const types = { Deposit: [], Withdrawal: [], "Currency Exchange": [] };
+  ALL_TRANSACTIONS.forEach((x) => { if (types[x.type]) types[x.type].push(x); });
+  const sum = (arr) => arr.reduce((s, x) => s + (+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1), 0);
+  const rows = (arr) => arr.sort((a, b) => (a.date < b.date ? 1 : -1)).map((x) => `<tr><td>${fmtDate(x.date)}</td><td class="sub">${brokerName(x.brokerId)}</td>
+    <td class="num">${x.currency} ${fmt(x.gross)}</td><td class="num">${money((+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1))}</td>
+    ${x.type === "Currency Exchange" ? `<td class="sub">→ ${x.toCurrency} ${fmt(x.toAmount)}</td>` : "<td></td>"}</tr>`).join("");
+  const hdr = [{label:"Date"},{label:"Broker"},{label:"Amount",num:1},{label:"In MYR",num:1},{label:""}];
+  return `
+    <div class="mini-cards">${miniCard(t("Total Deposits"), money(sum(types.Deposit)))}${miniCard(t("Total Withdrawals"), money(sum(types.Withdrawal)))}${miniCard(t("Net Cash Added"), money(sum(types.Deposit) - sum(types.Withdrawal)), cls(sum(types.Deposit) - sum(types.Withdrawal)))}</div>
+    ${panel("Deposits", table(hdr, rows(types.Deposit)))}
+    ${panel("Withdrawals", table(hdr, rows(types.Withdrawal)))}
+    ${panel("Currency Exchanges", table(hdr, rows(types["Currency Exchange"])))}`;
+}
 
-  // Currency gain/loss estimate: USD cost basis × (current rate − assumed acquisition rate 4.55)
-  const acqRate = 4.55;
-  const usdCost = T.holdings.filter((h) => h.currency === "USD").reduce((s, h) => s + h.shares * h.avgCost, 0);
-  const fxGain = usdCost * (FX.rates.USD - acqRate);
-
-  const html = `
-    <div class="report-grid">
-      ${panel("Profit / Loss by Holding", table([{label:"Ticker"},{label:"Unrealized",num:1},{label:"Net Div",num:1},{label:"Total Return",num:1}], plByHolding))}
-      ${panel("Profit / Loss by Broker", table([{label:"Broker"},{label:"Total Return",num:1}], plByBroker))}
-      ${panel("Dividend Income by Year", table([{label:"Year"},{label:"Net Dividends",num:1}], divByYear))}
-      ${panel("Fees Paid by Broker", table([{label:"Broker"},{label:"Fees",num:1}], feesByBroker))}
-      ${panel("Currency Gain / Loss", `<div class="report-stat">
-        <div class="rs-value ${cls(fxGain)}">${signed(fxGain)} MYR</div>
-        <p class="muted">Estimated FX impact on USD holdings: cost ${money(usdCost,"USD")} × (current ${FX.rates.USD} − acquisition ${acqRate}). <span class="badge warn">Estimated</span></p></div>`)}
-      ${panel("Total Return", `<div class="report-stat">
-        <div class="rs-value ${cls(T.totalReturn)}">${money(T.totalReturn)}</div>
-        <p class="muted">Unrealized ${signed(T.unrealizedPL)} + Realized ${signed(T.realizedPL)} + Net Dividends ${fmt(T.netDividends)} − Fees ${fmt(T.totalFees)}</p></div>`)}
+function reportPerformance() {
+  const fxGain = T.fxUnrealizedPL || 0, priceOnly = T.priceUnrealizedPL || 0;
+  const stat = (label, val, cl, note) => `<div class="mini-card"><div class="mc-label">${label}</div><div class="mc-value ${cl}">${val}</div>${note ? `<div class="mc-sub muted">${note}</div>` : ""}</div>`;
+  return `
+    <div class="mini-cards">
+      ${stat(t("Realized Return"), signed(T.realizedPL), cls(T.realizedPL))}
+      ${stat(t("Unrealized Return"), signed(T.unrealizedPL), cls(T.unrealizedPL), `${t("price")} ${signed(priceOnly)} · ${t("FX")} ${signed(fxGain)}`)}
+      ${stat(t("Net Dividends"), money(T.netDividends), "pos")}
+      ${stat(t("Total Return"), money(T.totalReturn), cls(T.totalReturn), pctTxt(T.totalReturnPct) + " " + t("on net capital"))}
+      ${stat("XIRR", T.xirr == null ? "—" : pctTxt(T.xirr), T.xirr == null ? "" : cls(T.xirr), t("money-weighted"))}
     </div>
+    ${panel("Profit / Loss by Broker", table([{label:"Broker"},{label:"Total Return",num:1}],
+      groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.totalReturn).map((b) => `<tr><td>${b.label}</td><td class="num ${cls(b.value)}">${signed(b.value)}</td></tr>`).join("")))}
+    ${panel("Fees Paid by Broker", table([{label:"Broker"},{label:"Fees",num:1}],
+      groupSum(ALL_TRANSACTIONS.filter((x) => x.fee), (x) => brokerName(x.brokerId), (x) => (+x.fee || 0) * (x.fxRate || FX.rates[x.currency] || 1)).map((b) => `<tr><td>${b.label}</td><td class="num neg">${money(b.value)}</td></tr>`).join("")))}`;
+}
+
+function pageReports() {
+  const tabs = [["portfolio", "Portfolio"], ["dividend", "Dividend"], ["cashflow", "Cash Flow"], ["performance", "Performance"]];
+  const nav = `<div class="seg report-tabs" role="tablist">${tabs.map(([k, lbl]) =>
+    `<button class="seg-btn ${reportTab === k ? "on" : ""}" data-rtab="${k}">${t(lbl)}</button>`).join("")}</div>`;
+  const body = reportTab === "dividend" ? reportDividend()
+    : reportTab === "cashflow" ? reportCashflow()
+    : reportTab === "performance" ? reportPerformance() : reportPortfolio();
+  const html = `${nav}${body}
     <section class="panel"><div class="panel-head"><h2>Export</h2></div>
       <div class="form-actions">
         <button class="btn" id="expCash">⭳ Cash Ledger CSV</button>
         <button class="btn" id="expTx">⭳ Transactions CSV</button>
         <button class="btn" id="expDiv">⭳ Dividends CSV</button>
       </div></section>`;
-  return { title: "Reports", subtitle: "Returns, dividends, fees and currency impact.", html,
+  return { title: "Reports", subtitle: "Portfolio, dividend, cash-flow and performance reports.", html,
     mount() {
+      $$("[data-rtab]").forEach((b) => b.addEventListener("click", () => { reportTab = b.dataset.rtab; render(); }));
       $("#expCash").addEventListener("click", exportCashCSV);
       $("#expTx").addEventListener("click", exportTxCSV);
       $("#expDiv").addEventListener("click", exportDivCSV);
@@ -1340,55 +2040,104 @@ function pageReports() {
 /* =============================================================================
  * PAGE: BROKERS
  * ========================================================================== */
-function pageBrokers() {
-  const cards = BROKERS.map((b) => {
-    const holdings = T.holdings.filter((h) => h.brokerId === b.id);
-    const value = holdings.reduce((s, h) => s + h.marketValue, 0);
-    const calc = T.brokerCash[b.id] || 0;
-    const chk = RECON_CHECKS[b.id];
-    const hasActual = chk && chk.actual != null;
-    const diff = hasActual ? calc - (+chk.actual) : null;
-    const off = hasActual && Math.abs(diff) > (SETTINGS.reconTolerance || 0);
-    return `<article class="broker-card">
+let editingBrokerId = null;          // P1.5
+let showArchivedBrokers = false;     // P1.6
+
+function brokerCard(b) {
+  const holdings = T.holdings.filter((h) => h.brokerId === b.id);
+  const value = holdings.reduce((s, h) => s + h.marketValue, 0);
+  const calc = T.brokerCash[b.id] || 0;
+  const chk = RECON_CHECKS[b.id];
+  const hasActual = chk && chk.actual != null;
+  const diff = hasActual ? calc - (+chk.actual) : null;
+  const off = hasActual && Math.abs(diff) > (SETTINGS.reconTolerance || 0);
+  return `<article class="broker-card ${b.archived ? "archived" : ""}">
       <div class="bc-head"><span class="brand-mark sm">${b.name.slice(0,2).toUpperCase()}</span>
-        <div><div class="bc-name">${b.name}</div><div class="sub">${b.country || "—"} · ${b.currency}</div></div>
-        <button class="icon-btn bc-del" data-del-broker="${b.id}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button></div>
+        <div><div class="bc-name">${b.name} ${b.archived ? `<span class="badge subtle">${t("Archived")}</span>` : ""}</div>
+          <div class="sub">${b.country || "—"} · ${b.currency}</div></div>
+        <div class="bc-actions">
+          <button class="icon-btn row-edit" data-edit-broker="${b.id}" title="${t("Edit")}" aria-label="${t("Edit")}">✎</button>
+          <button class="icon-btn" data-archive-broker="${b.id}" title="${b.archived ? t("Unarchive") : t("Archive")}" aria-label="${b.archived ? t("Unarchive") : t("Archive")}">${b.archived ? "↩" : "🗄"}</button>
+          <button class="icon-btn bc-del" data-del-broker="${b.id}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button>
+        </div></div>
       <div class="bc-stats">
         <div><span class="sub">${t("Holdings")}</span><strong>${holdings.length}</strong></div>
         <div><span class="sub">${t("Market Value")}</span><strong>${money(value)}</strong></div>
         <div><span class="sub">${t("Cash (calc)")}</span><strong>${money(calc)}</strong></div>
         <div><span class="sub">${t("Difference")}</span><strong class="${off ? "neg" : ""}">${hasActual ? signed(diff) : "—"}</strong></div>
-      </div></article>`;
-  }).join("");
+      </div>
+      ${b.notes ? `<p class="bc-notes muted">${b.notes}</p>` : ""}</article>`;
+}
 
+function pageBrokers() {
+  const editing = editingBrokerId ? BROKERS.find((b) => b.id === editingBrokerId) : null;
+  if (editingBrokerId && !editing) editingBrokerId = null;
+  const active = BROKERS.filter((b) => !b.archived);
+  const archived = BROKERS.filter((b) => b.archived);
+  const cards = active.map(brokerCard).join("");
+  const archivedCards = (showArchivedBrokers ? archived : []).map(brokerCard).join("");
+
+  const e = editing || {};
+  const sel = (val, cur) => (val === cur ? " selected" : "");
   const brokerForm = `<form id="brokerForm" class="form" autocomplete="off">
     <div class="form-grid">
-      <label>${t("Broker name")}<input name="name" placeholder="e.g. Rakuten Trade" required></label>
-      <label>${t("Country")}<input name="country" placeholder="e.g. Malaysia"></label>
-      <label>${t("Default currency")}<select name="currency">${Object.keys(FX.rates).map((c) => `<option>${c}</option>`).join("")}</select></label>
+      <label>${t("Broker name")}<input name="name" value="${e.name || ""}" placeholder="e.g. Rakuten Trade" required></label>
+      <label>${t("Country")}<input name="country" value="${e.country || ""}" placeholder="e.g. Malaysia"></label>
+      <label>${t("Default currency")}<select name="currency">${Object.keys(FX.rates).map((c) => `<option${sel(c, e.currency)}>${c}</option>`).join("")}</select></label>
     </div>
-    <div class="form-actions"><button class="btn primary" type="submit">${t("Add Broker")}</button></div>
+    <label class="block">${t("Notes")}<input name="notes" value="${e.notes || ""}" placeholder="${t("optional")}"></label>
+    <div class="form-actions">
+      <button class="btn primary" type="submit">${editing ? t("Update Broker") : t("Add Broker")}</button>
+      ${editing ? `<button class="btn ghost" type="button" id="cancelBrokerEdit">${t("Cancel edit")}</button>` : ""}
+    </div>
   </form>`;
 
-  const html = `${cards ? `<div class="broker-grid">${cards}</div>` : emptyState("No brokers yet — add your first one below.")}
-    ${panel("Add Broker", brokerForm)}`;
+  const archToggle = archived.length
+    ? `<button class="btn ghost" id="toggleArchived">${showArchivedBrokers ? t("Hide archived") : `${t("Show archived")} (${archived.length})`}</button>` : "";
+
+  const html = `${cards ? `<div class="broker-grid">${cards}</div>` : emptyState(t("No brokers yet. Add your first one below."))}
+    ${archToggle}
+    ${showArchivedBrokers && archivedCards ? `<div class="broker-grid" style="margin-top:14px">${archivedCards}</div>` : ""}
+    ${panel(editing ? "Edit Broker" : "Add Broker", brokerForm)}`;
 
   return { title: "Brokers", subtitle: LANG === "zh"
-      ? `已连接 ${BROKERS.length} 个投资平台。`
-      : `${BROKERS.length} investment apps connected.`, html,
+      ? `已连接 ${active.length} 个投资平台。`
+      : `${active.length} investment apps connected.`, html,
     mount() {
-      $("#brokerForm").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const d = Object.fromEntries(new FormData(e.target).entries());
-        BROKERS.push({ id: uid("b"), name: d.name.trim(), country: (d.country || "").trim(), currency: d.currency });
-        saveStore(); toast(t("Broker added")); render();
+      $("#brokerForm").addEventListener("submit", (ev) => {
+        ev.preventDefault();
+        const d = Object.fromEntries(new FormData(ev.target).entries());
+        if (!d.name.trim()) { toast(t("Enter a broker name.")); return; }
+        if (editingBrokerId) {
+          const b = BROKERS.find((x) => x.id === editingBrokerId);
+          if (b) { b.name = d.name.trim(); b.country = (d.country || "").trim(); b.currency = d.currency; b.notes = (d.notes || "").trim(); }
+          editingBrokerId = null;
+          saveStore(); toast(t("Broker updated")); render();
+        } else {
+          BROKERS.push({ id: uid("b"), name: d.name.trim(), country: (d.country || "").trim(), currency: d.currency, notes: (d.notes || "").trim(), archived: false });
+          saveStore(); toast(t("Broker added")); render();
+        }
       });
+      const cancelB = $("#cancelBrokerEdit");
+      if (cancelB) cancelB.addEventListener("click", () => { editingBrokerId = null; render(); });
+      const tog = $("#toggleArchived");
+      if (tog) tog.addEventListener("click", () => { showArchivedBrokers = !showArchivedBrokers; render(); });
+
+      $$("[data-edit-broker]").forEach((btn) => btn.addEventListener("click", () => {
+        editingBrokerId = btn.dataset.editBroker; render();
+        const p = $("#brokerForm"); if (p) p.scrollIntoView({ behavior: "smooth", block: "center" });
+      }));
+      $$("[data-archive-broker]").forEach((btn) => btn.addEventListener("click", () => {
+        const b = BROKERS.find((x) => x.id === btn.dataset.archiveBroker);
+        if (b) { b.archived = !b.archived; saveStore(); toast(b.archived ? t("Broker archived") : t("Broker unarchived")); render(); }
+      }));
       $$("[data-del-broker]").forEach((btn) => btn.addEventListener("click", () => {
         const id = btn.dataset.delBroker;
-        const used = HOLDINGS.some((h) => h.brokerId === id) || ALL_TRANSACTIONS.some((x) => x.brokerId === id) || CASH_LEDGER.some((c) => c.brokerId === id);
-        if (used && !confirm(t("This broker still has records. Remove it anyway?"))) return;
+        const used = HOLDINGS.some((h) => h.brokerId === id) || ALL_TRANSACTIONS.some((x) => x.brokerId === id);
+        if (used && !confirm(t("This broker still has records. Remove it anyway? (Consider Archive instead.)"))) return;
         const i = BROKERS.findIndex((b) => b.id === id);
         if (i >= 0) BROKERS.splice(i, 1);
+        if (editingBrokerId === id) editingBrokerId = null;
         saveStore(); toast(t("Broker removed")); render();
       }));
     } };
@@ -1438,6 +2187,18 @@ function pageSettings() {
         <span class="muted fx-status" id="fxStatus">${FX_STATUS}</span>
       </div>`)}
 
+    ${panel("Preferences", `<div class="setting-rows">
+      ${settingRow(t("Date format"), `<select id="dateFmt">${DATE_FORMATS.map((f) => `<option value="${f.k}" ${SETTINGS.dateFormat === f.k ? "selected" : ""}>${f.label}</option>`).join("")}</select>`)}
+      ${settingRow(t("Time zone"), `<select id="tzSel"><option value="">${t("Device local")}</option>${TIME_ZONES.map((z) => `<option value="${z}" ${SETTINGS.timeZone === z ? "selected" : ""}>${z}</option>`).join("")}</select>`)}
+      <p class="muted" style="margin:6px 0 0">${t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered.")}</p></div>`)}
+
+    ${panel("Cost Basis Method", `<div class="setting-rows">
+      ${settingRow(t("Method"), `<select id="costBasis">
+        <option value="average" ${SETTINGS.costBasis === "average" ? "selected" : ""}>${t("Average Cost")}</option>
+        <option value="fifo" disabled>${t("FIFO — not yet implemented")}</option>
+      </select>`)}
+      <p class="muted" style="margin:6px 0 0">${t("Average Cost is the active method for all gain/loss figures. FIFO is planned and currently disabled.")}</p></div>`)}
+
     ${panel("Reconciliation", `<div class="setting-rows">
       ${settingRow(t("Tolerance") + " (" + FX.base + ")", `<input type="number" step="any" id="reconTol" value="${SETTINGS.reconTolerance}" style="width:120px">`)}
       <p class="muted" style="margin:6px 0 0">${t("Differences within this amount are treated as a small difference rather than needing review.")}</p></div>`)}
@@ -1452,6 +2213,15 @@ function pageSettings() {
         <button class="btn" id="setExpCash">⭳ ${t("Export Cash CSV")}</button>
         <button class="btn ghost" id="loadDemo">${t("Load demo data")}</button>
       </div>`)}
+
+    ${panel("Import from CSV", `
+      <p class="muted" style="margin:-2px 0 12px">${t("Bulk-add transactions (deposits, withdrawals, buys, sells, dividends) from a spreadsheet. Download the template, fill it in, then upload to preview before anything is saved.")}</p>
+      <div class="form-actions">
+        <button class="btn" id="dlTemplate">⭳ ${t("Download CSV template")}</button>
+        <button class="btn primary" id="impCsvBtn">⭱ ${t("Upload CSV")}</button>
+        <input type="file" id="impCsvFile" accept=".csv,text/csv" hidden>
+      </div>
+      <div id="csvPreview">${importPreviewHTML()}</div>`)}
 
     ${panel("Danger Zone", `
       <p class="muted" style="margin:-2px 0 12px">${t("Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.")}</p>
@@ -1487,6 +2257,18 @@ function pageSettings() {
         SETTINGS.reconTolerance = isNaN(v) ? 0 : Math.abs(v);
         saveStore(); toast(t("Tolerance saved"));
       });
+      // Preferences (date format / time zone / cost basis)
+      $("#dateFmt").addEventListener("change", (e) => { SETTINGS.dateFormat = e.target.value; saveStore(); toast(t("Preferences saved")); render(); });
+      $("#tzSel").addEventListener("change", (e) => { SETTINGS.timeZone = e.target.value; saveStore(); toast(t("Preferences saved")); });
+      $("#costBasis").addEventListener("change", (e) => {
+        if (e.target.value !== "average") { e.target.value = "average"; toast(t("FIFO is not implemented yet.")); return; }
+        SETTINGS.costBasis = "average"; saveStore();
+      });
+      // CSV import
+      $("#dlTemplate").addEventListener("click", downloadImportTemplate);
+      $("#impCsvBtn").addEventListener("click", () => $("#impCsvFile").click());
+      $("#impCsvFile").addEventListener("change", (e) => { if (e.target.files[0]) handleCsvFile(e.target.files[0]); e.target.value = ""; });
+      mountImportPreview();
       // CSV + JSON backup
       $("#setExpCash").addEventListener("click", exportCashCSV);
       $("#setExpTx").addEventListener("click", exportTxCSV);
@@ -1511,7 +2293,7 @@ function pageSettings() {
 
 /* --- Data safety helpers --- */
 function clearAllData() {
-  [BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS].forEach((a) => (a.length = 0));
+  [BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS, PV_HISTORY].forEach((a) => (a.length = 0));
   assignObj(CURRENT_PRICES, {}); assignObj(RECON_CHECKS, {});
   resetStore(); recompute();
 }
@@ -1562,6 +2344,7 @@ function loadDemoData() {
       "AAPL": { price: 215.40, currency: "USD", date: today },
     },
     RECON_CHECKS: {},
+    PV_HISTORY: [],
     SETTINGS: { returnMode: "total", reconTolerance: 1 },
     USER: { name: "Demo User", email: "", baseCurrency: "MYR", joined: "2025-01-06" },
     FX: { base: "MYR", rates: { MYR: 1, USD: 4.70, SGD: 3.48 }, updated: today },
@@ -1742,25 +2525,157 @@ function reflectThemeChoice() {
  * ========================================================================== */
 function pageHelp() {
   const itemsEN = [
-    { q: "How is Total Return calculated?", a: "Total Return = Current Portfolio Value + Total Withdrawals + Net Dividends − Total Deposits − Total Fees. It captures price movement, dividends and cash flows in one figure." },
-    { q: "What's the difference between realized and unrealized P/L?", a: "Unrealized P/L = current market value − cost basis of shares you still hold. Realized P/L = sale proceeds − cost basis of sold shares − fees. Total Return combines both plus dividends and currency effects." },
-    { q: "How is dividend tax handled?", a: "Net Dividend = Gross Dividend − Withholding Tax − Other Fees. Withholding tax is tracked per dividend and summarised by country in Reports." },
-    { q: "What do the transaction types mean?", a: "Deposit/Withdrawal move cash in/out. Buy/Sell trade shares. Dividend records income. DRIP creates two linked records (dividend + buy). Fee, Currency Exchange, Stock Split and Adjustment cover the rest." },
-    { q: "Why are some dividends marked 'Estimated'?", a: "Estimated dividends are projected from historical patterns and are not confirmed. They are clearly badged and never shown as confirmed dates or amounts." },
-    { q: "Why does a broker show 'Unreconciled'?", a: "Your calculated cash balance (deposits − buys − fees + sells + net dividends − withdrawals) differs from the actual balance in the app. Usually a missing fee or dividend entry." },
+    { q: "How is Total Return calculated?", a: "Total Return = Unrealized P/L + Realized P/L + Net Dividends − standalone Fees. Trade commissions and taxes are already inside cost basis (buys) and realized P/L (sells), so they are not deducted twice." },
+    { q: "What's the difference between realized and unrealized P/L?", a: "Unrealized P/L = current market value − remaining cost basis of shares you still hold. Realized P/L = sale proceeds − average cost of sold shares − commission − taxes. Average-cost method is used." },
+    { q: "What is XIRR?", a: "XIRR (Extended Internal Rate of Return) is your money-weighted annual return. Unlike a simple return, it accounts for WHEN money entered and left your portfolio, so large contributions near the end don't unfairly flatter (or hurt) the percentage. It answers: 'what constant annual rate, compounded, turns my dated cash flows into my current account value?'" },
+    { q: "How is XIRR calculated?", a: "Methodology: the account boundary is your whole portfolio (holdings + cash). External flows are dated: each Deposit is negative (cash in), each Withdrawal is positive (cash out). Today's terminal value = current holdings market value + cash balance, as a final positive flow. Buys, Sells and Dividends are INTERNAL to the account (they move value between cash and securities, or generate cash that stays in the account), so they are already captured in the terminal value — adding them as separate flows would double-count. XIRR is then the rate r solving Σ flow_i / (1+r)^(years_i) = 0, found by Newton-Raphson with a bisection fallback. Requires at least one deposit and ≥7 days of history." },
+    { q: "Why is XIRR different from simple return?", a: "Simple return = (gain) ÷ (money invested), ignoring timing. XIRR is time-weighted by date and annualised. Example: depositing RM10,000 a year ago vs last week gives the same simple return but very different XIRR, because the recent money had almost no time to compound. XIRR is the fairer measure of the rate your money actually earned." },
+    { q: "How is the dividend forecast calculated?", a: "Methodology: a run-rate from your trailing-12-month (TTM) RECEIVED dividends, converted to your base currency at each dividend's historical FX rate. Next Year ≈ TTM, Next Quarter ≈ TTM ÷ 4, Next Month ≈ TTM ÷ 12. Separately, any dividends you mark 'Expected' with a payment date inside the window are summed as a 'confirmed pipeline'. Assumptions: your holdings and their payout rate stay roughly the same as the last 12 months." },
+    { q: "How accurate is the dividend forecast?", a: "It is a directional estimate, not a prediction. Accuracy is best for a stable, diversified dividend portfolio held for a full year (so the TTM base is complete). It is least accurate for new portfolios (incomplete TTM), recently changed holdings, or stocks with irregular/special dividends." },
+    { q: "What are the forecast's limitations?", a: "It does NOT model: future buys or sells, dividend cuts or raises, special/one-off dividends, changes in withholding tax, or FX movement on future payments. Equal monthly/quarterly splitting (TTM ÷ 12 / ÷ 4) ignores real payout calendars (many stocks pay semi-annually or annually). Treat it as a planning aid only — never as guaranteed income." },
+    { q: "How is dividend tax handled?", a: "Net Dividend = Gross Dividend − Withholding Tax. Withholding tax is tracked per dividend and summarised by country (using the stock's real country from the lookup) in the Dividends page." },
+    { q: "What do the transaction types mean?", a: "Deposit/Withdrawal move cash in/out. Buy/Sell trade shares (and capture commission + taxes). Dividend records income (Received or Expected). Currency Exchange converts between currencies. Fee, Tax withholding, Interest, and Transfer-between-brokers cover the rest." },
+    { q: "Why does a broker show a cash difference?", a: "Your calculated cash balance (deposits − buys − fees + sells + net dividends − withdrawals) differs from the actual balance you entered. Usually a missing fee, dividend or transfer entry. A negative balance means spending exceeded recorded cash." },
   ];
   const itemsZH = [
-    { q: "总回报是如何计算的？", a: "总回报 = 当前组合价值 + 总取款 + 净股息 − 总存款 − 总费用。它用一个数字涵盖了价格变动、股息和现金流。" },
-    { q: "已实现与未实现盈亏有什么区别？", a: "未实现盈亏 = 当前市值 − 仍持有股票的成本。已实现盈亏 = 卖出所得 − 已卖出股票的成本 − 费用。总回报将两者再加上股息和汇率影响。" },
-    { q: "股息税是如何处理的？", a: "净股息 = 总股息 − 预扣税 − 其他费用。预扣税按每笔股息记录，并在报表中按国家/地区汇总。" },
-    { q: "各交易类型是什么意思？", a: "存款/取款用于现金进出。买入/卖出用于交易股票。股息记录收入。股息再投资会生成两条关联记录（股息 + 买入）。费用、货币兑换、拆股和调整涵盖其余情况。" },
-    { q: "为什么有些股息被标记为“预估”？", a: "预估股息是根据历史规律推算的，尚未确认。它们都有清晰标记，绝不会显示为已确认的日期或金额。" },
-    { q: "为什么某个券商显示“未对账”？", a: "您的计算现金余额（存款 − 买入 − 费用 + 卖出 + 净股息 − 取款）与平台中的实际余额不一致，通常是漏记了某笔费用或股息。" },
+    { q: "总回报是如何计算的？", a: "总回报 = 未实现盈亏 + 已实现盈亏 + 净股息 − 独立费用。买入的佣金和税费已计入成本，卖出的已计入已实现盈亏，因此不会重复扣除。" },
+    { q: "已实现与未实现盈亏有什么区别？", a: "未实现盈亏 = 当前市值 − 仍持有股票的剩余成本。已实现盈亏 = 卖出所得 − 已卖出股票的平均成本 − 佣金 − 税费。采用平均成本法。" },
+    { q: "什么是 XIRR？", a: "XIRR（扩展内部收益率）是按资金加权的年化回报率。与简单回报不同，它考虑了资金进出投资组合的时间，因此临近期末的大额投入不会不公平地美化（或拖累）百分比。它回答：‘哪一个固定的年化复利率，能把我带日期的现金流变成当前的账户价值？’" },
+    { q: "XIRR 是如何计算的？", a: "方法：账户边界为整个投资组合（持仓 + 现金）。外部现金流按日期计入：每笔存款为负（现金流入），每笔取款为正（现金流出）。今天的终值 = 当前持仓市值 + 现金余额，作为最后一笔正现金流。买入、卖出和股息属于账户内部（在现金与证券间转移价值，或产生留在账户内的现金），已包含在终值中——若再作为单独现金流会重复计算。XIRR 即求解 Σ 现金流 / (1+r)^(年数) = 0 的利率 r，采用牛顿法并以二分法兜底。至少需一笔存款且 ≥7 天历史。" },
+    { q: "为什么 XIRR 与简单回报不同？", a: "简单回报 = 收益 ÷ 投入金额，忽略时间。XIRR 按日期加权并年化。例如：一年前投入 RM10,000 与上周投入，简单回报相同，但 XIRR 差别很大，因为近期资金几乎没有时间复利。XIRR 更公平地衡量您资金实际赚取的回报率。" },
+    { q: "股息预测是如何计算的？", a: "方法：基于您过去 12 个月（TTM）已收到股息的运行率，按每笔股息的历史汇率换算为基准货币。下一年 ≈ TTM，下一季 ≈ TTM ÷ 4，下一月 ≈ TTM ÷ 12。此外，凡是您标记为“预期”且派息日落在窗口内的股息，会单独汇总为“已确认管道”。假设：您的持仓及其派息率与过去 12 个月大致相同。" },
+    { q: "股息预测有多准确？", a: "这是方向性估算，并非预测。对于持有满一年的稳定、分散的股息组合（TTM 基数完整）最准确；对于新组合（TTM 不完整）、近期变动的持仓或不规则/特别股息的股票最不准确。" },
+    { q: "股息预测有哪些局限？", a: "它不建模：未来的买卖、股息上调或下调、特别/一次性股息、预扣税变动，或未来派息的汇率波动。按月/季均分（TTM ÷ 12 / ÷ 4）忽略了真实派息日历（许多股票按半年或一年派息）。请仅作为规划参考，切勿视为有保证的收入。" },
+    { q: "股息税是如何处理的？", a: "净股息 = 总股息 − 预扣税。预扣税按每笔股息记录，并在股息页面按国家/地区（使用查询得到的真实国家）汇总。" },
+    { q: "各交易类型是什么意思？", a: "存款/取款用于现金进出。买入/卖出用于交易股票（并记录佣金和税费）。股息记录收入（已收到或预期）。货币兑换在货币间转换。费用、预扣税、利息和券商间转账涵盖其余情况。" },
+    { q: "为什么券商会显示现金差异？", a: "您的计算现金余额（存款 − 买入 − 费用 + 卖出 + 净股息 − 取款）与您输入的实际余额不一致，通常是漏记了费用、股息或转账。余额为负表示支出超过了已记录的现金。" },
   ];
   const items = LANG === "zh" ? itemsZH : itemsEN;
   const html = `<div class="help-list">${items.map((it) => `
     <details class="help-item"><summary>${it.q}</summary><p>${it.a}</p></details>`).join("")}</div>`;
   return { title: "Help", subtitle: "How calculations work, transaction types and FAQ.", html };
+}
+
+/* =============================================================================
+ * PAGE: HOLDING DETAIL  (#/holding/<encoded brokerId|ticker>)
+ * ========================================================================== */
+function detailCard(label, value, valCls = "") {
+  return `<article class="card"><div class="c-label">${label}</div><div class="c-value ${valCls}">${value}</div></article>`;
+}
+function pageHolding() {
+  const key = decodeURIComponent((location.hash.split("/")[2] || ""));
+  const [brokerId, ticker] = key.split("|");
+  const h = T.holdings.find((x) => x.brokerId === brokerId && x.ticker === ticker);
+  if (!h) {
+    return { title: "Holding", subtitle: "", html:
+      `<p style="margin:-4px 0 12px"><a class="link" href="#/portfolio">← ${t("Back to Portfolio")}</a></p>
+       ${panel("Holding", emptyState(t("This holding no longer exists (fully sold or deleted). Its realized P/L still counts in your totals.")))}` };
+  }
+  const meta = STOCK_META[h.ticker] || {};
+  const tk = ticker.toUpperCase();
+  const txs = ALL_TRANSACTIONS.filter((x) => x.brokerId === brokerId && (x.ticker || "").toUpperCase() === tk)
+    .sort((a, b) => (a.date < b.date ? 1 : -1));
+  const txRows = txs.map((x) => `<tr><td>${fmtDate(x.date)}</td><td>${typeChip(x.type)}</td>
+    <td class="num">${x.qty != null ? fmt(x.qty, { maximumFractionDigits: 4 }) : "—"}</td>
+    <td class="num">${x.price != null ? x.currency + " " + fmt(x.price) : "—"}</td>
+    <td class="num">${x.gross != null ? x.currency + " " + fmt(x.gross) : "—"}</td>
+    <td class="num">${x.fee ? x.currency + " " + fmt(x.fee) : "—"}</td></tr>`).join("");
+  const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && (x.ticker || "").toUpperCase() === tk)
+    .sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1));
+  const divRows = divs.map((d) => { const net = (+d.gross || 0) - (+d.tax || 0); const fx = d.fxRate || FX.rates[d.currency] || 1;
+    return `<tr><td>${fmtDate(d.payDate || d.date)}</td><td class="num">${d.currency} ${fmt(d.gross)}</td>
+      <td class="num neg">${d.tax ? "−" + fmt(d.tax) : "0.00"}</td><td class="num pos">${d.currency} ${fmt(net)}</td>
+      <td class="num">${money(net * fx)}</td><td>${statusBadge(d.status || "Received")}</td></tr>`; }).join("");
+
+  // Per-ticker dividend analytics + forecast + charts (F1)
+  const tReceived = divs.filter((d) => d.status !== "Expected");
+  const tExpected = divs.filter((d) => d.status === "Expected").sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
+  const totalDivReceived = tReceived.reduce((s, d) => s + divNetMYR(d), 0);
+  const tFc = dividendForecast(tReceived, tExpected);
+  const upcomingRows = tExpected.map((d) => { const net = (+d.gross || 0) - (+d.tax || 0); const du = daysUntil(d.payDate);
+    return `<tr><td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
+      <td class="num">${d.payDate ? (du >= 0 ? du + " " + t("days") : t("overdue")) : "—"}</td>
+      <td class="num">${d.currency} ${fmt(net)}</td></tr>`; }).join("");
+  // Dividend income over time (monthly, base ccy)
+  const dPer = dividendByPeriod(tReceived).byMonth;
+  const divSeries = Object.keys(dPer).sort().map((k) => ({ month: k.slice(2), value: dPer[k] }));
+  // Cumulative cost basis over time (proxy for position size — historical market prices aren't stored)
+  let cum = 0; const costSeries = [];
+  [...txs].sort((a, b) => (a.date < b.date ? -1 : 1)).forEach((x) => {
+    const xfx = x.fxRate || FX.rates[x.currency] || 1;
+    if (x.type === "Buy") cum += ((+x.qty || 0) * (+x.price || 0) + (+x.fee || 0) + (+x.tax || 0)) * xfx;
+    else if (x.type === "Sell") cum = Math.max(0, cum - (+x.qty || 0) * (+x.price || 0) * xfx);
+    if (x.type === "Buy" || x.type === "Sell") costSeries.push({ month: x.date.slice(2), value: cum });
+  });
+
+  const priceLbl = h.hasPrice
+    ? `${h.currentPriceCcy} ${fmt(h.currentPrice)} <span class="fx-note ${h.priceSource === "live" ? "live-price" : "manual-price"}">${h.priceSource === "live" ? t("Live") : t("Manual price")}</span>`
+    : `<span class="muted">${t("No price set")}</span>`;
+
+  const cards = `<div class="cards">
+    ${detailCard(t("Shares Held"), fmt(h.shares, { maximumFractionDigits: 4 }))}
+    ${detailCard(t("Average Cost"), `${money(h.avgCost)}<div class="c-sub">${h.currency} ${fmt(h.avgCostLocal)} / ${t("share")}</div>`)}
+    ${detailCard(t("Current Price"), priceLbl)}
+    ${detailCard(t("Market Value"), money(h.marketValue))}
+    ${detailCard(t("Cost Basis"), money(h.costBasis))}
+    ${detailCard(t("Unrealized P/L"), h.hasPrice ? `${signed(h.unrealized)}<div class="c-sub">${t("price")} ${signed(h.priceUnrealized)} · ${t("FX")} ${signed(h.fxUnrealized)}</div>` : "—", h.hasPrice ? cls(h.unrealized) : "")}
+    ${detailCard(t("Realized P/L"), signed(h.realized), cls(h.realized))}
+    ${detailCard(t("Net Dividends"), money(h.netDividends))}
+    ${detailCard(t("Total Return"), signed(h.totalReturn), cls(h.totalReturn))}
+  </div>`;
+
+  const html = `
+    <p style="margin:-4px 0 12px"><a class="link" href="#/portfolio">← ${t("Back to Portfolio")}</a></p>
+    <div class="holding-head">
+      <div><div class="ticker" style="font-size:20px">${h.ticker}</div><div class="sub">${h.company || ""}</div></div>
+      <div class="holding-meta">
+        <span class="chip">${brokerName(h.brokerId)}</span>
+        ${h.market ? `<span class="chip">${h.market}</span>` : ""}
+        <span class="chip">${meta.country || h.country || "—"}</span>
+        ${meta.sector ? `<span class="chip">${meta.sector}</span>` : ""}
+        <button class="btn" id="dtlPrice">＄ ${t("Set price")}</button>
+        ${LIVE_ENABLED ? `<button class="btn" id="dtlLive">⟳ ${t("Live")}</button>` : ""}
+      </div>
+    </div>
+    ${cards}
+
+    <section class="grid-2">
+      ${panel("Cost Basis Over Time", costSeries.length >= 2 ? `<div class="chart">${lineChartSVG(costSeries)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Cumulative cost — historical market prices are not stored.")}</p>` : emptyState(t("Add at least two trades to see a trend.")))}
+      ${panel("Dividend Income Over Time", divSeries.length >= 2 ? `<div class="chart">${lineChartSVG(divSeries)}</div>` : emptyState(t("Not enough dividend history yet.")))}
+    </section>
+
+    ${panel("Dividend Summary", `<div class="mini-cards">
+      ${miniCard(t("Total Dividends Received"), money(totalDivReceived), "pos")}
+      ${miniCard(t("Next Year (est.)"), money(tFc.nextYear))}
+      ${miniCard(t("Dividend Yield (TTM)"), h.marketValue ? fmt(tFc.ttm / h.marketValue * 100, { maximumFractionDigits: 2 }) + "%" : "—")}</div>
+      <p class="muted" style="font-size:12px;margin:8px 0 0">${t("Forecast is a run-rate estimate from this holding's trailing-12-month dividends.")}</p>`)}
+
+    ${tExpected.length ? panel("Upcoming Dividends", table([{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1}], upcomingRows)) : ""}
+
+    ${panel("Transactions", txRows ? table([{label:"Date"},{label:"Type"},{label:"Qty",num:1},{label:"Price",num:1},{label:"Gross",num:1},{label:"Fee",num:1}], txRows) : emptyState(t("No transactions for this holding.")))}
+    ${panel("Dividend History", divRows ? table([{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], divRows) : emptyState(t("No dividends recorded for this holding.")))}`;
+
+  return { title: h.ticker, subtitle: h.company || t("Holding detail"), html,
+    mount() {
+      const p = $("#dtlPrice");
+      if (p) p.addEventListener("click", () => {
+        const cur = CURRENT_PRICES[h.ticker];
+        const input = prompt(`${t("Current price per share for")} ${h.ticker} (${h.currentPriceCcy}) — ${t("manual, not live")}`, cur ? cur.price : "");
+        if (input == null) return;
+        const price = parseFloat(input);
+        if (!(price > 0)) { toast(t("Enter a valid price.")); return; }
+        CURRENT_PRICES[h.ticker] = { price, currency: h.currentPriceCcy, date: new Date().toISOString().slice(0, 10), source: "manual" };
+        saveStore(); toast(t("Price updated")); render();
+      });
+      const lv = $("#dtlLive");
+      if (lv) lv.addEventListener("click", async () => {
+        if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
+        lv.classList.add("spin");
+        const ok = await refreshLivePrice(h.ticker);
+        if (ok) { saveStore(); toast(`${h.ticker} ${t("updated")}`); render(); }
+        else { lv.classList.remove("spin"); toast(`${t("Couldn't fetch")} ${h.ticker}`); }
+      });
+    } };
 }
 
 /* =============================================================================
@@ -1770,7 +2685,7 @@ function showCalc(calc) {
   $("#modalTitle").textContent = t(calc.title);
   const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span>${t(r.label)}</span><span class="cr-val">${r.val}</span></div>`).join("");
   $("#modalBody").innerHTML = `${rows}
-    <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${money(calc.total)}</span></div>
+    <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${calc.totalFmt != null ? calc.totalFmt : money(calc.total)}</span></div>
     <p class="muted" style="margin:14px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
   $("#modal").hidden = false;
 }
@@ -1790,7 +2705,7 @@ function downloadCSV(filename, header, lines) {
   toast(filename + " exported");
 }
 function exportCashCSV() {
-  const cashTypes = ["Deposit", "Withdrawal", "Interest / cash yield", "Fee", "Tax withholding", "Transfer between brokers"];
+  const cashTypes = ["Deposit", "Withdrawal", "Interest / cash yield", "Fee", "Tax withholding", "Transfer between brokers", "Currency Exchange"];
   const rows = ALL_TRANSACTIONS.filter((x) => cashTypes.includes(x.type) || (x.type === "Dividend" && x.status !== "Expected"));
   downloadCSV("investment-ledger-cash.csv",
     ["Date","Broker","Type","Amount","Currency","FX Rate","Amount in " + FX.base],
@@ -1807,6 +2722,258 @@ function exportDivCSV() {
     ["Ticker","Broker","Ex-Date","Payment","Gross","Tax","Net","Currency","FX Rate","Net in " + FX.base,"Status"],
     divs.map((d) => { const net = (+d.gross || 0) - (+d.tax || 0); const fx = d.fxRate || FX.rates[d.currency] || 1;
       return [d.ticker, brokerName(d.brokerId), d.exDate || "", d.payDate || d.date, d.gross, d.tax || 0, net.toFixed(2), d.currency, fx, (net * fx).toFixed(2), d.status || "Received"]; }));
+}
+
+/* =============================================================================
+ * CSV IMPORT (F5) — template, parse, validate, preview-before-commit
+ * -----------------------------------------------------------------------------
+ * Nothing is written to the ledger until the user reviews the preview and
+ * presses "Import valid rows". Invalid rows are listed with the exact reason.
+ * ========================================================================== */
+let pendingImport = null;   // { rows:[{...parsed, errors, dup, needsBroker}], text, unknownBrokers:[] }
+
+const IMPORT_TYPES = ["Deposit","Withdrawal","Buy","Sell","Dividend","Fee","Tax withholding",
+  "Interest / cash yield","Currency Exchange","Transfer between brokers"];
+
+const IMPORT_HEADER = ["Date","Broker","Type","Ticker","Quantity","Price","Gross","Fee","Tax","Currency","FX Rate",
+  "To Broker","To Currency","To Amount","Status","Ex-Date","Pay Date","Notes"];
+
+function downloadImportTemplate() {
+  const b1 = BROKERS[0] ? BROKERS[0].name : "Rakuten Trade";
+  const b2 = BROKERS[1] ? BROKERS[1].name : "Interactive Brokers";
+  const blank = (cells) => IMPORT_HEADER.map((_, i) => cells[i] != null ? cells[i] : "");
+  downloadCSV("investment-ledger-import-template.csv", IMPORT_HEADER, [
+    // Date, Broker, Type, Ticker, Qty, Price, Gross, Fee, Tax, Ccy, FX, ToBroker, ToCcy, ToAmt, Status, ExDate, PayDate, Notes
+    blank(["2026-01-06", b1, "Deposit", "", "", "", "10000", "0", "0", "MYR", "1"]),
+    blank(["2026-01-10", b1, "Buy", "1155.KL", "1000", "9.20", "", "9.20", "0", "MYR", "1"]),
+    blank(["2026-03-15", b1, "Dividend", "1155.KL", "", "", "600", "0", "0", "MYR", "1", "", "", "", "Received", "2026-03-01", "2026-03-15"]),
+    blank(["2026-07-30", b2, "Dividend", "AAPL", "", "", "12", "1.8", "0", "USD", "4.70", "", "", "", "Expected", "2026-07-25", "2026-08-10"]),
+    blank(["2026-02-01", b2, "Currency Exchange", "", "", "", "4000", "0", "0", "MYR", "1", "", "USD", "850"]),
+    blank(["2026-04-01", b1, "Transfer between brokers", "", "", "", "5000", "0", "0", "MYR", "1", b2]),
+  ]);
+}
+
+/* RFC-4180-ish parser: handles quoted fields, embedded commas, "" escapes. */
+function parseCSV(text) {
+  const rows = []; let field = "", row = [], inQ = false;
+  text = text.replace(/^﻿/, "");   // strip BOM
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ",") { row.push(field); field = ""; }
+    else if (c === "\n") { row.push(field); rows.push(row); row = []; field = ""; }
+    else if (c !== "\r") field += c;
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows.filter((r) => r.some((c) => (c || "").trim() !== ""));
+}
+
+/* Signature used for duplicate detection: same broker + date + type + ticker + amount + ccy. */
+function txSignature(brokerId, date, type, ticker, gross, currency) {
+  return [brokerId, date, type, (ticker || "—").toUpperCase(), (+gross || 0).toFixed(2), currency].join("|");
+}
+
+function importTxFromCSV(text) {
+  const rows = parseCSV(text);
+  if (rows.length < 2) return { error: t("The file has no data rows.") };
+  const header = rows[0].map((h) => h.trim().toLowerCase());
+  const find = (...names) => { for (const n of names) { const i = header.indexOf(n); if (i >= 0) return i; } return -1; };
+  const col = {
+    date: find("date"), broker: find("broker"), type: find("type"), ticker: find("ticker"),
+    qty: find("quantity", "qty", "shares"), price: find("price"), gross: find("gross", "amount"),
+    fee: find("fee"), tax: find("tax"), currency: find("currency", "ccy"), fx: find("fx rate", "fxrate", "rate"),
+    toBroker: find("to broker", "tobroker", "destination broker"),
+    toCcy: find("to currency", "tocurrency", "to ccy"),
+    toAmt: find("to amount", "toamount", "received"),
+    status: find("status"), exDate: find("ex-date", "ex date", "exdate"), payDate: find("pay date", "payment", "paydate"),
+    notes: find("notes", "note"),
+  };
+  if (col.date < 0 || col.broker < 0 || col.type < 0) return { error: t("Missing required columns: Date, Broker and Type.") };
+
+  const brokerByName = {}; BROKERS.forEach((b) => (brokerByName[b.name.trim().toLowerCase()] = b.id));
+  // Existing-ledger signatures + a per-batch set, so dupes inside the file are caught too.
+  const existing = new Set(ALL_TRANSACTIONS.map((x) => txSignature(x.brokerId, x.date, x.type, x.ticker, x.gross, x.currency)));
+  const batchSeen = new Set();
+  const unknownBrokers = [];
+
+  const out = rows.slice(1).map((r, n) => {
+    const g = (c) => (c >= 0 && c < r.length ? String(r[c]).trim() : "");
+    const errors = [];
+    const date = g(col.date);
+    const brokerRaw = g(col.broker);
+    const type = IMPORT_TYPES.find((tp) => tp.toLowerCase() === g(col.type).toLowerCase()) || g(col.type);
+    const currency = (g(col.currency) || FX.base).toUpperCase();
+    const ticker = g(col.ticker).toUpperCase();
+    const num = (c) => { const v = parseFloat(g(c).replace(/,/g, "")); return isNaN(v) ? null : v; };
+    let qty = num(col.qty), price = num(col.price), gross = num(col.gross);
+    const fee = num(col.fee) || 0, tax = num(col.tax) || 0;
+    const fxRate = num(col.fx) || FX.rates[currency] || (currency === FX.base ? 1 : null);
+    const toCurrency = g(col.toCcy).toUpperCase(), toAmount = num(col.toAmt);
+    const toBrokerRaw = g(col.toBroker);
+    const status = g(col.status), exDate = g(col.exDate), payDate = g(col.payDate);
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) errors.push(t("Date must be YYYY-MM-DD"));
+    const brokerId = brokerByName[brokerRaw.toLowerCase()];
+    let needsBroker = false;
+    if (!brokerId) {
+      needsBroker = true;
+      if (brokerRaw && !unknownBrokers.some((u) => u.name.toLowerCase() === brokerRaw.toLowerCase()))
+        unknownBrokers.push({ name: brokerRaw, currency });
+    }
+    if (!IMPORT_TYPES.includes(type)) errors.push(t("Unsupported type"));
+    if (!fxRate) errors.push(t("No FX rate for") + " " + currency);
+
+    let toBrokerId;
+    if (type === "Buy" || type === "Sell") {
+      if (!(qty > 0)) errors.push(t("Quantity required"));
+      if (!(price > 0)) errors.push(t("Price required"));
+      if (!ticker) errors.push(t("Ticker required"));
+      gross = (qty || 0) * (price || 0);
+    } else if (type === "Currency Exchange") {
+      qty = null; price = null;
+      if (!(gross > 0)) errors.push(t("Amount required"));
+      if (!toCurrency || toCurrency === currency) errors.push(t("To Currency must differ"));
+      if (!(toAmount > 0)) errors.push(t("To Amount required"));
+    } else if (type === "Transfer between brokers") {
+      qty = null; price = null;
+      if (!(gross > 0)) errors.push(t("Amount required"));
+      toBrokerId = brokerByName[toBrokerRaw.toLowerCase()];
+      if (!toBrokerRaw || toBrokerRaw.toLowerCase() === brokerRaw.toLowerCase()) errors.push(t("To Broker must differ"));
+      else if (!toBrokerId) errors.push(t("Unknown To Broker"));
+    } else {
+      qty = null; price = null;
+      if (!(gross > 0)) errors.push(t("Amount required"));
+    }
+
+    // Duplicate check (only meaningful once broker + amount resolve).
+    let dup = false;
+    if (!needsBroker && !errors.length) {
+      const sig = txSignature(brokerId, date, type, ticker, gross, currency);
+      if (existing.has(sig) || batchSeen.has(sig)) dup = true;
+      else batchSeen.add(sig);
+    }
+    return { line: n + 2, date, brokerId, brokerName: brokerRaw, type, ticker, currency, qty, price,
+      gross: gross || 0, fee, tax, fxRate: fxRate || 1, toCurrency, toAmount, toBrokerId,
+      status, exDate, payDate, notes: g(col.notes), errors, dup, needsBroker };
+  });
+  return { rows: out, unknownBrokers };
+}
+
+function rowReady(r) { return !r.errors.length && !r.dup && !r.needsBroker; }
+
+function handleCsvFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = String(reader.result || "");
+    const res = importTxFromCSV(text);
+    if (res.error) { pendingImport = null; toast(res.error); refreshImportPreview(); return; }
+    pendingImport = { rows: res.rows, text, unknownBrokers: res.unknownBrokers };
+    refreshImportPreview();
+    const ok = res.rows.filter(rowReady).length;
+    toast(`${ok}/${res.rows.length} ${t("rows ready to import")}`);
+  };
+  reader.onerror = () => toast(t("Could not read that file."));
+  reader.readAsText(file);
+}
+
+function importPreviewHTML() {
+  if (!pendingImport) return "";
+  const rows = pendingImport.rows;
+  const okCount = rows.filter(rowReady).length;
+  const dupCount = rows.filter((r) => r.dup).length;
+  const brokerCount = rows.filter((r) => r.needsBroker).length;
+  const errCount = rows.filter((r) => r.errors.length).length;
+  const unknown = pendingImport.unknownBrokers || [];
+  const statusCell = (r) => {
+    if (r.errors.length) return `<span class="badge neg" title="${r.errors.join("; ")}">${r.errors.join("; ")}</span>`;
+    if (r.needsBroker) return `<span class="badge warn">${t("Create broker first")}</span>`;
+    if (r.dup) return `<span class="badge subtle">${t("Duplicate — skipped")}</span>`;
+    return `<span class="badge pos">${t("Ready")}</span>`;
+  };
+  const body = rows.map((r) => {
+    const amt = r.type === "Buy" || r.type === "Sell" ? `${r.qty} @ ${fmt(r.price)}`
+      : r.type === "Currency Exchange" ? `${fmt(r.gross)} → ${r.toCurrency} ${fmt(r.toAmount)}`
+      : fmt(r.gross);
+    return `<tr class="${rowReady(r) ? "" : (r.dup ? "row-dup" : "row-bad")}">
+      <td class="num">${r.line}</td><td>${fmtDate(r.date)}</td><td>${r.brokerName || "—"}</td>
+      <td>${r.type || "—"}</td><td>${r.ticker || "—"}</td><td class="num">${amt}</td><td>${r.currency}</td>
+      <td>${statusCell(r)}</td></tr>`;
+  }).join("");
+  const chip = (n, cls, lbl) => n ? ` · <span class="${cls}">${n} ${lbl}</span>` : "";
+  return `<div class="import-preview">
+    <div class="import-summary"><strong>${rows.length}</strong> ${t("rows")} · <span class="pos">${okCount} ${t("ready")}</span>${chip(dupCount, "muted", t("duplicate"))}${chip(brokerCount, "warn-txt", t("need broker"))}${chip(errCount, "neg", t("with errors"))}</div>
+    ${unknown.length ? `<p class="muted" style="font-size:12.5px;margin:0 0 10px">${t("Missing brokers")}: ${unknown.map((u) => `<strong>${u.name}</strong>`).join(", ")}.
+      <button class="btn small" id="createBrokers" style="margin-left:6px">${t("Create")} ${unknown.length} ${t("broker(s)")}</button></p>` : ""}
+    <div class="table-wrap"><table class="data-table"><thead><tr>
+      <th>#</th><th>${t("Date")}</th><th>${t("Broker")}</th><th>${t("Type")}</th><th>${t("Ticker")}</th><th class="num">${t("Amount")}</th><th>${t("Ccy")}</th><th>${t("Status")}</th>
+    </tr></thead><tbody>${body}</tbody></table></div>
+    <div class="form-actions" style="margin-top:12px">
+      <button class="btn primary" id="commitImport" ${okCount ? "" : "disabled"}>${t("Import valid rows")} (${okCount})</button>
+      <button class="btn ghost" id="cancelImport">${t("Cancel")}</button>
+    </div>
+    ${dupCount ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${t("Duplicates already in your ledger are skipped automatically.")}</p>` : ""}
+    ${errCount ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("Rows with errors are skipped. Fix them in your spreadsheet and re-upload.")}</p>` : ""}
+  </div>`;
+}
+
+function refreshImportPreview() {
+  const host = $("#csvPreview");
+  if (!host) return;
+  host.innerHTML = importPreviewHTML();
+  mountImportPreview();
+}
+
+function mountImportPreview() {
+  const commit = $("#commitImport"); const cancel = $("#cancelImport"); const mk = $("#createBrokers");
+  if (commit) commit.addEventListener("click", commitImport);
+  if (cancel) cancel.addEventListener("click", () => { pendingImport = null; refreshImportPreview(); });
+  if (mk) mk.addEventListener("click", createMissingBrokers);
+}
+
+/* Create the brokers a CSV references but that don't exist yet, then re-validate. */
+function createMissingBrokers() {
+  if (!pendingImport || !pendingImport.unknownBrokers.length) return;
+  const made = pendingImport.unknownBrokers.length;
+  pendingImport.unknownBrokers.forEach((u) => {
+    BROKERS.push({ id: uid("b"), name: u.name, country: "", currency: u.currency || FX.base });
+  });
+  saveStore();
+  const res = importTxFromCSV(pendingImport.text);
+  pendingImport = { rows: res.rows, text: pendingImport.text, unknownBrokers: res.unknownBrokers };
+  refreshImportPreview();
+  toast(`${made} ${t("broker(s) created")}`);
+}
+
+function commitImport() {
+  if (!pendingImport) return;
+  const good = pendingImport.rows.filter(rowReady);
+  if (!good.length) { toast(t("No valid rows to import.")); return; }
+  good.forEach((r) => {
+    const rec = {
+      id: uid("t"), date: r.date, brokerId: r.brokerId, type: r.type,
+      ticker: r.ticker || "—", currency: r.currency, qty: r.qty, price: r.price,
+      gross: r.gross, fee: r.fee, tax: r.tax, fxRate: r.fxRate, myrEquivalent: r.gross * r.fxRate,
+      notes: r.notes || undefined, imported: true,
+    };
+    if (r.type === "Dividend") {
+      rec.status = /expected/i.test(r.status) ? "Expected" : "Received";
+      rec.payDate = r.payDate || r.date;
+      rec.exDate = r.exDate || undefined;
+    } else if (r.type === "Currency Exchange") {
+      rec.fromCurrency = r.currency; rec.toCurrency = r.toCurrency;
+      rec.fromAmount = r.gross; rec.toAmount = r.toAmount;
+      rec.exchangeRate = r.gross ? r.toAmount / r.gross : 0;
+    } else if (r.type === "Transfer between brokers") {
+      rec.toBrokerId = r.toBrokerId;
+    }
+    ALL_TRANSACTIONS.unshift(rec);
+  });
+  const n = good.length;
+  pendingImport = null;
+  saveStore(); toast(`${n} ${t("transactions imported")}`); render();
 }
 
 /* =============================================================================
@@ -1830,7 +2997,7 @@ function toast(msg) {
 const PAGES = {
   dashboard: pageDashboard, portfolio: pagePortfolio, transactions: pageTransactions,
   cash: pageCash, dividends: pageDividends, reports: pageReports,
-  brokers: pageBrokers, settings: pageSettings, help: pageHelp,
+  brokers: pageBrokers, settings: pageSettings, help: pageHelp, holding: pageHolding,
 };
 
 function currentPageKey() {
@@ -1842,6 +3009,7 @@ function currentPageKey() {
 
 function render() {
   const key = currentPageKey();
+  if (key !== "transactions") editingTxId = null;  // P0.3: don't keep edit mode when leaving
   const root = $("#page");
   try {
     const page = PAGES[key]();

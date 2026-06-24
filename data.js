@@ -119,15 +119,27 @@ const DIVIDEND_HISTORY = [
  * { price, currency, date } — used only for valuation; clearly labelled "Manual price". */
 const CURRENT_PRICES = {};
 
+/* Stock metadata cache keyed by Yahoo symbol: { name, exchange, currency, country, sector, industry }.
+ * Populated by the stock lookup; used for country/sector grouping. */
+const STOCK_META = {};
+
 /* Reconciliation checks the user records, keyed by brokerId:
  * { actual, date, note } — actual broker cash balance the user typed in. */
 const RECON_CHECKS = {};
 
 /* App settings persisted with the data. */
 const SETTINGS = {
-  returnMode: "total",   // "total" (incl. dividends) | "price"
-  reconTolerance: 1,     // MYR tolerance for "Matched" vs "Needs review"
+  returnMode: "total",       // "total" (incl. dividends) | "price"
+  reconTolerance: 1,         // MYR tolerance for "Matched" vs "Needs review"
+  dateFormat: "D MMM YYYY",  // D MMM YYYY | YYYY-MM-DD | DD/MM/YYYY | MM/DD/YYYY
+  timeZone: "",              // display reference (blank = device local)
+  costBasis: "average",      // "average" (implemented) | "fifo" (future)
 };
+
+/* Daily portfolio-value history (base currency), built automatically: one
+ * { date, value } point per day as you use the app. Powers the real
+ * "Portfolio Value Over Time" chart (market value, not cost). */
+const PV_HISTORY = [];
 
 /* When the data was last saved on this device (ISO string). */
 let LAST_SAVED = "";

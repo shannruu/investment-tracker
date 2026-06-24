@@ -172,6 +172,13 @@ a { color: inherit; text-decoration: none; }
 /* ===== Stage-1 additions ===== */
 .app-disclaimer { padding: 18px 26px 28px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 8px; }
 .dash-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 12.5px; }
+.quick-summary { display: flex; flex-wrap: wrap; gap: 10px 22px; padding: 2px 2px 2px; }
+.quick-summary .qs-item { font-size: 13px; color: var(--text-soft); }
+.quick-summary .qs-item strong { color: var(--text); font-size: 16px; margin-right: 4px; }
+.bc-actions { margin-left: auto; display: flex; gap: 4px; }
+.bc-actions .icon-btn { width: 30px; height: 30px; font-size: 13px; }
+.bc-notes { margin: 10px 0 0; font-size: 12.5px; }
+.broker-card.archived { opacity: .6; }
 .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .seg-btn { border: 0; background: var(--surface); color: var(--text-soft); font-family: inherit; font-size: 12.5px; font-weight: 600; padding: 7px 12px; cursor: pointer; }
 .seg-btn.on { background: var(--brand); color: #fff; }
@@ -183,7 +190,31 @@ a { color: inherit; text-decoration: none; }
 .lookup-status.ok { color: var(--text); }
 .lookup-status.ok .live-price { margin-left: 4px; }
 .lookup-status.warn { color: var(--text-soft); }
+
+/* Ticker autocomplete dropdown */
+.ac-host { position: relative; }
+.ac-menu {
+  position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 60;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: var(--shadow); max-height: 280px; overflow-y: auto; padding: 4px;
+}
+.ac-item {
+  display: flex; align-items: baseline; gap: 8px; width: 100%; text-align: left;
+  background: transparent; border: 0; cursor: pointer; font-family: inherit;
+  padding: 8px 10px; border-radius: 8px; color: var(--text);
+}
+.ac-item:hover { background: var(--surface-2); }
+.ac-sym { font-weight: 700; font-size: 13px; white-space: nowrap; }
+.ac-name { flex: 1; font-size: 12.5px; color: var(--text-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ac-exch { font-size: 11px; color: var(--muted); white-space: nowrap; }
 .row-live { color: var(--brand-ink); }
+.row-edit { width: 28px; height: 28px; font-size: 13px; color: var(--brand-ink); }
+.row-edit:hover { border-color: var(--brand); }
+/* Holding detail */
+.ticker-link { color: var(--brand-ink); cursor: pointer; }
+.ticker-link:hover { text-decoration: underline; }
+.holding-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
+.holding-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .row-live.spin { animation: liveSpin .7s linear infinite; }
 @keyframes liveSpin { to { transform: rotate(360deg); } }
 .onboard { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -423,6 +454,21 @@ a { color: inherit; text-decoration: none; }
 }
 .mc-label { font-size: 12px; color: var(--muted); font-weight: 600; }
 .mc-value { font-size: 21px; font-weight: 720; margin-top: 6px; letter-spacing: -.02em; }
+.mc-sub { font-size: 11.5px; margin-top: 4px; line-height: 1.35; }
+
+/* ---- Reports: section headings + tab bar ---- */
+.report-h { font-size: 14px; font-weight: 700; margin: 22px 0 10px; color: var(--text); }
+.report-h:first-child { margin-top: 4px; }
+.seg.report-tabs { flex-wrap: wrap; margin-bottom: 16px; }
+
+/* ---- CSV import preview ---- */
+.import-preview { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 14px; }
+.import-summary { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+.import-preview .row-bad { background: color-mix(in srgb, var(--neg) 9%, transparent); }
+.import-preview .row-dup { opacity: .62; }
+.import-preview .badge.neg { white-space: normal; max-width: 280px; display: inline-block; line-height: 1.3; }
+.warn-txt { color: var(--warn); font-weight: 650; }
+.btn.small { padding: 4px 10px; font-size: 12px; }
 
 /* ---- Forms ---- */
 .form { display: flex; flex-direction: column; gap: 14px; }
