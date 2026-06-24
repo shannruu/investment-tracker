@@ -414,6 +414,14 @@ const ZH = {
   // Prices freshness + cash breakdown
   "Prices as of": "价格截至", "Update prices": "更新价格", "No prices set yet": "尚未设置价格",
   "Set prices": "设置价格", "No cash movements recorded yet": "暂无现金流水记录",
+  // Portfolio page
+  "All brokers": "所有券商", "All markets": "所有市场", "All currencies": "所有货币", "All P/L": "所有盈亏",
+  "Profit": "盈利", "Loss": "亏损", "Reset": "重置",
+  "Add opening holding": "添加期初持仓", "Add Opening Holding": "添加期初持仓",
+  "What you own": "持有内容", "Where & how much": "账户与数量", "Cost basis": "成本基础",
+  "As-of date": "截至日期", "Current price": "现价", "optional — for instant P/L": "可选 — 用于即时盈亏",
+  "No holdings yet. Record a Buy in Records, or add an opening holding below.": "暂无持仓。在「记录」中记一笔买入，或在下方添加期初持仓。",
+  "Add a broker first (More → Brokers), then record a Buy or add an opening holding.": "请先添加券商（更多 → 券商），然后记录买入或添加期初持仓。",
   "Available Cash": "可用现金",
   "Buys (incl. fees & tax)": "买入（含费用与税）", "Sells (net of fees)": "卖出（扣除费用）",
   "Net dividends received": "已收净股息", "Standalone fees": "独立费用",
@@ -759,11 +767,25 @@ function recordPvSnapshot() {
   else PV_HISTORY.push({ date: today, value });
   if (PV_HISTORY.length > 1000) PV_HISTORY.splice(0, PV_HISTORY.length - 1000);
 }
+/* Anchor opening holdings on the value chart: seed one historical point at the
+ * earliest holding "as-of" date, valued at their acquisition cost basis (MYR). */
+function seedPvHistory() {
+  const dates = HOLDINGS.map((h) => h.asOfDate).filter(Boolean).sort();
+  if (!dates.length) return;
+  const earliest = dates[0];
+  if (PV_HISTORY.some((p) => p.date === earliest)) return;   // don't duplicate / override a real point
+  const seedVal = +HOLDINGS.reduce((s, h) =>
+    s + (+h.shares || 0) * (+h.avgCost || 0) * (h.openingFxRate || FX.rates[h.currency] || 1), 0).toFixed(2);
+  if (!(seedVal > 0)) return;
+  PV_HISTORY.push({ date: earliest, value: seedVal, seed: true });
+  PV_HISTORY.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
 function saveStore() {
   try {
     pruneOrphans();
     recompute();             // T reflects the latest data before we snapshot value
     recordPvSnapshot();
+    seedPvHistory();
     LAST_SAVED = new Date().toISOString();
     localStorage.setItem(STORE_KEY, JSON.stringify(snapshot()));
   } catch (e) {}
@@ -799,12 +821,15 @@ function recompute() { T = computeTotals(); }  // call after data/rates change
 
 // Capture one portfolio-value point on first open each day (persist only if a new day).
 (function captureDailyOnLoad() {
-  if (!ALL_TRANSACTIONS.length) return;            // nothing to chart yet
+  if (!ALL_TRANSACTIONS.length && !HOLDINGS.length) return;   // nothing to chart yet
+  const before = PV_HISTORY.length;
+  seedPvHistory();                                            // anchor opening holdings at their as-of date
   const today = todayISO();
   const last = PV_HISTORY[PV_HISTORY.length - 1];
-  if (last && last.date === today) return;         // already have today's point
-  recordPvSnapshot();
-  try { LAST_SAVED = new Date().toISOString(); localStorage.setItem(STORE_KEY, JSON.stringify(snapshot())); } catch (e) {}
+  if (!last || last.date !== today) recordPvSnapshot();
+  if (PV_HISTORY.length !== before) {
+    try { LAST_SAVED = new Date().toISOString(); localStorage.setItem(STORE_KEY, JSON.stringify(snapshot())); } catch (e) {}
+  }
 })();
 
 /* =============================================================================
@@ -938,15 +963,9 @@ async function autofillFromTicker(form, statusEl, opts = {}) {
   set("company", q.name);
   set("market", q.exchange);
   if (q.currency) {
-    const ccySel = form.querySelector('[name="currency"]');
-    if (ccySel) {
-      if (![...ccySel.options].some((o) => o.value === q.currency)) {
-        const opt = document.createElement("option"); opt.value = q.currency; opt.textContent = q.currency; ccySel.appendChild(opt);
-      }
-      ccySel.value = q.currency;
-      const fxEl = form.querySelector('[name="fxRate"]');
-      if (fxEl) fxEl.value = FX.rates[q.currency] || (q.currency === FX.base ? 1 : "");
-    }
+    setSelectValue(form, "currency", q.currency);   // works for native <select> AND the styled dropdown
+    const fxEl = form.querySelector('[name="fxRate"]');
+    if (fxEl) fxEl.value = FX.rates[q.currency] || (q.currency === FX.base ? 1 : "");
   }
   // Fill price only if empty (don't clobber a price the user already typed)
   if (opts.fillPrice) { const pe = form.querySelector('[name="price"]'); if (pe && !pe.value) pe.value = q.price; }
@@ -1426,72 +1445,162 @@ function warningsHTML() {
 }
 
 /* =============================================================================
+ * STYLED DROPDOWN — replaces native <select>, whose open menu the OS renders
+ * un-themed (the bright-blue popup). Carries its value in a hidden <input>
+ * so FormData and `change` listeners keep working unchanged.
+ * ========================================================================== */
+function escAttr(s) { return String(s == null ? "" : s).replace(/"/g, "&quot;"); }
+function styledSelect(name, items, value, o = {}) {
+  const cur = items.find((i) => i.value === value) || items[0] || { value: "", label: o.placeholder || "" };
+  const opts = items.map((i) =>
+    `<button type="button" class="sel-opt${i.value === cur.value ? " on" : ""}" role="option" data-val="${escAttr(i.value)}">${i.label}</button>`).join("");
+  return `<div class="sel">
+    <input type="hidden"${o.id ? ` id="${o.id}"` : ""} name="${name}" value="${escAttr(cur.value)}">
+    <button type="button" class="sel-trigger"><span class="sel-val">${cur.label}</span><span class="sel-caret" aria-hidden="true">▾</span></button>
+    <div class="sel-pop" role="listbox" hidden>${opts}</div>
+  </div>`;
+}
+function openSel(s) { s.classList.add("open"); const p = s.querySelector(".sel-pop"); if (p) p.hidden = false; }
+function closeSel(s) { s.classList.remove("open"); const p = s.querySelector(".sel-pop"); if (p) p.hidden = true; }
+function initStyledSelects() {
+  document.addEventListener("click", (e) => {
+    const trig = e.target.closest(".sel-trigger");
+    const opt = e.target.closest(".sel-opt");
+    $$(".sel.open").forEach((s) => { if (!s.contains(e.target)) closeSel(s); });
+    if (trig) { const s = trig.closest(".sel"); s.classList.contains("open") ? closeSel(s) : openSel(s); return; }
+    if (opt) {
+      const s = opt.closest(".sel");
+      const input = s.querySelector('input[type="hidden"]');
+      input.value = opt.dataset.val;
+      s.querySelector(".sel-val").textContent = opt.textContent;
+      s.querySelectorAll(".sel-opt").forEach((o) => o.classList.toggle("on", o === opt));
+      closeSel(s);
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") $$(".sel.open").forEach(closeSel); });
+}
+
+/* Set a field's value whether it's a native <select> or our styled dropdown. */
+function setSelectValue(form, name, value) {
+  const el = form.querySelector(`[name="${name}"]`);
+  if (!el) return;
+  if (el.tagName === "SELECT") {
+    if (![...el.options].some((o) => o.value === value)) {
+      const o = document.createElement("option"); o.value = value; o.textContent = value; el.appendChild(o);
+    }
+    el.value = value;
+    return;
+  }
+  el.value = value;   // hidden input inside .sel
+  const sel = el.closest(".sel");
+  if (!sel) return;
+  const pop = sel.querySelector(".sel-pop");
+  let opt = sel.querySelector(`.sel-opt[data-val="${escAttr(value)}"]`);
+  if (!opt && pop) {
+    opt = document.createElement("button");
+    opt.type = "button"; opt.className = "sel-opt"; opt.setAttribute("role", "option");
+    opt.dataset.val = value; opt.textContent = value; pop.appendChild(opt);
+  }
+  const valEl = sel.querySelector(".sel-val"); if (valEl) valEl.textContent = value;
+  sel.querySelectorAll(".sel-opt").forEach((o) => o.classList.toggle("on", o.dataset.val === value));
+  el.dispatchEvent(new Event("change", { bubbles: true }));   // let listeners (e.g. FX sync) react
+}
+
+/* Market name → currency, for auto-setting currency on the opening-holding form. */
+const MARKET_CCY = {
+  NASDAQ: "USD", NYSE: "USD", NYSEARCA: "USD", ARCA: "USD", AMEX: "USD", BATS: "USD",
+  "BURSA": "MYR", "BURSA MALAYSIA": "MYR", KLSE: "MYR", MYX: "MYR",
+  SGX: "SGD", SES: "SGD", HKEX: "HKD", HKSE: "HKD", SEHK: "HKD",
+  LSE: "GBP", TSX: "CAD", ASX: "AUD", TYO: "JPY", TSE: "JPY", JPX: "JPY",
+};
+
+/* "1 broker" vs "3 brokers" — singular when count is 1 (EN). */
+function plural(n, one, many) { return `${n} ${n === 1 ? one : many}`; }
+
+/* =============================================================================
  * PAGE: PORTFOLIO  (with working filters + grouped allocations)
  * ========================================================================== */
 const portfolioFilters = { broker: "", market: "", currency: "", pl: "" };
 
 function pagePortfolio() {
-  const markets = [...new Set(T.holdings.map((h) => h.market))];
-  const currencies = [...new Set(T.holdings.map((h) => h.currency))];
-  const opt = (v) => `<option value="${v}">${v}</option>`;
+  const has = T.holdings.length > 0;
+  const markets = [...new Set(T.holdings.map((h) => h.market))].filter(Boolean);
+  const currencies = [...new Set(T.holdings.map((h) => h.currency))].filter(Boolean);
 
   const filterBar = `<div class="filters">
-    <select id="fBroker"><option value="">All brokers</option>${BROKERS.map((b) => `<option value="${b.id}">${b.name}</option>`).join("")}</select>
-    <select id="fMarket"><option value="">All markets</option>${markets.map(opt).join("")}</select>
-    <select id="fCurrency"><option value="">All currencies</option>${currencies.map(opt).join("")}</select>
-    <select id="fPL"><option value="">All P/L</option><option value="pos">Profit</option><option value="neg">Loss</option></select>
-    <button class="btn ghost" id="fReset">Reset</button></div>`;
+    ${styledSelect("fBroker", [{ value: "", label: t("All brokers") }, ...BROKERS.map((b) => ({ value: b.id, label: b.name }))], portfolioFilters.broker, { id: "fBroker" })}
+    ${styledSelect("fMarket", [{ value: "", label: t("All markets") }, ...markets.map((m) => ({ value: m, label: m }))], portfolioFilters.market, { id: "fMarket" })}
+    ${styledSelect("fCurrency", [{ value: "", label: t("All currencies") }, ...currencies.map((c) => ({ value: c, label: c }))], portfolioFilters.currency, { id: "fCurrency" })}
+    ${styledSelect("fPL", [{ value: "", label: t("All P/L") }, { value: "pos", label: t("Profit") }, { value: "neg", label: t("Loss") }], portfolioFilters.pl, { id: "fPL" })}
+    <button class="btn ghost" id="fReset">${t("Reset")}</button></div>`;
 
   const byBroker = donutHTML(groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.marketValue), "By broker", "");
   const byCcy = donutHTML(groupSum(T.holdings, (h) => h.currency, (h) => h.marketValue), "By currency", "");
 
-  const ccyOpts = Object.keys(FX.rates).map((c) => `<option>${c}</option>`).join("");
-  const brokerOpts = BROKERS.filter((b) => !b.archived).map((b) => `<option value="${b.id}">${b.name}</option>`).join("");
-  const holdingForm = BROKERS.length === 0
-    ? `<p class="muted">${t("Add a broker first (Brokers page), then you can add holdings.")}</p>`
-    : `<p class="muted" style="margin:-4px 0 12px">${t("Use this only for investments you owned before you started tracking in Investment Ledger. New purchases should be entered as Buy transactions.")}</p>
-      <form id="holdingForm" class="form" autocomplete="off">
-        <div class="form-grid">
-          <label>${t("Ticker")}<input name="ticker" placeholder="AAPL" required></label>
-          <label>${t("Company Name")}<input name="company" placeholder="Apple Inc."></label>
-          <label>${t("Broker")}<select name="brokerId" required>${brokerOpts}</select></label>
-          <label>${t("Market")}<input name="market" placeholder="NASDAQ"></label>
-          <label>${t("Currency")}<select name="currency">${ccyOpts}</select></label>
-          <label>${t("Shares")}<input type="number" step="any" name="shares" placeholder="0" required></label>
-          <label>${t("Avg Cost per share")}<input type="number" step="any" name="avgCost" placeholder="0.00" required></label>
-          <label>${t("FX rate to")} ${FX.base}<input type="number" step="any" name="openingFxRate" placeholder="${t("blank = use current")}"></label>
+  // "Add opening holding" — collapsed behind a button (edge case: pre-tracking holdings only)
+  const ccyItems = Object.keys(FX.rates).map((c) => ({ value: c, label: c }));
+  const brokerItems = BROKERS.filter((b) => !b.archived).map((b) => ({ value: b.id, label: b.name }));
+  const holdingForm = `<form id="holdingForm" class="form opening-form" autocomplete="off">
+        <p class="muted form-intro">${t("Use this only for investments you owned before you started tracking in Investment Ledger. New purchases should be entered as Buy transactions.")}</p>
+
+        <div class="form-group">
+          <h4 class="form-sub">${t("What you own")}</h4>
+          <div class="form-grid og-own">
+            <label>${t("Ticker")}<input name="ticker" placeholder="AAPL" required></label>
+            <label>${t("Company Name")}<input name="company" placeholder="Apple Inc."></label>
+            <label>${t("Market")}<input name="market" placeholder="NASDAQ"></label>
+          </div>
+          <div class="lookup-status muted" id="holdingLookup"></div>
         </div>
-        <div class="lookup-status muted" id="holdingLookup"></div>
+
+        <div class="form-group">
+          <h4 class="form-sub">${t("Where & how much")}</h4>
+          <div class="form-grid og-where">
+            <label>${t("Broker")}${styledSelect("brokerId", brokerItems, brokerItems[0] && brokerItems[0].value)}</label>
+            <label>${t("Currency")}${styledSelect("currency", ccyItems, FX.base, { id: "ohCurrency" })}</label>
+            <label>${t("Shares")}<input type="number" step="any" name="shares" placeholder="0" required></label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <h4 class="form-sub">${t("Cost basis")}</h4>
+          <div class="form-grid og-cost">
+            <label>${t("Avg Cost per share")}<input type="number" step="any" name="avgCost" placeholder="0.00" required></label>
+            <label id="ohFxField">${t("FX rate to")} ${FX.base}<input type="number" step="any" name="openingFxRate" placeholder="1.0"></label>
+            <label>${t("As-of date")}<input type="date" name="asOfDate" value="${todayISO()}"></label>
+            <label>${t("Current price")}<input type="number" step="any" name="currentPrice" placeholder="${t("optional — for instant P/L")}"></label>
+          </div>
+        </div>
+
         <div class="form-actions"><button class="btn primary" type="submit">${t("Add Opening Holding")}</button></div>
       </form>`;
+  const addHold = BROKERS.length
+    ? `<details class="panel addhold"><summary>＋ ${t("Add opening holding")}</summary><div class="addhold-body">${holdingForm}</div></details>`
+    : "";
 
-  const html = `
-    <section class="grid-2">
-      ${panel("Holdings by Broker", byBroker)}
-      ${panel("Holdings by Currency", byCcy)}
-    </section>
-    ${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
-      T.holdings.length ? `<button class="btn" id="refreshPrices">⟳ ${t("Refresh live prices")}</button>` : "")}
-    ${panel("Add Opening Holding", holdingForm)}`;
+  const html = has
+    ? `<section class="grid-2">
+        ${panel("Holdings by Broker", byBroker)}
+        ${panel("Holdings by Currency", byCcy)}
+      </section>
+      ${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
+        `<button class="btn" id="refreshPrices">⟳ ${t("Refresh live prices")}</button>`)}
+      ${addHold}`
+    : `${panel("Holdings", emptyState(BROKERS.length
+        ? t("No holdings yet. Record a Buy in Records, or add an opening holding below.")
+        : t("Add a broker first (More → Brokers), then record a Buy or add an opening holding.")))}
+      ${addHold}`;
 
   return { title: "Portfolio", subtitle: LANG === "zh"
       ? `${T.holdings.length} 个持仓，${BROKERS.length} 个券商 · ${money(T.portfolioValue)}`
-      : `${T.holdings.length} holdings across ${BROKERS.length} brokers · ${money(T.portfolioValue)}`, html,
+      : `${plural(T.holdings.length, "holding", "holdings")} across ${plural(BROKERS.length, "broker", "brokers")} · ${money(T.portfolioValue)}`, html,
     mount() {
-      const apply = () => { $("#holdingsBody").innerHTML = portfolioTable(); };
-      $("#fBroker").value = portfolioFilters.broker;
-      $("#fMarket").value = portfolioFilters.market;
-      $("#fCurrency").value = portfolioFilters.currency;
-      $("#fPL").value = portfolioFilters.pl;
-      $("#fBroker").addEventListener("change", (e) => { portfolioFilters.broker = e.target.value; apply(); });
-      $("#fMarket").addEventListener("change", (e) => { portfolioFilters.market = e.target.value; apply(); });
-      $("#fCurrency").addEventListener("change", (e) => { portfolioFilters.currency = e.target.value; apply(); });
-      $("#fPL").addEventListener("change", (e) => { portfolioFilters.pl = e.target.value; apply(); });
-      $("#fReset").addEventListener("click", () => {
-        Object.keys(portfolioFilters).forEach((k) => (portfolioFilters[k] = ""));
-        ["#fBroker","#fMarket","#fCurrency","#fPL"].forEach((s) => ($(s).value = ""));
-        apply();
-      });
+      const apply = () => { const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioTable(); };
+      const onFilter = (id, key) => { const el = $(id); if (el) el.addEventListener("change", (e) => { portfolioFilters[key] = e.target.value; apply(); }); };
+      onFilter("#fBroker", "broker"); onFilter("#fMarket", "market"); onFilter("#fCurrency", "currency"); onFilter("#fPL", "pl");
+      const fr = $("#fReset");
+      if (fr) fr.addEventListener("click", () => { Object.keys(portfolioFilters).forEach((k) => (portfolioFilters[k] = "")); render(); });
       // Refresh ALL holdings from the market
       const rp = $("#refreshPrices");
       if (rp) rp.addEventListener("click", async () => {
@@ -1504,7 +1613,8 @@ function pagePortfolio() {
         toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
       });
       // Delegated actions (survive table re-renders): live fetch, set price, delete
-      $("#holdingsBody").addEventListener("click", async (e) => {
+      const holdBody = $("#holdingsBody");
+      if (holdBody) holdBody.addEventListener("click", async (e) => {
         const lbtn = e.target.closest("[data-live-holding]");
         if (lbtn) {
           if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
@@ -1545,16 +1655,43 @@ function pagePortfolio() {
         const ht = hf.querySelector('[name="ticker"]');
         if (ht) ht.addEventListener("change", () => autofillFromTicker(hf, $("#holdingLookup"), { fillPrice: false }));
         attachAutocomplete(hf, $("#holdingLookup"), { fillPrice: false });
+
+        // Currency-dependent FX rate: hide for base currency, prefill the real rate otherwise.
+        const ccyInput = $("#ohCurrency");
+        const fxField = $("#ohFxField");
+        const fxInput = hf.querySelector('[name="openingFxRate"]');
+        const syncFx = () => {
+          const ccy = (ccyInput && ccyInput.value) || FX.base;
+          const isBase = ccy === FX.base;
+          if (fxField) fxField.style.display = isBase ? "none" : "";
+          if (fxInput) fxInput.value = isBase ? "" : (FX.rates[ccy] || "");
+        };
+        if (ccyInput) ccyInput.addEventListener("change", syncFx);
+        // Auto-set currency from the typed market (NASDAQ→USD, Bursa→MYR, …); dispatches change → syncFx.
+        const mEl = hf.querySelector('[name="market"]');
+        if (mEl) mEl.addEventListener("change", () => {
+          const k = mEl.value.trim().toUpperCase();
+          if (!k) return;
+          let ccy = MARKET_CCY[k];
+          if (!ccy) { const m = Object.keys(MARKET_CCY).find((x) => k.includes(x)); if (m) ccy = MARKET_CCY[m]; }
+          if (ccy && FX.rates[ccy]) setSelectValue(hf, "currency", ccy);   // dispatches change → syncFx
+        });
+        syncFx();
       }
       if (hf) hf.addEventListener("submit", (e) => {
         e.preventDefault();
         const d = Object.fromEntries(new FormData(e.target).entries());
+        const ticker = d.ticker.trim().toUpperCase();
         HOLDINGS.push({
-          ticker: d.ticker.trim().toUpperCase(), company: (d.company || "").trim(),
+          ticker, company: (d.company || "").trim(),
           brokerId: d.brokerId, market: (d.market || "").trim(), currency: d.currency,
           shares: parseFloat(d.shares) || 0, avgCost: parseFloat(d.avgCost) || 0,
-          openingFxRate: d.openingFxRate ? parseFloat(d.openingFxRate) : null, netDividends: 0,
+          openingFxRate: d.openingFxRate ? parseFloat(d.openingFxRate) : null,
+          asOfDate: d.asOfDate || todayISO(), netDividends: 0,
         });
+        // Optional current price → instant unrealized P/L (manual, not live).
+        const cp = parseFloat(d.currentPrice);
+        if (cp > 0) CURRENT_PRICES[ticker] = { price: cp, currency: d.currency, date: todayISO(), source: "manual" };
         saveStore(); toast(t("Opening holding added")); render();
       });
     } };
@@ -3266,6 +3403,7 @@ function init() {
   $("#moreClose").addEventListener("click", closeMoreSheet);
   $("#moreSheet").addEventListener("click", (e) => { if (e.target.id === "moreSheet") closeMoreSheet(); });
   $$("#moreSheet .more-item").forEach((a) => a.addEventListener("click", closeMoreSheet));
+  initStyledSelects();   // delegated wiring for the custom dropdowns
 
   window.addEventListener("hashchange", render);
   if (!location.hash) location.hash = "#/dashboard";

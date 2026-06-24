@@ -4,6 +4,8 @@
  * ========================================================================== */
 
 :root {
+  color-scheme: light;          /* theme native controls (scrollbars, date pickers) to match */
+  accent-color: var(--brand);   /* brand tint for native checkboxes / date pickers */
   --sidebar-w: 220px;
 
   /* Light theme */
@@ -37,6 +39,7 @@
 }
 
 [data-theme="dark"] {
+  color-scheme: dark;
   /* True-black dark mode */
   --bg:        #000000;
   --bg-soft:   #050505;
@@ -456,6 +459,63 @@ a { color: inherit; text-decoration: none; }
 }
 .filters select:focus, .form select:focus, .form input:focus {
   outline: none; border-color: var(--brand);
+}
+
+/* ---- Styled dropdown (custom, themed open state) ---- */
+.sel { position: relative; }
+.filters .sel { flex: 1 1 160px; min-width: 150px; max-width: 230px; }
+.form label .sel { width: 100%; }
+.sel-trigger {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  font-family: inherit; font-size: 13px; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 9px; padding: 8px 11px; cursor: pointer; text-align: left;
+}
+.sel-trigger:hover { border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); }
+.sel.open .sel-trigger { border-color: var(--brand); }
+.sel-val { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sel-caret { color: var(--muted); font-size: 10px; transition: transform .12s; }
+.sel.open .sel-caret { transform: rotate(180deg); }
+.sel-pop {
+  position: absolute; left: 0; right: 0; top: calc(100% + 5px); z-index: 70;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: var(--shadow); padding: 4px; max-height: 260px; overflow-y: auto;
+}
+.sel-pop[hidden] { display: none; }
+.sel-opt {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  background: transparent; border: 0; color: var(--text);
+  font-family: inherit; font-size: 13px; padding: 9px 10px; border-radius: 7px;
+}
+.sel-opt:hover { background: var(--surface-2); }
+.sel-opt.on { background: color-mix(in srgb, var(--brand) 16%, transparent); color: var(--brand-ink); font-weight: 600; }
+
+/* ---- Collapsible "Add opening holding" ---- */
+.panel.addhold { padding: 0; }
+.panel.addhold > summary {
+  list-style: none; cursor: pointer; font-weight: 650; font-size: 15px;
+  padding: 16px 18px; display: flex; align-items: center; gap: 8px;
+}
+.panel.addhold > summary::-webkit-details-marker { display: none; }
+.panel.addhold[open] > summary { border-bottom: 1px solid var(--border); }
+.addhold-body { padding: 16px 18px 18px; }
+
+/* Opening-holding form: contained 2-column form (collapses to 1 column on phones) */
+.opening-form { max-width: 460px; }
+.opening-form .form-intro { margin: -2px 0 2px; }
+.opening-form .form-group { margin-top: 2px; }
+.opening-form .form-sub {
+  font-size: 11.5px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .05em; margin: 16px 0 9px;
+}
+.opening-form .form-group:first-of-type .form-sub { margin-top: 8px; }
+.opening-form .form-grid { grid-template-columns: 1fr 1fr; gap: 10px; }  /* two per row; a lone field sits in one column */
+.opening-form #holdingLookup:empty { display: none; }
+.opening-form #holdingLookup { margin-top: 8px; }
+.opening-form .form-actions { margin-top: 24px; }                        /* breathing room above the button */
+.opening-form .form-actions .btn { min-width: 160px; }                   /* normal-width button, not full bleed */
+@media (max-width: 520px) {
+  .opening-form .form-grid { grid-template-columns: 1fr; }
 }
 
 /* ---- Mini cards (cash / dividends summaries) ---- */
