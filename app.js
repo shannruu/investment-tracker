@@ -322,6 +322,7 @@ const ZH = {
   "Largest Winner": "最大盈利", "Largest Loser": "最大亏损",
   "Dividend Yield (TTM)": "股息率（近12个月）", "Cash Allocation": "现金占比",
   "Diversification Score": "分散度评分", "effective holdings": "有效持仓数",
+  "none": "无", "trailing 12m ÷ value": "近12个月 ÷ 市值", "of total net value": "占净资产总额",
   "Objective analytics only — not financial advice.": "仅客观分析 — 非投资建议。",
   // Phase 2 — Reports (F3)
   "Holdings": "持仓", "Cash Flow": "现金流", "Performance": "业绩表现",
@@ -401,6 +402,15 @@ const ZH = {
   "Pick a type, then fill only what's needed.": "先选择类型，然后只填写所需字段。",
   // Dashboard hero
   "Net Worth": "净资产", "Total P/L": "总盈亏", "Price P/L": "价格盈亏", "how": "如何计算",
+  "Total": "总计", "Price": "价格", "Across all brokers": "所有券商合计", "Deposits − Withdrawals": "存款 − 取款",
+  "Open Brokers and add your investment app first — every transaction belongs to a broker.": "先打开「券商」添加您的投资平台 — 每笔交易都属于某个券商。",
+  // Dashboard table headers + empty states (full EN/中文 coverage)
+  "Days": "距今天数", "Ex-Date": "除息日", "Payment": "付款日", "Expected Net": "预期净额",
+  "Holding": "持仓", "Market": "市场", "Net Div": "净股息", "Current Price": "现价",
+  "Avg Cost": "平均成本", "Market Value": "市值", "Unrealized P/L": "未实现盈亏",
+  "No upcoming dividends.": "暂无即将派发的股息。",
+  "No activity yet.": "暂无记录。",
+  "No holdings yet — add a Buy to get started.": "暂无持仓 — 添加一笔买入即可开始。",
   "Holdings": "持仓", "Principal Invested": "已投入本金", "Dividends YTD": "今年至今股息",
   "By market value": "按市值", "Calendar": "日历", "View all": "查看全部", "Recent Activity": "近期活动",
   "Top Holdings": "主要持仓", "Asset Allocation": "资产配置", "Upcoming Dividends": "即将派发股息",
@@ -1157,11 +1167,12 @@ function pageDashboard() {
     <td class="ticker">${tx.ticker || "—"}</td><td class="sub">${brokerName(tx.brokerId)}</td>
     <td class="num">${tx.currency} ${fmt(tx.gross != null ? tx.gross : 0)}</td></tr>`).join("");
 
-  const toggle = `<div class="seg" role="group" aria-label="${t("Return mode")}">
-    <button class="seg-btn ${SETTINGS.returnMode === "price" ? "on" : ""}" data-return="price">${t("Price return only")}</button>
-    <button class="seg-btn ${SETTINGS.returnMode !== "price" ? "on" : ""}" data-return="total">${t("Total return")}</button></div>`;
+  // In-card return-mode toggle (controls the Total P/L figure).
+  const toggle = `<div class="seg seg-sm" role="group" aria-label="${t("Return mode")}">
+    <button class="seg-btn ${SETTINGS.returnMode !== "price" ? "on" : ""}" data-return="total">${t("Total")}</button>
+    <button class="seg-btn ${SETTINGS.returnMode === "price" ? "on" : ""}" data-return="price">${t("Price")}</button></div>`;
 
-  // Calc breakdowns for the two hero figures (click to see "how").
+  // Calc breakdowns (click a stat to see "how").
   const calcs = {
     nw: { title: "Net Worth", rows: [
       { op: "+", label: "Current Portfolio Value", val: fmt(T.portfolioValue) },
@@ -1171,49 +1182,70 @@ function pageDashboard() {
       { op: "+", label: "Realized P/L", val: signed(T.realizedPL) },
       ...(returnIsTotal ? [{ op: "+", label: "Net Dividends", val: signed(T.netDividends) }] : []),
       { op: "−", label: "Total Fees", val: fmt(T.totalFees) }], total: shownReturn },
+    cash: { title: "Available Cash", rows: BROKERS.map((b) => ({ op: "+", label: b.name, val: fmt(T.brokerCash[b.id] || 0) })), total: T.totalCash || 0 },
+    principal: { title: "Net Capital Invested", rows: [
+      { op: "+", label: "Total Deposits", val: fmt(T.totalDeposits) },
+      { op: "−", label: "Total Withdrawals", val: fmt(T.totalWithdrawals) }], total: T.netCapitalInvested },
   };
 
-  const hero = `<section class="hero">
-    <article class="hero-card net" data-card="nw" tabindex="0" role="button" aria-label="${t("Net Worth")}, show calculation">
-      <div class="hero-label">${t("Net Worth")} <span class="calc-hint">ⓘ ${t("how")}</span></div>
-      <div class="hero-value">${money(netWorth)}</div>
-      <div class="hero-sub muted">${t("Holdings")} ${money(T.portfolioValue)} · ${t("Cash")} ${money(T.totalCash || 0)}</div>
+  const statHead = (label, right) => `<div class="stat-head"><span class="stat-label">${label}</span>${right || ""}</div>`;
+  const howHint = `<span class="calc-hint">ⓘ ${t("how")}</span>`;
+  const metrics = `<section class="metrics">
+    <article class="stat net" data-card="nw" tabindex="0" role="button" aria-label="${t("Net Worth")}, show calculation">
+      ${statHead(t("Net Worth"), howHint)}
+      <div class="stat-value">${money(netWorth)}</div>
+      <div class="stat-sub muted">${t("Holdings")} ${money(T.portfolioValue)} · ${t("Cash")} ${money(T.totalCash || 0)}</div>
     </article>
-    <article class="hero-card pl ${up ? "is-up" : "is-down"}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total P/L") : t("Price P/L")}, show calculation">
-      <div class="hero-label">${returnIsTotal ? t("Total P/L") : t("Price P/L")} <span class="calc-hint">ⓘ ${t("how")}</span></div>
-      <div class="hero-value ${cls(shownReturn)}">${up ? "▲" : "▼"} ${signed(shownReturn)}</div>
-      <div class="hero-sub ${cls(shownReturn)}">${pctTxt(shownPct)} · ${t("on net capital")}</div>
+    <article class="stat pl ${up ? "is-up" : "is-down"}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total P/L") : t("Price P/L")}, show calculation">
+      ${statHead(returnIsTotal ? t("Total P/L") : t("Price P/L"), toggle)}
+      <div class="stat-value ${cls(shownReturn)}">${up ? "▲" : "▼"} ${signed(shownReturn)}</div>
+      <div class="stat-sub ${cls(shownReturn)}">${pctTxt(shownPct)} · ${t("on net capital")}</div>
+    </article>
+    <article class="stat" data-card="cash" tabindex="0" role="button" aria-label="${t("Available Cash")}, show calculation">
+      ${statHead(t("Available Cash"), howHint)}
+      <div class="stat-value">${money(T.totalCash || 0)}</div>
+      <div class="stat-sub muted">${t("Across all brokers")}</div>
+    </article>
+    <article class="stat wide" data-card="principal" tabindex="0" role="button" aria-label="${t("Principal Invested")}, show calculation">
+      ${statHead(t("Principal Invested"), howHint)}
+      <div class="stat-value">${money(T.netCapitalInvested)}</div>
+      <div class="stat-sub muted">${t("Deposits − Withdrawals")}</div>
+    </article>
+    <article class="stat wide">
+      ${statHead(t("Dividends YTD"))}
+      <div class="stat-value ${divYTD ? "pos" : ""}">${money(divYTD)}</div>
+      <div class="stat-sub muted">${yr}</div>
     </article>
   </section>`;
 
+  // Collapse list panels to a one-line empty state until they have data.
+  const listPanel = (title, has, body, emptyMsg, extra) =>
+    has ? panel(title, body, extra) : panel(title, `<p class="empty-line muted">${emptyMsg}</p>`);
+
   const html = `
     ${isEmpty ? onboardingHTML() : ""}
-    ${hero}
-    <div class="dash-meta">
-      <span class="muted">${LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet")}</span>
-      ${toggle}
-    </div>
-    <div class="mini-cards dash-minis">
-      ${miniCard(t("Principal Invested"), money(T.netCapitalInvested))}
-      ${miniCard(t("Dividends YTD"), money(divYTD), divYTD ? "pos" : "")}
-      ${miniCard(t("Available Cash"), money(T.totalCash || 0))}
-    </div>
+    ${metrics}
     <section class="warn-wrap">${warningsHTML()}</section>
-    <section class="grid-2">
+    <section class="grid-2 dash-charts">
+      ${panel("Portfolio Value Over Time", (() => {
+        const series = PV_HISTORY.map((p) => ({ month: p.date.slice(5), value: p.value }));
+        return series.length >= 2
+          ? `<div class="chart">${lineChartSVG(series)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Market value incl. cash, captured once per day.")}</p>`
+          : emptyState(t("History builds automatically — one point per day as you use the app."));
+      })(), `<span class="badge subtle">${t("incl. cash")}</span>`)}
       ${panel("Asset Allocation", donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), "Portfolio", money(T.portfolioValue).replace(".00","")), `<span class="badge subtle">${t("By market value")}</span>`)}
-      ${panel("Upcoming Dividends", table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}
     </section>
-    ${panel("Recent Activity", table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Amount",num:1}], recentRows), `<a class="link" href="#/records">${t("All")} →</a>`)}
-    ${panel("Top Holdings", table(
-      [{label:"Holding"},{label:"Broker"},{label:"Market"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Net Div",num:1},{label:"Total Return",num:1}],
-      holdingsRows), `<a class="link" href="#/portfolio">${t("View all")} →</a>`)}
-    ${T.holdings.length ? panel("Portfolio Value Over Time", (() => {
-      const series = PV_HISTORY.map((p) => ({ month: p.date.slice(5), value: p.value }));
-      return series.length >= 2
-        ? `<div class="chart">${lineChartSVG(series)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Market value incl. cash, captured once per day.")}</p>`
-        : emptyState(t("History builds automatically — one point per day as you use the app."));
-    })(), `<span class="badge subtle">${t("incl. cash")}</span>`) : ""}
-    ${insightsHTML()}`;
+    ${listPanel("Upcoming Dividends", upcoming.length,
+      table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows),
+      t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}
+    ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
+      table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Amount",num:1}], recentRows),
+      t("No activity yet."), `<a class="link" href="#/records">${t("All")} →</a>`)}
+    ${listPanel("Top Holdings", T.holdings.length,
+      table([{label:"Holding"},{label:"Broker"},{label:"Market"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Net Div",num:1},{label:"Total Return",num:1}], holdingsRows),
+      t("No holdings yet — add a Buy to get started."), `<a class="link" href="#/portfolio">${t("View all")} →</a>`)}
+    ${insightsHTML()}
+    <p class="dash-footnote muted">${LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet")}</p>`;
 
   return { title: "Dashboard", subtitle: "Welcome back — here is your portfolio at a glance.", html,
     mount() {
@@ -1222,7 +1254,8 @@ function pageDashboard() {
         el.addEventListener("click", open);
         el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
       });
-      $$("[data-return]").forEach((b) => b.addEventListener("click", () => {
+      $$("[data-return]").forEach((b) => b.addEventListener("click", (e) => {
+        e.stopPropagation();   // don't trigger the P/L card's calc modal
         SETTINGS.returnMode = b.dataset.return; saveStore(); render();
       }));
       const st = $("#startTour");
@@ -1579,14 +1612,14 @@ function recordsTable(list) {
     return `<tr>
       <td>${fmtDate(tx.date)}</td>
       <td>${typeChip(tx.type)}</td>
-      <td class="sub">${brokerName(tx.brokerId)}</td>
       <td class="ticker">${tx.ticker && tx.ticker !== "—" ? tx.ticker : "—"}${detail}</td>
       <td class="num">${money(myr)}<div class="fx-note">${orig}</div></td>
+      <td class="sub">${brokerName(tx.brokerId)}</td>
       <td class="num">
         <button class="icon-btn row-edit" data-edit-tx="${tx.id}" title="${t("Edit")}" aria-label="${t("Edit")}">✎</button>
         <button class="icon-btn row-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button></td></tr>`;
   }).join("");
-  return table([{label:"Date"},{label:"Type"},{label:"Account"},{label:"Ticker / Detail"},{label:"Amount (MYR)",num:1},{label:"",num:1}], rows);
+  return table([{label:"Date"},{label:"Type"},{label:"Ticker / Detail"},{label:"Amount (MYR)",num:1},{label:"Account"},{label:"",num:1}], rows);
 }
 
 /* =============================================================================
@@ -1608,7 +1641,7 @@ function pageAdd() {
   const type = editing ? editing.type : ADD_SLUGS[slug];
 
   if (!type) {
-    const primary = [["buy","Buy","▲"],["sell","Sell","▼"],["deposit","Deposit","⤓"],["withdraw","Withdraw","⤒"],["dividend","Dividend","◷"],["fx","FX","⇄"]];
+    const primary = [["buy","Buy","▲"],["sell","Sell","▼"],["deposit","Deposit","↓"],["withdraw","Withdraw","↑"],["dividend","Dividend","◷"],["fx","FX","⇄"]];
     const more = [["fee","Fee"],["tax","Tax withholding"],["interest","Interest / cash yield"],["split","Stock split"],["transfer","Transfer between brokers"]];
     const html = panel("What do you want to record?", `
       <div class="type-picker">${primary.map(([s, lbl, ic]) =>
@@ -2447,8 +2480,8 @@ let tourIdx = -1;
 let TOUR_SEEN = false;
 function tourSteps() {
   return [
-    { route: "dashboard", selector: "#moreBtnSide", fallback: "#moreBtn",
-      title: t("Step 1 · Add a broker"), text: t("Open More to reach Brokers — add your investment app first. Every transaction belongs to a broker.") },
+    { route: "dashboard", selector: '.sidebar [data-page="brokers"]', fallback: "#moreBtn",
+      title: t("Step 1 · Add a broker"), text: t("Open Brokers and add your investment app first — every transaction belongs to a broker.") },
     { route: "brokers", selector: "#brokerForm",
       title: t("Add your broker"), text: t("Enter the broker name and currency, then click Add Broker.") },
     { route: "dashboard", selector: '[data-page="add"]', fallback: ".bn-item.add",
@@ -3125,10 +3158,10 @@ function render() {
       <span class="muted">If you just updated the files, do a hard refresh (Ctrl+Shift+R) to clear the cache.</span></div></div>`;
   }
 
-  // active nav state — "More" stays highlighted while on a secondary page
+  // active nav state — sidebar items highlight directly; mobile "More" highlights on secondary pages
   const secondary = ["records", "reports", "brokers", "settings", "help"];
   $$("[data-page]").forEach((el) => el.classList.toggle("active", el.dataset.page === key));
-  $$("#moreBtn, #moreBtnSide").forEach((el) => el.classList.toggle("active", secondary.includes(key)));
+  const mb = $("#moreBtn"); if (mb) mb.classList.toggle("active", secondary.includes(key));
   closeMoreSheet();
 }
 
@@ -3166,9 +3199,8 @@ function init() {
   $("#modalClose").addEventListener("click", closeModal);
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeModal(); closeMoreSheet(); } });
-  // "More" overlay — identical behaviour from the sidebar (desktop) and bottom nav (mobile)
+  // "More" overlay — mobile bottom-nav only (desktop shows the items in the sidebar)
   $("#moreBtn").addEventListener("click", (e) => { e.preventDefault(); toggleMoreSheet(); });
-  $("#moreBtnSide").addEventListener("click", (e) => { e.preventDefault(); toggleMoreSheet(); });
   $("#moreClose").addEventListener("click", closeMoreSheet);
   $("#moreSheet").addEventListener("click", (e) => { if (e.target.id === "moreSheet") closeMoreSheet(); });
   $$("#moreSheet .more-item").forEach((a) => a.addEventListener("click", closeMoreSheet));

@@ -4,7 +4,7 @@
  * ========================================================================== */
 
 :root {
-  --sidebar-w: 248px;
+  --sidebar-w: 220px;
 
   /* Light theme */
   --bg:        #f4f6fb;
@@ -136,7 +136,7 @@ a { color: inherit; text-decoration: none; }
 .topbar-title p { margin: 2px 0 0; font-size: 12.5px; }
 .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
-.content { padding: 22px 26px 90px; display: flex; flex-direction: column; gap: 20px; }
+.content { padding: 22px 26px 90px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1180px; margin: 0 auto; }
 
 /* ===================== Buttons ===================== */
 /* Fixed height + line-height:1 so the button never changes size when the
@@ -289,10 +289,10 @@ a { color: inherit; text-decoration: none; }
   border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 16px 18px 18px;
 }
-.panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
 .panel-head h2 { font-size: 15px; }
 .panel-head .link, .panel-head .badge { margin-left: auto; }
-.grid-2 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; }
+.grid-2 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
 
 .badge {
   font-size: 11px; font-weight: 650; padding: 3px 9px; border-radius: 999px;
@@ -314,7 +314,7 @@ a { color: inherit; text-decoration: none; }
 .legend-row .lr-pct { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* ===================== Tables ===================== */
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .data-table th {
   text-align: left; color: var(--text-soft); font-weight: 700; font-size: 12px;
@@ -422,11 +422,21 @@ a { color: inherit; text-decoration: none; }
   }
   .bn-item span:first-child { font-size: 17px; font-family: var(--icon-font); }
   .bn-item.active { color: var(--brand); }
-  .bn-item.add span {
-    background: var(--brand); color: #fff; width: 36px; height: 36px;
-    border-radius: 11px; display: grid; place-items: center; margin-top: -16px;
-    box-shadow: var(--shadow); font-weight: 700;
+  .bn-item.add { color: var(--brand-ink); }
+  .bn-item.add span:first-child {
+    background: var(--brand); color: #fff; width: 38px; height: 38px;
+    border-radius: 12px; display: grid; place-items: center; margin-top: -18px;
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 45%, transparent); font-weight: 700; font-size: 20px;
   }
+
+  /* Topbar: drop the redundant subtitle, icon-only export, tighter actions */
+  .topbar-title p { display: none; }
+  .topbar-title h1 { font-size: 17px; }
+  .topbar-actions { gap: 6px; }
+  #exportBtn .btn-ico + span { display: none; }
+
+  /* Bigger touch targets in the bottom nav */
+  .bn-item { min-height: 50px; }
 }
 
 /* =============================================================================
@@ -572,24 +582,63 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .nav-item.add-link { color: var(--brand-ink); font-weight: 650; }
 .nav-item.add-link .ni-ico { color: var(--brand); opacity: 1; }
 
-/* --- Dashboard hero: net worth (biggest) + total P/L --- */
-.hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; }
-.hero-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); box-shadow: var(--shadow);
-  padding: 20px 22px; cursor: pointer; transition: border-color .12s, transform .08s;
-}
-.hero-card:hover { border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); }
-.hero-card:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.hero-card.net { background: linear-gradient(150deg, color-mix(in srgb, var(--brand) 12%, var(--surface)), var(--surface)); }
-.hero-label { font-size: 12.5px; color: var(--muted); font-weight: 600; display: flex; align-items: center; gap: 8px; }
-.hero-label .calc-hint { margin-left: auto; font-size: 11px; opacity: .7; }
-.hero-value { font-size: 40px; font-weight: 780; letter-spacing: -.03em; margin-top: 8px; line-height: 1.05; }
-.hero-card.pl .hero-value { font-size: 32px; }
-.hero-sub { font-size: 12.5px; margin-top: 6px; }
+/* Clean line icons (inline SVG sprite) */
+.icon { width: 18px; height: 18px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ni-ico { display: inline-flex; align-items: center; justify-content: center; }
+.nav-item .ni-ico { opacity: .85; }
+.nav-item.active .ni-ico, .nav-item.add-link .ni-ico { opacity: 1; }
+.more-item .ni-ico { opacity: .9; }
+.bn-item .bn-ico { display: inline-flex; }
+.bn-item .icon { width: 23px; height: 23px; }
+.bn-item.add .bn-ico .icon { width: 22px; height: 22px; stroke: #fff; }
 
-.dash-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.dash-minis { grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); }
+/* --- Dashboard metrics: 3-up top row + 2 wide cards below, even gaps --- */
+.metrics { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
+.stat { grid-column: span 2; }            /* 3 per row */
+.stat.wide { grid-column: span 3; }       /* 2 per row (second row) */
+.stat {
+  /* Primary tier: crisper brand-tinted border + a touch more lift than the panels below */
+  background: var(--surface);
+  border: 1px solid color-mix(in srgb, var(--brand) 16%, var(--border));
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 16px 18px; transition: border-color .12s, transform .08s;
+  display: flex; flex-direction: column;
+}
+.stat[role="button"] { cursor: pointer; }
+.stat[role="button"]:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); }
+.stat:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.stat.net { background: linear-gradient(150deg, color-mix(in srgb, var(--brand) 12%, var(--surface)), var(--surface)); }
+.stat-head { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.stat-label { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.stat-head .calc-hint, .stat-head .seg { margin-left: auto; }
+.stat-value { font-size: 30px; font-weight: 780; letter-spacing: -.03em; margin-top: 8px; line-height: 1.05; }
+.stat.net .stat-value { font-size: 33px; }
+.stat-sub { font-size: 12px; margin-top: 6px; }
+
+/* Small segmented toggle that lives inside a card header */
+.seg.seg-sm { border-radius: 999px; }
+.seg-sm .seg-btn { padding: 3px 11px; font-size: 11px; font-weight: 650; }
+
+/* Unified top-right card affordance pill ("how", badges, toggle all match) */
+.calc-hint {
+  font-size: 11px; font-weight: 650; color: var(--text-soft);
+  border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px;
+  background: transparent; opacity: 1; white-space: nowrap;
+}
+
+.dash-footnote { font-size: 11.5px; margin: 2px 0 0; text-align: right; }
+
+/* Compact one-line empty state for dashboard list panels */
+.empty-line { padding: 6px 2px 2px; font-size: 13px; }
+
+@media (max-width: 1000px) {
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .stat, .stat.wide { grid-column: auto; }
+  .metrics .stat:last-child:nth-child(odd) { grid-column: 1 / -1; }  /* lone last card → full width, no orphan */
+}
+@media (max-width: 560px) {
+  .metrics { grid-template-columns: 1fr; }
+}
 
 /* --- "More" overlay sheet — identical on desktop and mobile --- */
 .sheet-backdrop {
@@ -638,11 +687,11 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .more-fields[open] > summary::before { content: "−"; }
 .more-fields .form-grid { padding-bottom: 14px; }
 
+/* --- Dashboard charts row: equal columns, capped height (no oversized chart / empty space) --- */
+.grid-2.dash-charts { grid-template-columns: 1fr 1fr; }
+.dash-charts .chart svg { max-height: 340px; }
+.dash-charts .chart.alloc { justify-content: center; }
+@media (max-width: 920px) { .grid-2.dash-charts { grid-template-columns: 1fr; } }
+
 /* --- Records filter tabs --- */
 .seg.records-tabs { flex-wrap: wrap; margin-bottom: 4px; }
-
-@media (max-width: 720px) {
-  .hero { grid-template-columns: 1fr; }
-  .hero-value { font-size: 34px; }
-  .hero-card.pl .hero-value { font-size: 27px; }
-}
