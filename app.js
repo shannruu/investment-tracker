@@ -428,6 +428,12 @@ const ZH = {
   "Already hold stocks from before tracking?": "已持有开始记录前的股票？",
   "Add a broker first (More → Brokers), then record a Buy and it appears here.": "请先添加券商（更多 → 券商），然后记录买入，它会出现在此。",
   "Add a broker first (More → Brokers), then you can import holdings.": "请先添加券商（更多 → 券商），然后即可导入持仓。",
+  "Add a broker": "添加券商",
+  "You need a broker before you can record transactions — every transaction belongs to a broker.": "记录交易前需要先添加券商 — 每笔交易都属于某个券商。",
+  "Your only broker is archived. Add (or restore) an active broker to record transactions.": "您唯一的券商已归档。请添加（或恢复）一个有效券商以记录交易。",
+  "More currencies…": "更多货币…", "Search currency…": "搜索货币…", "No matching currency": "无匹配货币",
+  "Pick a different currency for the exchange.": "请为兑换选择不同的货币。",
+  "added at the live rate": "已按实时汇率添加", "added — set its rate in Settings": "已添加 — 请在设置中设定其汇率",
   "Available Cash": "可用现金",
   "Buys (incl. fees & tax)": "买入（含费用与税）", "Sells (net of fees)": "卖出（扣除费用）",
   "Net dividends received": "已收净股息", "Standalone fees": "独立费用",
@@ -1453,27 +1459,100 @@ function warningsHTML() {
 /* =============================================================================
  * STYLED DROPDOWN — replaces native <select>, whose open menu the OS renders
  * un-themed (the bright-blue popup). Carries its value in a hidden <input>
- * so FormData and `change` listeners keep working unchanged.
+ * so FormData and `change` listeners keep working unchanged. Currency variants
+ * (data-more="currency") add a searchable "More currencies…" world list.
  * ========================================================================== */
 function escAttr(s) { return String(s == null ? "" : s).replace(/"/g, "&quot;"); }
+
+/* Full world currency list for the "More currencies…" picker. */
+const WORLD_CCY = [
+  ["MYR","Malaysian Ringgit"],["USD","US Dollar"],["EUR","Euro"],["GBP","British Pound"],["SGD","Singapore Dollar"],
+  ["HKD","Hong Kong Dollar"],["CNY","Chinese Yuan"],["JPY","Japanese Yen"],["AUD","Australian Dollar"],["CAD","Canadian Dollar"],
+  ["CHF","Swiss Franc"],["NZD","New Zealand Dollar"],["INR","Indian Rupee"],["IDR","Indonesian Rupiah"],["THB","Thai Baht"],
+  ["PHP","Philippine Peso"],["VND","Vietnamese Dong"],["KRW","South Korean Won"],["TWD","Taiwan Dollar"],["AED","UAE Dirham"],
+  ["SAR","Saudi Riyal"],["QAR","Qatari Riyal"],["KWD","Kuwaiti Dinar"],["BHD","Bahraini Dinar"],["OMR","Omani Rial"],
+  ["ZAR","South African Rand"],["BRL","Brazilian Real"],["MXN","Mexican Peso"],["ARS","Argentine Peso"],["CLP","Chilean Peso"],
+  ["COP","Colombian Peso"],["SEK","Swedish Krona"],["NOK","Norwegian Krone"],["DKK","Danish Krone"],["PLN","Polish Zloty"],
+  ["CZK","Czech Koruna"],["HUF","Hungarian Forint"],["RON","Romanian Leu"],["TRY","Turkish Lira"],["RUB","Russian Ruble"],
+  ["ILS","Israeli Shekel"],["EGP","Egyptian Pound"],["NGN","Nigerian Naira"],["KES","Kenyan Shilling"],["PKR","Pakistani Rupee"],
+  ["BDT","Bangladeshi Taka"],["LKR","Sri Lankan Rupee"],["MMK","Myanmar Kyat"],["KHR","Cambodian Riel"],["BND","Brunei Dollar"],
+  ["MOP","Macanese Pataca"],["ISK","Icelandic Krona"],["UAH","Ukrainian Hryvnia"],["MAD","Moroccan Dirham"],["PEN","Peruvian Sol"],
+];
+
+/* Currency options for a picker: base first, (future) recently-used, then all known rates. */
+function currencyItems() {
+  const base = FX.base;
+  const recent = [];   // FUTURE: derive from ALL_TRANSACTIONS once history exists (smart "recently used")
+  const order = [...new Set([base, ...recent, ...Object.keys(FX.rates)])];
+  return order.map((c) => ({ value: c, label: c }));
+}
+
 function styledSelect(name, items, value, o = {}) {
   const cur = items.find((i) => i.value === value) || items[0] || { value: "", label: o.placeholder || "" };
   const opts = items.map((i) =>
     `<button type="button" class="sel-opt${i.value === cur.value ? " on" : ""}" role="option" data-val="${escAttr(i.value)}">${i.label}</button>`).join("");
-  return `<div class="sel">
+  const more = o.more === "currency" ? `<button type="button" class="sel-more">${t("More currencies…")}</button>` : "";
+  return `<div class="sel"${o.more ? ` data-more="${o.more}"` : ""}>
     <input type="hidden"${o.id ? ` id="${o.id}"` : ""} name="${name}" value="${escAttr(cur.value)}">
     <button type="button" class="sel-trigger"><span class="sel-val">${cur.label}</span><span class="sel-caret" aria-hidden="true">▾</span></button>
-    <div class="sel-pop" role="listbox" hidden>${opts}</div>
+    <div class="sel-pop" role="listbox" hidden><div class="sel-list">${opts}</div>${more}</div>
   </div>`;
 }
 function openSel(s) { s.classList.add("open"); const p = s.querySelector(".sel-pop"); if (p) p.hidden = false; }
 function closeSel(s) { s.classList.remove("open"); const p = s.querySelector(".sel-pop"); if (p) p.hidden = true; }
+
+/* Rebuild a currency dropdown's normal list (reflects current FX.rates + value, base first). */
+function rebuildCurrencyPop(sel, value) {
+  const pop = sel.querySelector(".sel-pop");
+  const opts = currencyItems().map((i) =>
+    `<button type="button" class="sel-opt${i.value === value ? " on" : ""}" role="option" data-val="${escAttr(i.value)}">${i.label}</button>`).join("");
+  pop.innerHTML = `<div class="sel-list">${opts}</div><button type="button" class="sel-more">${t("More currencies…")}</button>`;
+}
+function worldCurrencyOptions(q) {
+  q = (q || "").trim().toUpperCase();
+  const list = WORLD_CCY.filter(([code, name]) => !q || code.includes(q) || name.toUpperCase().includes(q));
+  if (!list.length) return `<div class="sel-empty">${t("No matching currency")}</div>`;
+  return list.slice(0, 60).map(([code, name]) =>
+    `<button type="button" class="sel-opt sel-search-opt" data-val="${code}"><span class="sel-sym">${code}</span><span class="sel-name">${name}</span></button>`).join("");
+}
+function openCurrencySearch(sel) {
+  const pop = sel.querySelector(".sel-pop");
+  pop.innerHTML = `<div class="sel-search"><input type="text" class="sel-search-input" placeholder="${t("Search currency…")}" autocomplete="off"></div>
+    <div class="sel-search-list">${worldCurrencyOptions("")}</div>`;
+  openSel(sel);
+  const inp = pop.querySelector(".sel-search-input"); if (inp) setTimeout(() => inp.focus(), 0);
+}
+async function pickWorldCurrency(sel, code) {
+  if (!FX.rates[code]) {
+    const d = await fetchRatesAgainstBase(FX.base);
+    const live = d && d.rates && d.rates[code] != null;
+    FX.rates[code] = live ? perBaseToRate(d.rates[code]) : 1;
+    saveStore();
+    toast(live ? `${code} ${t("added at the live rate")}` : `${code} ${t("added — set its rate in Settings")}`);
+  }
+  const input = sel.querySelector('input[type="hidden"]');
+  input.value = code;
+  const valEl = sel.querySelector(".sel-val"); if (valEl) valEl.textContent = code;
+  rebuildCurrencyPop(sel, code);
+  closeSel(sel);
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
 function initStyledSelects() {
-  document.addEventListener("click", (e) => {
+  document.addEventListener("click", async (e) => {
     const trig = e.target.closest(".sel-trigger");
-    const opt = e.target.closest(".sel-opt");
+    const more = e.target.closest(".sel-more");
+    const sopt = e.target.closest(".sel-search-opt");
+    const opt = !sopt && e.target.closest(".sel-opt");
     $$(".sel.open").forEach((s) => { if (!s.contains(e.target)) closeSel(s); });
-    if (trig) { const s = trig.closest(".sel"); s.classList.contains("open") ? closeSel(s) : openSel(s); return; }
+    if (trig) {
+      const s = trig.closest(".sel");
+      if (s.classList.contains("open")) { closeSel(s); return; }
+      if (s.dataset.more === "currency") rebuildCurrencyPop(s, s.querySelector('input[type="hidden"]').value);
+      openSel(s); return;
+    }
+    if (more) { e.preventDefault(); openCurrencySearch(more.closest(".sel")); return; }
+    if (sopt) { e.preventDefault(); await pickWorldCurrency(sopt.closest(".sel"), sopt.dataset.val); return; }
     if (opt) {
       const s = opt.closest(".sel");
       const input = s.querySelector('input[type="hidden"]');
@@ -1483,6 +1562,12 @@ function initStyledSelects() {
       closeSel(s);
       input.dispatchEvent(new Event("change", { bubbles: true }));
     }
+  });
+  document.addEventListener("input", (e) => {
+    const inp = e.target.closest(".sel-search-input");
+    if (!inp) return;
+    const list = inp.closest(".sel-pop").querySelector(".sel-search-list");
+    if (list) list.innerHTML = worldCurrencyOptions(inp.value);
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") $$(".sel.open").forEach(closeSel); });
 }
@@ -1531,7 +1616,7 @@ function plural(n, one, many) { return `${n} ${n === 1 ? one : many}`; }
  * ========================================================================== */
 function openingHoldingFormHTML() {
   if (!BROKERS.length) return `<p class="muted">${t("Add a broker first (More → Brokers), then you can import holdings.")}</p>`;
-  const ccyItems = Object.keys(FX.rates).map((c) => ({ value: c, label: c }));
+  const ccyItems = currencyItems();
   const brokerItems = BROKERS.filter((b) => !b.archived).map((b) => ({ value: b.id, label: b.name }));
   return `<form id="holdingForm" class="form opening-form" autocomplete="off">
         <p class="muted form-intro">${t("Use this only for investments you owned before you started tracking in Investment Ledger. New purchases should be entered as Buy transactions.")}</p>
@@ -1550,7 +1635,7 @@ function openingHoldingFormHTML() {
           <h4 class="form-sub">${t("Where & how much")}</h4>
           <div class="form-grid og-where">
             <label>${t("Broker")}${styledSelect("brokerId", brokerItems, brokerItems[0] && brokerItems[0].value)}</label>
-            <label>${t("Currency")}${styledSelect("currency", ccyItems, FX.base, { id: "ohCurrency" })}</label>
+            <label>${t("Currency")}${styledSelect("currency", ccyItems, FX.base, { id: "ohCurrency", more: "currency" })}</label>
             <label>${t("Shares")}<input type="number" step="any" name="shares" placeholder="0" required></label>
           </div>
         </div>
@@ -1861,11 +1946,6 @@ function typeSelectorHTML(activeType) {
 }
 
 function pageAdd() {
-  if (!BROKERS.length) {
-    return { title: "Add", subtitle: "Record a transaction", html:
-      panel("Add a transaction", `<p class="muted">${t("Add a broker first (More → Brokers), then you can record transactions.")}</p>
-        <div class="form-actions"><a class="btn primary" href="#/brokers">${t("Go to Brokers")}</a></div>`) };
-  }
   const editing = editingTxId ? ALL_TRANSACTIONS.find((x) => x.id === editingTxId) : null;
   if (editingTxId && !editing) editingTxId = null;
   const slug = decodeURIComponent((location.hash.split("/")[2] || ""));
@@ -1876,8 +1956,16 @@ function pageAdd() {
     return { title: "Edit Record", subtitle: t(type), html, mount() { mountAddForm(type, editing); } };
   }
 
-  const html = `${typeSelectorHTML(type)}
-    ${panel(t(type), addForm2(type, null))}`;
+  // New record needs at least one ACTIVE broker — otherwise the Broker dropdown is empty.
+  const hasActiveBroker = BROKERS.some((b) => !b.archived);
+  const body = hasActiveBroker
+    ? panel(t(type), addForm2(type, null))
+    : panel(t(type), `<p class="form-note">${BROKERS.length
+        ? t("Your only broker is archived. Add (or restore) an active broker to record transactions.")
+        : t("You need a broker before you can record transactions — every transaction belongs to a broker.")}</p>
+        <div class="form-actions" style="margin-top:14px"><a class="btn primary" href="#/brokers">${t("Add a broker")} →</a></div>`);
+
+  const html = `${typeSelectorHTML(type)}${body}`;
   return { title: "Add", subtitle: "Pick a type and fill in the details.", html,
     mount() { mountAddForm(type, null); } };
 }
@@ -1892,63 +1980,64 @@ function addForm2(type, editing) {
   const defBroker = e.brokerId || draft.broker || (selectable[0] && selectable[0].id) || "";
   const brokerCcy = (id) => { const b = BROKERS.find((x) => x.id === id); return b ? b.currency : FX.base; };
   const defCcy = e.currency || draft.currency || brokerCcy(defBroker) || FX.base;
-  const brokerOpts = (cur) => selectable.map((b) => `<option value="${b.id}"${sel(b.id, cur)}>${b.name}</option>`).join("");
-  const ccyOpts = (cur) => Object.keys(FX.rates).map((c) => `<option value="${c}"${sel(c, cur)}>${c}</option>`).join("");
+  const brokerList = selectable.map((b) => ({ value: b.id, label: b.name }));
+  const ccyList = currencyItems();
   const dateVal = e.date || draft.date || todayISO();
   const tickerVal = e.ticker && e.ticker !== "—" ? e.ticker : "";
   const isTrade = type === "Buy" || type === "Sell";
-  const fxRow = `<label>${t("FX rate to")} ${FX.base}<input type="number" step="any" name="fxRate" id="afFx" value="${v(e.fxRate)}" placeholder="1.0"></label>`;
+  const fxRow = `<label id="afFxField">${t("FX rate to")} ${FX.base}<input type="number" step="any" name="fxRate" id="afFx" value="${v(e.fxRate)}" placeholder="1.0"></label>`;
 
   const head = `
-    <label>${t("Broker")}<select name="broker" id="afBroker" required>${brokerOpts(defBroker)}</select></label>
+    <label>${t("Broker")}${styledSelect("broker", brokerList, defBroker, { id: "afBroker" })}</label>
     <label>${t("Date")}<input type="date" name="date" value="${dateVal}" required></label>`;
 
   let core = "", extra = "";
   if (isTrade) {
     core = `
       <label>${t("Ticker")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL" autocomplete="off"></label>
-      <label>${t("Currency")}<select name="currency" id="afCcy" required>${ccyOpts(defCcy)}</select></label>
+      <label>${t("Company Name")}<input type="text" name="company" value="${v(e.company)}" placeholder="${t("optional")}"></label>
+      <label>${t("Market")}<input type="text" name="market" value="${v(e.market)}" placeholder="NASDAQ"></label>
+      <label>${t("Currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
       <label>${t("Quantity / Shares")}<input type="number" step="any" name="qty" value="${v(e.qty)}" placeholder="0"></label>
       <label>${t("Price / Share")}<input type="number" step="any" name="price" value="${v(e.price)}" placeholder="0.00"></label>`;
     extra = `
       <label>${t("Fee")}<input type="number" step="any" name="fee" value="${v(e.fee)}" placeholder="0.00"></label>
       <label>${t("Taxes")}<input type="number" step="any" name="tradeTax" value="${v(e.tax)}" placeholder="0.00"></label>
-      ${fxRow}
-      <label>${t("Company Name")}<input type="text" name="company" value="${v(e.company)}" placeholder="${t("optional")}"></label>
-      <label>${t("Market")}<input type="text" name="market" value="${v(e.market)}" placeholder="NASDAQ"></label>`;
+      ${fxRow}`;
   } else if (type === "Dividend") {
     core = `
       <label>${t("Ticker")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL" autocomplete="off"></label>
-      <label>${t("Currency")}<select name="currency" id="afCcy" required>${ccyOpts(defCcy)}</select></label>
+      <label>${t("Currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
       <label>${t("Gross dividend")}<input type="number" step="any" name="divGross" value="${type === "Dividend" ? v(e.gross) : ""}" placeholder="0.00"></label>`;
     extra = `
       <label>${t("Withholding Tax")}<input type="number" step="any" name="tax" value="${v(e.tax)}" placeholder="0.00"></label>
       <label>${t("Ex-dividend Date")}<input type="date" name="exDate" value="${v(e.exDate)}"></label>
       <label>${t("Payment Date")}<input type="date" name="payDate" value="${v(e.payDate)}"></label>
-      <label>${t("Status")}<select name="status"><option value="Received"${sel("Received", e.status)}>${t("Received")}</option><option value="Expected"${sel("Expected", e.status)}>${t("Expected")}</option></select></label>
+      <label>${t("Status")}${styledSelect("status", [{ value: "Received", label: t("Received") }, { value: "Expected", label: t("Expected") }], e.status || "Received")}</label>
       ${fxRow}`;
   } else if (type === "Currency Exchange") {
+    const otherCcy = (ccyList.find((i) => i.value !== defCcy) || ccyList[0] || {}).value || "";
     core = `
-      <label>${t("From currency")}<select name="currency" id="afCcy" required>${ccyOpts(defCcy)}</select></label>
+      <label>${t("From currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
       <label>${t("From amount")}<input type="number" step="any" name="fromAmount" value="${v(e.fromAmount)}" placeholder="0.00"></label>
-      <label>${t("To currency")}<select name="toCurrency">${ccyOpts(e.toCurrency)}</select></label>
+      <label>${t("To currency")}${styledSelect("toCurrency", ccyList, e.toCurrency || otherCcy, { id: "afToCcy", more: "currency" })}</label>
       <label>${t("To amount (received)")}<input type="number" step="any" name="toAmount" value="${v(e.toAmount)}" placeholder="0.00"></label>
-      <label>${t("Implied rate")}<input type="text" name="impliedRate" value="" readonly placeholder="—"></label>`;
+      <label>${t("Implied rate")}<input type="text" name="impliedRate" value="" readonly placeholder="—"><small class="fx-hint" id="fxHint"></small></label>`;
     extra = `<label>${t("Fee")}<input type="number" step="any" name="fee" value="${v(e.fee)}" placeholder="0.00"></label>${fxRow}`;
   } else if (type === "Stock split") {
     core = `
       <label>${t("Ticker")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL" autocomplete="off"></label>
-      <label>${t("Currency")}<select name="currency" id="afCcy" required>${ccyOpts(defCcy)}</select></label>
+      <label>${t("Currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
       <label>${t("Split ratio (new ÷ old)")}<input type="number" step="any" name="splitRatio" value="${type === "Stock split" ? v(e.qty) : ""}" placeholder="2"></label>`;
   } else if (type === "Transfer between brokers") {
     core = `
-      <label>${t("Currency")}<select name="currency" id="afCcy" required>${ccyOpts(defCcy)}</select></label>
+      <label>${t("Currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
       <label>${t("Amount (gross)")}<input type="number" step="any" name="amount" value="${v(e.gross)}" placeholder="0.00"></label>
-      <label>${t("To broker")}<select name="toBroker">${brokerOpts(e.toBrokerId)}</select></label>`;
+      <label>${t("To broker")}${styledSelect("toBroker", brokerList, e.toBrokerId || "")}</label>`;
     extra = fxRow;
   } else { // Deposit, Withdrawal, Fee, Tax withholding, Interest / cash yield
     core = `
-      <label>${t("Currency")}<select name="currency" id="afCcy" required>${ccyOpts(defCcy)}</select></label>
+      <label>${t("Currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
       <label>${t("Amount (gross)")}<input type="number" step="any" name="amount" value="${v(e.gross)}" placeholder="0.00"></label>`;
     extra = fxRow;
   }
@@ -1967,6 +2056,7 @@ function addForm2(type, editing) {
     <div class="form-actions">
       <button type="submit" class="btn primary">${editing ? t("Update Transaction") : t("Save Transaction")}</button>
       <button type="button" class="btn secondary" id="addCancel">${editing ? t("Cancel") : t("Clear")}</button>
+      ${isTrade ? `<span class="add-total" id="addTotal"></span>` : ""}
     </div>
   </form>`;
 }
@@ -1989,21 +2079,35 @@ function mountAddForm(type, editing) {
     if (editing) { editingTxId = null; location.hash = "#/records"; }
     else { addDraft = {}; render(); }
   });
-  const brokerSel = $("#afBroker"), ccySel = $("#afCcy"), fxEl = $("#afFx");
-  const setFxFromCcy = () => { if (fxEl) fxEl.value = FX.rates[ccySel ? ccySel.value : FX.base] || 1; };
+  const brokerSel = $("#afBroker"), ccySel = $("#afCcy"), fxEl = $("#afFx"), fxField = $("#afFxField");
+  // FX rate only matters when the currency differs from base — hide it for MYR, prefill it otherwise.
+  const syncFx = (prefill) => {
+    const ccy = (ccySel && ccySel.value) || FX.base;
+    const isBase = ccy === FX.base;
+    if (fxField) fxField.style.display = isBase ? "none" : "";
+    if (fxEl) {
+      if (isBase) fxEl.value = "";
+      else if (prefill || !fxEl.value) fxEl.value = FX.rates[ccy] || "";
+    }
+  };
   if (brokerSel && ccySel) brokerSel.addEventListener("change", () => {
     const b = BROKERS.find((x) => x.id === brokerSel.value);
-    if (b && FX.rates[b.currency]) { ccySel.value = b.currency; setFxFromCcy(); }
+    if (b && FX.rates[b.currency]) setSelectValue(form, "currency", b.currency);  // updates styled display + fires change → FX/total
   });
-  if (ccySel) ccySel.addEventListener("change", setFxFromCcy);
-  if (fxEl && !fxEl.value) setFxFromCcy();
+  if (ccySel) ccySel.addEventListener("change", () => syncFx(true));   // currency changed → prefill the new rate
+  syncFx(false);   // initial: set visibility, keep an existing (edited) rate
 
-  // Currency Exchange: live implied rate
+  // Currency Exchange: live implied rate (To ÷ From) + same-currency guard hint
   const fromAmt = form.querySelector('[name="fromAmount"]'), toAmt = form.querySelector('[name="toAmount"]'),
-        toCcy = form.querySelector('[name="toCurrency"]'), impl = form.querySelector('[name="impliedRate"]');
-  if (fromAmt && toAmt) {
-    const upd = () => { const f = parseFloat(fromAmt.value) || 0, tt = parseFloat(toAmt.value) || 0;
-      if (impl) impl.value = (f > 0 && tt > 0) ? `1 ${ccySel.value} = ${(tt / f).toFixed(6)} ${toCcy.value}` : "—"; };
+        toCcy = form.querySelector('[name="toCurrency"]'), impl = form.querySelector('[name="impliedRate"]'), fxHint = $("#fxHint");
+  if (fromAmt && toAmt && impl) {
+    const upd = () => {
+      const f = parseFloat(fromAmt.value) || 0, tt = parseFloat(toAmt.value) || 0;
+      const from = (ccySel && ccySel.value) || FX.base, to = (toCcy && toCcy.value) || "";
+      const same = from && to && from === to;
+      if (fxHint) { fxHint.textContent = same ? t("Pick a different currency for the exchange.") : ""; fxHint.style.display = same ? "" : "none"; }
+      impl.value = (!same && f > 0 && tt > 0) ? `1 ${from} = ${+(tt / f).toFixed(6)} ${to}` : "—";
+    };
     [fromAmt, toAmt].forEach((el) => el.addEventListener("input", upd));
     if (toCcy) toCcy.addEventListener("change", upd);
     if (ccySel) ccySel.addEventListener("change", upd);
@@ -2016,6 +2120,24 @@ function mountAddForm(type, editing) {
     tickerEl.addEventListener("change", doLookup);
     tickerEl.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); doLookup(); } });
     attachAutocomplete(form, $("#lookupStatus"), { fillPrice: type === "Buy" || type === "Sell" });
+  }
+  // Live "Total: MYR X" for Buy/Sell (Quantity × Price, converted to base).
+  const totalEl = $("#addTotal");
+  if (totalEl) {
+    const qtyEl = form.querySelector('[name="qty"]'), priceEl = form.querySelector('[name="price"]');
+    const updTotal = () => {
+      const q = parseFloat(qtyEl && qtyEl.value) || 0, p = parseFloat(priceEl && priceEl.value) || 0;
+      const ccy = (ccySel && ccySel.value) || FX.base;
+      const fx = parseFloat(fxEl && fxEl.value) || FX.rates[ccy] || 1;
+      if (q > 0 && p > 0) {
+        const orig = ccy !== FX.base ? ` <span class="muted">(${ccy} ${fmt(q * p)})</span>` : "";
+        totalEl.innerHTML = `${t("Total")}: <strong>${money(q * p * fx)}</strong>${orig}`;
+      } else totalEl.innerHTML = "";
+    };
+    [qtyEl, priceEl, fxEl].forEach((el) => el && el.addEventListener("input", updTotal));
+    if (ccySel) ccySel.addEventListener("change", updTotal);
+    if (brokerSel) brokerSel.addEventListener("change", updTotal);
+    updTotal();
   }
 }
 
@@ -2444,7 +2566,7 @@ function pageBrokers() {
     <div class="form-grid">
       <label>${t("Broker name")}<input name="name" value="${e.name || ""}" placeholder="e.g. Rakuten Trade" required></label>
       <label>${t("Country")}<input name="country" value="${e.country || ""}" placeholder="e.g. Malaysia"></label>
-      <label>${t("Default currency")}<select name="currency">${Object.keys(FX.rates).map((c) => `<option${sel(c, e.currency)}>${c}</option>`).join("")}</select></label>
+      <label>${t("Default currency")}${styledSelect("currency", currencyItems(), e.currency || FX.base, { more: "currency" })}</label>
     </div>
     <label class="block">${t("Notes")}<input name="notes" value="${e.notes || ""}" placeholder="${t("optional")}"></label>
     <div class="form-actions">

@@ -463,9 +463,21 @@ a { color: inherit; text-decoration: none; }
   background: var(--surface-2); border: 1px solid var(--border);
   border-radius: 9px; padding: 8px 11px; min-width: 140px;
 }
-.filters select:focus, .form select:focus, .form input:focus {
-  outline: none; border-color: var(--brand);
+/* Native selects: drop the OS arrow + bright focus ring; draw a padded chevron that
+   matches the styled dropdown, so Broker/Currency/filter/Settings selects all look the same. */
+.filters select, .form select, select.fx-input {
+  appearance: none; -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b93a3' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+  padding-right: 34px;
 }
+.filters select:focus, .form select:focus, .form input:focus {
+  outline: none; border-color: var(--brand); box-shadow: none;
+}
+/* Hide native number-spinner arrows — money fields don't need step buttons */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 /* ---- Styled dropdown (custom, themed open state) ---- */
 .sel { position: relative; }
@@ -475,12 +487,12 @@ a { color: inherit; text-decoration: none; }
   display: flex; align-items: center; gap: 8px; width: 100%;
   font-family: inherit; font-size: 13px; color: var(--text);
   background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: 9px; padding: 8px 11px; cursor: pointer; text-align: left;
+  border-radius: 9px; padding: 8px 12px; cursor: pointer; text-align: left;
 }
 .sel-trigger:hover { border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); }
 .sel.open .sel-trigger { border-color: var(--brand); }
 .sel-val { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sel-caret { color: var(--muted); font-size: 10px; transition: transform .12s; }
+.sel-caret { color: var(--muted); font-size: 10px; transition: transform .12s; margin-left: 2px; padding-right: 1px; }
 .sel.open .sel-caret { transform: rotate(180deg); }
 .sel-pop {
   position: absolute; left: 0; right: 0; top: calc(100% + 5px); z-index: 70;
@@ -495,6 +507,26 @@ a { color: inherit; text-decoration: none; }
 }
 .sel-opt:hover { background: var(--surface-2); }
 .sel-opt.on { background: color-mix(in srgb, var(--brand) 16%, transparent); color: var(--brand-ink); font-weight: 600; }
+.sel-list { display: flex; flex-direction: column; }
+/* "More currencies…" footer */
+.sel-more {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  background: transparent; border: 0; border-top: 1px solid var(--border);
+  color: var(--brand-ink); font-family: inherit; font-size: 12.5px; font-weight: 650;
+  padding: 9px 10px; margin-top: 2px; border-radius: 0 0 7px 7px;
+}
+.sel-more:hover { background: var(--surface-2); }
+/* Searchable world-currency view */
+.sel-search { position: sticky; top: -4px; background: var(--surface); padding: 4px 2px 6px; }
+.sel-search-input {
+  width: 100%; font-family: inherit; font-size: 13px; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+}
+.sel-search-input:focus { outline: none; border-color: var(--brand); }
+.sel-search-opt { display: flex; align-items: baseline; gap: 10px; }
+.sel-sym { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 42px; }
+.sel-name { color: var(--text-soft); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sel-empty { padding: 12px 10px; color: var(--muted); font-size: 12.5px; }
 
 /* ---- Collapsible "Add opening holding" ---- */
 .panel.addhold { padding: 0; }
@@ -566,7 +598,10 @@ a { color: inherit; text-decoration: none; }
   background: var(--warn-bg); border: 1px solid var(--warn-bd);
   border-radius: var(--radius-sm); padding: 10px 13px; font-size: 12.5px; margin: 0;
 }
-.form-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.form-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.add-total { margin-left: auto; font-size: 13px; color: var(--text-soft); white-space: nowrap; }
+.add-total strong { color: var(--text); font-weight: 750; }
+.fx-hint { display: none; margin-top: 4px; font-size: 11.5px; font-weight: 600; color: var(--warn); }
 .btn.danger { background: var(--neg); border-color: var(--neg); color: #fff; }
 .btn.danger:hover { filter: brightness(.94); }
 
