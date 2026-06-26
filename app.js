@@ -2030,16 +2030,17 @@ function addForm2(type, editing) {
       <label>${t("Currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
       <label>${t("Split ratio (new ÷ old)")}<input type="number" step="any" name="splitRatio" value="${type === "Stock split" ? v(e.qty) : ""}" placeholder="2"></label>`;
   } else if (type === "Transfer between brokers") {
+    // FX is inline (shows only for non-base currency) — no separate "fees & details" section.
     core = `
       <label>${t("Currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
       <label>${t("Amount (gross)")}<input type="number" step="any" name="amount" value="${v(e.gross)}" placeholder="0.00"></label>
-      <label>${t("To broker")}${styledSelect("toBroker", brokerList, e.toBrokerId || "")}</label>`;
-    extra = fxRow;
-  } else { // Deposit, Withdrawal, Fee, Tax withholding, Interest / cash yield
+      <label>${t("To broker")}${styledSelect("toBroker", brokerList, e.toBrokerId || "")}</label>
+      ${fxRow}`;
+  } else { // Deposit, Withdrawal, Fee, Tax withholding, Interest / cash yield — pure cash moves, no fees/taxes
     core = `
       <label>${t("Currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
-      <label>${t("Amount (gross)")}<input type="number" step="any" name="amount" value="${v(e.gross)}" placeholder="0.00"></label>`;
-    extra = fxRow;
+      <label>${t("Amount (gross)")}<input type="number" step="any" name="amount" value="${v(e.gross)}" placeholder="0.00"></label>
+      ${fxRow}`;
   }
 
   const oversell = type === "Sell"
