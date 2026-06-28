@@ -674,7 +674,8 @@ function computeTotals() {
       case "Dividend": {
         if (tx.status !== "Expected") {
           const net = gross - taxv;
-          netDividends += net * fx; addCash(tx.brokerId, ccy, net);
+          netDividends += net * fx;
+          if (tx.paidTo !== "bank") addCash(tx.brokerId, ccy, net);
           ensureLot(tx.brokerId, tx.ticker, tx).netDivMYR += net * fx;
         }
         break;
@@ -1184,13 +1185,6 @@ function lineChartSVG(series) {
 <circle cx="${cx}" cy="${cy}" r="12" class="dot-hit" data-date="${d.date}" data-val="${d.value}" fill="transparent" stroke="none"/>`;
   }).join("");
 
-  const lx = W - padR, lx1 = lx - 28;
-  const legend = `
-    <line x1="${lx1}" y1="${padT + 5}" x2="${lx}" y2="${padT + 5}" stroke="var(--brand)" stroke-width="2.5" stroke-linecap="round"/>
-    <text x="${lx1 - 4}" y="${padT + 9}" class="lglab">${t("Net Worth")}</text>
-    <line x1="${lx1}" y1="${padT + 17}" x2="${lx}" y2="${padT + 17}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4,3"/>
-    <text x="${lx1 - 4}" y="${padT + 21}" class="lglab">${t("Principal Invested")}</text>`;
-
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("Portfolio value over time")}">
     <defs>
       <clipPath id="clip-nw"><path d="${clipNWPath}"/></clipPath>
@@ -1200,17 +1194,16 @@ function lineChartSVG(series) {
       .grid{stroke:var(--border);stroke-width:1}
       .ylab,.xlab{fill:var(--muted);font-size:11px;font-family:var(--font)}
       .ylab{text-anchor:end}.xlab{text-anchor:middle}
-      .lglab{fill:var(--muted);font-size:10px;font-family:var(--font);text-anchor:end}
-      .ln-nw{fill:none;stroke:var(--brand);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+      .ln-nw{fill:none;stroke:var(--brand);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
       .ln-p{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:5,4;stroke-linejoin:round;stroke-linecap:round}
       .dot{fill:var(--brand)}.dot-hit{cursor:pointer}
     </style>
     ${grid}
-    <path d="${pTopArea}" fill="rgba(34,197,94,.18)" clip-path="url(#clip-nw)"/>
-    <path d="${nwTopArea}" fill="rgba(220,38,38,.18)" clip-path="url(#clip-p)"/>
+    <path d="${pTopArea}" fill="rgba(91,84,232,.08)" clip-path="url(#clip-nw)"/>
+    <path d="${nwTopArea}" fill="rgba(220,38,38,.13)" clip-path="url(#clip-p)"/>
     <path d="${pLine}" class="ln-p"/>
     <path d="${nwLine}" class="ln-nw"/>
-    ${dots}${xlabs}${legend}
+    ${dots}${xlabs}
   </svg>`;
 }
 
@@ -1490,7 +1483,7 @@ function pageDashboard() {
           .map((p) => ({ month: p.date.slice(5), date: p.date, value: p.value, principal: p.principal != null ? p.principal : p.value }))
           .filter((p) => p.value > 0 || p.principal > 0);
         return series.length >= 1
-          ? `<div class="chart">${lineChartSVG(series)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Captured once per day when you use the app.")}</p>`
+          ? `<div class="chart">${lineChartSVG(series)}</div><div class="chart-legend"><span class="cl-item"><span class="cl-nw"></span>${t("Net Worth")}</span><span class="cl-item"><span class="cl-p"></span>${t("Principal Invested")}</span></div><p class="muted" style="font-size:11px;margin:4px 0 0">${t("Captured once per day when you use the app.")}</p>`
           : emptyState(t("Record your first deposit or Buy to start tracking."));
       })())}
       ${panel("Asset Allocation", donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), "Portfolio", money(T.portfolioValue).replace(".00","")), `<span class="badge subtle">${t("By market value")}</span>`)}
@@ -1637,9 +1630,6 @@ function warningsHTML() {
       items.push({ level: "crit", html: `<strong>${t("Cash difference")} — ${brokerName(bid)}.</strong> ${t("Calculated")} ${money(calc)} ${t("vs actual")} ${money(+chk.actual)} (${t("difference")} ${money(Math.abs(diff))}). ${t("Check for a missing fee, dividend or transfer.")}` });
     }
   });
-  // Negative cash balance per (broker, currency)
-  (T.negativeCash || []).forEach((n) => items.push({ level: "crit", html:
-    `<strong>${t("Negative cash balance")} — ${brokerName(n.brokerId)}: ${n.currency} ${fmt(n.amount)} (${money(n.amountMYR)}).</strong> ${t("A buy, fee or withdrawal exceeds the cash recorded for this broker. Add a deposit or check the entries.")}` }));
   // Missing current prices
   if (T.missingPrices > 0) items.push({ level: "warn", html: `${T.missingPrices} ${t("holding(s) have no current price set — portfolio value uses cost as a placeholder.")}` });
   // Stale live prices (fetched > 2 days ago)
@@ -2285,10 +2275,13 @@ function recordsTable(list) {
     const orig = tx.type === "Currency Exchange"
       ? `${tx.currency} ${fmt(tx.gross || 0)} → ${tx.toCurrency || ""} ${fmt(tx.toAmount || 0)}`
       : `${tx.currency} ${fmt(tx.gross || 0)}${tx.fee ? ` · ${t("fee")} ${fmt(tx.fee)}` : ""}`;
+    const paidToTag = tx.type === "Dividend"
+      ? `<span class="paid-to-tag${tx.paidTo === "bank" ? " bank" : ""}"> · → ${tx.paidTo === "bank" ? t("Bank") : t("Broker")}</span>`
+      : "";
     return `<tr>
       <td>${fmtDate(tx.date)}</td>
       <td>${typeChip(tx.type)}</td>
-      <td class="ticker">${tx.ticker && tx.ticker !== "—" ? tx.ticker : "—"}${detail}</td>
+      <td class="ticker">${tx.ticker && tx.ticker !== "—" ? tx.ticker : "—"}${detail}${paidToTag}</td>
       <td class="num">${money(myr)}<div class="fx-note">${orig}</div></td>
       <td class="sub">${brokerName(tx.brokerId)}</td>
       <td class="num"><div class="rec-actions">
@@ -2402,6 +2395,10 @@ function addForm2(type, editing) {
       <label>${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
       <label class="amt-label">${t("Gross dividend")}${amtCombo("divGross", type === "Dividend" ? v(e.gross) : "", "0.00")}</label>
       <label>${t("Withholding Tax")}<input type="number" step="any" name="tax" value="${v(e.tax)}" placeholder="0.00"></label>
+      <label>${t("Paid to")}<select name="paidTo">
+        <option value="broker"${(!e.paidTo || e.paidTo === "broker") ? " selected" : ""}>${t("Broker account (adds to cash)")}</option>
+        <option value="bank"${e.paidTo === "bank" ? " selected" : ""}>${t("Bank account (income only)")}</option>
+      </select></label>
       <input type="hidden" name="company" value="${v(e.company)}">`;
     extra = `
       <label>${t("Ex-dividend Date")}<input type="date" name="exDate" value="${v(e.exDate)}"></label>
@@ -2670,6 +2667,7 @@ function wireTxSubmit(form) {
       ticker: ticker || "—", company: (d.company || "").trim(), market: (d.market || "").trim(),
       currency, qty, price, gross, fee, tax, fxRate, myrEquivalent: gross * fxRate,
       status: type === "Dividend" ? "Received" : undefined,
+      paidTo: type === "Dividend" ? (d.paidTo || "broker") : undefined,
       exDate: d.exDate || undefined, payDate: d.payDate || undefined,
       toBrokerId: type === "Transfer between brokers" ? d.toBroker : undefined,
       override: !!d.override, notes: (d.notes || "").trim() || undefined, ...extra };
@@ -3101,6 +3099,10 @@ function brokerCard(b) {
   const hasActual = chk && chk.actual != null;
   const diff = hasActual ? calc - (+chk.actual) : null;
   const off = hasActual && Math.abs(diff) > (SETTINGS.reconTolerance || 0);
+  const negBalances = (T.negativeCash || []).filter((n) => n.brokerId === b.id);
+  const negWarnings = negBalances.map((n) =>
+    `<div class="warn-card crit bc-neg"><span class="w-ico">⚠</span><div class="w-body"><strong>${n.currency} ${t("balance is negative")} (${n.currency}&nbsp;${fmt(Math.abs(n.amount))})</strong> — ${t("a buy, fee, or withdrawal has no matching")} ${n.currency} ${t("deposit. Record one to balance this.")}</div></div>`
+  ).join("");
   return `<article class="broker-card ${b.archived ? "archived" : ""}">
       <div class="bc-head"><span class="brand-mark sm">${b.name.slice(0,2).toUpperCase()}</span>
         <div><div class="bc-name">${b.name} ${b.archived ? `<span class="badge subtle">${t("Archived")}</span>` : ""}</div>
@@ -3116,7 +3118,8 @@ function brokerCard(b) {
         <div><span class="sub">${t("Cash (calc)")}</span><strong>${money(calc)}</strong></div>
         <div><span class="sub">${t("Difference")}</span><strong class="${off ? "neg" : ""}">${hasActual ? signed(diff) : "—"}</strong></div>
       </div>
-      ${b.notes ? `<p class="bc-notes muted">${b.notes}</p>` : ""}</article>`;
+      ${b.notes ? `<p class="bc-notes muted">${b.notes}</p>` : ""}
+      ${negWarnings}</article>`;
 }
 
 function pageBrokers() {
@@ -3262,6 +3265,7 @@ function pageSettings() {
         <button class="btn" id="setExpTx">⭳ ${t("Export Transactions CSV")}</button>
         <button class="btn" id="setExpCash">⭳ ${t("Export Cash CSV")}</button>
         <button class="btn ghost" id="loadDemo">${t("Load demo data")}</button>
+        <button class="btn ghost" id="clearPvHistory">${t("Clear chart history")}</button>
       </div>`)}
 
     ${panel("Import from CSV", `
@@ -3340,6 +3344,12 @@ function pageSettings() {
           if (!confirm(t("This will replace your current data with demo data. Continue?"))) return;
         }
         loadDemoData(); saveStore(); toast(t("Demo data loaded")); render();
+      });
+      const cpvhBtn = $("#clearPvHistory");
+      if (cpvhBtn) cpvhBtn.addEventListener("click", () => {
+        if (!confirm(t("Clear the Portfolio Value Over Time chart? All chart data points will be permanently deleted."))) return;
+        PV_HISTORY.splice(0);
+        saveStore(); toast(t("Chart history cleared.")); render();
       });
       // Clear all — requires typing DELETE
       $("#clearData").addEventListener("click", () => {
