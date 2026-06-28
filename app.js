@@ -1150,6 +1150,7 @@ function lineChartSVG(series, opts) {
   if (series.length === 1) series = [series[0], { ...series[0], month: "", date: "" }];
 
   const gainMode = opts && opts.gainMode;
+  const noFill = opts && opts.noFill;
   const W = 640, H = 240, padL = 52, padR = 16, padT = 16, padB = 28;
   const nwVals = series.map((d) => d.value);
   const pVals = series.map((d) => d.principal || 0);
@@ -1184,7 +1185,7 @@ function lineChartSVG(series, opts) {
     fills = `<path d="${gainArea}" fill="rgba(34,197,94,.09)" clip-path="url(#clip-above-z)"/>
       <path d="${gainArea}" fill="rgba(220,38,38,.11)" clip-path="url(#clip-below-z)"/>`;
     zeroLine = `<line x1="${padL}" y1="${y0s}" x2="${W - padR}" y2="${y0s}" class="zero-ln"/>`;
-  } else {
+  } else if (!noFill) {
     const clipNWPath = `${nwLine} L${xEnd},${yBot} L${padL},${yBot} Z`;
     const clipPPath = `${pLine} L${xEnd},${yBot} L${padL},${yBot} Z`;
     const pRev = series.slice().reverse().map((d, ri) =>
@@ -1215,8 +1216,9 @@ function lineChartSVG(series, opts) {
   const dots = series.map((d, i) => {
     if (!d.date) return "";
     const cx = xFn(i).toFixed(1), cy = yFn(d.value).toFixed(1);
+    const cbAttr = d.principal != null ? ` data-cb="${d.principal}"` : "";
     return `<circle cx="${cx}" cy="${cy}" r="${i === series.length - 1 ? 4 : 2.5}" class="dot"/>
-<circle cx="${cx}" cy="${cy}" r="12" class="dot-hit" data-date="${d.date}" data-val="${d.value}" fill="transparent" stroke="none"/>`;
+<circle cx="${cx}" cy="${cy}" r="12" class="dot-hit" data-date="${d.date}" data-val="${d.value}"${cbAttr} fill="transparent" stroke="none"/>`;
   }).join("");
 
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("Portfolio value over time")}">
@@ -1249,10 +1251,12 @@ function mountChartTooltips() {
   tip.hidden = true;
   document.body.appendChild(tip);
   const show = (el) => {
-    const d = el.dataset.date, v = +el.dataset.val;
-    tip.innerHTML = d
-      ? `<div class="ct-date">${fmtDate(d)}</div><div class="ct-val">${money(v)}</div>`
+    const d = el.dataset.date, v = +el.dataset.val, cb = el.dataset.cb;
+    const hasCb = cb != null && cb !== "";
+    const valHtml = hasCb
+      ? `<div class="ct-row"><span class="ct-lbl">${t("Market Value")}</span><span class="ct-val">${money(v)}</span></div><div class="ct-row"><span class="ct-lbl">${t("Cost Basis")}</span><span class="ct-val">${money(+cb)}</span></div>`
       : `<div class="ct-val">${money(v)}</div>`;
+    tip.innerHTML = d ? `<div class="ct-date">${fmtDate(d)}</div>${valHtml}` : valHtml;
     const r = el.getBoundingClientRect();
     tip.style.left = (r.left + r.width / 2) + "px";
     tip.style.top = (r.top) + "px";
@@ -1369,6 +1373,8 @@ function portfolioHealth() {
  * ========================================================================== */
 let dashAllocMode = "currency"; // "currency" | "stock"
 function pageDashboard() {
+  const CCY_COLORS = { MYR: "var(--brand)", USD: "#3b82f6" };
+  const ccyColor = (ccy) => CCY_COLORS[ccy] || "#94a3b8";
   const isEmpty = ALL_TRANSACTIONS.length === 0 && HOLDINGS.length === 0;
 
   const netWorth = (T.portfolioValue || 0) + (T.totalCash || 0);
@@ -1403,7 +1409,7 @@ function pageDashboard() {
   const pricesAsOfFmt = latestLiveFetch ? fmtDateTime(latestLiveFetch) : (priceDates.length ? fmtDate(priceDates[priceDates.length - 1]) : null);
 
   const holdingsRows = [...T.holdings].sort((a, b) => b.marketValue - a.marketValue).slice(0, 8).map((h) => `
-    <tr><td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a><div class="sub">${h.company || ""}</div></td>
+    <tr><td><div style="max-width:200px;overflow:hidden"><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.ticker}</a><div class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.company || ""}</div></div></td>
       <td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>
       <td class="num">${money(h.marketValue)}</td>
       <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
@@ -1517,39 +1523,40 @@ function pageDashboard() {
         const pvPrincipal = T.netCapitalInvested || 0;
         const filtered = PV_HISTORY
           .filter((p) => {
-            if (netWorth > 0 && p.value > 3 * netWorth) return false;
-            if (pvPrincipal > 0 && p.value > 3 * pvPrincipal) return false;
-            const pVal = p.principal != null ? p.principal : p.value;
-            return p.value > 0 || pVal > 0;
+            const mv = p.mv != null ? p.mv : p.value;
+            if (netWorth > 0 && mv > 3 * netWorth) return false;
+            const pVal = p.principal != null ? p.principal : 0;
+            return mv > 0 || pVal > 0;
           })
-          .map((p) => {
-            const cb = p.principal != null ? p.principal : p.value;
-            return { month: p.date.slice(5), date: p.date, value: p.value - cb, principal: cb };
-          });
+          .map((p) => ({
+            month: p.date.slice(5), date: p.date,
+            value: p.mv != null ? p.mv : p.value,
+            principal: p.principal != null ? p.principal : 0,
+          }));
         const needsFirstSnap = !filtered.length;
         const series = needsFirstSnap
-          ? [{ month: todayISO().slice(5), date: todayISO(), value: netWorth - pvPrincipal, principal: pvPrincipal }]
+          ? [{ month: todayISO().slice(5), date: todayISO(), value: T.portfolioValue || 0, principal: pvPrincipal }]
           : filtered;
         const clockNote = needsFirstSnap
           ? `<div class="pv-clock-note muted"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${t("Prices as of today will appear here tomorrow — check back after your next visit.")}</div>`
           : "";
-        return `<div class="chart">${lineChartSVG(series, { gainMode: true })}</div><div class="chart-legend"><span class="cl-item"><span class="cl-nw"></span>${t("Total Return (MYR)")}</span><span class="cl-item"><span class="cl-p"></span>${t("Cost Basis")}</span></div>${clockNote}`;
-      })(), `<span class="col-info" style="margin-left:auto" data-tip="${t("Shows your total investment gain or loss over time (unrealized P/L + dividends received), compared to what you paid for your holdings.")}">ⓘ</span>`)}
+        return `<div class="chart">${lineChartSVG(series, { noFill: true })}</div><div class="chart-legend"><span class="cl-item"><span class="cl-nw"></span>${t("Market Value")}</span><span class="cl-item"><span class="cl-p"></span>${t("Cost Basis")}</span></div><p class="muted" style="font-size:11px;margin:5px 0 0;text-align:center">${t("Market value vs. what you paid — the gap is your gain or loss.")}</p>${clockNote}`;
+      })(), `<span class="col-info tip-down" style="margin-left:auto" data-tip="${t("Shows your portfolio market value versus what you paid — the gap between the two lines is your unrealized gain or loss.")}">ⓘ</span>`)}
       ${(() => {
         const allocToggle = `<div class="seg seg-sm" id="dashAllocSeg"><button class="seg-btn ${dashAllocMode === "currency" ? "on" : ""}" data-alloc="currency">${t("By currency")}</button><button class="seg-btn ${dashAllocMode === "stock" ? "on" : ""}" data-alloc="stock">${t("By stock")}</button></div>`;
         const totalStr = money(T.portfolioValue).replace(".00","");
         const ccySlices = groupSum(T.holdings, (h) => h.currency || "Other", (h) => h.marketValue).filter((s) => s.value > 0);
         const donut = dashAllocMode === "stock"
-          ? donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), t("Portfolio"), totalStr)
-          : donutHTML(ccySlices, t("Portfolio"), totalStr);
-        return panel("Asset Allocation", donut, allocToggle);
+          ? donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), t("Portfolio"), totalStr, T.holdings.map((h) => ccyColor(h.currency || "Other")))
+          : donutHTML(ccySlices, t("Portfolio"), totalStr, ccySlices.map((s) => ccyColor(s.label)));
+        return panel("Asset Allocation", `<div id="dashAllocBody">${donut}</div>`, allocToggle);
       })()}
     </section>
     <div id="dashDivSection">${listPanel("Upcoming Dividends", upcoming.length,
       table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
-      table([{label:"Holding",style:"min-width:140px"},{label:"Shares",num:1,style:"width:64px"},{label:"Market Value",num:1,style:"width:144px"},{label:"Unrealized P/L",num:1,style:"width:144px"},{label:"Total Return",num:1,style:"width:144px"}], holdingsRows),
+      table([{label:"Holding",style:"width:200px"},{label:"Shares",num:1,style:"width:64px"},{label:"Market Value",num:1,style:"width:144px"},{label:"Unrealized P/L",num:1,style:"width:144px"},{label:"Total Return",num:1,style:"width:144px"}], holdingsRows),
       t("No holdings yet — add a Buy to get started."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? `<span class="muted" style="font-size:11px">${t("Prices as of")} ${pricesAsOfFmt}</span>` : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
@@ -1570,7 +1577,17 @@ function pageDashboard() {
       }));
       $$("[data-alloc]").forEach((b) => b.addEventListener("click", (e) => {
         e.stopPropagation();
-        dashAllocMode = b.dataset.alloc; render();
+        dashAllocMode = b.dataset.alloc;
+        $$("[data-alloc]").forEach((btn) => btn.classList.toggle("on", btn.dataset.alloc === dashAllocMode));
+        const allocBody = $("#dashAllocBody");
+        if (allocBody) {
+          const totalStr = money(T.portfolioValue).replace(".00","");
+          const ccySlices = groupSum(T.holdings, (h) => h.currency || "Other", (h) => h.marketValue).filter((s) => s.value > 0);
+          const newDonut = dashAllocMode === "stock"
+            ? donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), t("Portfolio"), totalStr, T.holdings.map((h) => ccyColor(h.currency || "Other")))
+            : donutHTML(ccySlices, t("Portfolio"), totalStr, ccySlices.map((s) => ccyColor(s.label)));
+          allocBody.innerHTML = newDonut;
+        }
       }));
       // Smart tooltip direction: if trigger is in top 40% of viewport, open below to avoid clipping
       $$(".col-info").forEach((el) => {
