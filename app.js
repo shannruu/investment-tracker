@@ -1126,7 +1126,7 @@ function emptyState(msg) {
 
 function table(headers, rows) {
   const thead = `<thead><tr>${headers.map((h) =>
-    `<th class="${h.num ? "num" : ""}">${h.label}</th>`).join("")}</tr></thead>`;
+    `<th class="${h.num ? "num" : ""}"${h.style ? ` style="${h.style}"` : ""}>${h.label}</th>`).join("")}</tr></thead>`;
   // Show a friendly placeholder row when there are no records yet.
   const body = (rows && rows.trim())
     ? rows
@@ -1354,6 +1354,7 @@ function portfolioHealth() {
 /* =============================================================================
  * PAGE: DASHBOARD
  * ========================================================================== */
+let dashAllocMode = "currency"; // "currency" | "stock"
 function pageDashboard() {
   const isEmpty = ALL_TRANSACTIONS.length === 0 && HOLDINGS.length === 0;
 
@@ -1393,7 +1394,7 @@ function pageDashboard() {
       <td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>
       <td class="num">${money(h.marketValue)}</td>
       <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
-      <td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td></tr>`).join("");
+      <td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}${h.costBasis > 0 ? `<div class="fx-note ${cls(h.totalReturn)}">${pctTxt((h.totalReturn / h.costBasis) * 100)}</div>` : ""}</td></tr>`).join("");
 
   // Upcoming dividends — manual (UPCOMING_DIVIDENDS), auto-fetched (AUTO_DIV_CACHE), and legacy Expected.
   const upcoming = allUpcomingDivs();
@@ -1418,7 +1419,7 @@ function pageDashboard() {
   const toggle = `<div class="seg seg-sm" role="group" aria-label="${t("Return mode")}">
     <button class="seg-btn ${SETTINGS.returnMode !== "price" ? "on" : ""}" data-return="total">${t("Total Return")}</button>
     <button class="seg-btn ${SETTINGS.returnMode === "price" ? "on" : ""}" data-return="price">${t("Unrealized")}</button></div>`;
-  const cashLow = (T.totalCash || 0) < 50 || (netWorth > 0 && (T.totalCash || 0) < netWorth * 0.05);
+  const cashLow = (T.totalCash || 0) < 50;
 
   // Calc breakdowns (click a stat to see "how").
   const calcs = {
@@ -1434,22 +1435,23 @@ function pageDashboard() {
       const cf = cashFlow;
       const flow = cf.deposits - cf.withdrawals - cf.buys + cf.sells + cf.divs + cf.interest - cf.fees - cf.taxes;
       const fxAdj = (T.totalCash || 0) - flow;
+      const mfmt = (n) => `${FX.base} ${fmt(n)}`;
       let rows = [
-        { on: cf.deposits, op: "+", label: "Deposits", val: fmt(cf.deposits) },
-        { on: cf.withdrawals, op: "−", label: "Withdrawals", val: fmt(cf.withdrawals) },
-        { on: cf.buys, op: "−", label: "Buys (incl. fees & tax)", val: fmt(cf.buys) },
-        { on: cf.sells, op: "+", label: "Sells (net of fees)", val: fmt(cf.sells) },
-        { on: cf.divs, op: "+", label: "Net dividends received", val: fmt(cf.divs) },
-        { on: cf.interest, op: "+", label: "Interest / cash yield", val: fmt(cf.interest) },
-        { on: cf.fees, op: "−", label: "Standalone fees", val: fmt(cf.fees) },
-        { on: cf.taxes, op: "−", label: "Tax withholding", val: fmt(cf.taxes) },
-        { on: Math.abs(fxAdj) > 0.005, op: fxAdj >= 0 ? "+" : "−", label: "FX revaluation of foreign cash", val: fmt(Math.abs(fxAdj)) },
+        { on: cf.deposits, op: "+", label: "Deposits", val: mfmt(cf.deposits) },
+        { on: cf.withdrawals, op: "−", label: "Withdrawals", val: mfmt(cf.withdrawals) },
+        { on: cf.buys, op: "−", label: "Buys (incl. fees & tax)", val: mfmt(cf.buys) },
+        { on: cf.sells, op: "+", label: "Sells (net of fees)", val: mfmt(cf.sells) },
+        { on: cf.divs, op: "+", label: "Net dividends received", val: mfmt(cf.divs) },
+        { on: cf.interest, op: "+", label: "Interest / cash yield", val: mfmt(cf.interest) },
+        { on: cf.fees, op: "−", label: "Standalone fees", val: mfmt(cf.fees) },
+        { on: cf.taxes, op: "−", label: "Tax withholding", val: mfmt(cf.taxes) },
+        { on: Math.abs(fxAdj) > 0.005, op: fxAdj >= 0 ? "+" : "−", label: "FX revaluation of foreign cash", val: mfmt(Math.abs(fxAdj)) },
       ].filter((r) => r.on).map(({ op, label, val }) => ({ op, label, val }));
       // Fallback so the breakdown is never blank: only brokers that actually hold cash, else a plain note.
       if (!rows.length) rows = BROKERS
         .filter((b) => Math.abs(T.brokerCash[b.id] || 0) > 0.005)
-        .map((b) => ({ op: "+", label: b.name, val: fmt(T.brokerCash[b.id] || 0) }));
-      if (!rows.length) rows = [{ op: "+", label: "No cash movements recorded yet", val: fmt(0) }];
+        .map((b) => ({ op: "+", label: b.name, val: mfmt(T.brokerCash[b.id] || 0) }));
+      if (!rows.length) rows = [{ op: "+", label: "No cash movements recorded yet", val: mfmt(0) }];
       return { title: "Available Cash", rows, total: T.totalCash || 0 };
     })(),
     principal: { title: "Net Capital Invested", rows: [
@@ -1465,8 +1467,8 @@ function pageDashboard() {
       <div class="stat-value">${money(netWorth)}</div>
       <div class="stat-sub muted">${t("Holdings")} ${money(T.portfolioValue)} · ${t("Cash")} ${money(T.totalCash || 0)}</div>
     </article>
-    <article class="stat pl ${up ? "is-up" : dn ? "is-down" : ""}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total P/L") : t("Unrealized P/L")}, show calculation">
-      ${statHead(returnIsTotal ? t("Total P/L") : t("Unrealized P/L"), toggle)}
+    <article class="stat pl ${up ? "is-up" : dn ? "is-down" : ""}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total Return") : t("Unrealized P/L")}, show calculation">
+      ${statHead(returnIsTotal ? t("Total Return") : t("Unrealized P/L"), toggle)}
       <div class="stat-value ${up ? "pos" : dn ? "neg" : ""}">${up ? "▲ " : dn ? "▼ " : ""}${signed(shownReturn)}</div>
       <div class="stat-sub ${up ? "pos" : dn ? "neg" : "muted"}">${up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%"} <span class="col-info" title="${t("Calculated as return ÷ net capital invested (total deposits minus withdrawals).")}">ⓘ</span> · ${t("on net capital")}</div>
     </article>
@@ -1497,8 +1499,10 @@ function pageDashboard() {
     <section class="warn-wrap">${warningsHTML()}</section>
     <section class="grid-2 dash-charts">
       ${panel("Portfolio Value Over Time", (() => {
+        const hasTxn = ALL_TRANSACTIONS.some((x) => x.type === "Buy" || x.type === "Deposit") || HOLDINGS.length > 0;
+        if (!hasTxn) return emptyState(t("Record your first deposit or Buy to start tracking."));
         const pvPrincipal = T.netCapitalInvested || 0;
-        const series = PV_HISTORY
+        const filtered = PV_HISTORY
           .filter((p) => {
             if (netWorth > 0 && p.value > 3 * netWorth) return false;
             if (pvPrincipal > 0 && p.value > 3 * pvPrincipal) return false;
@@ -1506,22 +1510,31 @@ function pageDashboard() {
             return p.value > 0 || pVal > 0;
           })
           .map((p) => ({ month: p.date.slice(5), date: p.date, value: p.value, principal: p.principal != null ? p.principal : p.value }));
-        return series.length >= 2
-          ? `<div class="chart">${lineChartSVG(series)}</div><div class="chart-legend"><span class="cl-item"><span class="cl-nw"></span>${t("Net Worth")}</span><span class="cl-item"><span class="cl-p"></span>${t("Principal Invested")}</span></div>`
-          : emptyState(series.length === 0 ? t("Record your first deposit or Buy to start tracking.") : t("Not enough history yet — check back tomorrow"));
+        const needsFirstSnap = !filtered.length;
+        const series = needsFirstSnap
+          ? [{ month: todayISO().slice(5), date: todayISO(), value: netWorth, principal: pvPrincipal }]
+          : filtered;
+        const clockNote = needsFirstSnap
+          ? `<div class="pv-clock-note muted"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${t("Prices as of today will appear here tomorrow — check back after your next visit.")}</div>`
+          : "";
+        return `<div class="chart">${lineChartSVG(series)}</div><div class="chart-legend"><span class="cl-item"><span class="cl-nw"></span>${t("Net Worth")}</span><span class="cl-item"><span class="cl-p"></span>${t("Principal Invested")}</span></div>${clockNote}`;
       })(), `<span class="col-info" style="margin-left:auto" title="${t("Snapshots are saved once per day when you open the app.")}">ⓘ</span>`)}
       ${(() => {
         const CCY_COLORS = { [FX.base]: "var(--brand)", USD: "#14b8a6", SGD: "#f97316", HKD: "#a855f7", GBP: "#ec4899" };
+        const allocToggle = `<div class="seg seg-sm" id="dashAllocSeg"><button class="seg-btn ${dashAllocMode === "currency" ? "on" : ""}" data-alloc="currency">${t("By currency")}</button><button class="seg-btn ${dashAllocMode === "stock" ? "on" : ""}" data-alloc="stock">${t("By stock")}</button></div>`;
+        const totalStr = money(T.portfolioValue).replace(".00","");
         const ccySlices = groupSum(T.holdings, (h) => h.currency || "Other", (h) => h.marketValue).filter((s) => s.value > 0);
-        const ccyColors = ccySlices.map((s) => CCY_COLORS[s.label] || PALETTE[Object.keys(CCY_COLORS).length % PALETTE.length]);
-        return panel("Asset Allocation", donutHTML(ccySlices, t("Currency"), money(T.portfolioValue).replace(".00",""), ccyColors), `<span class="badge subtle">${t("By currency")}</span>`);
+        const donut = dashAllocMode === "stock"
+          ? donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), t("Portfolio"), totalStr)
+          : donutHTML(ccySlices, t("Portfolio"), totalStr, ccySlices.map((s) => CCY_COLORS[s.label] || PALETTE[Object.keys(CCY_COLORS).length % PALETTE.length]));
+        return panel("Asset Allocation", donut, allocToggle);
       })()}
     </section>
     <div id="dashDivSection">${listPanel("Upcoming Dividends", upcoming.length,
       table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
-      table([{label:"Holding"},{label:"Shares",num:1},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Total Return",num:1}], holdingsRows),
+      table([{label:"Holding"},{label:"Shares",num:1,style:"width:80px"},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Total Return",num:1}], holdingsRows),
       t("No holdings yet — add a Buy to get started."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? `<span class="muted" style="font-size:11px">${t("Prices as of")} ${pricesAsOfFmt}</span>` : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
@@ -1540,6 +1553,15 @@ function pageDashboard() {
         e.stopPropagation();   // don't trigger the P/L card's calc modal
         SETTINGS.returnMode = b.dataset.return; saveStore(); render();
       }));
+      $$("[data-alloc]").forEach((b) => b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dashAllocMode = b.dataset.alloc; render();
+      }));
+      // Smart tooltip direction: if trigger is in top 40% of viewport, open below to avoid clipping
+      $$(".col-info").forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight * 0.4) el.classList.add("tip-down");
+      });
       [
         ["phDivYield", t("Dividend Yield (TTM)"), t("Trailing 12-month net dividends ÷ current portfolio market value.")],
         ["phCashAlloc", t("Cash Allocation"), t("Cash as a percentage of total net value (market value + available cash).")],
