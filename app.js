@@ -290,8 +290,14 @@ const ZH = {
   "Run-rate estimate from your trailing-12-month dividends": "基于过去 12 个月股息的运行率估算",
   "Estimate only — not a guarantee.": "仅为估算 — 并非保证。",
   "Next Month (est.)": "下月（估）", "Next Quarter (est.)": "下季（估）", "Next Year (est.)": "下年（估）",
+  "Next Month": "下月", "Next Quarter": "下季", "Next Year": "下年",
+  "Based on payment patterns and upcoming dividends.": "基于股息历史规律及即将派息数据。",
+  "Record at least 2 dividends per holding, or add upcoming dividends, to enable pattern-based estimates.": "每个持仓至少录入 2 次股息，或添加即将派息，以启用规律预测。",
+  "Received TTM": "过去 12 个月已收",
+  "div.": "股息",
   "Upcoming confirmed dividends in window": "窗口内已确认的即将派息",
   "Add upcoming dividend for": "添加即将派息：", "Per share": "每股金额",
+  "Upcoming dividends will appear here once connected.": "连接后，即将派息将显示于此。",
   "Fetching US schedules…": "正在获取美股派息日程…",
   "next month": "下月", "next quarter": "下季", "next year": "下年",
   "How is the forecast calculated?": "预测是如何计算的？",
@@ -2613,24 +2619,71 @@ function dividendByPeriod(received) {
  * Separately, we also sum any dividends you explicitly marked "Expected" whose payment
  * date falls inside the window (confirmed pipeline). The two are shown side by side so a
  * run-rate estimate is never confused with confirmed amounts. */
-function dividendForecast(received, expected) {
+function dividendForecast(received, upcoming) {
   const now = todayDate();
+  const today = todayISO();
   const cutoff = new Date(now); cutoff.setFullYear(now.getFullYear() - 1);
+
+  // TTM = dividends actually received in trailing 12 months (factual, not a projection)
   const ttm = received.reduce((s, d) => {
     const dt = new Date((d.payDate || d.date) + "T00:00:00");
     return (!isNaN(dt) && dt >= cutoff && dt <= now) ? s + divNetMYR(d) : s;
   }, 0);
-  const expWindow = (days) => {
+
+  // Confirmed/estimated upcoming payments from Finnhub auto-fetch and manual .KL entries
+  const knownUpcoming = upcoming
+    .filter((d) => d.payDate && d.payDate >= today)
+    .map((d) => ({ payDate: d.payDate, amtMYR: d.expectedNetMYR || 0, ticker: d.ticker }));
+  const coveredTickers = new Set(knownUpcoming.map((p) => p.ticker));
+
+  // Pattern detection: group received history by ticker, detect payment frequency,
+  // project future dates. Only for tickers NOT already covered by upcoming data.
+  const projected = [];
+  const byTicker = {};
+  received.forEach((d) => { if (!byTicker[d.ticker]) byTicker[d.ticker] = []; byTicker[d.ticker].push(d); });
+  Object.entries(byTicker).forEach(([ticker, payments]) => {
+    if (coveredTickers.has(ticker)) return;
+    const sorted = payments
+      .map((d) => ({ net: divNetMYR(d), ds: d.payDate || d.date }))
+      .filter((d) => d.ds)
+      .sort((a, b) => (a.ds < b.ds ? -1 : 1));
+    if (sorted.length < 2) return; // need ≥2 payments to detect a reliable pattern
+    const intervals = [];
+    for (let i = 1; i < sorted.length; i++) {
+      const days = Math.round((new Date(sorted[i].ds + "T00:00:00") - new Date(sorted[i - 1].ds + "T00:00:00")) / 86400000);
+      if (days > 20) intervals.push(days);
+    }
+    if (!intervals.length) return;
+    const avg = Math.round(intervals.reduce((s, v) => s + v, 0) / intervals.length);
+    // Snap to nearest standard frequency to prevent compounding date drift
+    const freq = avg < 50 ? 30 : avg < 110 ? 91 : avg < 220 ? 182 : 365;
+    const avgAmt = sorted.slice(-3).reduce((s, d) => s + d.net, 0) / Math.min(sorted.length, 3);
+    let next = new Date(sorted[sorted.length - 1].ds + "T00:00:00");
+    next.setDate(next.getDate() + freq);
+    const limit = new Date(now); limit.setFullYear(limit.getFullYear() + 1);
+    while (next <= limit) {
+      const ds = next.toISOString().slice(0, 10);
+      if (ds >= today) projected.push({ payDate: ds, amtMYR: avgAmt, ticker });
+      next = new Date(next); next.setDate(next.getDate() + freq);
+    }
+  });
+
+  const all = [...knownUpcoming, ...projected];
+  const winSum = (list, days) => {
     const end = new Date(now); end.setDate(now.getDate() + days);
-    return expected.reduce((s, d) => {
-      if (!d.payDate) return s;
-      const dt = new Date(d.payDate + "T00:00:00");
-      const net = d.expectedNetMYR != null ? d.expectedNetMYR : divNetMYR(d);
-      return (!isNaN(dt) && dt >= now && dt <= end) ? s + net : s;
-    }, 0);
+    const endStr = end.toISOString().slice(0, 10);
+    return list.filter((p) => p.payDate >= today && p.payDate <= endStr).reduce((s, p) => s + p.amtMYR, 0);
   };
-  return { ttm, nextMonth: ttm / 12, nextQuarter: ttm / 4, nextYear: ttm,
-    expMonth: expWindow(31), expQuarter: expWindow(92), expYear: expWindow(365) };
+  return {
+    ttm,
+    nextMonth:      winSum(all, 31),
+    nextQuarter:    winSum(all, 92),
+    nextYear:       winSum(all, 365),
+    expMonth:       winSum(knownUpcoming, 31),
+    expQuarter:     winSum(knownUpcoming, 92),
+    expYear:        winSum(knownUpcoming, 365),
+    hasProjections: all.length > 0,
+  };
 }
 
 /* =============================================================================
@@ -2653,25 +2706,6 @@ function pageDividends() {
       <td>${d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : ""}</td></tr>`;
   }).join("");
 
-  // Prompt to add upcoming dividends for .KL holdings that don't have a manual entry yet
-  const klHoldings = T.holdings.filter((h) => h.ticker.endsWith(".KL"));
-  const coveredTickers = new Set([...UPCOMING_DIVIDENDS.map((d) => d.ticker), ...Object.keys(AUTO_DIV_CACHE)]);
-  const klPrompts = klHoldings.filter((h) => !coveredTickers.has(h.ticker)).map((h) => `
-    <div class="kl-prompt" data-ticker="${escAttr(h.ticker)}" data-broker="${escAttr(h.brokerId)}" data-ccy="${escAttr(h.currency || FX.base)}">
-      <div class="kl-prompt-hd">
-        <span class="kl-prompt-label">${t("Add upcoming dividend for")} <strong>${h.ticker}</strong></span>
-        <button type="button" class="kl-add-btn btn ghost small">+ ${t("Add")} →</button>
-      </div>
-      <form class="kl-div-form" hidden>
-        <label class="kl-field">${t("Ex-dividend Date")}<input type="date" name="exDate" required></label>
-        <label class="kl-field">${t("Payment Date")}<input type="date" name="payDate" required></label>
-        <label class="kl-field" style="grid-column:1/-1">${t("Per share")} (${h.currency || FX.base})<input type="number" step="any" name="amtPerShare" placeholder="0.00" required></label>
-        <div class="form-actions" style="grid-column:1/-1">
-          <button type="submit" class="btn primary small">${t("Save")}</button>
-          <button type="button" class="kl-cancel-btn btn ghost small">${t("Cancel")}</button>
-        </div>
-      </form>
-    </div>`).join("");
 
   const histRows = received.sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1)).map((d) => {
     const net = (+d.gross || 0) - (+d.tax || 0);
@@ -2711,27 +2745,35 @@ function pageDividends() {
   const yoyGrowth = (lastY && periods.byYear[lastY]) ? ((periods.byYear[thisY] - periods.byYear[lastY]) / periods.byYear[lastY]) * 100 : null;
 
   const fc = dividendForecast(received, upcoming);
-  const hasExp = fc.expMonth || fc.expQuarter || fc.expYear;
+  const dash = `<span class="muted" style="font-size:22px;line-height:1">—</span>`;
+  const ttmNote = fc.ttm > 0 ? ` ${t("Received TTM")}: <strong>${money(fc.ttm)}</strong>.` : "";
+  const forecastBody = fc.hasProjections
+    ? `<p class="muted" style="margin:-4px 0 12px">${t("Based on payment patterns and upcoming dividends.")} ${t("Estimate only — not a guarantee.")}${ttmNote}</p>
+      <div class="mini-cards">
+        ${miniCard(t("Next Month"), fc.nextMonth > 0 ? money(fc.nextMonth) : dash)}
+        ${miniCard(t("Next Quarter"), fc.nextQuarter > 0 ? money(fc.nextQuarter) : dash)}
+        ${miniCard(t("Next Year"), fc.nextYear > 0 ? money(fc.nextYear) : dash)}</div>
+      <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`
+    : `<p class="muted" style="margin:-4px 0 12px">${t("Record at least 2 dividends per holding, or add upcoming dividends, to enable pattern-based estimates.")}${ttmNote}</p>
+      <div class="mini-cards">
+        ${miniCard(t("Next Month"), dash)}
+        ${miniCard(t("Next Quarter"), dash)}
+        ${miniCard(t("Next Year"), dash)}</div>
+      <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
 
   const html = `
     <div class="mini-cards">
       ${miniCard("Gross Dividends", money(grossBase))}
-      ${miniCard("Withholding Tax", money(taxBase), "neg")}
+      ${miniCard("Withholding Tax", money(taxBase), taxBase > 0 ? "neg" : "")}
       ${miniCard("Net Dividends (Lifetime)", money(grossBase - taxBase), "pos")}</div>
 
-    ${panel("Dividend Forecast", `
-      <p class="muted" style="margin:-4px 0 12px">${t("Run-rate estimate from your trailing-12-month dividends")} (${money(fc.ttm)}). ${t("Estimate only — not a guarantee.")}</p>
-      <div class="mini-cards">
-        ${miniCard(t("Next Month (est.)"), money(fc.nextMonth))}
-        ${miniCard(t("Next Quarter (est.)"), money(fc.nextQuarter))}
-        ${miniCard(t("Next Year (est.)"), money(fc.nextYear))}</div>
-      ${hasExp ? `<p class="muted" style="margin:12px 0 0">${t("Upcoming confirmed dividends in window")}: ${t("next month")} ${money(fc.expMonth)} · ${t("next quarter")} ${money(fc.expQuarter)} · ${t("next year")} ${money(fc.expYear)}</p>` : ""}
-      <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`)}
+    ${panel("Dividend Forecast", forecastBody)}
 
     <div id="divUpcomingSection">
       ${panel("Upcoming Dividends",
-        table([{label:"Ticker"},{label:"Ex-Date"},{label:"Pay-Date"},{label:"Expected Net",num:1},{label:"Status"},{label:""}], upcomingRows) +
-        (klPrompts ? `<div class="kl-prompts">${klPrompts}</div>` : ""),
+        upcoming.length
+          ? table([{label:"Ticker"},{label:"Ex-Date"},{label:"Pay-Date"},{label:"Expected Net",num:1},{label:"Status"},{label:""}], upcomingRows)
+          : `<p class="muted" style="margin:0;font-size:13px">${t("Upcoming dividends will appear here once connected.")}</p>`,
         `<small class="muted" id="divFetchStatus"></small>`
       )}
     </div>
@@ -2755,36 +2797,6 @@ function pageDividends() {
           const id = btn.dataset.delUd;
           const idx = UPCOMING_DIVIDENDS.findIndex((d) => d.id === id);
           if (idx >= 0) { UPCOMING_DIVIDENDS.splice(idx, 1); saveStore(); render(); }
-        });
-      });
-      // Expand / collapse the .KL mini-form
-      document.querySelectorAll(".kl-add-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const prompt = btn.closest(".kl-prompt");
-          btn.style.display = "none";
-          prompt.querySelector(".kl-div-form").hidden = false;
-        });
-      });
-      document.querySelectorAll(".kl-cancel-btn").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const prompt = btn.closest(".kl-prompt");
-          prompt.querySelector(".kl-div-form").hidden = true;
-          prompt.querySelector(".kl-add-btn").style.display = "";
-        });
-      });
-      // Submit a manual .KL upcoming dividend
-      document.querySelectorAll(".kl-div-form").forEach((form) => {
-        form.addEventListener("submit", (e) => {
-          e.preventDefault();
-          const prompt = form.closest(".kl-prompt");
-          const fd = new FormData(form);
-          UPCOMING_DIVIDENDS.push({
-            id: uid("ud"), ticker: prompt.dataset.ticker, brokerId: prompt.dataset.broker,
-            currency: prompt.dataset.ccy,
-            exDate: fd.get("exDate") || "", payDate: fd.get("payDate") || "",
-            amtPerShare: parseFloat(fd.get("amtPerShare")) || 0,
-          });
-          saveStore(); render();
         });
       });
       // Auto-fetch Finnhub schedule for US holdings; re-render upcoming section when done
