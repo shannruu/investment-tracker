@@ -1983,11 +1983,18 @@ function pagePortfolio() {
   const currencies = [...new Set(T.holdings.map((h) => h.currency))].filter(Boolean);
 
   const filtersActive = !!(portfolioFilters.broker || portfolioFilters.market || portfolioFilters.currency || portfolioFilters.sort);
+  const gripSvg = `<svg class="grip-ico" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><circle cx="9" cy="8" r="1.5"/><circle cx="15" cy="8" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="16" r="1.5"/><circle cx="15" cy="16" r="1.5"/></svg>`;
   const colPanelHtml = `<div class="col-panel-wrap filters-col-panel" id="colPanelWrap">
     <button class="btn ghost" id="colBtn">${t("Edit columns")}</button>
     <div class="col-panel" id="colPanel" hidden>
-      <div class="col-panel-title">${t("Visible columns")}</div>
-      ${COL_DEFS.map((d) => `<label class="col-toggle"><input type="checkbox" data-col="${d.id}"${portfolioPrefs.cols[d.id] ? " checked" : ""}><span>${t(d.label)}</span></label>`).join("")}
+      <div class="col-panel-header">
+        <span class="col-panel-title">${t("Visible columns")}</span>
+        <span class="col-panel-hint">${gripSvg} ${t("Drag to reorder")}</span>
+      </div>
+      ${COL_DEFS.map((d) => `<div class="col-toggle-row" data-col-id="${d.id}">
+        <span class="col-grip" draggable="true" aria-hidden="true">${gripSvg}</span>
+        <label class="col-toggle"><input type="checkbox" data-col="${d.id}"${portfolioPrefs.cols[d.id] ? " checked" : ""}><span>${t(d.label)}</span></label>
+      </div>`).join("")}
     </div>
   </div>`;
   const filterBar = `<div class="filters">
@@ -2070,49 +2077,54 @@ function pagePortfolio() {
         saveStore(); render();
         toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
       });
-      const holdBody = $("#holdingsBody");
-      if (holdBody) {
-        // Column drag-to-reorder
-        let _dragColId = null;
-        holdBody.addEventListener("dragstart", (e) => {
-          const th = e.target.closest("th[data-col-id]");
-          if (!th) return;
-          _dragColId = th.dataset.colId;
+      // Panel drag-to-reorder
+      if (colPanel) {
+        let _panelDragId = null;
+        colPanel.addEventListener("dragstart", (e) => {
+          const grip = e.target.closest(".col-grip");
+          if (!grip) return;
+          const row = grip.closest(".col-toggle-row");
+          if (!row) return;
+          _panelDragId = row.dataset.colId;
           e.dataTransfer.effectAllowed = "move";
-          th.classList.add("col-dragging");
+          row.classList.add("col-row-dragging");
         });
-        holdBody.addEventListener("dragend", () => {
-          holdBody.querySelectorAll(".col-dragging, .col-drag-over").forEach((el) => el.classList.remove("col-dragging", "col-drag-over"));
-          _dragColId = null;
+        colPanel.addEventListener("dragend", () => {
+          colPanel.querySelectorAll(".col-row-dragging, .col-row-drag-over").forEach((el) =>
+            el.classList.remove("col-row-dragging", "col-row-drag-over"));
+          _panelDragId = null;
         });
-        holdBody.addEventListener("dragover", (e) => {
-          const th = e.target.closest("th[data-col-id]");
-          if (th && _dragColId && th.dataset.colId !== _dragColId) {
+        colPanel.addEventListener("dragover", (e) => {
+          const row = e.target.closest(".col-toggle-row");
+          if (row && _panelDragId && row.dataset.colId !== _panelDragId) {
             e.preventDefault();
-            holdBody.querySelectorAll(".col-drag-over").forEach((el) => el.classList.remove("col-drag-over"));
-            th.classList.add("col-drag-over");
+            colPanel.querySelectorAll(".col-row-drag-over").forEach((el) => el.classList.remove("col-row-drag-over"));
+            row.classList.add("col-row-drag-over");
           }
         });
-        holdBody.addEventListener("dragleave", (e) => {
-          const th = e.target.closest("th[data-col-id]");
-          if (th) th.classList.remove("col-drag-over");
+        colPanel.addEventListener("dragleave", (e) => {
+          const row = e.target.closest(".col-toggle-row");
+          if (row && !row.contains(e.relatedTarget)) row.classList.remove("col-row-drag-over");
         });
-        holdBody.addEventListener("drop", (e) => {
-          const th = e.target.closest("th[data-col-id]");
-          if (!th || !_dragColId || th.dataset.colId === _dragColId) return;
+        colPanel.addEventListener("drop", (e) => {
+          const row = e.target.closest(".col-toggle-row");
+          if (!row || !_panelDragId || row.dataset.colId === _panelDragId) return;
           e.preventDefault();
-          th.classList.remove("col-drag-over");
+          colPanel.querySelectorAll(".col-row-drag-over").forEach((el) => el.classList.remove("col-row-drag-over"));
           const order = [...portfolioPrefs.colOrder];
-          const fromIdx = order.indexOf(_dragColId);
-          const toIdx = order.indexOf(th.dataset.colId);
+          const fromIdx = order.indexOf(_panelDragId);
+          const toIdx = order.indexOf(row.dataset.colId);
           if (fromIdx >= 0 && toIdx >= 0) {
             order.splice(fromIdx, 1);
-            order.splice(toIdx, 0, _dragColId);
+            order.splice(toIdx, 0, _panelDragId);
             portfolioPrefs.colOrder = order;
             savePortfolioPrefs();
-            const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioTable();
+            const allRows = [...colPanel.querySelectorAll(".col-toggle-row")];
+            const sorted = order.map((id) => allRows.find((r) => r.dataset.colId === id)).filter(Boolean);
+            sorted.forEach((r) => colPanel.appendChild(r));
+            apply();
           }
-          _dragColId = null;
+          _panelDragId = null;
         });
       }
     } };
@@ -2181,7 +2193,7 @@ function portfolioTable() {
   };
   const thCols = orderedColIds.map((id) => {
     const tip = colTooltips[id] ? ` <span class="col-info" title="${colTooltips[id]}">ⓘ</span>` : "";
-    return `<th class="num draggable-col" draggable="true" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
+    return `<th class="num" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
   }).join("");
   const thead = `<thead><tr><th>${t("Holding")}</th>${thCols}</tr></thead>`;
 
