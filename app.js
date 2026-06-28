@@ -2068,10 +2068,12 @@ function pagePortfolio() {
          <a class="btn ghost" href="#/brokers">${t("Go to Brokers")}</a>
        </div>`;
 
+  const latestFetch = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();
+  const priceStampHtml = `<span class="muted" id="pfPriceStamp" style="font-size:11px;white-space:nowrap">${latestFetch ? `${t("Prices as of")} ${fmtDateTime(latestFetch)}` : ""}</span>`;
   const refreshBtn = `<button class="icon-btn pf-refresh" id="pfRefreshBtn" title="${t("Refresh live prices")}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>`;
   const html = has
     ? `${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
-          `<div class="panel-head-actions">${refreshBtn}</div>`)}
+          `<div class="panel-head-actions">${priceStampHtml}${refreshBtn}</div>`)}
        ${breakdowns ? `<section class="portfolio-breakdowns">${breakdowns}</section>` : ""}`
     : panel("Holdings", emptyContent);
 
@@ -2109,6 +2111,8 @@ function pagePortfolio() {
         if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
         pfRefreshBtn.disabled = true;
         pfRefreshBtn.querySelector("svg").classList.add("spinning");
+        const pfPriceStamp = $("#pfPriceStamp");
+        if (pfPriceStamp) pfPriceStamp.textContent = t("Updating prices…");
         const tickers = [...new Set(T.holdings.map((h) => h.ticker))];
         let ok = 0;
         for (const tk of tickers) { if (await refreshLivePrice(tk)) ok++; }
@@ -2191,12 +2195,6 @@ function portfolioTable() {
     ? t("No holdings match these filters.")
     : t("No holdings yet. Add a buy transaction to create your first holding."));
 
-  // Price freshness stamp
-  const latestFetch = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();
-  const priceStamp = `<div class="price-stamp">${
-    latestFetch ? `${t("Prices as of")} ${fmtDateTime(latestFetch)}` : `<span class="muted">${t("No live prices fetched yet")}</span>`
-  }</div>`;
-
   // Visible columns in user-defined order
   const orderedColIds = colOrder.filter((id) => cols[id]);
   const colLabels = {
@@ -2241,7 +2239,7 @@ function portfolioTable() {
   }).join("");
   const thead = `<thead><tr><th>${t("Holding")}</th>${thCols}</tr></thead>`;
 
-  return `<div class="table-wrap">${priceStamp}<table class="data-table">${thead}<tbody>${body}</tbody></table></div>`;
+  return `<div class="table-wrap"><table class="data-table">${thead}<tbody>${body}</tbody></table></div>`;
 }
 
 /* =============================================================================
