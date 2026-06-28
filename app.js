@@ -1,4 +1,4 @@
-/* =============================================================================
+﻿/* =============================================================================
  * Investment Ledger — App (router + all pages)
  * Every figure is COMPUTED from the data module so numbers stay auditable.
  * ========================================================================== */
@@ -290,9 +290,9 @@ const ZH = {
   "Run-rate estimate from your trailing-12-month dividends": "基于过去 12 个月股息的运行率估算",
   "Estimate only — not a guarantee.": "仅为估算 — 并非保证。",
   "Next Month (est.)": "下月（估）", "Next Quarter (est.)": "下季（估）", "Next Year (est.)": "下年（估）",
-  “Upcoming confirmed dividends in window”: “窗口内已确认的即将派息”,
-  “Add upcoming dividend for”: “添加即将派息：”, “Per share”: “每股金额”,
-  “Fetching US schedules…”: “正在获取美股派息日程…”,
+  "Upcoming confirmed dividends in window": "窗口内已确认的即将派息",
+  "Add upcoming dividend for": "添加即将派息：", "Per share": "每股金额",
+  "Fetching US schedules…": "正在获取美股派息日程…",
   "next month": "下月", "next quarter": "下季", "next year": "下年",
   "How is the forecast calculated?": "预测是如何计算的？",
   "Net Dividends (Lifetime)": "净股息（累计）", "Net (MYR)": "净额 (MYR)", "Month": "月份", "Quarter": "季度",
