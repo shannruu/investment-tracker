@@ -134,6 +134,7 @@ const SETTINGS = {
   dateFormat: "D MMM YYYY",  // D MMM YYYY | YYYY-MM-DD | DD/MM/YYYY | MM/DD/YYYY
   timeZone: "",              // display reference (blank = device local)
   costBasis: "average",      // "average" (implemented) | "fifo" (future)
+  pvMode: "mv",              // "mv" (market value only) | "total" (incl. cash)
 };
 
 /* Daily portfolio-value history (base currency), built automatically: one

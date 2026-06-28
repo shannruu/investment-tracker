@@ -87,7 +87,7 @@ const ZH = {
   // Table headers
   "Holding": "持仓", "Broker": "券商", "Market": "市场", "Shares": "股数",
   "Avg Cost": "平均成本", "Price": "价格", "Cost Basis": "成本", "Market Value": "市值",
-  "Unrealized P/L": "未实现盈亏", "Net Div": "净股息", "Ticker": "代码",
+  "Unrealized P/L": "未实现盈亏", "Net Div": "净股息", "Ticker": "代码", "Stock code": "股票代号",
   "Ex-Date": "除息日", "Payment": "派息日", "Expected Net": "预计净额", "Status": "状态",
   "Date": "日期", "Type": "类型", "Qty": "数量", "Gross": "总额", "Fee": "费用",
   "Tax": "税", "Net (MYR)": "净额 (MYR)", "Net": "净额", "Amount": "金额",
@@ -182,9 +182,11 @@ const ZH = {
   // Transaction types
   "Deposit": "存款", "Withdrawal": "取款", "Buy": "买入", "Sell": "卖出", "Dividend": "股息",
   "Fee": "费用", "Tax withholding": "预扣税", "Stock split": "拆股",
-  "Transfer between brokers": "券商间转账", "Interest / cash yield": "利息 / 现金收益", "FX conversion": "外汇兑换",
+  "Transfer between brokers": "券商间转账", "Interest / cash yield": "利息 / 现金收益", "Interest": "利息", "FX conversion": "外汇兑换",
   // Form labels
   "optional": "可选", "Quantity / Shares": "数量 / 股数", "Gross dividend": "总股息",
+  "From broker": "来源券商", "Dividend schedule": "股息时间表", "Exchange rate": "兑换汇率", "Auto-calculated": "自动计算", "Add note": "添加备注",
+  "Enter an amount or stock code for the transfer.": "请输入金额或股票代号。",
   "Received": "已收到", "Expected": "预期", "Split ratio (new ÷ old)": "拆股比例（新 ÷ 旧）",
   "To broker": "转入券商", "Notes": "备注", "FX rate to": "汇率对",
   "Allow selling more shares than currently held (override)": "允许卖出超过当前持有的股数（覆盖）",
@@ -288,7 +290,9 @@ const ZH = {
   "Run-rate estimate from your trailing-12-month dividends": "基于过去 12 个月股息的运行率估算",
   "Estimate only — not a guarantee.": "仅为估算 — 并非保证。",
   "Next Month (est.)": "下月（估）", "Next Quarter (est.)": "下季（估）", "Next Year (est.)": "下年（估）",
-  "Confirmed 'Expected' dividends in window": "窗口内已确认的“预期”股息",
+  “Upcoming confirmed dividends in window”: “窗口内已确认的即将派息”,
+  “Add upcoming dividend for”: “添加即将派息：”, “Per share”: “每股金额”,
+  “Fetching US schedules…”: “正在获取美股派息日程…”,
   "next month": "下月", "next quarter": "下季", "next year": "下年",
   "How is the forecast calculated?": "预测是如何计算的？",
   "Net Dividends (Lifetime)": "净股息（累计）", "Net (MYR)": "净额 (MYR)", "Month": "月份", "Quarter": "季度",
@@ -318,12 +322,13 @@ const ZH = {
   "By Currency": "按货币", "By Brokerage": "按券商", "No priced holdings yet.": "暂无已定价持仓。",
   "Group": "分组", "Value": "市值", "%": "%",
   // Phase 2 — Portfolio Health (F6)
-  "Portfolio Health": "投资组合健康度", "Largest Position": "最大持仓",
-  "Largest Winner": "最大盈利", "Largest Loser": "最大亏损",
+  "Portfolio Health": "投资组合健康度", "Best / Worst": "最优 / 最差",
   "Dividend Yield (TTM)": "股息率（近12个月）", "Cash Allocation": "现金占比",
   "Diversification Score": "分散度评分", "effective holdings": "有效持仓数",
-  "none": "无", "trailing 12m ÷ value": "近12个月 ÷ 市值", "of total net value": "占净资产总额",
-  "Objective analytics only — not financial advice.": "仅客观分析 — 非投资建议。",
+  "none": "无", "of total net value": "占净资产总额",
+  "Trailing 12-month net dividends ÷ current portfolio market value.": "近12个月净股息 ÷ 当前持仓市值。",
+  "Cash as a percentage of total net value (market value + available cash).": "现金占总净值百分比（市值 + 可用现金）。",
+  "Effective N score based on portfolio weights. Higher = more diversified.": "基于投资组合权重的有效N值。越高，越分散。",
   // Phase 2 — Reports (F3)
   "Holdings": "持仓", "Cash Flow": "现金流", "Performance": "业绩表现",
   "Lifetime Net Dividends": "累计净股息", "Realized Return": "已实现收益",
@@ -377,9 +382,9 @@ const ZH = {
   "Shares": "股数", "Avg Cost": "平均成本", "Market Value": "市值", "Unrealized": "未实现",
   "Date": "日期", "Type": "类型", "Ticker": "代码", "Broker": "券商",
   "on net capital": "占净投入资本", "money-weighted": "资金加权", "on cost": "占成本",
-  "Portfolio Value Over Time": "投资组合市值随时间变化", "incl. cash": "含现金",
-  "Market value incl. cash, captured once per day.": "市值（含现金），每天记录一次。",
-  "History builds automatically — one point per day as you use the app.": "历史会自动累积 — 您每天使用应用时记录一个数据点。",
+  "Portfolio Value Over Time": "投资组合市值随时间变化",
+  "Captured once per day when you use the app.": "每次使用应用时每日记录一次。",
+  "Record your first deposit or Buy to start tracking.": "记录第一笔存款或买入以开始追踪。",
   // Refactor — 5-item nav, More sheet, Records, Add flow, dashboard hero
   "Records": "记录", "More": "更多",
   "All transactions, cash & dividends": "所有交易、现金与股息",
@@ -425,7 +430,7 @@ const ZH = {
   "Import existing holdings": "导入现有持仓",
   "Positions you held before tracking — click to open": "开始记录前已持有的仓位 — 点击展开",
   "No holdings yet — record a Buy on the Add page and it appears here automatically.": "暂无持仓 — 在「添加」页记录一笔买入，它会自动出现在此。",
-  "Already hold stocks from before tracking?": "已持有开始记录前的股票？",
+  "Record your first Buy": "记录首笔买入",
   "Add a broker first (More → Brokers), then record a Buy and it appears here.": "请先添加券商（更多 → 券商），然后记录买入，它会出现在此。",
   "Add a broker first (More → Brokers), then you can import holdings.": "请先添加券商（更多 → 券商），然后即可导入持仓。",
   "Add a broker": "添加券商",
@@ -433,8 +438,8 @@ const ZH = {
   "Your only broker is archived. Add (or restore) an active broker to record transactions.": "您唯一的券商已归档。请添加（或恢复）一个有效券商以记录交易。",
   "More currencies…": "更多货币…", "Search currency…": "搜索货币…", "No matching currency": "无匹配货币",
   "Pick a different currency for the exchange.": "请为兑换选择不同的货币。",
+  "Saved ✓": "已保存 ✓", "Add more holdings to score": "添加更多持仓以评分",
   "added at the live rate": "已按实时汇率添加", "added — set its rate in Settings": "已添加 — 请在设置中设定其汇率",
-  "Available Cash": "可用现金",
   "Buys (incl. fees & tax)": "买入（含费用与税）", "Sells (net of fees)": "卖出（扣除费用）",
   "Net dividends received": "已收净股息", "Standalone fees": "独立费用",
   "FX revaluation of foreign cash": "外币现金的汇率重估",
@@ -638,7 +643,7 @@ function computeTotals() {
     switch (tx.type) {
       case "Deposit": totalDeposits += grossMYR; addCash(tx.brokerId, ccy, gross); break;
       case "Withdrawal": totalWithdrawals += grossMYR; addCash(tx.brokerId, ccy, -gross); break;
-      case "Interest / cash yield": addCash(tx.brokerId, ccy, gross); break;
+      case "Interest / cash yield": case "Interest": addCash(tx.brokerId, ccy, gross); break;
       case "Fee": totalFees += grossMYR; addCash(tx.brokerId, ccy, -gross); break;
       case "Tax withholding": totalFees += grossMYR; addCash(tx.brokerId, ccy, -gross); break;
       case "Buy": {
@@ -772,11 +777,14 @@ function pruneOrphans() {
  * per day: updates today's point if it already exists, else appends. Capped. */
 function recordPvSnapshot() {
   if (typeof T === "undefined" || !T) return;
-  const value = +((T.portfolioValue || 0) + (T.totalCash || 0)).toFixed(2);
+  const mv = +(T.portfolioValue || 0).toFixed(2);
+  const value = +(mv + (T.totalCash || 0)).toFixed(2);
+  const principal = +((T.netCapitalInvested) || 0).toFixed(2);
+  if (!(value > 0) && !(principal > 0)) return;
   const today = todayISO();
   const last = PV_HISTORY[PV_HISTORY.length - 1];
-  if (last && last.date === today) last.value = value;
-  else PV_HISTORY.push({ date: today, value });
+  if (last && last.date === today) { last.value = value; last.mv = mv; last.principal = principal; }
+  else PV_HISTORY.push({ date: today, value, mv, principal });
   if (PV_HISTORY.length > 1000) PV_HISTORY.splice(0, PV_HISTORY.length - 1000);
 }
 /* Anchor opening holdings on the value chart: seed one historical point at the
@@ -793,6 +801,7 @@ function seedPvHistory() {
   PV_HISTORY.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
 function saveStore() {
+  AUTO_DIV_CACHE_FETCHED = false;  // holdings may have changed — force re-fetch on next mount
   try {
     pruneOrphans();
     recompute();             // T reflects the latest data before we snapshot value
@@ -806,7 +815,7 @@ function replaceArr(arr, next) { arr.length = 0; if (Array.isArray(next)) next.f
 function applySnapshot(s) {
   replaceArr(BROKERS, s.BROKERS); replaceArr(HOLDINGS, s.HOLDINGS);
   replaceArr(ALL_TRANSACTIONS, s.ALL_TRANSACTIONS); replaceArr(UPCOMING_DIVIDENDS, s.UPCOMING_DIVIDENDS);
-  if (s.PV_HISTORY) replaceArr(PV_HISTORY, s.PV_HISTORY);
+  if (s.PV_HISTORY) replaceArr(PV_HISTORY, s.PV_HISTORY.filter((p) => p.value > 0));
   assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(RECON_CHECKS, s.RECON_CHECKS);
   assignObj(STOCK_META, s.STOCK_META);
   if (s.SETTINGS) Object.assign(SETTINGS, s.SETTINGS);
@@ -908,6 +917,79 @@ async function searchSymbols(q) {
   } catch (e) { return []; }
 }
 
+/* ─── Dividend schedule (Finnhub) ──────────────────────────────────────────── */
+// In-memory cache of auto-fetched upcoming dividends, keyed by ticker.
+// Shape: { [ticker]: [{date (exDate), payDate, amount, currency}] }
+// NOT persisted — refreshed on first visit after each saveStore().
+let AUTO_DIV_CACHE = {};
+let AUTO_DIV_CACHE_FETCHED = false;  // prevent the fetch→render→mount→fetch infinite loop
+
+/* Fetch upcoming dividends for one US ticker from Finnhub via our proxy.
+ * Returns array or null. Only runs for plain tickers (no ".KL", ".SI", etc.). */
+async function fetchFinnhubDivs(ticker) {
+  if (!LIVE_ENABLED || ticker.includes(".")) return null;
+  const today = todayISO();
+  const futureDate = new Date(today.replace(/-/g, "/"));
+  futureDate.setFullYear(futureDate.getFullYear() + 1);
+  const to = futureDate.toISOString().slice(0, 10);
+  try {
+    const r = await fetch(`/api/dividend?symbol=${encodeURIComponent(ticker)}&from=${today}&to=${to}`);
+    if (!r.ok) return null;
+    const data = await r.json();
+    if (!Array.isArray(data)) return null;
+    return data.filter((d) => (d.payDate || d.date) >= today);
+  } catch (e) { return null; }
+}
+
+/* Populate AUTO_DIV_CACHE for all held US tickers concurrently. */
+async function fetchAllDivSchedules() {
+  if (AUTO_DIV_CACHE_FETCHED) return false;  // already fresh — skip to avoid render loop
+  AUTO_DIV_CACHE_FETCHED = true;              // set before await so concurrent calls short-circuit
+  const tickers = [...new Set(T.holdings.filter((h) => !h.ticker.includes(".")).map((h) => h.ticker))];
+  await Promise.all(tickers.map(async (ticker) => {
+    const divs = await fetchFinnhubDivs(ticker);
+    if (divs && divs.length) AUTO_DIV_CACHE[ticker] = divs;
+    else delete AUTO_DIV_CACHE[ticker];
+  }));
+  return true;
+}
+
+/* Merge all upcoming dividend sources into one sorted list.
+ * Sources: UPCOMING_DIVIDENDS (manual MY), AUTO_DIV_CACHE (Finnhub US), and
+ * any legacy ALL_TRANSACTIONS rows still carrying status="Expected". */
+function allUpcomingDivs() {
+  const today = todayISO();
+  const toMYR = (net, ccy) => net * (FX.rates[ccy] || 1);
+
+  const manual = UPCOMING_DIVIDENDS.map((d) => {
+    const h = T.holdings.find((x) => x.ticker === d.ticker);
+    const expectedNet = (d.amtPerShare || 0) * (h ? h.shares : 0);
+    return { ticker: d.ticker, brokerId: d.brokerId, exDate: d.exDate, payDate: d.payDate,
+      currency: d.currency, expectedNet, expectedNetMYR: toMYR(expectedNet, d.currency),
+      status: "Estimated", _id: d.id };
+  });
+
+  const auto = Object.entries(AUTO_DIV_CACHE).flatMap(([ticker, divs]) =>
+    divs.filter((d) => (d.payDate || d.date) >= today).map((div) => {
+      const h = T.holdings.find((x) => x.ticker === ticker);
+      const ccy = div.currency || "USD";
+      const expectedNet = (div.amount || 0) * (h ? h.shares : 0);
+      return { ticker, brokerId: h ? h.brokerId : "—", exDate: div.date,
+        payDate: div.payDate || div.date, currency: ccy,
+        expectedNet, expectedNetMYR: toMYR(expectedNet, ccy), status: "Confirmed" };
+    })
+  );
+
+  const legacy = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status === "Expected")
+    .map((x) => ({ ticker: x.ticker, brokerId: x.brokerId, exDate: x.exDate, payDate: x.payDate,
+      currency: x.currency, expectedNet: (+x.gross || 0) - (+x.tax || 0),
+      expectedNetMYR: divNetMYR(x), status: "Expected" }));
+
+  return [...manual, ...auto, ...legacy]
+    .filter((d) => d.payDate || d.exDate)
+    .sort((a, b) => ((a.payDate || a.exDate || "") < (b.payDate || b.exDate || "") ? -1 : 1));
+}
+
 /* Attach a "type a code or name → pick a stock" dropdown to a ticker input. */
 function attachAutocomplete(form, statusEl, opts = {}) {
   const input = form.querySelector('[name="ticker"]');
@@ -987,7 +1069,12 @@ async function autofillFromTicker(form, statusEl, opts = {}) {
     sector: q.sector || null, industry: q.industry || null };
   // Remember the current market price for valuation (clearly labelled "Live")
   if (q.currency) CURRENT_PRICES[q.symbol || symbol] = { price: +q.price, currency: q.currency, date: new Date().toISOString().slice(0, 10), source: "live", fetchedAt: new Date().toISOString(), changePct: q.changePct };
-  if (statusEl) { statusEl.innerHTML = `✓ ${q.name || q.symbol} · ${q.currency || ""} ${fmt(q.price)} <span class="live-price">${t("Live")}</span>`; statusEl.className = "lookup-status ok"; }
+  if (statusEl) {
+    statusEl.innerHTML = opts.showPrice === false
+      ? `✓ ${q.name || q.symbol}`                                                  // dividend: company only, price is irrelevant
+      : `✓ ${q.name || q.symbol} · ${q.currency || ""} ${fmt(q.price)} <span class="live-price">${t("Live")}</span>`;
+    statusEl.className = "lookup-status ok";
+  }
 }
 
 /* Update a single holding's price from the market. Returns true on success. */
@@ -1035,33 +1122,120 @@ function typeChip(t) {
 }
 
 function lineChartSVG(series) {
-  if (!series || series.length < 2) return emptyState(t("No portfolio history yet."));
+  if (!series || series.length === 0) return emptyState(t("No portfolio history yet."));
+  if (series.length === 1) series = [series[0], { ...series[0], month: "", date: "" }];
+
   const W = 640, H = 240, padL = 52, padR = 16, padT = 16, padB = 28;
-  const vals = series.map((d) => d.value);
-  let lo = Math.min(...vals), hi = Math.max(...vals);
-  if (hi - lo < 1e-9) { const pad = Math.abs(hi) * 0.1 || 1; lo -= pad; hi += pad; }  // flat series → give it room
+  const nwVals = series.map((d) => d.value);
+  const pVals = series.map((d) => d.principal || 0);
+  const allVals = [...nwVals, ...pVals];
+
+  let lo = Math.min(...allVals), hi = Math.max(...allVals);
+  if (hi - lo < 1e-9) { const pad = Math.abs(hi) * 0.1 || 1; lo -= pad; hi += pad; }
   else { const m = (hi - lo) * 0.06; lo -= m; hi += m; }
+  if (lo < 0 && Math.min(...allVals) >= 0) lo = 0;
+
   const min = lo, max = hi;
-  const x = (i) => padL + (i * (W - padL - padR)) / (series.length - 1);
-  const y = (v) => padT + (1 - (v - min) / (max - min)) * (H - padT - padB);
-  const line = series.map((d, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(d.value).toFixed(1)}`).join(" ");
-  const area = `${line} L${x(series.length - 1).toFixed(1)},${H - padB} L${padL},${H - padB} Z`;
+  const xFn = (i) => padL + (i * (W - padL - padR)) / (series.length - 1);
+  const yFn = (v) => padT + (1 - (v - min) / (max - min)) * (H - padT - padB);
+
+  const nwLine = series.map((d, i) => `${i ? "L" : "M"}${xFn(i).toFixed(1)},${yFn(d.value).toFixed(1)}`).join(" ");
+  const pLine = series.map((d, i) => `${i ? "L" : "M"}${xFn(i).toFixed(1)},${yFn(d.principal || 0).toFixed(1)}`).join(" ");
+  const xEnd = xFn(series.length - 1).toFixed(1);
+  const yBot = (H - padB).toFixed(1);
+
+  // Clip paths: region below each line (for fill-between)
+  const clipNWPath = `${nwLine} L${xEnd},${yBot} L${padL},${yBot} Z`;
+  const clipPPath = `${pLine} L${xEnd},${yBot} L${padL},${yBot} Z`;
+
+  // "above-principal" area, clipped to "below-NW" → green zone (NW > principal)
+  const pRev = series.slice().reverse().map((d, ri) =>
+    `L${xFn(series.length - 1 - ri).toFixed(1)},${yFn(d.principal || 0).toFixed(1)}`).join(" ");
+  const pTopArea = `M${padL},${padT} L${xEnd},${padT} ${pRev} Z`;
+
+  // "above-NW" area, clipped to "below-principal" → red zone (principal > NW)
+  const nwRev = series.slice().reverse().map((d, ri) =>
+    `L${xFn(series.length - 1 - ri).toFixed(1)},${yFn(d.value).toFixed(1)}`).join(" ");
+  const nwTopArea = `M${padL},${padT} L${xEnd},${padT} ${nwRev} Z`;
+
   const ylab = (v) => max >= 10000 ? Math.round(v / 1000) + "k" : (max >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v));
   let grid = "";
   for (let g = 0; g <= 4; g++) {
-    const v = min + ((max - min) * g) / 4, yy = y(v);
-    grid += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" class="grid"/>
-             <text x="${padL - 8}" y="${yy + 4}" class="ylab">${ylab(v)}</text>`;
+    const v = min + ((max - min) * g) / 4, yy = yFn(v);
+    grid += `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W - padR}" y2="${yy.toFixed(1)}" class="grid"/>
+             <text x="${padL - 8}" y="${(yy + 4).toFixed(1)}" class="ylab">${ylab(v)}</text>`;
   }
-  const xlabs = series.map((d, i) => (i % 2 === 0) ? `<text x="${x(i)}" y="${H - 8}" class="xlab">${d.month}</text>` : "").join("");
-  const dots = series.map((d, i) => `<circle cx="${x(i)}" cy="${y(d.value)}" r="${i === series.length - 1 ? 4 : 2.5}" class="dot"/>`).join("");
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Portfolio value over time">
-    <defs><linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="var(--brand)" stop-opacity=".28"/>
-      <stop offset="100%" stop-color="var(--brand)" stop-opacity="0"/></linearGradient></defs>
-    <style>.grid{stroke:var(--border);stroke-width:1}.ylab,.xlab{fill:var(--muted);font-size:11px;font-family:var(--font)}
-      .ylab{text-anchor:end}.xlab{text-anchor:middle}.ln{fill:none;stroke:var(--brand);stroke-width:2.5;stroke-linejoin:round}.dot{fill:var(--brand)}</style>
-    ${grid}<path d="${area}" fill="url(#lg)"/><path d="${line}" class="ln"/>${dots}${xlabs}</svg>`;
+
+  const step = Math.max(1, Math.ceil(series.length / 6));
+  const xlabs = series.map((d, i) =>
+    (d.month && i % step === 0) ? `<text x="${xFn(i).toFixed(1)}" y="${H - 8}" class="xlab">${d.month}</text>` : ""
+  ).join("");
+
+  const dots = series.map((d, i) => {
+    if (!d.date) return "";
+    const cx = xFn(i).toFixed(1), cy = yFn(d.value).toFixed(1);
+    return `<circle cx="${cx}" cy="${cy}" r="${i === series.length - 1 ? 4 : 2.5}" class="dot"/>
+<circle cx="${cx}" cy="${cy}" r="12" class="dot-hit" data-date="${d.date}" data-val="${d.value}" fill="transparent" stroke="none"/>`;
+  }).join("");
+
+  const lx = W - padR, lx1 = lx - 28;
+  const legend = `
+    <line x1="${lx1}" y1="${padT + 5}" x2="${lx}" y2="${padT + 5}" stroke="var(--brand)" stroke-width="2.5" stroke-linecap="round"/>
+    <text x="${lx1 - 4}" y="${padT + 9}" class="lglab">${t("Net Worth")}</text>
+    <line x1="${lx1}" y1="${padT + 17}" x2="${lx}" y2="${padT + 17}" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <text x="${lx1 - 4}" y="${padT + 21}" class="lglab">${t("Principal Invested")}</text>`;
+
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("Portfolio value over time")}">
+    <defs>
+      <clipPath id="clip-nw"><path d="${clipNWPath}"/></clipPath>
+      <clipPath id="clip-p"><path d="${clipPPath}"/></clipPath>
+    </defs>
+    <style>
+      .grid{stroke:var(--border);stroke-width:1}
+      .ylab,.xlab{fill:var(--muted);font-size:11px;font-family:var(--font)}
+      .ylab{text-anchor:end}.xlab{text-anchor:middle}
+      .lglab{fill:var(--muted);font-size:10px;font-family:var(--font);text-anchor:end}
+      .ln-nw{fill:none;stroke:var(--brand);stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+      .ln-p{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:5,4;stroke-linejoin:round;stroke-linecap:round}
+      .dot{fill:var(--brand)}.dot-hit{cursor:pointer}
+    </style>
+    ${grid}
+    <path d="${pTopArea}" fill="rgba(34,197,94,.18)" clip-path="url(#clip-nw)"/>
+    <path d="${nwTopArea}" fill="rgba(220,38,38,.18)" clip-path="url(#clip-p)"/>
+    <path d="${pLine}" class="ln-p"/>
+    <path d="${nwLine}" class="ln-nw"/>
+    ${dots}${xlabs}${legend}
+  </svg>`;
+}
+
+/* Wire hover/tap tooltips for all .dot-hit elements on the current page. */
+function mountChartTooltips() {
+  const prev = document.getElementById("chart-tip");
+  if (prev) prev.remove();
+  const hits = document.querySelectorAll(".dot-hit");
+  if (!hits.length) return;
+  const tip = document.createElement("div");
+  tip.id = "chart-tip";
+  tip.className = "chart-tip";
+  tip.hidden = true;
+  document.body.appendChild(tip);
+  const show = (el) => {
+    const d = el.dataset.date, v = +el.dataset.val;
+    tip.innerHTML = d
+      ? `<div class="ct-date">${fmtDate(d)}</div><div class="ct-val">${money(v)}</div>`
+      : `<div class="ct-val">${money(v)}</div>`;
+    const r = el.getBoundingClientRect();
+    tip.style.left = (r.left + r.width / 2) + "px";
+    tip.style.top = (r.top) + "px";
+    tip.hidden = false;
+  };
+  const hide = () => { tip.hidden = true; };
+  hits.forEach((el) => {
+    el.addEventListener("mouseenter", () => show(el));
+    el.addEventListener("mouseleave", hide);
+    el.addEventListener("touchstart", (e) => { e.preventDefault(); show(el); }, { passive: false });
+    el.addEventListener("touchend", () => setTimeout(hide, 2500));
+  });
 }
 
 // Monochrome indigo ramp (+ one neutral) so the allocation chart stays on-brand.
@@ -1130,18 +1304,14 @@ function ttmDividends() {
 
 /* Portfolio Health panel — objective analytics only. */
 function insightsHTML() {
-  if (!T.holdings.length) return "";
   const hp = portfolioHealth();
-  const pct = (h) => hp.pv ? ` <span class="sub">(${fmt(h.marketValue / hp.pv * 100, { maximumFractionDigits: 1 })}%)</span>` : "";
-  const card = (label, val, sub) => `<div class="mini-card"><div class="mc-label">${label}</div><div class="mc-value">${val}</div>${sub ? `<div class="mc-sub muted">${sub}</div>` : ""}</div>`;
+  const howHint = `<span class="calc-hint">ⓘ ${t("how")}</span>`;
+  const card = (id, label, val, sub) => `<div class="mini-card ph-card" id="${id}"><div class="mc-label">${label}${howHint}</div><div class="mc-value">${val}</div>${sub ? `<div class="mc-sub muted">${sub}</div>` : ""}</div>`;
   return panel("Portfolio Health", `<div class="mini-cards">
-    ${card(t("Largest Position"), hp.largest ? `${hp.largest.ticker}${pct(hp.largest)}` : "—", hp.largest ? money(hp.largest.marketValue) : "")}
-    ${card(t("Largest Winner"), (hp.winner && hp.winner.unrealized > 0) ? hp.winner.ticker : "—", (hp.winner && hp.winner.unrealized > 0) ? `<span class="pos">${signed(hp.winner.unrealized)}</span>` : t("none"))}
-    ${card(t("Largest Loser"), (hp.loser && hp.loser.unrealized < 0) ? hp.loser.ticker : "—", (hp.loser && hp.loser.unrealized < 0) ? `<span class="neg">${signed(hp.loser.unrealized)}</span>` : t("none"))}
-    ${card(t("Dividend Yield (TTM)"), hp.yieldEst != null ? fmt(hp.yieldEst, { maximumFractionDigits: 2 }) + "%" : "—", t("trailing 12m ÷ value"))}
-    ${card(t("Cash Allocation"), hp.cashAlloc != null ? fmt(hp.cashAlloc, { maximumFractionDigits: 1 }) + "%" : "—", t("of total net value"))}
-    ${card(t("Diversification Score"), `${hp.divScore}/100`, `${fmt(hp.effectiveN, { maximumFractionDigits: 1 })} ${t("effective holdings")}`)}
-  </div><p class="muted" style="margin:10px 0 0;font-size:12px">${t("Objective analytics only — not financial advice.")}</p>`);
+    ${card("phDivYield", t("Dividend Yield (TTM)"), hp.yieldEst != null ? fmt(hp.yieldEst, { maximumFractionDigits: 2 }) + "%" : "—")}
+    ${card("phCashAlloc", t("Cash Allocation"), hp.cashAlloc != null ? fmt(hp.cashAlloc, { maximumFractionDigits: 1 }) + "%" : "—", t("of total net value"))}
+    ${card("phDivScore", t("Diversification Score"), T.holdings.length >= 2 ? `${hp.divScore}/100` : "—", T.holdings.length >= 2 ? `${fmt(hp.effectiveN, { maximumFractionDigits: 1 })} ${t("effective holdings")}` : t("Add more holdings to score"))}
+  </div>`);
 }
 
 /* Objective portfolio-health metrics (no advice). */
@@ -1174,7 +1344,8 @@ function pageDashboard() {
   const returnIsTotal = SETTINGS.returnMode !== "price";
   const shownReturn = returnIsTotal ? T.totalReturn : T.priceReturn;
   const shownPct = T.netCapitalInvested ? (shownReturn / T.netCapitalInvested) * 100 : 0;
-  const up = shownReturn >= 0;
+  const up = shownReturn > 0;
+  const dn = shownReturn < 0;
   const yr = todayISO().slice(0, 4);
   const divYTD = ALL_TRANSACTIONS
     .filter((x) => x.type === "Dividend" && x.status !== "Expected" && (x.payDate || x.date || "").slice(0, 4) === yr)
@@ -1189,7 +1360,7 @@ function pageDashboard() {
     buys: flowSum((x) => x.type === "Buy", (x) => (+x.gross || 0) + (+x.fee || 0) + (+x.tax || 0)),
     sells: flowSum((x) => x.type === "Sell", (x) => (+x.gross || 0) - (+x.fee || 0) - (+x.tax || 0)),
     divs: flowSum((x) => x.type === "Dividend" && x.status !== "Expected", (x) => (+x.gross || 0) - (+x.tax || 0)),
-    interest: flowSum((x) => x.type === "Interest / cash yield", (x) => +x.gross || 0),
+    interest: flowSum((x) => x.type === "Interest / cash yield" || x.type === "Interest", (x) => +x.gross || 0),
     fees: flowSum((x) => x.type === "Fee", (x) => +x.gross || 0),
     taxes: flowSum((x) => x.type === "Tax withholding", (x) => +x.gross || 0),
   };
@@ -1208,15 +1379,14 @@ function pageDashboard() {
       <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
       <td class="num">${fmt(h.netDividends)}</td><td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td></tr>`).join("");
 
-  // Upcoming dividends derived from "Expected" dividend transactions.
-  const upcoming = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status === "Expected")
-    .sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
+  // Upcoming dividends — manual (UPCOMING_DIVIDENDS), auto-fetched (AUTO_DIV_CACHE), and legacy Expected.
+  const upcoming = allUpcomingDivs();
   const divRows = upcoming.map((d) => {
     const du = daysUntil(d.payDate);
     const dlabel = d.payDate ? (du >= 0 ? `${du} ${t("days")}` : t("overdue")) : "—";
     return `<tr><td class="ticker">${d.ticker}</td><td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
       <td class="num">${dlabel}</td>
-      <td class="num">${d.currency} ${fmt((+d.gross || 0) - (+d.tax || 0))}</td><td>${statusBadge(d.status || "Expected")}</td></tr>`;
+      <td class="num">${d.currency} ${fmt(d.expectedNet)}</td><td>${statusBadge(d.status)}</td></tr>`;
   }).join("");
 
   const recentRows = ALL_TRANSACTIONS.slice(0, 6).map((tx) => `<tr><td>${fmtDate(tx.date)}</td><td>${typeChip(tx.type)}</td>
@@ -1273,10 +1443,10 @@ function pageDashboard() {
       <div class="stat-value">${money(netWorth)}</div>
       <div class="stat-sub muted">${t("Holdings")} ${money(T.portfolioValue)} · ${t("Cash")} ${money(T.totalCash || 0)}</div>
     </article>
-    <article class="stat pl ${up ? "is-up" : "is-down"}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total P/L") : t("Price P/L")}, show calculation">
+    <article class="stat pl ${up ? "is-up" : dn ? "is-down" : ""}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total P/L") : t("Price P/L")}, show calculation">
       ${statHead(returnIsTotal ? t("Total P/L") : t("Price P/L"), toggle)}
-      <div class="stat-value ${cls(shownReturn)}">${up ? "▲" : "▼"} ${signed(shownReturn)}</div>
-      <div class="stat-sub ${cls(shownReturn)}">${pctTxt(shownPct)} · ${t("on net capital")}</div>
+      <div class="stat-value ${up ? "pos" : dn ? "neg" : ""}">${up ? "▲ " : dn ? "▼ " : ""}${signed(shownReturn)}</div>
+      <div class="stat-sub ${up ? "pos" : dn ? "neg" : "muted"}">${up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%"} · ${t("on net capital")}</div>
     </article>
     <article class="stat" data-card="cash" tabindex="0" role="button" aria-label="${t("Available Cash")}, show calculation">
       ${statHead(t("Available Cash"), howHint)}
@@ -1305,27 +1475,29 @@ function pageDashboard() {
     ${T.holdings.length ? `<div class="dash-asof">
       ${pricesAsOf
         ? `<span class="muted">${t("Prices as of")} ${fmtDate(pricesAsOf)}</span><button class="btn ghost small" id="dashUpdatePrices">↻ ${t("Update prices")}</button>`
-        : `<span class="muted">${t("No prices set yet")}</span><a class="btn ghost small" href="#/portfolio">${t("Set prices")} →</a>`}
+        : `<span class="muted">${t("No prices set yet")}</span><button class="btn ghost small" id="dashUpdatePrices">↻ ${t("Update prices")}</button>`}
     </div>` : ""}
     <section class="warn-wrap">${warningsHTML()}</section>
     <section class="grid-2 dash-charts">
       ${panel("Portfolio Value Over Time", (() => {
-        const series = PV_HISTORY.map((p) => ({ month: p.date.slice(5), value: p.value }));
-        return series.length >= 2
-          ? `<div class="chart">${lineChartSVG(series)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Market value incl. cash, captured once per day.")}</p>`
-          : emptyState(t("History builds automatically — one point per day as you use the app."));
-      })(), `<span class="badge subtle">${t("incl. cash")}</span>`)}
+        const series = PV_HISTORY
+          .map((p) => ({ month: p.date.slice(5), date: p.date, value: p.value, principal: p.principal != null ? p.principal : p.value }))
+          .filter((p) => p.value > 0 || p.principal > 0);
+        return series.length >= 1
+          ? `<div class="chart">${lineChartSVG(series)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Captured once per day when you use the app.")}</p>`
+          : emptyState(t("Record your first deposit or Buy to start tracking."));
+      })())}
       ${panel("Asset Allocation", donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), "Portfolio", money(T.portfolioValue).replace(".00","")), `<span class="badge subtle">${t("By market value")}</span>`)}
     </section>
-    ${listPanel("Upcoming Dividends", upcoming.length,
+    <div id="dashDivSection">${listPanel("Upcoming Dividends", upcoming.length,
       table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows),
-      t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}
-    ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
-      table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Amount",num:1}], recentRows),
-      t("No activity yet."), `<a class="link" href="#/records">${t("All")} →</a>`)}
+      t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Top Holdings", T.holdings.length,
       table([{label:"Holding"},{label:"Broker"},{label:"Market"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Net Div",num:1},{label:"Total Return",num:1}], holdingsRows),
       t("No holdings yet — add a Buy to get started."), `<a class="link" href="#/portfolio">${t("View all")} →</a>`)}
+    ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
+      table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Amount",num:1}], recentRows),
+      t("No activity yet."), `<a class="link" href="#/records">${t("All")} →</a>`)}
     ${insightsHTML()}
     <p class="dash-footnote muted">${LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet")}</p>`;
 
@@ -1351,6 +1523,19 @@ function pageDashboard() {
         saveStore(); render();
         toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
       });
+      [
+        ["phDivYield", t("Dividend Yield (TTM)"), t("Trailing 12-month net dividends ÷ current portfolio market value.")],
+        ["phCashAlloc", t("Cash Allocation"), t("Cash as a percentage of total net value (market value + available cash).")],
+        ["phDivScore", t("Diversification Score"), t("Effective N score based on portfolio weights. Higher = more diversified.")],
+      ].forEach(([id, title, body]) => {
+        const el = $("#" + id);
+        if (el) el.addEventListener("click", () => {
+          $("#modalTitle").textContent = title;
+          $("#modalBody").innerHTML = `<p style="margin:0;font-size:13.5px;line-height:1.7">${body}</p>`;
+          $("#modal").hidden = false;
+        });
+      });
+      mountChartTooltips();
       const st = $("#startTour");
       if (st) st.addEventListener("click", () => startTour());
       // Auto-launch the tour once for brand-new users
@@ -1358,6 +1543,12 @@ function pageDashboard() {
       try { tourDone = localStorage.getItem("il-tour-done") === "1"; } catch (e) {}
       if (isEmpty && !tourDone && tourIdx < 0 && !TOUR_SEEN) {
         TOUR_SEEN = true; setTimeout(startTour, 500);
+      }
+      // Auto-fetch Finnhub dividend schedules for US holdings; re-render if still here
+      if (LIVE_ENABLED) {
+        fetchAllDivSchedules().then((fetched) => {
+          if (fetched && document.getElementById("dashDivSection")) render();
+        });
       }
     } };
 }
@@ -1492,7 +1683,8 @@ function styledSelect(name, items, value, o = {}) {
   const opts = items.map((i) =>
     `<button type="button" class="sel-opt${i.value === cur.value ? " on" : ""}" role="option" data-val="${escAttr(i.value)}">${i.label}</button>`).join("");
   const more = o.more === "currency" ? `<button type="button" class="sel-more">${t("More currencies…")}</button>` : "";
-  return `<div class="sel"${o.more ? ` data-more="${o.more}"` : ""}>
+  const comboClass = o.combo === "left" ? " sel-combo-l" : (o.combo ? " sel-combo" : "");
+  return `<div class="sel${comboClass}"${o.more ? ` data-more="${o.more}"` : ""}>
     <input type="hidden"${o.id ? ` id="${o.id}"` : ""} name="${name}" value="${escAttr(cur.value)}">
     <button type="button" class="sel-trigger"><span class="sel-val">${cur.label}</span><span class="sel-caret" aria-hidden="true">▾</span></button>
     <div class="sel-pop" role="listbox" hidden><div class="sel-list">${opts}</div>${more}</div>
@@ -1716,22 +1908,28 @@ function pagePortfolio() {
     ${styledSelect("fPL", [{ value: "", label: t("All P/L") }, { value: "pos", label: t("Profit") }, { value: "neg", label: t("Loss") }], portfolioFilters.pl, { id: "fPL" })}
     <button class="btn ghost" id="fReset">${t("Reset")}</button></div>`;
 
-  const byBroker = donutHTML(groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.marketValue), "By broker", "");
-  const byCcy = donutHTML(groupSum(T.holdings, (h) => h.currency, (h) => h.marketValue), "By currency", "");
+  // Breakdowns are supporting context — only worth showing when there are 2+ slices to compare.
+  const distinctBrokers = new Set(T.holdings.map((h) => h.brokerId)).size;
+  const distinctCcy = new Set(T.holdings.map((h) => h.currency)).size;
+  const breakdowns =
+    (distinctBrokers >= 2 ? panel("Holdings by Broker", donutHTML(groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.marketValue), "", "")) : "")
+    + (distinctCcy >= 2 ? panel("Holdings by Currency", donutHTML(groupSum(T.holdings, (h) => h.currency, (h) => h.marketValue), "", "")) : "");
 
-  const emptyMsg = BROKERS.length
-    ? `${t("No holdings yet — record a Buy on the Add page and it appears here automatically.")}
-       <div class="empty-hint">${t("Already hold stocks from before tracking?")} <a class="link" href="#/settings/holdings">${t("Import existing holdings")}</a></div>`
-    : `${t("Add a broker first (More → Brokers), then record a Buy and it appears here.")}`;
+  const emptyContent = BROKERS.length
+    ? `<div class="portfolio-empty">
+         <p class="pe-msg">${t("No holdings yet — record a Buy on the Add page and it appears here automatically.")}</p>
+         <a class="btn primary" href="#/add"><svg class="icon" aria-hidden="true" style="width:14px;height:14px;flex:none"><use href="#i-add"/></svg>${t("Record your first Buy")}</a>
+       </div>`
+    : `<div class="portfolio-empty">
+         <p class="pe-msg">${t("Add a broker first (More → Brokers), then record a Buy and it appears here.")}</p>
+         <a class="btn ghost" href="#/brokers">${t("Go to Brokers")}</a>
+       </div>`;
 
   const html = has
-    ? `<section class="grid-2">
-        ${panel("Holdings by Broker", byBroker)}
-        ${panel("Holdings by Currency", byCcy)}
-      </section>
-      ${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
-        `<button class="btn" id="refreshPrices">⟳ ${t("Refresh live prices")}</button>`)}`
-    : panel("Holdings", emptyState(emptyMsg));
+    ? `${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
+          `<button class="btn" id="refreshPrices">⟳ ${t("Refresh live prices")}</button>`)}
+       ${breakdowns ? `<section class="portfolio-breakdowns">${breakdowns}</section>` : ""}`
+    : panel("Holdings", emptyContent);
 
   return { title: "Portfolio", subtitle: LANG === "zh"
       ? `${T.holdings.length} 个持仓，${BROKERS.length} 个券商 · ${money(T.portfolioValue)}`
@@ -1845,7 +2043,7 @@ let editingTxId = null;  // P0.1: id of the transaction currently being edited
 let recordsTab = "all";   // all | buysell | cash | dividends | fx
 const RECORD_GROUPS = {
   buysell: ["Buy", "Sell", "Stock split", "DRIP / Reinvested"],
-  cash: ["Deposit", "Withdrawal", "Fee", "Tax withholding", "Interest / cash yield", "Transfer between brokers"],
+  cash: ["Deposit", "Withdrawal", "Fee", "Tax withholding", "Interest / cash yield", "Interest", "Transfer between brokers"],
   dividends: ["Dividend"],
   fx: ["Currency Exchange"],
 };
@@ -1910,9 +2108,9 @@ function recordsTable(list) {
       <td class="ticker">${tx.ticker && tx.ticker !== "—" ? tx.ticker : "—"}${detail}</td>
       <td class="num">${money(myr)}<div class="fx-note">${orig}</div></td>
       <td class="sub">${brokerName(tx.brokerId)}</td>
-      <td class="num">
-        <button class="icon-btn row-edit" data-edit-tx="${tx.id}" title="${t("Edit")}" aria-label="${t("Edit")}">✎</button>
-        <button class="icon-btn row-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button></td></tr>`;
+      <td class="num"><div class="rec-actions">
+        <button class="icon-btn rec-edit" data-edit-tx="${tx.id}" title="${t("Edit")}" aria-label="${t("Edit")}"><svg class="icon"><use href="#i-edit"/></svg></button>
+        <button class="icon-btn rec-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></div></td></tr>`;
   }).join("");
   return table([{label:"Date"},{label:"Type"},{label:"Ticker / Detail"},{label:"Amount (MYR)",num:1},{label:"Account"},{label:"",num:1}], rows);
 }
@@ -1921,11 +2119,11 @@ function recordsTable(list) {
  * PAGE: ADD — pick a type first, then a focused form (only relevant fields)
  * ========================================================================== */
 const ADD_SLUGS = { buy: "Buy", sell: "Sell", deposit: "Deposit", withdraw: "Withdrawal",
-  dividend: "Dividend", fx: "Currency Exchange", fee: "Fee", tax: "Tax withholding",
-  interest: "Interest / cash yield", split: "Stock split", transfer: "Transfer between brokers" };
+  dividend: "Dividend", fx: "Currency Exchange", fee: "Fee",
+  interest: "Interest", split: "Stock split", transfer: "Transfer between brokers" };
 const ADD_PRIMARY = [["buy", "Buy", "i-buy"], ["sell", "Sell", "i-sell"], ["deposit", "Deposit", "i-deposit"],
   ["withdraw", "Withdraw", "i-withdraw"], ["dividend", "Dividend", "i-dividends"], ["fx", "FX", "i-fx"]];
-const ADD_OTHER = [["fee", "Fee"], ["tax", "Tax withholding"], ["interest", "Interest / cash yield"],
+const ADD_OTHER = [["fee", "Fee"], ["interest", "Interest"],
   ["split", "Stock split"], ["transfer", "Transfer between brokers"]];
 
 // Shared fields kept across type switches on the Add page (broker/date/currency/notes).
@@ -1958,14 +2156,19 @@ function pageAdd() {
 
   // New record needs at least one ACTIVE broker — otherwise the Broker dropdown is empty.
   const hasActiveBroker = BROKERS.some((b) => !b.archived);
-  const body = hasActiveBroker
-    ? panel(t(type), addForm2(type, null))
-    : panel(t(type), `<p class="form-note">${BROKERS.length
+  const formContent = hasActiveBroker
+    ? addForm2(type, null)
+    : `<p class="form-note">${BROKERS.length
         ? t("Your only broker is archived. Add (or restore) an active broker to record transactions.")
         : t("You need a broker before you can record transactions — every transaction belongs to a broker.")}</p>
-        <div class="form-actions" style="margin-top:14px"><a class="btn primary" href="#/brokers">${t("Add a broker")} →</a></div>`);
+        <div class="form-actions" style="margin-top:14px"><a class="btn primary" href="#/brokers">${t("Add a broker")} →</a></div>`;
 
-  const html = `${typeSelectorHTML(type)}${body}`;
+  const html = `<section class="panel add-panel">
+    ${typeSelectorHTML(type)}
+    <div class="add-sep"></div>
+    <div class="panel-head"><h2>${t(type)}</h2></div>
+    ${formContent}
+  </section>`;
   return { title: "Add", subtitle: "Pick a type and fill in the details.", html,
     mount() { mountAddForm(type, null); } };
 }
@@ -1986,74 +2189,95 @@ function addForm2(type, editing) {
   const tickerVal = e.ticker && e.ticker !== "—" ? e.ticker : "";
   const isTrade = type === "Buy" || type === "Sell";
   const fxRow = `<label id="afFxField">${t("FX rate to")} ${FX.base}<input type="number" step="any" name="fxRate" id="afFx" value="${v(e.fxRate)}" placeholder="1.0"></label>`;
+  // Amount input with the currency selector attached on its right: [ 0.00 ][ MYR ▾ ]
+  const amtCombo = (name, val, ph) => `<div class="amt-combo">
+      <input type="number" step="any" name="${name}" value="${val}" placeholder="${ph}">
+      ${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency", combo: true })}
+    </div>`;
 
-  const head = `
-    <label>${t("Broker")}${styledSelect("broker", brokerList, defBroker, { id: "afBroker" })}</label>
-    <label>${t("Date")}<input type="date" name="date" value="${dateVal}" required></label>`;
+  const head = type === "Dividend"
+    ? `<input type="hidden" name="broker" id="afBroker" value="${defBroker}">
+       <label>${t("Date")}<input type="date" name="date" value="${dateVal}" required></label>`
+    : `<label>${type === "Transfer between brokers" ? t("From broker") : t("Broker")}${styledSelect("broker", brokerList, defBroker, { id: "afBroker" })}</label>
+       <label>${t("Date")}<input type="date" name="date" value="${dateVal}" required></label>`;
 
   let core = "", extra = "";
   if (isTrade) {
+    // Company/Market are auto-filled from the ticker lookup → kept as hidden fields.
     core = `
-      <label>${t("Ticker")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL" autocomplete="off"></label>
-      <label>${t("Company Name")}<input type="text" name="company" value="${v(e.company)}" placeholder="${t("optional")}"></label>
-      <label>${t("Market")}<input type="text" name="market" value="${v(e.market)}" placeholder="NASDAQ"></label>
-      <label>${t("Currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
+      <label style="grid-column:1/-1">${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
       <label>${t("Quantity / Shares")}<input type="number" step="any" name="qty" value="${v(e.qty)}" placeholder="0"></label>
-      <label>${t("Price / Share")}<input type="number" step="any" name="price" value="${v(e.price)}" placeholder="0.00"></label>`;
+      <label class="amt-label">${t("Price / Share")}${amtCombo("price", v(e.price), "0.00")}</label>
+      <input type="hidden" name="company" value="${v(e.company)}">
+      <input type="hidden" name="market" value="${v(e.market)}">`;
     extra = `
       <label>${t("Fee")}<input type="number" step="any" name="fee" value="${v(e.fee)}" placeholder="0.00"></label>
       <label>${t("Taxes")}<input type="number" step="any" name="tradeTax" value="${v(e.tax)}" placeholder="0.00"></label>
       ${fxRow}`;
   } else if (type === "Dividend") {
     core = `
-      <label>${t("Ticker")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL" autocomplete="off"></label>
-      <label>${t("Currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
-      <label>${t("Gross dividend")}<input type="number" step="any" name="divGross" value="${type === "Dividend" ? v(e.gross) : ""}" placeholder="0.00"></label>`;
-    extra = `
+      <label>${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
+      <label class="amt-label">${t("Gross dividend")}${amtCombo("divGross", type === "Dividend" ? v(e.gross) : "", "0.00")}</label>
       <label>${t("Withholding Tax")}<input type="number" step="any" name="tax" value="${v(e.tax)}" placeholder="0.00"></label>
+      <input type="hidden" name="company" value="${v(e.company)}">`;
+    extra = `
       <label>${t("Ex-dividend Date")}<input type="date" name="exDate" value="${v(e.exDate)}"></label>
       <label>${t("Payment Date")}<input type="date" name="payDate" value="${v(e.payDate)}"></label>
-      <label>${t("Status")}${styledSelect("status", [{ value: "Received", label: t("Received") }, { value: "Expected", label: t("Expected") }], e.status || "Received")}</label>
       ${fxRow}`;
   } else if (type === "Currency Exchange") {
     const otherCcy = (ccyList.find((i) => i.value !== defCcy) || ccyList[0] || {}).value || "";
     core = `
-      <label>${t("From currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
-      <label>${t("From amount")}<input type="number" step="any" name="fromAmount" value="${v(e.fromAmount)}" placeholder="0.00"></label>
-      <label>${t("To currency")}${styledSelect("toCurrency", ccyList, e.toCurrency || otherCcy, { id: "afToCcy", more: "currency" })}</label>
-      <label>${t("To amount (received)")}<input type="number" step="any" name="toAmount" value="${v(e.toAmount)}" placeholder="0.00"></label>
-      <label>${t("Implied rate")}<input type="text" name="impliedRate" value="" readonly placeholder="—"><small class="fx-hint" id="fxHint"></small></label>`;
+      <label class="ccy-pair" style="grid-column:1/-1">${t("From currency")}
+        <div class="ccy-combo">
+          ${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency", combo: "left" })}
+          <input type="number" step="any" name="fromAmount" value="${v(e.fromAmount)}" placeholder="0.00">
+        </div>
+      </label>
+      <label class="ccy-pair" style="grid-column:1/-1">${t("To currency")}
+        <div class="ccy-combo">
+          ${styledSelect("toCurrency", ccyList, e.toCurrency || otherCcy, { id: "afToCcy", more: "currency", combo: "left" })}
+          <input type="number" step="any" name="toAmount" value="${v(e.toAmount)}" placeholder="0.00">
+        </div>
+      </label>
+      <div style="grid-column:1/-1">
+        <p class="fx-rate-info" id="fxRateDisplay">${t("Exchange rate")}: <span class="muted">${t("Auto-calculated")}</span></p>
+        <small class="fx-hint" id="fxHint"></small>
+      </div>`;
     extra = `<label>${t("Fee")}<input type="number" step="any" name="fee" value="${v(e.fee)}" placeholder="0.00"></label>${fxRow}`;
   } else if (type === "Stock split") {
     core = `
-      <label>${t("Ticker")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL" autocomplete="off"></label>
-      <label>${t("Currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
-      <label>${t("Split ratio (new ÷ old)")}<input type="number" step="any" name="splitRatio" value="${type === "Stock split" ? v(e.qty) : ""}" placeholder="2"></label>`;
+      <label style="grid-column:1/-1">${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
+      <label>${t("Split ratio (new ÷ old)")}<input type="number" step="any" name="splitRatio" value="${type === "Stock split" ? v(e.qty) : ""}" placeholder="2"></label>
+      <input type="hidden" name="currency" value="${defCcy}">`;
   } else if (type === "Transfer between brokers") {
-    // FX is inline (shows only for non-base currency) — no separate "fees & details" section.
     core = `
-      <label>${t("Currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
-      <label>${t("Amount (gross)")}<input type="number" step="any" name="amount" value="${v(e.gross)}" placeholder="0.00"></label>
       <label>${t("To broker")}${styledSelect("toBroker", brokerList, e.toBrokerId || "")}</label>
+      <label><span>${t("Stock code")} <span class="form-optional">(${t("optional")})</span></span><input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
+      <label class="amt-label" style="grid-column:1/-1"><span>${t("Amount")} <span class="form-optional">(${t("optional")})</span></span>${amtCombo("amount", v(e.gross), "0.00")}</label>
       ${fxRow}`;
-  } else { // Deposit, Withdrawal, Fee, Tax withholding, Interest / cash yield — pure cash moves, no fees/taxes
+  } else { // Deposit, Withdrawal, Fee, Interest — pure cash moves, no fees/taxes
     core = `
-      <label>${t("Currency")}${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency" })}</label>
-      <label>${t("Amount (gross)")}<input type="number" step="any" name="amount" value="${v(e.gross)}" placeholder="0.00"></label>
+      <label class="amt-label" style="grid-column:1/-1">${t("Amount")}${amtCombo("amount", v(e.gross), "0.00")}</label>
       ${fxRow}`;
   }
 
   const oversell = type === "Sell"
     ? `<label class="check" id="oversellWrap"><input type="checkbox" name="override" ${e.override ? "checked" : ""}> ${t("Allow selling more shares than currently held (override)")}</label>` : "";
   const needsTicker = isTrade || type === "Dividend" || type === "Stock split";
+  const hasNote = !!(e.notes || draft.notes);
 
   return `<form id="txForm" class="form add-form" autocomplete="off">
     <input type="hidden" name="type" value="${type}">
     <div class="form-grid">${head}${core}</div>
     ${needsTicker ? `<div class="lookup-status muted" id="lookupStatus"></div>` : ""}
-    ${extra ? `<details class="more-fields"><summary>${t("Fees, taxes & details")}</summary><div class="form-grid">${extra}</div></details>` : ""}
+    ${extra ? `<details class="more-fields"><summary>${type === "Dividend" ? t("Dividend schedule") : t("Fees, taxes & details")}</summary><div class="form-grid">${extra}</div></details>` : ""}
     ${oversell}
-    <label class="block">${t("Notes")}<input type="text" name="notes" value="${v(e.notes != null ? e.notes : draft.notes)}" placeholder="${t("optional")}"></label>
+    <div class="note-wrap">
+      <button type="button" class="note-add-btn" id="noteToggle"${hasNote ? ' style="display:none"' : ''}>+ ${t("Add note")}</button>
+      <label class="note-field" id="noteField"${!hasNote ? ' style="display:none"' : ''}>
+        <input type="text" name="notes" value="${v(e.notes != null ? e.notes : draft.notes)}" placeholder="${t("optional")}">
+      </label>
+    </div>
     <div class="form-actions">
       <button type="submit" class="btn primary">${editing ? t("Update Transaction") : t("Save Transaction")}</button>
       <button type="button" class="btn secondary" id="addCancel">${editing ? t("Cancel") : t("Clear")}</button>
@@ -2062,8 +2286,15 @@ function addForm2(type, editing) {
   </form>`;
 }
 
+function mountDatePickers(form) {
+  form.querySelectorAll('input[type="date"]').forEach((el) => {
+    el.addEventListener("click", () => { try { el.showPicker(); } catch (_) {} });
+  });
+}
+
 function mountAddForm(type, editing) {
   const form = $("#txForm"); if (!form) return;
+  mountDatePickers(form);
   wireTxSubmit(form);
   // Preserve shared fields (broker/date/currency/notes) as the user switches type tabs.
   if (!editing) {
@@ -2080,6 +2311,23 @@ function mountAddForm(type, editing) {
     if (editing) { editingTxId = null; location.hash = "#/records"; }
     else { addDraft = {}; render(); }
   });
+  // Notes toggle: collapsed by default, expands on click, collapses on blur-when-empty
+  const noteToggle = form.querySelector("#noteToggle"), noteField = form.querySelector("#noteField"),
+        noteInput = form.querySelector('[name="notes"]');
+  if (noteToggle && noteField && noteInput) {
+    noteToggle.addEventListener("click", () => {
+      noteToggle.style.display = "none";
+      noteField.style.display = "";
+      noteInput.focus();
+    });
+    noteInput.addEventListener("blur", () => {
+      if (!noteInput.value.trim()) {
+        noteInput.value = "";
+        noteField.style.display = "none";
+        noteToggle.style.display = "";
+      }
+    });
+  }
   const brokerSel = $("#afBroker"), ccySel = $("#afCcy"), fxEl = $("#afFx"), fxField = $("#afFxField");
   // FX rate only matters when the currency differs from base — hide it for MYR, prefill it otherwise.
   const syncFx = (prefill) => {
@@ -2098,29 +2346,33 @@ function mountAddForm(type, editing) {
   if (ccySel) ccySel.addEventListener("change", () => syncFx(true));   // currency changed → prefill the new rate
   syncFx(false);   // initial: set visibility, keep an existing (edited) rate
 
-  // Currency Exchange: live implied rate (To ÷ From) + same-currency guard hint
+  // Currency Exchange: live exchange rate display + same-currency guard hint
   const fromAmt = form.querySelector('[name="fromAmount"]'), toAmt = form.querySelector('[name="toAmount"]'),
-        toCcy = form.querySelector('[name="toCurrency"]'), impl = form.querySelector('[name="impliedRate"]'), fxHint = $("#fxHint");
-  if (fromAmt && toAmt && impl) {
+        toCcy = form.querySelector('[name="toCurrency"]'), rateDisplay = $("#fxRateDisplay"), fxHint = $("#fxHint");
+  if (fromAmt && toAmt && rateDisplay) {
     const upd = () => {
       const f = parseFloat(fromAmt.value) || 0, tt = parseFloat(toAmt.value) || 0;
       const from = (ccySel && ccySel.value) || FX.base, to = (toCcy && toCcy.value) || "";
       const same = from && to && from === to;
       if (fxHint) { fxHint.textContent = same ? t("Pick a different currency for the exchange.") : ""; fxHint.style.display = same ? "" : "none"; }
-      impl.value = (!same && f > 0 && tt > 0) ? `1 ${from} = ${+(tt / f).toFixed(6)} ${to}` : "—";
+      const calc = (!same && f > 0 && tt > 0) ? `1 ${from} = ${+(tt / f).toFixed(6)} ${to}` : null;
+      rateDisplay.innerHTML = calc
+        ? `${t("Exchange rate")}: <strong class="fx-rate-val">${calc}</strong>`
+        : `${t("Exchange rate")}: <span class="muted">${t("Auto-calculated")}</span>`;
     };
     [fromAmt, toAmt].forEach((el) => el.addEventListener("input", upd));
     if (toCcy) toCcy.addEventListener("change", upd);
     if (ccySel) ccySel.addEventListener("change", upd);
     upd();
   }
-  // Ticker autocomplete + auto-fill
+  // Ticker autocomplete + auto-fill (dividend: company only, no live-price line)
   const tickerEl = form.querySelector('[name="ticker"]');
-  if (tickerEl) {
-    const doLookup = () => autofillFromTicker(form, $("#lookupStatus"), { fillPrice: type === "Buy" || type === "Sell" });
+  if (tickerEl && type !== "Transfer between brokers") {
+    const lookOpts = { fillPrice: type === "Buy" || type === "Sell", showPrice: type !== "Dividend" };
+    const doLookup = () => autofillFromTicker(form, $("#lookupStatus"), lookOpts);
     tickerEl.addEventListener("change", doLookup);
     tickerEl.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); doLookup(); } });
-    attachAutocomplete(form, $("#lookupStatus"), { fillPrice: type === "Buy" || type === "Sell" });
+    attachAutocomplete(form, $("#lookupStatus"), lookOpts);
   }
   // Live "Total: MYR X" for Buy/Sell (Quantity × Price, converted to base).
   const totalEl = $("#addTotal");
@@ -2146,12 +2398,15 @@ function mountAddForm(type, editing) {
 function wireTxSubmit(form) {
   form.addEventListener("submit", (e) => {
     e.preventDefault();
+    form.querySelectorAll(".field-err").forEach((el) => el.remove());
+    form.querySelectorAll(".field-invalid").forEach((el) => el.classList.remove("field-invalid"));
+
     const d = Object.fromEntries(new FormData(form).entries());
     const type = d.type, currency = d.currency;
     const fxRate = d.fxRate ? parseFloat(d.fxRate) : (FX.rates[currency] || 1);
     const fee = parseFloat(d.fee) || 0;
-    let tax = parseFloat(d.tax) || 0;                       // dividend withholding tax
-    if (type === "Buy" || type === "Sell") tax = parseFloat(d.tradeTax) || 0;  // trade taxes
+    let tax = parseFloat(d.tax) || 0;
+    if (type === "Buy" || type === "Sell") tax = parseFloat(d.tradeTax) || 0;
     let qty = d.qty ? parseFloat(d.qty) : null;
     let price = d.price ? parseFloat(d.price) : null;
     let gross = parseFloat(d.amount) || 0;
@@ -2160,26 +2415,58 @@ function wireTxSubmit(form) {
     if (type === "Buy" || type === "Sell") gross = (qty || 0) * (price || 0);
     if (type === "Stock split") qty = parseFloat(d.splitRatio) || 1;
 
-    const bad = (msg) => { toast(msg); return true; };
+    // fieldErr: highlight a field and show an error message directly below it
+    const fieldErr = (fieldName, msg) => {
+      const input = form.querySelector(`[name="${fieldName}"]`);
+      if (input) {
+        const selEl = input.closest(".sel");
+        const hilite = selEl ? selEl.querySelector(".sel-trigger") : input;
+        if (hilite) hilite.classList.add("field-invalid");
+        const label = input.closest("label");
+        if (label) {
+          const errEl = document.createElement("p");
+          errEl.className = "field-err";
+          errEl.textContent = msg;
+          label.insertAdjacentElement("afterend", errEl);
+          const clear = () => { errEl.remove(); if (hilite) hilite.classList.remove("field-invalid"); };
+          input.addEventListener("input", clear, { once: true });
+          input.addEventListener("change", clear, { once: true });
+        }
+      }
+      return true;
+    };
+    // formErr: for compound conditions where no single field is the culprit
+    const formErr = (msg) => {
+      const errEl = document.createElement("p");
+      errEl.className = "field-err";
+      errEl.textContent = msg;
+      (form.querySelector(".form-actions") || form).insertAdjacentElement("beforebegin", errEl);
+      return true;
+    };
+
     if (type === "Buy" || type === "Sell") {
-      if (!ticker) return void bad(t("Enter a ticker."));
-      if (!(qty > 0)) return void bad(t("Enter a quantity greater than 0."));
-      if (!(price > 0)) return void bad(t("Enter a price greater than 0."));
+      if (!ticker) return void fieldErr("ticker", t("Enter a ticker."));
+      if (!(qty > 0)) return void fieldErr("qty", t("Enter a quantity greater than 0."));
+      if (!(price > 0)) return void fieldErr("price", t("Enter a price greater than 0."));
     } else if (type === "Dividend") {
-      if (!ticker) return void bad(t("Enter a ticker."));
-      if (!(gross > 0)) return void bad(t("Enter a gross dividend greater than 0."));
+      if (!ticker) return void fieldErr("ticker", t("Enter a ticker."));
+      if (!(gross > 0)) return void fieldErr("divGross", t("Enter a gross dividend greater than 0."));
     } else if (type === "Currency Exchange") {
       /* validated below */
     } else if (type === "Stock split") {
-      if (!(qty > 0)) return void bad(t("Enter a split ratio greater than 0."));
-    } else { // Deposit, Withdrawal, Fee, Tax withholding, Interest, Transfer
-      if (!(gross > 0)) return void bad(t("Enter an amount greater than 0."));
-      if (type === "Transfer between brokers" && d.toBroker === d.broker) return void bad(t("Choose a different destination broker."));
+      if (!(qty > 0)) return void fieldErr("splitRatio", t("Enter a split ratio greater than 0."));
+    } else {
+      if (type === "Transfer between brokers") {
+        if (!(gross > 0) && !ticker) return void formErr(t("Enter an amount or stock code for the transfer."));
+        if (d.toBroker === d.broker) return void fieldErr("toBroker", t("Choose a different destination broker."));
+      } else {
+        if (!(gross > 0)) return void fieldErr("amount", t("Enter an amount greater than 0."));
+      }
     }
 
     if (type === "Sell" && !d.override) {
       const held = sharesHeldExcluding(d.broker, ticker, editingTxId);
-      if ((qty || 0) > held + 1e-9) return void bad(`${t("You only hold")} ${fmt(held, { maximumFractionDigits: 4 })} ${t("shares — tick the override to sell more.")}`);
+      if ((qty || 0) > held + 1e-9) return void fieldErr("qty", `${t("You only hold")} ${fmt(held, { maximumFractionDigits: 4 })} ${t("shares — tick the override to sell more.")}`);
     }
 
     let extra = {};
@@ -2188,9 +2475,9 @@ function wireTxSubmit(form) {
       const toCurrency = d.toCurrency;
       const fromAmount = parseFloat(d.fromAmount) || 0;
       const toAmount = parseFloat(d.toAmount) || 0;
-      if (!(fromAmount > 0)) return void bad(t("Enter an amount to convert."));
-      if (!(toAmount > 0)) return void bad(t("Enter the amount you received."));
-      if (!toCurrency || toCurrency === fromCurrency) return void bad(t("Choose a different destination currency."));
+      if (!(fromAmount > 0)) return void fieldErr("fromAmount", t("Enter an amount to convert."));
+      if (!(toAmount > 0)) return void fieldErr("toAmount", t("Enter the amount you received."));
+      if (!toCurrency || toCurrency === fromCurrency) return void fieldErr("toCurrency", t("Choose a different destination currency."));
       const exchangeRate = toAmount / fromAmount;
       gross = fromAmount;
       extra = { fromCurrency, toCurrency, fromAmount, toAmount, exchangeRate };
@@ -2199,7 +2486,7 @@ function wireTxSubmit(form) {
     const record = { id: editingTxId || uid("t"), date: d.date, brokerId: d.broker, type,
       ticker: ticker || "—", company: (d.company || "").trim(), market: (d.market || "").trim(),
       currency, qty, price, gross, fee, tax, fxRate, myrEquivalent: gross * fxRate,
-      status: type === "Dividend" ? (d.status || "Received") : undefined,
+      status: type === "Dividend" ? "Received" : undefined,
       exDate: d.exDate || undefined, payDate: d.payDate || undefined,
       toBrokerId: type === "Transfer between brokers" ? d.toBroker : undefined,
       override: !!d.override, notes: (d.notes || "").trim() || undefined, ...extra };
@@ -2212,8 +2499,16 @@ function wireTxSubmit(form) {
       ALL_TRANSACTIONS.unshift(record);
     }
     editingTxId = null;
-    saveStore(); toast(wasEditing ? t("Transaction updated") : t("Transaction added"));
-    location.hash = "#/records";
+    saveStore();
+    if (wasEditing) {
+      toast(t("Transaction updated"));
+      location.hash = "#/records";
+    } else {
+      toast(t("Saved ✓"));
+      // Stay on Add for rapid entry: keep broker/date/currency (addDraft), clear the type-specific fields.
+      if (addDraft) delete addDraft.notes;
+      render();
+    }
   });
 }
 
@@ -2332,7 +2627,8 @@ function dividendForecast(received, expected) {
     return expected.reduce((s, d) => {
       if (!d.payDate) return s;
       const dt = new Date(d.payDate + "T00:00:00");
-      return (!isNaN(dt) && dt >= now && dt <= end) ? s + divNetMYR(d) : s;
+      const net = d.expectedNetMYR != null ? d.expectedNetMYR : divNetMYR(d);
+      return (!isNaN(dt) && dt >= now && dt <= end) ? s + net : s;
     }, 0);
   };
   return { ttm, nextMonth: ttm / 12, nextQuarter: ttm / 4, nextYear: ttm,
@@ -2345,16 +2641,34 @@ function dividendForecast(received, expected) {
 function pageDividends() {
   const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend");
   const received = divs.filter((d) => d.status !== "Expected");
-  const expected = divs.filter((d) => d.status === "Expected").sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
+  const upcoming = allUpcomingDivs();
 
-  const upcomingRows = expected.map((d) => {
-    const net = (+d.gross || 0) - (+d.tax || 0);
+  const upcomingRows = upcoming.map((d) => {
     const du = daysUntil(d.payDate);
     return `<tr><td class="ticker">${d.ticker}</td><td class="sub">${brokerName(d.brokerId)}</td>
       <td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
       <td class="num">${d.payDate ? (du >= 0 ? du + " " + t("days") : t("overdue")) : "—"}</td>
-      <td class="num">${d.currency} ${fmt(net)}</td><td>${statusBadge("Expected")}</td></tr>`;
+      <td class="num">${d.currency} ${fmt(d.expectedNet)}</td><td>${statusBadge(d.status)}</td>
+      <td>${d._id ? `<button type="button" class="btn ghost small" data-del-ud="${escAttr(d._id)}">${t("Remove")}</button>` : ""}</td></tr>`;
   }).join("");
+
+  // Prompt to add upcoming dividends for .KL holdings that don't have a manual entry yet
+  const klHoldings = T.holdings.filter((h) => h.ticker.endsWith(".KL"));
+  const coveredTickers = new Set([...UPCOMING_DIVIDENDS.map((d) => d.ticker), ...Object.keys(AUTO_DIV_CACHE)]);
+  const klPrompts = klHoldings.filter((h) => !coveredTickers.has(h.ticker)).map((h) => `
+    <div class="kl-prompt" data-ticker="${escAttr(h.ticker)}" data-broker="${escAttr(h.brokerId)}" data-ccy="${escAttr(h.currency || FX.base)}">
+      <p class="muted" style="margin:8px 0 2px">${t("Add upcoming dividend for")} <strong>${h.ticker}</strong>
+        <button type="button" class="kl-add-btn btn ghost small" style="margin-left:8px">+ ${t("Add")} →</button></p>
+      <form class="kl-div-form form-grid" hidden style="margin:8px 0 4px">
+        <label>${t("Ex-dividend Date")}<input type="date" name="exDate" required></label>
+        <label>${t("Payment Date")}<input type="date" name="payDate" required></label>
+        <label style="grid-column:1/-1">${t("Per share")} (${h.currency || FX.base})<input type="number" step="any" name="amtPerShare" placeholder="0.00" required></label>
+        <div class="form-actions" style="grid-column:1/-1">
+          <button type="submit" class="btn primary small">${t("Save")}</button>
+          <button type="button" class="kl-cancel-btn btn ghost small">${t("Cancel")}</button>
+        </div>
+      </form>
+    </div>`).join("");
 
   const histRows = received.sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1)).map((d) => {
     const net = (+d.gross || 0) - (+d.tax || 0);
@@ -2371,7 +2685,6 @@ function pageDividends() {
   const taxByCountry = groupSum(received, (d) => countryForTicker(d.ticker, (STOCK_META[d.ticker] || {}).country), (d) => (+d.tax || 0) * (d.fxRate || FX.rates[d.currency] || 1));
   const taxRows = taxByCountry.filter((c) => c.value > 0).map((c) => `<tr><td>${c.label}</td><td class="num neg">${money(c.value)}</td></tr>`).join("");
 
-  // Analytics + forecast (P1.2/3/4) — with month-over-month, quarter-over-quarter, year-over-year trend.
   const periods = dividendByPeriod(received);
 
   const monthsAsc = Object.keys(periods.byMonth).sort();
@@ -2394,7 +2707,7 @@ function pageDividends() {
   const thisY = yearsAsc[yearsAsc.length - 1], lastY = yearsAsc[yearsAsc.length - 2];
   const yoyGrowth = (lastY && periods.byYear[lastY]) ? ((periods.byYear[thisY] - periods.byYear[lastY]) / periods.byYear[lastY]) * 100 : null;
 
-  const fc = dividendForecast(received, expected);
+  const fc = dividendForecast(received, upcoming);
   const hasExp = fc.expMonth || fc.expQuarter || fc.expYear;
 
   const html = `
@@ -2409,10 +2722,16 @@ function pageDividends() {
         ${miniCard(t("Next Month (est.)"), money(fc.nextMonth))}
         ${miniCard(t("Next Quarter (est.)"), money(fc.nextQuarter))}
         ${miniCard(t("Next Year (est.)"), money(fc.nextYear))}</div>
-      ${hasExp ? `<p class="muted" style="margin:12px 0 0">${t("Confirmed 'Expected' dividends in window")}: ${t("next month")} ${money(fc.expMonth)} · ${t("next quarter")} ${money(fc.expQuarter)} · ${t("next year")} ${money(fc.expYear)}</p>` : ""}
+      ${hasExp ? `<p class="muted" style="margin:12px 0 0">${t("Upcoming confirmed dividends in window")}: ${t("next month")} ${money(fc.expMonth)} · ${t("next quarter")} ${money(fc.expQuarter)} · ${t("next year")} ${money(fc.expYear)}</p>` : ""}
       <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`)}
 
-    ${panel("Upcoming Dividends", table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], upcomingRows))}
+    <div id="divUpcomingSection">
+      ${panel("Upcoming Dividends",
+        table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"},{label:""}], upcomingRows) +
+        (klPrompts ? `<div class="kl-prompts">${klPrompts}</div>` : ""),
+        `<small class="muted" id="divFetchStatus"></small>`
+      )}
+    </div>
 
     <section class="grid-2">
       ${panel("Monthly Dividend Income", table([{label:"Month"},{label:"Net (MYR)",num:1},{label:"MoM Δ",num:1}], monthRows))}
@@ -2423,7 +2742,60 @@ function pageDividends() {
 
     ${panel("Dividend History", table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], histRows))}
     ${panel("Dividend Tax Paid by Country", table([{label:"Country"},{label:"Withholding Tax (MYR)",num:1}], taxRows))}`;
-  return { title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html };
+
+  return {
+    title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
+    mount() {
+      // Delete a manual UPCOMING_DIVIDENDS entry
+      document.querySelectorAll("[data-del-ud]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.delUd;
+          const idx = UPCOMING_DIVIDENDS.findIndex((d) => d.id === id);
+          if (idx >= 0) { UPCOMING_DIVIDENDS.splice(idx, 1); saveStore(); render(); }
+        });
+      });
+      // Expand / collapse the .KL mini-form
+      document.querySelectorAll(".kl-add-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const prompt = btn.closest(".kl-prompt");
+          btn.style.display = "none";
+          prompt.querySelector(".kl-div-form").hidden = false;
+        });
+      });
+      document.querySelectorAll(".kl-cancel-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const prompt = btn.closest(".kl-prompt");
+          prompt.querySelector(".kl-div-form").hidden = true;
+          prompt.querySelector(".kl-add-btn").style.display = "";
+        });
+      });
+      // Submit a manual .KL upcoming dividend
+      document.querySelectorAll(".kl-div-form").forEach((form) => {
+        form.addEventListener("submit", (e) => {
+          e.preventDefault();
+          const prompt = form.closest(".kl-prompt");
+          const fd = new FormData(form);
+          UPCOMING_DIVIDENDS.push({
+            id: uid("ud"), ticker: prompt.dataset.ticker, brokerId: prompt.dataset.broker,
+            currency: prompt.dataset.ccy,
+            exDate: fd.get("exDate") || "", payDate: fd.get("payDate") || "",
+            amtPerShare: parseFloat(fd.get("amtPerShare")) || 0,
+          });
+          saveStore(); render();
+        });
+      });
+      // Auto-fetch Finnhub schedule for US holdings; re-render upcoming section when done
+      if (LIVE_ENABLED) {
+        const statusEl = document.getElementById("divFetchStatus");
+        if (statusEl) statusEl.textContent = t("Fetching US schedules…");
+        fetchAllDivSchedules().then((fetched) => {
+          if (fetched && document.getElementById("divUpcomingSection")) render();
+          const s = document.getElementById("divFetchStatus");
+          if (s) s.textContent = "";
+        });
+      }
+    },
+  };
 }
 
 /* =============================================================================
@@ -3199,7 +3571,7 @@ function downloadCSV(filename, header, lines) {
   toast(filename + " exported");
 }
 function exportCashCSV() {
-  const cashTypes = ["Deposit", "Withdrawal", "Interest / cash yield", "Fee", "Tax withholding", "Transfer between brokers", "Currency Exchange"];
+  const cashTypes = ["Deposit", "Withdrawal", "Interest / cash yield", "Interest", "Fee", "Tax withholding", "Transfer between brokers", "Currency Exchange"];
   const rows = ALL_TRANSACTIONS.filter((x) => cashTypes.includes(x.type) || (x.type === "Dividend" && x.status !== "Expected"));
   downloadCSV("investment-ledger-cash.csv",
     ["Date","Broker","Type","Amount","Currency","FX Rate","Amount in " + FX.base],
@@ -3227,7 +3599,7 @@ function exportDivCSV() {
 let pendingImport = null;   // { rows:[{...parsed, errors, dup, needsBroker}], text, unknownBrokers:[] }
 
 const IMPORT_TYPES = ["Deposit","Withdrawal","Buy","Sell","Dividend","Fee","Tax withholding",
-  "Interest / cash yield","Currency Exchange","Transfer between brokers"];
+  "Interest / cash yield","Interest","Currency Exchange","Transfer between brokers"];
 
 const IMPORT_HEADER = ["Date","Broker","Type","Ticker","Quantity","Price","Gross","Fee","Tax","Currency","FX Rate",
   "To Broker","To Currency","To Amount","Status","Ex-Date","Pay Date","Notes"];
