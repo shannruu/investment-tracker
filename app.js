@@ -1145,10 +1145,11 @@ function typeChip(t) {
   return `<span class="badge ${c}">${t}</span>`;
 }
 
-function lineChartSVG(series) {
+function lineChartSVG(series, opts) {
   if (!series || series.length === 0) return emptyState(t("No portfolio history yet."));
   if (series.length === 1) series = [series[0], { ...series[0], month: "", date: "" }];
 
+  const gainMode = opts && opts.gainMode;
   const W = 640, H = 240, padL = 52, padR = 16, padT = 16, padB = 28;
   const nwVals = series.map((d) => d.value);
   const pVals = series.map((d) => d.principal || 0);
@@ -1157,7 +1158,11 @@ function lineChartSVG(series) {
   let lo = Math.min(...allVals), hi = Math.max(...allVals);
   if (hi - lo < 1e-9) { const pad = Math.abs(hi) * 0.1 || 1; lo -= pad; hi += pad; }
   else { const m = (hi - lo) * 0.06; lo -= m; hi += m; }
-  if (lo < 0 && Math.min(...allVals) >= 0) lo = 0;
+  if (gainMode) {
+    lo = Math.min(lo, 0); hi = Math.max(hi, 0);
+  } else {
+    if (lo < 0 && Math.min(...allVals) >= 0) lo = 0;
+  }
 
   const min = lo, max = hi;
   const xFn = (i) => padL + (i * (W - padL - padR)) / (series.length - 1);
@@ -1168,19 +1173,31 @@ function lineChartSVG(series) {
   const xEnd = xFn(series.length - 1).toFixed(1);
   const yBot = (H - padB).toFixed(1);
 
-  // Clip paths: region below each line (for fill-between)
-  const clipNWPath = `${nwLine} L${xEnd},${yBot} L${padL},${yBot} Z`;
-  const clipPPath = `${pLine} L${xEnd},${yBot} L${padL},${yBot} Z`;
-
-  // "above-principal" area, clipped to "below-NW" → green zone (NW > principal)
-  const pRev = series.slice().reverse().map((d, ri) =>
-    `L${xFn(series.length - 1 - ri).toFixed(1)},${yFn(d.principal || 0).toFixed(1)}`).join(" ");
-  const pTopArea = `M${padL},${padT} L${xEnd},${padT} ${pRev} Z`;
-
-  // "above-NW" area, clipped to "below-principal" → red zone (principal > NW)
-  const nwRev = series.slice().reverse().map((d, ri) =>
-    `L${xFn(series.length - 1 - ri).toFixed(1)},${yFn(d.value).toFixed(1)}`).join(" ");
-  const nwTopArea = `M${padL},${padT} L${xEnd},${padT} ${nwRev} Z`;
+  let clipDefs = "", fills = "", zeroLine = "";
+  if (gainMode) {
+    const y0 = yFn(0), y0s = y0.toFixed(1);
+    const aboveH = Math.max(0, y0 - padT).toFixed(1);
+    const belowH = Math.max(0, H - padB - y0).toFixed(1);
+    clipDefs = `<clipPath id="clip-above-z"><rect x="${padL}" y="${padT}" width="${W - padL - padR}" height="${aboveH}"/></clipPath>
+      <clipPath id="clip-below-z"><rect x="${padL}" y="${y0s}" width="${W - padL - padR}" height="${belowH}"/></clipPath>`;
+    const gainArea = `${nwLine} L${xEnd},${y0s} L${padL},${y0s} Z`;
+    fills = `<path d="${gainArea}" fill="rgba(34,197,94,.09)" clip-path="url(#clip-above-z)"/>
+      <path d="${gainArea}" fill="rgba(220,38,38,.11)" clip-path="url(#clip-below-z)"/>`;
+    zeroLine = `<line x1="${padL}" y1="${y0s}" x2="${W - padR}" y2="${y0s}" class="zero-ln"/>`;
+  } else {
+    const clipNWPath = `${nwLine} L${xEnd},${yBot} L${padL},${yBot} Z`;
+    const clipPPath = `${pLine} L${xEnd},${yBot} L${padL},${yBot} Z`;
+    const pRev = series.slice().reverse().map((d, ri) =>
+      `L${xFn(series.length - 1 - ri).toFixed(1)},${yFn(d.principal || 0).toFixed(1)}`).join(" ");
+    const pTopArea = `M${padL},${padT} L${xEnd},${padT} ${pRev} Z`;
+    const nwRev = series.slice().reverse().map((d, ri) =>
+      `L${xFn(series.length - 1 - ri).toFixed(1)},${yFn(d.value).toFixed(1)}`).join(" ");
+    const nwTopArea = `M${padL},${padT} L${xEnd},${padT} ${nwRev} Z`;
+    clipDefs = `<clipPath id="clip-nw"><path d="${clipNWPath}"/></clipPath>
+      <clipPath id="clip-p"><path d="${clipPPath}"/></clipPath>`;
+    fills = `<path d="${pTopArea}" fill="rgba(91,84,232,.08)" clip-path="url(#clip-nw)"/>
+      <path d="${nwTopArea}" fill="rgba(220,38,38,.13)" clip-path="url(#clip-p)"/>`;
+  }
 
   const ylab = (v) => max >= 10000 ? Math.round(v / 1000) + "k" : (max >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v));
   let grid = "";
@@ -1203,10 +1220,7 @@ function lineChartSVG(series) {
   }).join("");
 
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("Portfolio value over time")}">
-    <defs>
-      <clipPath id="clip-nw"><path d="${clipNWPath}"/></clipPath>
-      <clipPath id="clip-p"><path d="${clipPPath}"/></clipPath>
-    </defs>
+    <defs>${clipDefs}</defs>
     <style>
       .grid{stroke:var(--border);stroke-width:1}
       .ylab,.xlab{fill:var(--muted);font-size:11px;font-family:var(--font)}
@@ -1214,10 +1228,9 @@ function lineChartSVG(series) {
       .ln-nw{fill:none;stroke:var(--brand);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
       .ln-p{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:5,4;stroke-linejoin:round;stroke-linecap:round}
       .dot{fill:var(--brand)}.dot-hit{cursor:pointer}
+      .zero-ln{stroke:var(--border);stroke-width:1.5;stroke-dasharray:3,3}
     </style>
-    ${grid}
-    <path d="${pTopArea}" fill="rgba(91,84,232,.08)" clip-path="url(#clip-nw)"/>
-    <path d="${nwTopArea}" fill="rgba(220,38,38,.13)" clip-path="url(#clip-p)"/>
+    ${grid}${zeroLine}${fills}
     <path d="${pLine}" class="ln-p"/>
     <path d="${nwLine}" class="ln-nw"/>
     ${dots}${xlabs}
@@ -1445,7 +1458,7 @@ function pageDashboard() {
         { on: cf.interest, op: "+", label: "Interest / cash yield", val: mfmt(cf.interest) },
         { on: cf.fees, op: "−", label: "Standalone fees", val: mfmt(cf.fees) },
         { on: cf.taxes, op: "−", label: "Tax withholding", val: mfmt(cf.taxes) },
-        { on: Math.abs(fxAdj) > 0.005, op: fxAdj >= 0 ? "+" : "−", label: "FX revaluation of foreign cash", val: mfmt(Math.abs(fxAdj)) },
+        { on: Math.abs(fxAdj) > 0.005, op: fxAdj >= 0 ? "+" : "−", label: "FX gain/loss on cash", hint: "Your foreign cash balance is worth more or less in MYR depending on the exchange rate stored when you deposited vs. today's rate.", val: mfmt(Math.abs(fxAdj)) },
       ].filter((r) => r.on).map(({ op, label, val }) => ({ op, label, val }));
       // Fallback so the breakdown is never blank: only brokers that actually hold cash, else a plain note.
       if (!rows.length) rows = BROKERS
@@ -1470,7 +1483,7 @@ function pageDashboard() {
     <article class="stat pl ${up ? "is-up" : dn ? "is-down" : ""}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total Return") : t("Unrealized P/L")}, show calculation">
       ${statHead(returnIsTotal ? t("Total Return") : t("Unrealized P/L"), toggle)}
       <div class="stat-value ${up ? "pos" : dn ? "neg" : ""}">${up ? "▲ " : dn ? "▼ " : ""}${signed(shownReturn)}</div>
-      <div class="stat-sub ${up ? "pos" : dn ? "neg" : "muted"}">${up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%"} <span class="col-info" title="${t("Calculated as return ÷ net capital invested (total deposits minus withdrawals).")}">ⓘ</span> · ${t("on net capital")}</div>
+      <div class="stat-sub ${up ? "pos" : dn ? "neg" : "muted"}">${up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%"} <span class="col-info" data-tip="${t("Calculated as return ÷ net capital invested (total deposits minus withdrawals).")}">ⓘ</span> · ${t("on net capital")}</div>
     </article>
     <article class="stat" data-card="cash" tabindex="0" role="button" aria-label="${t("Available Cash")}, show calculation">
       ${statHead(`${t("Available Cash")}${cashLow ? ' <svg class="warn-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--warn);vertical-align:middle;margin-left:3px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' : ""}`, howHint)}
@@ -1498,7 +1511,7 @@ function pageDashboard() {
     ${metrics}
     <section class="warn-wrap">${warningsHTML()}</section>
     <section class="grid-2 dash-charts">
-      ${panel("Portfolio Value Over Time", (() => {
+      ${panel("Investment Return Over Time", (() => {
         const hasTxn = ALL_TRANSACTIONS.some((x) => x.type === "Buy" || x.type === "Deposit") || HOLDINGS.length > 0;
         if (!hasTxn) return emptyState(t("Record your first deposit or Buy to start tracking."));
         const pvPrincipal = T.netCapitalInvested || 0;
@@ -1509,24 +1522,26 @@ function pageDashboard() {
             const pVal = p.principal != null ? p.principal : p.value;
             return p.value > 0 || pVal > 0;
           })
-          .map((p) => ({ month: p.date.slice(5), date: p.date, value: p.value, principal: p.principal != null ? p.principal : p.value }));
+          .map((p) => {
+            const cb = p.principal != null ? p.principal : p.value;
+            return { month: p.date.slice(5), date: p.date, value: p.value - cb, principal: cb };
+          });
         const needsFirstSnap = !filtered.length;
         const series = needsFirstSnap
-          ? [{ month: todayISO().slice(5), date: todayISO(), value: netWorth, principal: pvPrincipal }]
+          ? [{ month: todayISO().slice(5), date: todayISO(), value: netWorth - pvPrincipal, principal: pvPrincipal }]
           : filtered;
         const clockNote = needsFirstSnap
           ? `<div class="pv-clock-note muted"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${t("Prices as of today will appear here tomorrow — check back after your next visit.")}</div>`
           : "";
-        return `<div class="chart">${lineChartSVG(series)}</div><div class="chart-legend"><span class="cl-item"><span class="cl-nw"></span>${t("Net Worth")}</span><span class="cl-item"><span class="cl-p"></span>${t("Principal Invested")}</span></div>${clockNote}`;
-      })(), `<span class="col-info" style="margin-left:auto" title="${t("Snapshots are saved once per day when you open the app.")}">ⓘ</span>`)}
+        return `<div class="chart">${lineChartSVG(series, { gainMode: true })}</div><div class="chart-legend"><span class="cl-item"><span class="cl-nw"></span>${t("Total Return (MYR)")}</span><span class="cl-item"><span class="cl-p"></span>${t("Cost Basis")}</span></div>${clockNote}`;
+      })(), `<span class="col-info" style="margin-left:auto" data-tip="${t("Shows your total investment gain or loss over time (unrealized P/L + dividends received), compared to what you paid for your holdings.")}">ⓘ</span>`)}
       ${(() => {
-        const CCY_COLORS = { [FX.base]: "var(--brand)", USD: "#14b8a6", SGD: "#f97316", HKD: "#a855f7", GBP: "#ec4899" };
         const allocToggle = `<div class="seg seg-sm" id="dashAllocSeg"><button class="seg-btn ${dashAllocMode === "currency" ? "on" : ""}" data-alloc="currency">${t("By currency")}</button><button class="seg-btn ${dashAllocMode === "stock" ? "on" : ""}" data-alloc="stock">${t("By stock")}</button></div>`;
         const totalStr = money(T.portfolioValue).replace(".00","");
         const ccySlices = groupSum(T.holdings, (h) => h.currency || "Other", (h) => h.marketValue).filter((s) => s.value > 0);
         const donut = dashAllocMode === "stock"
           ? donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), t("Portfolio"), totalStr)
-          : donutHTML(ccySlices, t("Portfolio"), totalStr, ccySlices.map((s) => CCY_COLORS[s.label] || PALETTE[Object.keys(CCY_COLORS).length % PALETTE.length]));
+          : donutHTML(ccySlices, t("Portfolio"), totalStr);
         return panel("Asset Allocation", donut, allocToggle);
       })()}
     </section>
@@ -1534,7 +1549,7 @@ function pageDashboard() {
       table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
-      table([{label:"Holding"},{label:"Shares",num:1,style:"width:80px"},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Total Return",num:1}], holdingsRows),
+      table([{label:"Holding",style:"min-width:140px"},{label:"Shares",num:1,style:"width:64px"},{label:"Market Value",num:1,style:"width:144px"},{label:"Unrealized P/L",num:1,style:"width:144px"},{label:"Total Return",num:1,style:"width:144px"}], holdingsRows),
       t("No holdings yet — add a Buy to get started."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? `<span class="muted" style="font-size:11px">${t("Prices as of")} ${pricesAsOfFmt}</span>` : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
@@ -2221,7 +2236,7 @@ function portfolioTable() {
     priceMyr: t("Live price converted to base currency at today's exchange rate"),
   };
   const thCols = orderedColIds.map((id) => {
-    const tip = colTooltips[id] ? ` <span class="col-info" title="${colTooltips[id]}">ⓘ</span>` : "";
+    const tip = colTooltips[id] ? ` <span class="col-info" data-tip="${colTooltips[id]}">ⓘ</span>` : "";
     return `<th class="num" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
   }).join("");
   const thead = `<thead><tr><th>${t("Holding")}</th>${thCols}</tr></thead>`;
@@ -3789,7 +3804,7 @@ function pageHolding() {
  * ========================================================================== */
 function showCalc(calc) {
   $("#modalTitle").textContent = t(calc.title);
-  const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span>${t(r.label)}</span><span class="cr-val">${r.val}</span></div>`).join("");
+  const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span> ${t(r.label)}${r.hint ? ` <span class="col-info" data-tip="${r.hint}">ⓘ</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`).join("");
   $("#modalBody").innerHTML = `${rows}
     <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${calc.totalFmt != null ? calc.totalFmt : money(calc.total)}</span></div>
     <p class="muted" style="margin:14px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
