@@ -1901,6 +1901,9 @@ function mountOpeningHoldingForm() {
  * PAGE: PORTFOLIO  (with working filters + grouped allocations)
  * ========================================================================== */
 const portfolioFilters = { broker: "", market: "", currency: "", pl: "" };
+let portfolioColumnsExpanded = false;
+const EXCHANGE_NAMES = { NMS:"NASDAQ", NGM:"NASDAQ", NCM:"NASDAQ", NYQ:"NYSE", PCX:"NYSE Arca", KLS:"Bursa Malaysia", KLSE:"Bursa Malaysia", LSE:"London SE", HKG:"Hong Kong SE", ASX:"ASX", TSX:"TSX" };
+function exchangeName(code) { return code ? (EXCHANGE_NAMES[code] || code) : ""; }
 
 function pagePortfolio() {
   const has = T.holdings.length > 0;
@@ -1909,7 +1912,7 @@ function pagePortfolio() {
 
   const filterBar = `<div class="filters">
     ${styledSelect("fBroker", [{ value: "", label: t("All brokers") }, ...BROKERS.map((b) => ({ value: b.id, label: b.name }))], portfolioFilters.broker, { id: "fBroker" })}
-    ${styledSelect("fMarket", [{ value: "", label: t("All markets") }, ...markets.map((m) => ({ value: m, label: m }))], portfolioFilters.market, { id: "fMarket" })}
+    ${styledSelect("fMarket", [{ value: "", label: t("All markets") }, ...markets.map((m) => ({ value: m, label: exchangeName(m) }))], portfolioFilters.market, { id: "fMarket" })}
     ${styledSelect("fCurrency", [{ value: "", label: t("All currencies") }, ...currencies.map((c) => ({ value: c, label: c }))], portfolioFilters.currency, { id: "fCurrency" })}
     ${styledSelect("fPL", [{ value: "", label: t("All P/L") }, { value: "pos", label: t("Profit") }, { value: "neg", label: t("Loss") }], portfolioFilters.pl, { id: "fPL" })}
     <button class="btn ghost" id="fReset">${t("Reset")}</button></div>`;
@@ -1933,7 +1936,7 @@ function pagePortfolio() {
 
   const html = has
     ? `${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
-          `<button class="btn" id="refreshPrices">⟳ ${t("Refresh live prices")}</button>`)}
+          `<div class="panel-head-actions"><button class="btn ghost" id="colToggle">${portfolioColumnsExpanded ? t("Fewer columns") : t("More columns")}</button><button class="btn" id="refreshPrices">⟳ ${t("Refresh live prices")}</button></div>`)}
        ${breakdowns ? `<section class="portfolio-breakdowns">${breakdowns}</section>` : ""}`
     : panel("Holdings", emptyContent);
 
@@ -1942,6 +1945,7 @@ function pagePortfolio() {
       : `${plural(T.holdings.length, "holding", "holdings")} across ${plural(BROKERS.length, "broker", "brokers")} · ${money(T.portfolioValue)}`, html,
     mount() {
       const apply = () => { const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioTable(); };
+      const ct = $("#colToggle"); if (ct) ct.addEventListener("click", () => { portfolioColumnsExpanded = !portfolioColumnsExpanded; render(); });
       const onFilter = (id, key) => { const el = $(id); if (el) el.addEventListener("change", (e) => { portfolioFilters[key] = e.target.value; apply(); }); };
       onFilter("#fBroker", "broker"); onFilter("#fMarket", "market"); onFilter("#fCurrency", "currency"); onFilter("#fPL", "pl");
       const fr = $("#fReset");
@@ -2015,25 +2019,33 @@ function portfolioTable() {
     const priceTag = isLive
       ? `<div class="fx-note live-price">${t("Live")} · ${h.priceFetchedAt ? fmtDateTime(h.priceFetchedAt) : fmtDate(h.currentPriceDate)}</div>`
       : `<div class="fx-note manual-price">${t("Manual price")} · ${fmtDate(h.currentPriceDate)}</div>`;
+    const myrEquiv = (h.hasPrice && h.currency !== FX.base)
+      ? `<div class="fx-note">≈ ${FX.base} ${fmt(h.currentPrice * (FX.rates[h.currency] || 1))}</div>`
+      : "";
     const priceCell = h.hasPrice
-      ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}${priceTag}`
+      ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}${myrEquiv}${priceTag}`
       : `<span class="muted">—</span><div class="fx-note">${t("No price set")}</div>`;
     return `<tr>
       <td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a><div class="sub">${h.company || ""}</div></td>
-      <td><span class="chip">${brokerName(h.brokerId)}</span>${h.market ? `<div class="sub">${h.market}</div>` : ""}</td>
+      <td><span class="chip">${brokerName(h.brokerId)}</span>${h.market ? `<div class="sub">${exchangeName(h.market)}</div>` : ""}</td>
       <td class="num">${fmt(h.shares, { maximumFractionDigits: 4 })}</td>
-      <td class="num">${money(h.avgCost)}<div class="fx-note">${t("avg, MYR")}</div></td>
+      <td class="num">${money(h.avgCost)}<div class="fx-note avg-label">${t("avg. MYR")}</div></td>
       <td class="num">${priceCell}</td>
-      <td class="num">${money(h.marketValue)}</td>
-      <td class="num">${fmt(alloc, { maximumFractionDigits: 1 })}%</td>
+      ${portfolioColumnsExpanded ? `<td class="num">${money(h.marketValue)}</td>` : ""}
+      ${portfolioColumnsExpanded ? `<td class="num">${fmt(alloc, { maximumFractionDigits: 1 })}%</td>` : ""}
       <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
       <td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}${h.netDividends ? `<div class="fx-note">${t("div.")} ${money(h.netDividends)}</div>` : ""}</td>
-      <td class="num">
+      <td class="num row-actions">
         <button class="icon-btn row-live" data-live-holding="${h.ticker}" title="${t("Fetch live price")}" aria-label="${t("Fetch live price")}">⟳</button>
         <button class="icon-btn row-price" data-price-holding="${h.ticker}|${h.currentPriceCcy}" title="${t("Set current price")}" aria-label="${t("Set current price")}">＄</button>
         <button class="icon-btn row-del" data-del-holding="${h.ticker}|${h.brokerId}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button></td></tr>`;
   }).join("");
-  return table([{label:"Holding"},{label:"Broker"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},{label:"Market Value",num:1},{label:"Alloc",num:1},{label:"Unrealized P/L",num:1},{label:"Total Return",num:1},{label:"",num:1}], body);
+  const headers = [
+    {label:"Holding"},{label:"Broker"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},
+    ...(portfolioColumnsExpanded ? [{label:"Market Value",num:1},{label:"Alloc",num:1}] : []),
+    {label:"Unrealized P/L",num:1},{label:"Total Return",num:1},{label:"",num:1},
+  ];
+  return table(headers, body);
 }
 
 /* =============================================================================
