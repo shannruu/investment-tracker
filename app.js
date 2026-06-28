@@ -1260,8 +1260,10 @@ function mountChartTooltips() {
   const show = (el) => {
     const d = el.dataset.date, v = +el.dataset.val, cb = el.dataset.cb;
     const hasCb = cb != null && cb !== "";
+    const chartDiv = document.querySelector(".chart[data-chart-mode]");
+    const valLabel = (chartDiv && chartDiv.dataset.chartMode === "div") ? t("Total Return") : t("Market Value");
     const valHtml = hasCb
-      ? `<div class="ct-row"><span class="ct-lbl">${t("Market Value")}</span><span class="ct-val">${money(v)}</span></div><div class="ct-row"><span class="ct-lbl">${t("Cost Basis")}</span><span class="ct-val">${money(+cb)}</span></div>`
+      ? `<div class="ct-row"><span class="ct-lbl">${valLabel}</span><span class="ct-val">${money(v)}</span></div><div class="ct-row"><span class="ct-lbl">${t("Cost Basis")}</span><span class="ct-val">${money(+cb)}</span></div>`
       : `<div class="ct-val">${money(v)}</div>`;
     tip.innerHTML = d ? `<div class="ct-date">${fmtDate(d)}</div>${valHtml}` : valHtml;
     const r = el.getBoundingClientRect();
@@ -1379,6 +1381,68 @@ function portfolioHealth() {
  * PAGE: DASHBOARD
  * ========================================================================== */
 let dashAllocMode = "currency"; // "currency" | "stock"
+let dashChartMode = (() => { try { return localStorage.getItem("il-chart-mode") || "mv"; } catch(e) { return "mv"; } })(); // "mv" | "div"
+
+/* Builds the chart body HTML for the Investment Return panel.
+ * Called on initial render and again in-place when the mode toggle fires. */
+function buildDashChartContent() {
+  const currentMV = T.portfolioValue || 0;
+  const pvPrincipal = T.netCapitalInvested || 0;
+  const todayStr = todayISO();
+
+  // Cumulative net dividends received up to each date (for "Incl. Dividends" mode)
+  const cumDivByDate = (() => {
+    const byDate = {};
+    ALL_TRANSACTIONS
+      .filter((x) => x.type === "Dividend" && x.status !== "Expected")
+      .forEach((d) => { const dt = d.payDate || d.date; if (dt) byDate[dt] = (byDate[dt] || 0) + divNetMYR(d); });
+    let acc = 0;
+    const result = {};
+    Object.keys(byDate).sort().forEach((dt) => { acc += byDate[dt]; result[dt] = acc; });
+    return result;
+  })();
+  const getCumDiv = (date) => {
+    let val = 0;
+    for (const k of Object.keys(cumDivByDate).sort()) { if (k <= date) val = cumDivByDate[k]; else break; }
+    return val;
+  };
+
+  // Build historical series: filter stale snapshots, always replace today with live data
+  const filtered = PV_HISTORY
+    .filter((p) => {
+      const mv = p.mv != null ? p.mv : p.value;
+      if (mv < 0) return false;
+      // Discard if snapshot MV is implausibly higher than 3× current live portfolio value
+      if (currentMV > 0 && mv > currentMV * 3) return false;
+      const pVal = p.principal != null ? p.principal : 0;
+      return mv > 0 || pVal > 0;
+    })
+    .filter((p) => p.date !== todayStr)  // always replace today with live recalculation
+    .map((p) => {
+      const mv = p.mv != null ? p.mv : p.value;
+      const principal = p.principal != null ? p.principal : 0;
+      const cumDiv = dashChartMode === "div" ? getCumDiv(p.date) : 0;
+      return { month: p.date.slice(5), date: p.date, value: mv + cumDiv, principal };
+    });
+
+  // Today's point always uses live T.portfolioValue (never a cached snapshot)
+  const todayCumDiv = dashChartMode === "div" ? getCumDiv(todayStr) : 0;
+  const todayPoint = { month: todayStr.slice(5), date: todayStr, value: currentMV + todayCumDiv, principal: pvPrincipal };
+
+  const series = filtered.length
+    ? [...filtered, todayPoint].sort((a, b) => (a.date < b.date ? -1 : 1))
+    : [todayPoint];
+
+  const mvLabel = dashChartMode === "div" ? t("Total Return (MYR)") : t("Market Value");
+  const clockNote = !filtered.length
+    ? `<div class="pv-clock-note muted"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${t("Prices as of today will appear here tomorrow — check back after your next visit.")}</div>`
+    : "";
+
+  return `<div class="chart" data-chart-mode="${dashChartMode}">${lineChartSVG(series, { noFill: true })}</div>
+    <div class="chart-legend"><span class="cl-item"><span class="cl-nw"></span>${mvLabel}</span><span class="cl-item"><span class="cl-p"></span>${t("Cost Basis")}</span></div>
+    <p class="muted" style="font-size:11px;margin:5px 0 0;text-align:center">${t("Market value vs. what you paid — the gap is your gain or loss.")}</p>${clockNote}`;
+}
+
 function pageDashboard() {
   const CCY_COLORS = { MYR: "var(--brand)", USD: "#3b82f6" };
   const ccyColor = (ccy) => CCY_COLORS[ccy] || "#94a3b8";
@@ -1494,9 +1558,12 @@ function pageDashboard() {
       <div class="stat-sub muted">${t("Holdings")} ${money(T.portfolioValue)} · ${t("Cash")} ${money(T.totalCash || 0)}</div>
     </article>
     <article class="stat pl ${up ? "is-up" : dn ? "is-down" : ""}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total Return") : t("Unrealized P/L")}, show calculation">
-      ${statHead(returnIsTotal ? t("Total Return") : t("Unrealized P/L"), toggle)}
+      ${statHead(returnIsTotal ? t("Total Return") : t("Unrealized P/L"), `<div class="seg-hint-group">${toggle}${howHint}</div>`)}
       <div class="stat-value ${up ? "pos" : dn ? "neg" : ""}">${up ? "▲ " : dn ? "▼ " : ""}${signed(shownReturn)}</div>
-      <div class="stat-sub ${up ? "pos" : dn ? "neg" : "muted"}">${up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%"} <span class="col-info" data-tip="${t("Calculated as return ÷ net capital invested (total deposits minus withdrawals).")}">ⓘ</span> · ${t("on net capital")}</div>
+      <div class="stat-sub" style="display:flex;align-items:baseline;gap:6px">
+        <span class="${up ? "pos" : dn ? "neg" : "muted"}">${up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%"}</span>
+        <span class="muted" style="font-size:11px">${t("on net capital")}</span>
+      </div>
     </article>
     <article class="stat" data-card="cash" tabindex="0" role="button" aria-label="${t("Available Cash")}, show calculation">
       ${statHead(`${t("Available Cash")}${cashLow ? ' <svg class="warn-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--warn);vertical-align:middle;margin-left:3px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' : ""}`, howHint)}
@@ -1527,27 +1594,8 @@ function pageDashboard() {
       ${panel("Investment Return Over Time", (() => {
         const hasTxn = ALL_TRANSACTIONS.some((x) => x.type === "Buy" || x.type === "Deposit") || HOLDINGS.length > 0;
         if (!hasTxn) return emptyState(t("Record your first deposit or Buy to start tracking."));
-        const pvPrincipal = T.netCapitalInvested || 0;
-        const filtered = PV_HISTORY
-          .filter((p) => {
-            const mv = p.mv != null ? p.mv : p.value;
-            if (netWorth > 0 && mv > 3 * netWorth) return false;
-            const pVal = p.principal != null ? p.principal : 0;
-            return mv > 0 || pVal > 0;
-          })
-          .map((p) => ({
-            month: p.date.slice(5), date: p.date,
-            value: p.mv != null ? p.mv : p.value,
-            principal: p.principal != null ? p.principal : 0,
-          }));
-        const needsFirstSnap = !filtered.length;
-        const series = needsFirstSnap
-          ? [{ month: todayISO().slice(5), date: todayISO(), value: T.portfolioValue || 0, principal: pvPrincipal }]
-          : filtered;
-        const clockNote = needsFirstSnap
-          ? `<div class="pv-clock-note muted"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${t("Prices as of today will appear here tomorrow — check back after your next visit.")}</div>`
-          : "";
-        return `<div class="chart">${lineChartSVG(series, { noFill: true })}</div><div class="chart-legend"><span class="cl-item"><span class="cl-nw"></span>${t("Market Value")}</span><span class="cl-item"><span class="cl-p"></span>${t("Cost Basis")}</span></div><p class="muted" style="font-size:11px;margin:5px 0 0;text-align:center">${t("Market value vs. what you paid — the gap is your gain or loss.")}</p>${clockNote}`;
+        const chartToggle = `<div class="seg seg-sm" id="dashChartSeg" style="margin-bottom:8px"><button class="seg-btn ${dashChartMode === "mv" ? "on" : ""}" data-chart="mv">${t("Market Value")}</button><button class="seg-btn ${dashChartMode === "div" ? "on" : ""}" data-chart="div">${t("Incl. Dividends")}</button></div>`;
+        return `${chartToggle}<div id="dashChartBody">${buildDashChartContent()}</div>`;
       })(), `<span class="col-info tip-down" style="margin-left:auto" data-tip="${t("Shows your portfolio market value versus what you paid — the gap between the two lines is your unrealized gain or loss.")}">ⓘ</span>`)}
       ${(() => {
         const allocToggle = `<div class="seg seg-sm" id="dashAllocSeg"><button class="seg-btn ${dashAllocMode === "currency" ? "on" : ""}" data-alloc="currency">${t("By currency")}</button><button class="seg-btn ${dashAllocMode === "stock" ? "on" : ""}" data-alloc="stock">${t("By stock")}</button></div>`;
@@ -1563,7 +1611,7 @@ function pageDashboard() {
       table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
-      table([{label:"Holding",style:"width:200px"},{label:"Shares",num:1,style:"width:64px"},{label:"Market Value",num:1,style:"width:144px"},{label:"Unrealized P/L",num:1,style:"width:144px"},{label:"Total Return",num:1,style:"width:144px"}], holdingsRows),
+      table([{label:"Holding",style:"width:200px;max-width:200px"},{label:"Shares",num:1,style:"width:64px"},{label:"Market Value",num:1,style:"width:144px"},{label:"Unrealized P/L",num:1,style:"width:144px"},{label:"Total Return",num:1,style:"width:144px"}], holdingsRows),
       t("No holdings yet — add a Buy to get started."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? `<span class="muted" style="font-size:11px">${t("Prices as of")} ${pricesAsOfFmt}</span>` : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
@@ -1614,6 +1662,14 @@ function pageDashboard() {
         });
       });
       mountChartTooltips();
+      $$("[data-chart]").forEach((b) => b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        dashChartMode = b.dataset.chart;
+        try { localStorage.setItem("il-chart-mode", dashChartMode); } catch(e) {}
+        $$("[data-chart]").forEach((btn) => btn.classList.toggle("on", btn.dataset.chart === dashChartMode));
+        const chartBody = $("#dashChartBody");
+        if (chartBody) { chartBody.innerHTML = buildDashChartContent(); mountChartTooltips(); }
+      }));
       const st = $("#startTour");
       if (st) st.addEventListener("click", () => startTour());
       // Auto-launch the tour once for brand-new users
