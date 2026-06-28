@@ -621,8 +621,14 @@ input[type="date"] { cursor: pointer; }
 .ph-card:hover { border-color: var(--brand); }
 
 /* ---- Dividend calendar: .KL manual-entry prompts ---- */
-.kl-prompts { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 12px; }
-.kl-div-form { margin-top: 8px; }
+.kl-prompts { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.kl-prompt { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; }
+.kl-prompt-hd { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.kl-prompt-label { font-size: 13px; color: var(--text-soft); flex: 1; }
+.kl-div-form { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kl-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.kl-field input { font-family: inherit; font-size: 13px; color: var(--text); font-weight: 400; text-transform: none; letter-spacing: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; width: 100%; box-sizing: border-box; }
+.kl-div-form .form-actions { grid-column: 1/-1; display: flex; gap: 8px; padding-top: 2px; }
 
 /* ---- Reports: section headings + tab bar ---- */
 .report-h { font-size: 14px; font-weight: 700; margin: 22px 0 10px; color: var(--text); }

@@ -2014,22 +2014,20 @@ function portfolioTable() {
       : `<span class="muted">—</span><div class="fx-note">${t("No price set")}</div>`;
     return `<tr>
       <td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a><div class="sub">${h.company || ""}</div></td>
-      <td><span class="chip">${brokerName(h.brokerId)}</span></td><td class="sub">${h.market || "—"}</td>
+      <td><span class="chip">${brokerName(h.brokerId)}</span>${h.market ? `<div class="sub">${h.market}</div>` : ""}</td>
       <td class="num">${fmt(h.shares, { maximumFractionDigits: 4 })}</td>
       <td class="num">${money(h.avgCost)}<div class="fx-note">${t("avg, MYR")}</div></td>
       <td class="num">${priceCell}</td>
-      <td class="num">${money(h.costBasis)}</td>
       <td class="num">${money(h.marketValue)}</td>
       <td class="num">${fmt(alloc, { maximumFractionDigits: 1 })}%</td>
       <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
-      <td class="num">${fmt(h.netDividends)}</td>
-      <td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td>
+      <td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}${h.netDividends ? `<div class="fx-note">${t("div.")} ${money(h.netDividends)}</div>` : ""}</td>
       <td class="num">
         <button class="icon-btn row-live" data-live-holding="${h.ticker}" title="${t("Fetch live price")}" aria-label="${t("Fetch live price")}">⟳</button>
         <button class="icon-btn row-price" data-price-holding="${h.ticker}|${h.currentPriceCcy}" title="${t("Set current price")}" aria-label="${t("Set current price")}">＄</button>
         <button class="icon-btn row-del" data-del-holding="${h.ticker}|${h.brokerId}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button></td></tr>`;
   }).join("");
-  return table([{label:"Holding"},{label:"Broker"},{label:"Market"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},{label:"Cost Basis",num:1},{label:"Market Value",num:1},{label:"Allocation",num:1},{label:"Unrealized P/L",num:1},{label:"Net Div",num:1},{label:"Total Return",num:1},{label:"",num:1}], body);
+  return table([{label:"Holding"},{label:"Broker"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},{label:"Market Value",num:1},{label:"Alloc",num:1},{label:"Unrealized P/L",num:1},{label:"Total Return",num:1},{label:"",num:1}], body);
 }
 
 /* =============================================================================
@@ -2645,11 +2643,14 @@ function pageDividends() {
 
   const upcomingRows = upcoming.map((d) => {
     const du = daysUntil(d.payDate);
-    return `<tr><td class="ticker">${d.ticker}</td><td class="sub">${brokerName(d.brokerId)}</td>
-      <td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
-      <td class="num">${d.payDate ? (du >= 0 ? du + " " + t("days") : t("overdue")) : "—"}</td>
-      <td class="num">${d.currency} ${fmt(d.expectedNet)}</td><td>${statusBadge(d.status)}</td>
-      <td>${d._id ? `<button type="button" class="btn ghost small" data-del-ud="${escAttr(d._id)}">${t("Remove")}</button>` : ""}</td></tr>`;
+    const daysLabel = d.payDate ? (du >= 0 ? `${du}d` : `<span class="neg">${t("overdue")}</span>`) : "";
+    return `<tr>
+      <td><span class="ticker">${d.ticker}</span><div class="sub">${brokerName(d.brokerId)}</div></td>
+      <td>${fmtDate(d.exDate)}</td>
+      <td>${fmtDate(d.payDate)}${daysLabel ? `<div class="fx-note">${daysLabel}</div>` : ""}</td>
+      <td class="num">${d.currency} ${fmt(d.expectedNet)}</td>
+      <td>${statusBadge(d.status)}</td>
+      <td>${d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : ""}</td></tr>`;
   }).join("");
 
   // Prompt to add upcoming dividends for .KL holdings that don't have a manual entry yet
@@ -2657,12 +2658,14 @@ function pageDividends() {
   const coveredTickers = new Set([...UPCOMING_DIVIDENDS.map((d) => d.ticker), ...Object.keys(AUTO_DIV_CACHE)]);
   const klPrompts = klHoldings.filter((h) => !coveredTickers.has(h.ticker)).map((h) => `
     <div class="kl-prompt" data-ticker="${escAttr(h.ticker)}" data-broker="${escAttr(h.brokerId)}" data-ccy="${escAttr(h.currency || FX.base)}">
-      <p class="muted" style="margin:8px 0 2px">${t("Add upcoming dividend for")} <strong>${h.ticker}</strong>
-        <button type="button" class="kl-add-btn btn ghost small" style="margin-left:8px">+ ${t("Add")} →</button></p>
-      <form class="kl-div-form form-grid" hidden style="margin:8px 0 4px">
-        <label>${t("Ex-dividend Date")}<input type="date" name="exDate" required></label>
-        <label>${t("Payment Date")}<input type="date" name="payDate" required></label>
-        <label style="grid-column:1/-1">${t("Per share")} (${h.currency || FX.base})<input type="number" step="any" name="amtPerShare" placeholder="0.00" required></label>
+      <div class="kl-prompt-hd">
+        <span class="kl-prompt-label">${t("Add upcoming dividend for")} <strong>${h.ticker}</strong></span>
+        <button type="button" class="kl-add-btn btn ghost small">+ ${t("Add")} →</button>
+      </div>
+      <form class="kl-div-form" hidden>
+        <label class="kl-field">${t("Ex-dividend Date")}<input type="date" name="exDate" required></label>
+        <label class="kl-field">${t("Payment Date")}<input type="date" name="payDate" required></label>
+        <label class="kl-field" style="grid-column:1/-1">${t("Per share")} (${h.currency || FX.base})<input type="number" step="any" name="amtPerShare" placeholder="0.00" required></label>
         <div class="form-actions" style="grid-column:1/-1">
           <button type="submit" class="btn primary small">${t("Save")}</button>
           <button type="button" class="kl-cancel-btn btn ghost small">${t("Cancel")}</button>
@@ -2727,7 +2730,7 @@ function pageDividends() {
 
     <div id="divUpcomingSection">
       ${panel("Upcoming Dividends",
-        table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"},{label:""}], upcomingRows) +
+        table([{label:"Ticker"},{label:"Ex-Date"},{label:"Pay-Date"},{label:"Expected Net",num:1},{label:"Status"},{label:""}], upcomingRows) +
         (klPrompts ? `<div class="kl-prompts">${klPrompts}</div>` : ""),
         `<small class="muted" id="divFetchStatus"></small>`
       )}
