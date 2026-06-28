@@ -724,6 +724,8 @@ input[type="date"] { cursor: pointer; }
 .kl-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .kl-field input { font-family: inherit; font-size: 13px; color: var(--text); font-weight: 400; text-transform: none; letter-spacing: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; width: 100%; box-sizing: border-box; }
 .kl-div-form .form-actions { grid-column: 1/-1; display: flex; gap: 8px; padding-top: 2px; }
+.div-fc-empty { display: flex; align-items: flex-start; gap: 12px; padding: 4px 0 2px; }
+.div-fc-empty > span { font-size: 22px; line-height: 1.2; flex: none; }
 
 /* ---- Reports: section headings + tab bar ---- */
 .report-h { font-size: 14px; font-weight: 700; margin: 22px 0 10px; color: var(--text); }

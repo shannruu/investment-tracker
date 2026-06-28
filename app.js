@@ -981,17 +981,24 @@ async function fetchAllDivSchedules() {
 /* Merge all upcoming dividend sources into one sorted list.
  * Sources: UPCOMING_DIVIDENDS (manual MY), AUTO_DIV_CACHE (Finnhub US), and
  * any legacy ALL_TRANSACTIONS rows still carrying status="Expected". */
+/* upcomingDividends schema: { id, ticker, brokerId?, exDate, payDate, estimatedAmount (per share),
+ * currency, source: 'manual'|'api', status: 'upcoming'|'confirmed'|'missed',
+ * confirmedTransactionId? }
+ * Legacy entries may use amtPerShare instead of estimatedAmount. */
 function allUpcomingDivs() {
   const today = todayISO();
   const toMYR = (net, ccy) => net * (FX.rates[ccy] || 1);
 
-  const manual = UPCOMING_DIVIDENDS.map((d) => {
-    const h = T.holdings.find((x) => x.ticker === d.ticker);
-    const expectedNet = (d.amtPerShare || 0) * (h ? h.shares : 0);
-    return { ticker: d.ticker, brokerId: d.brokerId, exDate: d.exDate, payDate: d.payDate,
-      currency: d.currency, expectedNet, expectedNetMYR: toMYR(expectedNet, d.currency),
-      status: "Estimated", _id: d.id };
-  });
+  const manual = UPCOMING_DIVIDENDS
+    .filter((d) => (d.status || "upcoming") === "upcoming")
+    .map((d) => {
+      const h = T.holdings.find((x) => x.ticker === d.ticker);
+      const perShare = d.estimatedAmount || d.amtPerShare || 0;
+      const expectedNet = perShare * (h ? h.shares : 0);
+      return { ticker: d.ticker, brokerId: d.brokerId, exDate: d.exDate, payDate: d.payDate,
+        currency: d.currency, expectedNet, expectedNetMYR: toMYR(expectedNet, d.currency),
+        source: d.source || "manual", _id: d.id };
+    });
 
   const auto = Object.entries(AUTO_DIV_CACHE).flatMap(([ticker, divs]) =>
     divs.filter((d) => (d.payDate || d.date) >= today).map((div) => {
@@ -1000,14 +1007,14 @@ function allUpcomingDivs() {
       const expectedNet = (div.amount || 0) * (h ? h.shares : 0);
       return { ticker, brokerId: h ? h.brokerId : "—", exDate: div.date,
         payDate: div.payDate || div.date, currency: ccy,
-        expectedNet, expectedNetMYR: toMYR(expectedNet, ccy), status: "Confirmed" };
+        expectedNet, expectedNetMYR: toMYR(expectedNet, ccy), source: "api" };
     })
   );
 
   const legacy = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status === "Expected")
     .map((x) => ({ ticker: x.ticker, brokerId: x.brokerId, exDate: x.exDate, payDate: x.payDate,
       currency: x.currency, expectedNet: (+x.gross || 0) - (+x.tax || 0),
-      expectedNetMYR: divNetMYR(x), status: "Expected" }));
+      expectedNetMYR: divNetMYR(x), source: "manual" }));
 
   return [...manual, ...auto, ...legacy]
     .filter((d) => d.payDate || d.exDate)
@@ -2733,6 +2740,22 @@ function wireTxSubmit(form) {
     } else {
       ALL_TRANSACTIONS.unshift(record);
     }
+    // When a dividend is recorded with an ex-date, auto-confirm any matching upcoming entry
+    // (or create a confirmed entry if none exists), linking it to this transaction.
+    if (record.type === "Dividend" && record.exDate) {
+      const udIdx = UPCOMING_DIVIDENDS.findIndex((u) =>
+        u.ticker === record.ticker && u.exDate === record.exDate &&
+        (u.status || "upcoming") === "upcoming");
+      if (udIdx >= 0) {
+        UPCOMING_DIVIDENDS[udIdx].status = "confirmed";
+        UPCOMING_DIVIDENDS[udIdx].confirmedTransactionId = record.id;
+      } else {
+        UPCOMING_DIVIDENDS.push({ id: uid("ud"), ticker: record.ticker,
+          exDate: record.exDate, payDate: record.payDate || undefined,
+          estimatedAmount: null, currency: record.currency,
+          source: "manual", status: "confirmed", confirmedTransactionId: record.id });
+      }
+    }
     editingTxId = null;
     saveStore();
     if (wasEditing) {
@@ -2829,6 +2852,8 @@ function miniCard(label, value, valCls = "") {
 function divNetMYR(d) { return ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1); }
 
 /* Aggregate received dividends by month / quarter / year (base currency). */
+/* Groups received dividends into byMonth/byQuarter/byYear buckets (base currency net).
+ * Keys: YYYY-MM | YYYY Qn | YYYY. Used for MoM/QoQ/YoY delta calculations. */
 function dividendByPeriod(received) {
   const byMonth = {}, byQuarter = {}, byYear = {};
   received.forEach((d) => {
@@ -2921,37 +2946,64 @@ function dividendForecast(received, upcoming) {
  * PAGE: DIVIDENDS
  * ========================================================================== */
 function pageDividends() {
+  /* Calculation reference:
+   * grossBase        = Σ (d.gross × fxRate) for all received dividends
+   * taxBase          = Σ (d.tax  × fxRate) for all received dividends  (zero for MY stocks — normal)
+   * netBase          = grossBase − taxBase  (= Σ divNetMYR(d))
+   * byMonth[YYYY-MM] = Σ divNetMYR(d) where payDate falls in that month
+   * byQuarter[YYYY Q]= Σ divNetMYR(d) where payDate falls in that quarter
+   * byYear[YYYY]     = Σ divNetMYR(d) where payDate falls in that year
+   * MoM Δ            = byMonth[this] − byMonth[prev]  (show — if no prev month)
+   * QoQ Δ%           = (byQuarter[this] − byQuarter[prev]) / byQuarter[prev] × 100 (— if prev=0)
+   * YoY Δ%           = (byYear[this] − byYear[prev]) / byYear[prev] × 100 (— if prev=0)
+   * Dividend Yield (TTM) = ttmDividends() / portfolioMarketValue × 100%
+   */
   const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend");
   const received = divs.filter((d) => d.status !== "Expected");
   const upcoming = allUpcomingDivs();
+
+  const sourceBadge = (src) => src === "api"
+    ? `<span class="badge info">API</span>`
+    : `<span class="badge subtle">Manual</span>`;
 
   const upcomingRows = upcoming.map((d) => {
     const du = daysUntil(d.payDate);
     const daysLabel = d.payDate ? (du >= 0 ? `${du}d` : `<span class="neg">${t("overdue")}</span>`) : "";
     return `<tr>
-      <td><span class="ticker">${d.ticker}</span><div class="sub">${brokerName(d.brokerId)}</div></td>
+      <td><span class="ticker">${d.ticker}</span><div class="sub">${d.brokerId ? brokerName(d.brokerId) : ""}</div></td>
       <td>${fmtDate(d.exDate)}</td>
       <td>${fmtDate(d.payDate)}${daysLabel ? `<div class="fx-note">${daysLabel}</div>` : ""}</td>
       <td class="num">${d.currency} ${fmt(d.expectedNet)}</td>
-      <td>${statusBadge(d.status)}</td>
+      <td>${sourceBadge(d.source || "manual")}</td>
       <td>${d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : ""}</td></tr>`;
   }).join("");
 
-
   const histRows = received.sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1)).map((d) => {
-    const net = (+d.gross || 0) - (+d.tax || 0);
+    const taxAmt = +d.tax || 0;
+    const net = (+d.gross || 0) - taxAmt;
     const fx = d.fxRate || FX.rates[d.currency] || 1;
-    return `<tr><td class="ticker">${d.ticker}</td><td class="sub">${brokerName(d.brokerId)}</td>
+    const isForeign = d.currency && d.currency !== FX.base;
+    const netMyrSub = isForeign ? `<div class="fx-note">${money(net * fx)}</div>` : "";
+    return `<tr>
+      <td><span class="ticker">${d.ticker}</span><div class="sub">${brokerName(d.brokerId)}</div></td>
       <td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate || d.date)}</td>
-      <td class="num">${d.currency} ${fmt(d.gross)}</td><td class="num neg">${d.tax ? "−" + fmt(d.tax) : "0.00"}</td>
-      <td class="num pos">${d.currency} ${fmt(net)}</td>
-      <td class="num">${money(net * fx)}</td><td>${statusBadge("Received")}</td></tr>`;
+      <td class="num">${d.currency} ${fmt(d.gross)}</td>
+      <td class="num ${taxAmt > 0 ? "neg" : ""}">${taxAmt > 0 ? "−" + fmt(taxAmt) : "0.00"}</td>
+      <td class="num">${d.currency} ${fmt(net)}${netMyrSub}</td>
+      <td>${statusBadge("Received")}</td></tr>`;
   }).join("");
 
   const grossBase = received.reduce((s, d) => s + (+d.gross || 0) * (d.fxRate || FX.rates[d.currency] || 1), 0);
   const taxBase = received.reduce((s, d) => s + (+d.tax || 0) * (d.fxRate || FX.rates[d.currency] || 1), 0);
-  const taxByCountry = groupSum(received, (d) => countryForTicker(d.ticker, (STOCK_META[d.ticker] || {}).country), (d) => (+d.tax || 0) * (d.fxRate || FX.rates[d.currency] || 1));
-  const taxRows = taxByCountry.filter((c) => c.value > 0).map((c) => `<tr><td>${c.label}</td><td class="num neg">${money(c.value)}</td></tr>`).join("");
+
+  // Show ALL countries that have at least one dividend — even at WHT=0 (normal for MY stocks)
+  const taxByCountryMap = {};
+  received.forEach((d) => {
+    const country = countryForTicker(d.ticker, (STOCK_META[d.ticker] || {}).country);
+    taxByCountryMap[country] = (taxByCountryMap[country] || 0) + (+d.tax || 0) * (d.fxRate || FX.rates[d.currency] || 1);
+  });
+  const taxRows = Object.entries(taxByCountryMap).sort((a, b) => b[1] - a[1])
+    .map(([country, tax]) => `<tr><td>${country}</td><td class="num ${tax > 0 ? "neg" : ""}">${money(tax)}</td></tr>`).join("");
 
   const periods = dividendByPeriod(received);
 
@@ -2977,20 +3029,15 @@ function pageDividends() {
 
   const fc = dividendForecast(received, upcoming);
   const dash = `<span class="muted" style="font-size:22px;line-height:1">—</span>`;
-  const ttmNote = fc.ttm > 0 ? ` ${t("Received TTM")}: <strong>${money(fc.ttm)}</strong>.` : "";
   const forecastBody = fc.hasProjections
-    ? `<p class="muted" style="margin:-4px 0 12px">${t("Based on payment patterns and upcoming dividends.")} ${t("Estimate only — not a guarantee.")}${ttmNote}</p>
+    ? `<p class="muted" style="margin:-4px 0 12px">${t("Based on payment patterns and upcoming dividends.")} ${t("Estimate only — not a guarantee.")}${fc.ttm > 0 ? ` ${t("Received TTM")}: <strong>${money(fc.ttm)}</strong>.` : ""}</p>
       <div class="mini-cards">
         ${miniCard(t("Next Month"), fc.nextMonth > 0 ? money(fc.nextMonth) : dash)}
         ${miniCard(t("Next Quarter"), fc.nextQuarter > 0 ? money(fc.nextQuarter) : dash)}
         ${miniCard(t("Next Year"), fc.nextYear > 0 ? money(fc.nextYear) : dash)}</div>
       <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`
-    : `<p class="muted" style="margin:-4px 0 12px">${t("Record at least 2 dividends per holding, or add upcoming dividends, to enable pattern-based estimates.")}${ttmNote}</p>
-      <div class="mini-cards">
-        ${miniCard(t("Next Month"), dash)}
-        ${miniCard(t("Next Quarter"), dash)}
-        ${miniCard(t("Next Year"), dash)}</div>
-      <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
+    : `<div class="div-fc-empty"><span>📅</span><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}</div></div>
+      <p class="muted" style="margin:10px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
 
   const html = `
     <div class="mini-cards">
@@ -3003,8 +3050,8 @@ function pageDividends() {
     <div id="divUpcomingSection">
       ${panel("Upcoming Dividends",
         upcoming.length
-          ? table([{label:"Ticker"},{label:"Ex-Date"},{label:"Pay-Date"},{label:"Expected Net",num:1},{label:"Status"},{label:""}], upcomingRows)
-          : `<p class="muted" style="margin:0;font-size:13px">${t("Upcoming dividends will appear here once connected.")}</p>`,
+          ? table([{label:"Ticker"},{label:"Ex-Date"},{label:"Pay Date"},{label:"Est. Amount",num:1},{label:"Source"},{label:""}], upcomingRows)
+          : `<p class="muted" style="margin:0;font-size:13px">${t("No upcoming dividends yet. Add them manually when recording a dividend, or they'll appear automatically once market data is connected.")}</p>`,
         `<small class="muted" id="divFetchStatus"></small>`
       )}
     </div>
@@ -3016,13 +3063,12 @@ function pageDividends() {
     ${panel("Annual Dividend Income", `${yoyGrowth != null ? `<p class="muted" style="margin:-4px 0 12px">${t("Year-over-year growth")}: <strong class="${cls(yoyGrowth)}">${pctTxt(yoyGrowth)}</strong> (${thisY} ${t("vs")} ${lastY})</p>` : ""}
       ${table([{label:"Year"},{label:"Net (MYR)",num:1},{label:"YoY",num:1}], yearRows)}`)}
 
-    ${panel("Dividend History", table([{label:"Ticker"},{label:"Broker"},{label:"Ex-Date"},{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], histRows))}
-    ${panel("Dividend Tax Paid by Country", table([{label:"Country"},{label:"Withholding Tax (MYR)",num:1}], taxRows))}`;
+    ${panel("Dividend History", table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment Date"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Net",num:1},{label:"Status"}], histRows))}
+    ${received.length ? panel("Dividend Tax Paid by Country", table([{label:"Country"},{label:"Withholding Tax (MYR)",num:1}], taxRows)) : panel("Dividend Tax Paid by Country", `<p class="muted" style="margin:0;font-size:13px">${t("No dividend transactions yet.")}</p>`)}`;
 
   return {
     title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
     mount() {
-      // Delete a manual UPCOMING_DIVIDENDS entry
       document.querySelectorAll("[data-del-ud]").forEach((btn) => {
         btn.addEventListener("click", () => {
           const id = btn.dataset.delUd;
@@ -3030,7 +3076,6 @@ function pageDividends() {
           if (idx >= 0) { UPCOMING_DIVIDENDS.splice(idx, 1); saveStore(); render(); }
         });
       });
-      // Auto-fetch Finnhub schedule for US holdings; re-render upcoming section when done
       if (LIVE_ENABLED) {
         const statusEl = document.getElementById("divFetchStatus");
         if (statusEl) statusEl.textContent = t("Fetching US schedules…");
