@@ -2006,17 +2006,21 @@ function pagePortfolio() {
 
   const filtersActive = !!(portfolioFilters.broker || portfolioFilters.market || portfolioFilters.currency || portfolioFilters.sort);
   const gripSvg = `<svg class="grip-ico" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><circle cx="9" cy="8" r="1.5"/><circle cx="15" cy="8" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="16" r="1.5"/><circle cx="15" cy="16" r="1.5"/></svg>`;
+  const closeSvg = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   const colPanelHtml = `<div class="col-panel-wrap filters-col-panel" id="colPanelWrap">
     <button class="btn ghost" id="colBtn">${t("Edit columns")}</button>
     <div class="col-panel" id="colPanel" hidden>
       <div class="col-panel-header">
-        <span class="col-panel-title">${t("Visible columns")}</span>
-        <span class="col-panel-hint">${gripSvg} ${t("Drag to reorder")}</span>
+        <span class="col-panel-title">${t("Columns")}</span>
+        <button class="col-panel-close" id="colPanelClose" aria-label="${t("Close")}">${closeSvg}</button>
       </div>
-      ${COL_DEFS.map((d) => `<div class="col-toggle-row" data-col-id="${d.id}">
-        <span class="col-grip" draggable="true" aria-hidden="true">${gripSvg}</span>
-        <label class="col-toggle"><input type="checkbox" data-col="${d.id}"${portfolioPrefs.cols[d.id] ? " checked" : ""}><span>${t(d.label)}</span></label>
-      </div>`).join("")}
+      <p class="col-panel-hint">${gripSvg} ${t("Drag to reorder · toggle to show/hide")}</p>
+      <div class="col-panel-list" id="colPanelList">
+        ${COL_DEFS.map((d) => `<div class="col-toggle-row" data-col-id="${d.id}">
+          <span class="col-grip" draggable="true" aria-hidden="true">${gripSvg}</span>
+          <label class="col-toggle"><input type="checkbox" data-col="${d.id}"${portfolioPrefs.cols[d.id] ? " checked" : ""}><span>${t(d.label)}</span></label>
+        </div>`).join("")}
+      </div>
     </div>
   </div>`;
   const filterBar = `<div class="filters">
@@ -2069,6 +2073,8 @@ function pagePortfolio() {
       const colBtn = $("#colBtn"), colPanel = $("#colPanel");
       if (colBtn && colPanel) {
         colBtn.addEventListener("click", (e) => { e.stopPropagation(); colPanel.hidden = !colPanel.hidden; });
+        const colPanelClose = $("#colPanelClose");
+        if (colPanelClose) colPanelClose.addEventListener("click", (e) => { e.stopPropagation(); colPanel.hidden = true; });
         colPanel.addEventListener("change", (e) => {
           const cb = e.target.closest("[data-col]");
           if (!cb) return;
@@ -2143,7 +2149,8 @@ function pagePortfolio() {
             savePortfolioPrefs();
             const allRows = [...colPanel.querySelectorAll(".col-toggle-row")];
             const sorted = order.map((id) => allRows.find((r) => r.dataset.colId === id)).filter(Boolean);
-            sorted.forEach((r) => colPanel.appendChild(r));
+            const colPanelList = colPanel.querySelector(".col-panel-list") || colPanel;
+            sorted.forEach((r) => colPanelList.appendChild(r));
             apply();
           }
           _panelDragId = null;
