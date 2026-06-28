@@ -877,6 +877,17 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 /* Compact one-line empty state for dashboard list panels */
 .empty-line { padding: 6px 2px 2px; font-size: 13px; }
 
+/* Portfolio price stamp (above holdings table) */
+.price-stamp { font-size: 12px; color: var(--text-soft); padding: 8px 0 6px; display: flex; align-items: center; gap: 6px; }
+.link-btn { background: none; border: none; color: var(--brand); font-size: inherit; cursor: pointer; padding: 0; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.link-btn:hover { opacity: 0.75; }
+
+/* Column drag-to-reorder */
+.draggable-col { cursor: grab; user-select: none; }
+.draggable-col:active { cursor: grabbing; }
+.col-dragging { opacity: 0.45; }
+.col-drag-over { background: color-mix(in srgb, var(--brand) 12%, var(--surface)) !important; outline: 2px solid var(--brand); outline-offset: -2px; }
+
 @media (max-width: 1000px) {
   .metrics { grid-template-columns: repeat(2, 1fr); }
   .stat, .stat.wide { grid-column: auto; }
