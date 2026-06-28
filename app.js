@@ -1920,7 +1920,7 @@ const COL_DEFS = [
   { id: "netDiv",         label: "Net Dividends" },
 ];
 const COL_DEFAULTS = {
-  broker: false, shares: true, avgCost: true, price: true, priceMyr: false,
+  broker: true, shares: true, avgCost: true, price: true, priceMyr: false,
   unrealizedAmt: true, unrealizedPct: true, totalReturnAmt: true, totalReturnPct: false,
   marketValue: false, alloc: false, netDiv: false,
 };
@@ -2114,17 +2114,18 @@ function portfolioTable() {
       ? `<div class="fx-note live-price">${t("Live")} · ${h.priceFetchedAt ? fmtDateTime(h.priceFetchedAt) : fmtDate(h.currentPriceDate)}</div>`
       : (h.currentPriceDate ? `<div class="fx-note manual-price">${t("Manual")} · ${fmtDate(h.currentPriceDate)}</div>` : "");
     const totalReturnPct = h.costBasis > 0 ? (h.totalReturn / h.costBasis) * 100 : 0;
-    const brokerPills = (groupBy === "ticker" && h._brokerNames)
-      ? h._brokerNames.map((n) => `<span class="chip chip-pill">${n}</span>`).join("")
-      : "";
     const isSameAsPrev = groupBy === "broker" && i > 0 && rows[i - 1].ticker === h.ticker;
+    const brokerCell = cols.broker
+      ? (groupBy === "ticker" && h._brokerNames
+          ? `<td><div class="broker-pills">${h._brokerNames.map((n) => `<span class="chip chip-pill">${n}</span>`).join("")}</div></td>`
+          : `<td><span class="chip">${brokerName(h.brokerId)}</span></td>`)
+      : "";
     return `<tr${isSameAsPrev ? ' class="same-ticker-row"' : ""}>
       <td class="td-holding">
         <a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a>
         ${h.company ? `<div class="sub">${h.company}</div>` : ""}
-        ${brokerPills ? `<div class="broker-pills">${brokerPills}</div>` : ""}
       </td>
-      ${cols.broker ? `<td><span class="chip">${brokerName(h.brokerId)}</span>${h.market ? `<div class="sub">${exchangeName(h.market)}</div>` : ""}</td>` : ""}
+      ${brokerCell}
       ${cols.shares ? `<td class="num">${fmt(h.shares, { maximumFractionDigits: 4 })}</td>` : ""}
       ${cols.avgCost ? `<td class="num">${money(h.avgCost)}</td>` : ""}
       ${cols.price ? `<td class="num">${h.hasPrice ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}${priceTag}` : `<span class="muted">—</span>`}</td>` : ""}
