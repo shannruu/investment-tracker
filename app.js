@@ -1971,7 +1971,7 @@ function pagePortfolio() {
     ${styledSelect("fSort", [
       { value: "",            label: t("Default order") },
       { value: "name",        label: t("Name (A → Z)") },
-      { value: "gainPct",     label: t("Gain % (best first)") },
+      { value: "gainPct",     label: t("Gain %") },
       { value: "totalReturn", label: t("Total Return") },
       { value: "shares",      label: t("Shares") },
       { value: "marketValue", label: t("Market Value") },
@@ -1979,10 +1979,9 @@ function pagePortfolio() {
     <button class="btn ghost" id="fReset">${t("Reset")}</button></div>`;
 
   const distinctBrokers = new Set(T.holdings.map((h) => h.brokerId)).size;
-  const distinctCcy = new Set(T.holdings.map((h) => h.currency)).size;
-  const breakdowns =
-    (distinctBrokers >= 2 ? panel("Holdings by Broker", donutHTML(groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.marketValue), "", "")) : "")
-    + (distinctCcy >= 2 ? panel("Holdings by Currency", donutHTML(groupSum(T.holdings, (h) => h.currency, (h) => h.marketValue), "", "")) : "");
+  const breakdowns = distinctBrokers >= 2
+    ? panel("Holdings by Broker", donutHTML(groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.marketValue), "", ""))
+    : "";
 
   const emptyContent = BROKERS.length
     ? `<div class="portfolio-empty">
@@ -2034,61 +2033,25 @@ function pagePortfolio() {
         };
         document.addEventListener("click", _colPanelCloseHandler);
       }
-      // Delegated actions: refresh prices, live fetch, set price, delete + drag reorder
+      // Delegated actions: refresh prices + drag reorder
       const holdBody = $("#holdingsBody");
       if (holdBody) {
         holdBody.addEventListener("click", async (e) => {
-          // Refresh all prices (button in price stamp)
           const rfBtn = e.target.closest("[data-refresh-prices]");
-          if (rfBtn) {
-            if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
-            rfBtn.disabled = true; rfBtn.textContent = "… " + t("Fetching");
-            const tickers = [...new Set(T.holdings.map((h) => h.ticker))];
-            let ok = 0;
-            for (const tk of tickers) { if (await refreshLivePrice(tk)) ok++; }
-            // Also refresh non-base FX rates
-            const nonBase = Object.keys(FX.rates).filter((c) => c !== FX.base);
-            for (const ccy of nonBase) {
-              const q = await fetchQuote(`${ccy}${FX.base}=X`);
-              if (q && q.price > 0) FX.rates[ccy] = +q.price;
-            }
-            saveStore(); render();
-            toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
-            return;
+          if (!rfBtn) return;
+          if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
+          rfBtn.disabled = true; rfBtn.textContent = "… " + t("Fetching");
+          const tickers = [...new Set(T.holdings.map((h) => h.ticker))];
+          let ok = 0;
+          for (const tk of tickers) { if (await refreshLivePrice(tk)) ok++; }
+          // Also refresh non-base FX rates
+          const nonBase = Object.keys(FX.rates).filter((c) => c !== FX.base);
+          for (const ccy of nonBase) {
+            const q = await fetchQuote(`${ccy}${FX.base}=X`);
+            if (q && q.price > 0) FX.rates[ccy] = +q.price;
           }
-          const lbtn = e.target.closest("[data-live-holding]");
-          if (lbtn) {
-            if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
-            const tk = lbtn.dataset.liveHolding;
-            lbtn.classList.add("spin");
-            const ok = await refreshLivePrice(tk);
-            if (ok) { saveStore(); toast(`${tk} ${t("updated")}`); render(); }
-            else { lbtn.classList.remove("spin"); toast(`${t("Couldn't fetch")} ${tk} — ${t("check the symbol (e.g. AAPL, 1155.KL).")}`); }
-            return;
-          }
-          const pbtn = e.target.closest("[data-price-holding]");
-          if (pbtn) {
-            const [ticker, ccy] = pbtn.dataset.priceHolding.split("|");
-            const cur = CURRENT_PRICES[ticker];
-            const input = prompt(`${t("Current price per share for")} ${ticker} (${ccy}) — ${t("manual, not live")}`, cur ? cur.price : "");
-            if (input == null) return;
-            const price = parseFloat(input);
-            if (!(price > 0)) { toast(t("Enter a valid price.")); return; }
-            CURRENT_PRICES[ticker] = { price, currency: ccy, date: new Date().toISOString().slice(0, 10), source: "manual" };
-            saveStore(); toast(t("Price updated")); render();
-            return;
-          }
-          const dbtn = e.target.closest("[data-del-holding]");
-          if (!dbtn) return;
-          const [ticker, brokerId] = dbtn.dataset.delHolding.split("|");
-          const i = HOLDINGS.findIndex((h) => h.ticker === ticker && h.brokerId === brokerId);
-          if (i >= 0) {
-            if (!confirm(t("Remove this opening holding?"))) return;
-            HOLDINGS.splice(i, 1);
-            saveStore(); toast(t("Holding removed")); render();
-          } else {
-            toast(t("This holding comes from your transactions — delete the related transactions to remove it."));
-          }
+          saveStore(); render();
+          toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
         });
         // Column drag-to-reorder
         let _dragColId = null;
@@ -2173,7 +2136,7 @@ function portfolioTable() {
     const totalReturnPct = h.costBasis > 0 ? (h.totalReturn / h.costBasis) * 100 : 0;
     const cellMap = {
       broker:         `<td><div class="broker-pills">${(h._brokerNames || [brokerName(h.brokerId)]).map((n) => `<span class="chip chip-pill">${n}</span>`).join("")}</div></td>`,
-      shares:         `<td class="num">${fmt(h.shares, { maximumFractionDigits: 4 })}</td>`,
+      shares:         `<td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>`,
       avgCost:        `<td class="num">${money(h.avgCost)}</td>`,
       price:          `<td class="num">${h.hasPrice ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}` : `<span class="muted">—</span>`}</td>`,
       priceMyr:       `<td class="num">${(h.hasPrice && h.currency !== FX.base) ? `${FX.base} ${fmt(h.currentPrice * (FX.rates[h.currency] || 1))}` : `<span class="muted">—</span>`}</td>`,
@@ -2189,20 +2152,15 @@ function portfolioTable() {
         <a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a>
         ${h.company ? `<div class="sub">${h.company}</div>` : ""}
       </td>
-      ${orderedColIds.map((id) => cellMap[id] || "").join("")}
-      <td class="num row-actions">
-        <button class="icon-btn row-live" data-live-holding="${h.ticker}" title="${t("Fetch live price")}" aria-label="${t("Fetch live price")}">⟳</button>
-        <button class="icon-btn row-price" data-price-holding="${h.ticker}|${h.currentPriceCcy || FX.base}" title="${t("Set current price")}" aria-label="${t("Set current price")}">＄</button>
-        <button class="icon-btn row-del" data-del-holding="${h.ticker}|${h.brokerId}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button>
-      </td></tr>`;
+      ${orderedColIds.map((id) => cellMap[id] || "").join("")}</tr>`;
   }).join("");
 
   const thCols = orderedColIds.map((id) =>
     `<th class="num draggable-col" draggable="true" data-col-id="${id}">${colLabels[id] || id}</th>`
   ).join("");
-  const thead = `<thead><tr><th>${t("Holding")}</th>${thCols}<th class="num"></th></tr></thead>`;
+  const thead = `<thead><tr><th>${t("Holding")}</th>${thCols}</tr></thead>`;
 
-  return priceStamp + `<div class="table-wrap"><table class="data-table">${thead}<tbody>${body}</tbody></table></div>`;
+  return `<div class="table-wrap">${priceStamp}<table class="data-table">${thead}<tbody>${body}</tbody></table></div>`;
 }
 
 /* =============================================================================
@@ -3683,7 +3641,7 @@ function pageHolding() {
     : `<span class="muted">${t("No price set")}</span>`;
 
   const cards = `<div class="cards">
-    ${detailCard(t("Shares Held"), fmt(h.shares, { maximumFractionDigits: 4 }))}
+    ${detailCard(t("Shares Held"), fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }))}
     ${detailCard(t("Average Cost"), `${money(h.avgCost)}<div class="c-sub">${h.currency} ${fmt(h.avgCostLocal)} / ${t("share")}</div>`)}
     ${detailCard(t("Current Price"), priceLbl)}
     ${detailCard(t("Market Value"), money(h.marketValue))}
@@ -3705,6 +3663,7 @@ function pageHolding() {
         ${meta.sector ? `<span class="chip">${meta.sector}</span>` : ""}
         <button class="btn" id="dtlPrice">＄ ${t("Set price")}</button>
         ${LIVE_ENABLED ? `<button class="btn" id="dtlLive">⟳ ${t("Live")}</button>` : ""}
+        <button class="btn ghost" id="dtlDelete">✕ ${t("Delete holding")}</button>
       </div>
     </div>
     ${cards}
@@ -3744,6 +3703,17 @@ function pageHolding() {
         const ok = await refreshLivePrice(h.ticker);
         if (ok) { saveStore(); toast(`${h.ticker} ${t("updated")}`); render(); }
         else { lv.classList.remove("spin"); toast(`${t("Couldn't fetch")} ${h.ticker}`); }
+      });
+      const del = $("#dtlDelete");
+      if (del) del.addEventListener("click", () => {
+        const i = HOLDINGS.findIndex((x) => x.ticker === h.ticker && x.brokerId === h.brokerId);
+        if (i >= 0) {
+          if (!confirm(t("Remove this opening holding?"))) return;
+          HOLDINGS.splice(i, 1);
+          saveStore(); toast(t("Holding removed")); location.hash = "#/portfolio";
+        } else {
+          toast(t("This holding comes from your transactions — delete the related transactions to remove it."));
+        }
       });
     } };
 }

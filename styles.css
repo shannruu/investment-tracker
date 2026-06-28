@@ -897,8 +897,8 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .dash-charts .alloc-legend .legend-row { padding: 2px 0; gap: 5px; }
 .dash-charts .alloc-legend .lr-pct { margin-left: auto; }
 
-/* Portfolio price stamp (above holdings table) */
-.price-stamp { font-size: 12px; color: var(--text-soft); padding: 8px 0 6px; display: flex; align-items: center; gap: 6px; }
+/* Portfolio price stamp (anchored inside table-wrap, directly above column headers) */
+.price-stamp { font-size: 12px; color: var(--text-soft); padding: 6px 0 5px; display: flex; align-items: center; gap: 6px; }
 .link-btn { background: none; border: none; color: var(--brand); font-size: inherit; cursor: pointer; padding: 0; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 .link-btn:hover { opacity: 0.75; }
 
