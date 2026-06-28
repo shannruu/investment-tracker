@@ -312,6 +312,48 @@ a { color: inherit; text-decoration: none; }
 .panel-head h2 { font-size: 15px; }
 .panel-head .link, .panel-head .badge, .panel-head .seg { margin-left: auto; }
 .panel-head-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+/* ---- Column visibility panel ---- */
+.col-panel-wrap { position: relative; }
+.col-panel {
+  position: absolute; top: calc(100% + 6px); right: 0;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); box-shadow: 0 4px 20px rgba(16,24,40,.14);
+  padding: 6px; z-index: 200; min-width: 196px;
+}
+.col-panel-title {
+  font-size: 11px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .05em; padding: 4px 8px 6px;
+}
+.col-toggle {
+  display: flex; align-items: center; gap: 9px; padding: 7px 8px;
+  border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--text);
+}
+.col-toggle:hover { background: var(--surface-2); }
+.col-toggle input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--brand); cursor: pointer; flex: none; }
+
+/* ---- Group-by segmented control ---- */
+.group-seg { display: flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
+.group-seg-btn {
+  padding: 6px 12px; font-size: 12px; font-weight: 600; border: none;
+  background: transparent; cursor: pointer; color: var(--text-soft); white-space: nowrap;
+  transition: background .12s, color .12s;
+}
+.group-seg-btn:hover { background: var(--surface-2); }
+.group-seg-btn.on { background: var(--brand); color: #fff; }
+
+/* ---- Broker pills in holding cell (by-stock grouped view) ---- */
+.broker-pills { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
+.chip-pill {
+  font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 4px;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--text-soft);
+}
+
+/* ---- Same-ticker grouping indicator in by-broker view ---- */
+.data-table tbody tr.same-ticker-row > td { border-top: 1px dashed color-mix(in srgb, var(--brand) 35%, var(--border)); }
+
+/* ---- Holding cell min-width ---- */
+.td-holding { min-width: 130px; }
 .grid-2 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
 
 .badge {

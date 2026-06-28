@@ -1901,9 +1901,68 @@ function mountOpeningHoldingForm() {
  * PAGE: PORTFOLIO  (with working filters + grouped allocations)
  * ========================================================================== */
 const portfolioFilters = { broker: "", market: "", currency: "", pl: "" };
-let portfolioColumnsExpanded = false;
 const EXCHANGE_NAMES = { NMS:"NASDAQ", NGM:"NASDAQ", NCM:"NASDAQ", NYQ:"NYSE", PCX:"NYSE Arca", KLS:"Bursa Malaysia", KLSE:"Bursa Malaysia", LSE:"London SE", HKG:"Hong Kong SE", ASX:"ASX", TSX:"TSX" };
 function exchangeName(code) { return code ? (EXCHANGE_NAMES[code] || code) : ""; }
+
+const PORTFOLIO_PREFS_KEY = "il-portfolio-v1";
+const COL_DEFS = [
+  { id: "broker",         label: "Broker" },
+  { id: "shares",         label: "Shares" },
+  { id: "avgCost",        label: "Avg Cost (MYR)" },
+  { id: "price",          label: "Price" },
+  { id: "priceMyr",       label: "Price → MYR" },
+  { id: "unrealizedAmt",  label: "Unrealized P/L" },
+  { id: "unrealizedPct",  label: "Unrealized %" },
+  { id: "totalReturnAmt", label: "Total Return" },
+  { id: "totalReturnPct", label: "Total Return %" },
+  { id: "marketValue",    label: "Market Value" },
+  { id: "alloc",          label: "Allocation %" },
+  { id: "netDiv",         label: "Net Dividends" },
+];
+const COL_DEFAULTS = {
+  broker: false, shares: true, avgCost: true, price: true, priceMyr: false,
+  unrealizedAmt: true, unrealizedPct: true, totalReturnAmt: true, totalReturnPct: false,
+  marketValue: false, alloc: false, netDiv: false,
+};
+function loadPortfolioPrefs() {
+  try {
+    const s = JSON.parse(localStorage.getItem(PORTFOLIO_PREFS_KEY) || "{}");
+    return { groupBy: s.groupBy || "ticker", cols: Object.assign({}, COL_DEFAULTS, s.cols || {}) };
+  } catch { return { groupBy: "ticker", cols: Object.assign({}, COL_DEFAULTS) }; }
+}
+function savePortfolioPrefs() {
+  try { localStorage.setItem(PORTFOLIO_PREFS_KEY, JSON.stringify(portfolioPrefs)); } catch {}
+}
+let portfolioPrefs = loadPortfolioPrefs();
+let _colPanelCloseHandler = null;
+
+function aggregateHoldingsByTicker(holdings) {
+  const map = {};
+  holdings.forEach((h) => {
+    if (!map[h.ticker]) {
+      map[h.ticker] = { ...h, _brokerIds: [h.brokerId], _brokerNames: [brokerName(h.brokerId)] };
+    } else {
+      const g = map[h.ticker];
+      const newShares = g.shares + h.shares;
+      const newCost = (g.costBasis || 0) + (h.costBasis || 0);
+      g.shares = newShares; g.costBasis = newCost;
+      g.avgCost = newShares > 0 ? newCost / newShares : 0;
+      g.marketValue = (g.marketValue || 0) + (h.marketValue || 0);
+      g.unrealized = (g.unrealized || 0) + (h.unrealized || 0);
+      g.unrealizedPct = newCost > 0 ? (g.unrealized / newCost) * 100 : 0;
+      g.totalReturn = (g.totalReturn || 0) + (h.totalReturn || 0);
+      g.netDividends = (g.netDividends || 0) + (h.netDividends || 0);
+      g.hasPrice = g.hasPrice && h.hasPrice;
+      g._brokerIds.push(h.brokerId); g._brokerNames.push(brokerName(h.brokerId));
+      if (h.priceFetchedAt && (!g.priceFetchedAt || h.priceFetchedAt > g.priceFetchedAt)) {
+        g.currentPrice = h.currentPrice; g.currentPriceCcy = h.currentPriceCcy;
+        g.currentPriceDate = h.currentPriceDate; g.priceFetchedAt = h.priceFetchedAt;
+        g.priceSource = h.priceSource; g.currency = h.currency;
+      }
+    }
+  });
+  return Object.values(map);
+}
 
 function pagePortfolio() {
   const has = T.holdings.length > 0;
@@ -1917,7 +1976,6 @@ function pagePortfolio() {
     ${styledSelect("fPL", [{ value: "", label: t("All P/L") }, { value: "pos", label: t("Profit") }, { value: "neg", label: t("Loss") }], portfolioFilters.pl, { id: "fPL" })}
     <button class="btn ghost" id="fReset">${t("Reset")}</button></div>`;
 
-  // Breakdowns are supporting context — only worth showing when there are 2+ slices to compare.
   const distinctBrokers = new Set(T.holdings.map((h) => h.brokerId)).size;
   const distinctCcy = new Set(T.holdings.map((h) => h.currency)).size;
   const breakdowns =
@@ -1934,9 +1992,22 @@ function pagePortfolio() {
          <a class="btn ghost" href="#/brokers">${t("Go to Brokers")}</a>
        </div>`;
 
+  const colPanelHtml = `<div class="col-panel-wrap" id="colPanelWrap">
+    <button class="btn ghost" id="colBtn">⊞ ${t("Columns")}</button>
+    <div class="col-panel" id="colPanel" hidden>
+      <div class="col-panel-title">${t("Visible columns")}</div>
+      ${COL_DEFS.map((d) => `<label class="col-toggle"><input type="checkbox" data-col="${d.id}"${portfolioPrefs.cols[d.id] ? " checked" : ""}><span>${t(d.label)}</span></label>`).join("")}
+    </div>
+  </div>`;
+
+  const groupHtml = `<div class="group-seg">
+    <button class="group-seg-btn${portfolioPrefs.groupBy === "ticker" ? " on" : ""}" data-group="ticker">${t("By Stock")}</button>
+    <button class="group-seg-btn${portfolioPrefs.groupBy === "broker" ? " on" : ""}" data-group="broker">${t("By Broker")}</button>
+  </div>`;
+
   const html = has
     ? `${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
-          `<div class="panel-head-actions"><button class="btn ghost" id="colToggle">${portfolioColumnsExpanded ? t("Fewer columns") : t("More columns")}</button><button class="btn" id="refreshPrices">⟳ ${t("Refresh live prices")}</button></div>`)}
+          `<div class="panel-head-actions">${colPanelHtml}${groupHtml}<button class="btn" id="refreshPrices">⟳ ${t("Refresh live prices")}</button></div>`)}
        ${breakdowns ? `<section class="portfolio-breakdowns">${breakdowns}</section>` : ""}`
     : panel("Holdings", emptyContent);
 
@@ -1945,12 +2016,33 @@ function pagePortfolio() {
       : `${plural(T.holdings.length, "holding", "holdings")} across ${plural(BROKERS.length, "broker", "brokers")} · ${money(T.portfolioValue)}`, html,
     mount() {
       const apply = () => { const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioTable(); };
-      const ct = $("#colToggle"); if (ct) ct.addEventListener("click", () => { portfolioColumnsExpanded = !portfolioColumnsExpanded; render(); });
       const onFilter = (id, key) => { const el = $(id); if (el) el.addEventListener("change", (e) => { portfolioFilters[key] = e.target.value; apply(); }); };
       onFilter("#fBroker", "broker"); onFilter("#fMarket", "market"); onFilter("#fCurrency", "currency"); onFilter("#fPL", "pl");
       const fr = $("#fReset");
       if (fr) fr.addEventListener("click", () => { Object.keys(portfolioFilters).forEach((k) => (portfolioFilters[k] = "")); render(); });
-      // Refresh ALL holdings from the market
+      // Column visibility panel
+      const colBtn = $("#colBtn"), colPanel = $("#colPanel");
+      if (colBtn && colPanel) {
+        colBtn.addEventListener("click", (e) => { e.stopPropagation(); colPanel.hidden = !colPanel.hidden; });
+        colPanel.addEventListener("change", (e) => {
+          const cb = e.target.closest("[data-col]");
+          if (!cb) return;
+          portfolioPrefs.cols[cb.dataset.col] = cb.checked;
+          savePortfolioPrefs(); apply();
+        });
+        if (_colPanelCloseHandler) document.removeEventListener("click", _colPanelCloseHandler);
+        _colPanelCloseHandler = (ev) => {
+          const wrap = document.getElementById("colPanelWrap");
+          if (!colPanel.hidden && wrap && !wrap.contains(ev.target)) colPanel.hidden = true;
+        };
+        document.addEventListener("click", _colPanelCloseHandler);
+      }
+      // Group-by toggle
+      $$("[data-group]").forEach((btn) => btn.addEventListener("click", () => {
+        portfolioPrefs.groupBy = btn.dataset.group;
+        savePortfolioPrefs(); render();
+      }));
+      // Refresh all live prices
       const rp = $("#refreshPrices");
       if (rp) rp.addEventListener("click", async () => {
         if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
@@ -1961,7 +2053,7 @@ function pagePortfolio() {
         saveStore(); render();
         toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
       });
-      // Delegated actions (survive table re-renders): live fetch, set price, delete
+      // Delegated actions: live fetch, set price, delete
       const holdBody = $("#holdingsBody");
       if (holdBody) holdBody.addEventListener("click", async (e) => {
         const lbtn = e.target.closest("[data-live-holding]");
@@ -2003,47 +2095,68 @@ function pagePortfolio() {
 
 function portfolioTable() {
   const f = portfolioFilters;
+  const { cols, groupBy } = portfolioPrefs;
   let rows = T.holdings.filter((h) =>
     (!f.broker || h.brokerId === f.broker) &&
     (!f.market || h.market === f.market) &&
     (!f.currency || h.currency === f.currency) &&
     (!f.pl || (f.pl === "pos" ? h.unrealized >= 0 : h.unrealized < 0)));
-  rows = rows.sort((a, b) => b.marketValue - a.marketValue);
+  if (groupBy === "ticker") rows = aggregateHoldingsByTicker(rows);
+  rows = rows.sort((a, b) => (b.marketValue || 0) - (a.marketValue || 0));
   if (!rows.length) return emptyState(T.holdings.length
     ? t("No holdings match these filters.")
     : t("No holdings yet. Add a buy transaction to create your first holding."));
   const pv = T.portfolioValue || 0;
-  const body = rows.map((h) => {
-    const alloc = pv ? (h.marketValue / pv) * 100 : 0;
+  const body = rows.map((h, i) => {
+    const alloc = pv ? ((h.marketValue || 0) / pv) * 100 : 0;
     const isLive = h.priceSource === "live";
     const priceTag = isLive
       ? `<div class="fx-note live-price">${t("Live")} · ${h.priceFetchedAt ? fmtDateTime(h.priceFetchedAt) : fmtDate(h.currentPriceDate)}</div>`
-      : `<div class="fx-note manual-price">${t("Manual price")} · ${fmtDate(h.currentPriceDate)}</div>`;
-    const myrEquiv = (h.hasPrice && h.currency !== FX.base)
-      ? `<div class="fx-note">≈ ${FX.base} ${fmt(h.currentPrice * (FX.rates[h.currency] || 1))}</div>`
+      : (h.currentPriceDate ? `<div class="fx-note manual-price">${t("Manual")} · ${fmtDate(h.currentPriceDate)}</div>` : "");
+    const totalReturnPct = h.costBasis > 0 ? (h.totalReturn / h.costBasis) * 100 : 0;
+    const brokerPills = (groupBy === "ticker" && h._brokerNames)
+      ? h._brokerNames.map((n) => `<span class="chip chip-pill">${n}</span>`).join("")
       : "";
-    const priceCell = h.hasPrice
-      ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}${myrEquiv}${priceTag}`
-      : `<span class="muted">—</span><div class="fx-note">${t("No price set")}</div>`;
-    return `<tr>
-      <td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a><div class="sub">${h.company || ""}</div></td>
-      <td><span class="chip">${brokerName(h.brokerId)}</span>${h.market ? `<div class="sub">${exchangeName(h.market)}</div>` : ""}</td>
-      <td class="num">${fmt(h.shares, { maximumFractionDigits: 4 })}</td>
-      <td class="num">${money(h.avgCost)}<div class="fx-note avg-label">${t("avg. MYR")}</div></td>
-      <td class="num">${priceCell}</td>
-      ${portfolioColumnsExpanded ? `<td class="num">${money(h.marketValue)}</td>` : ""}
-      ${portfolioColumnsExpanded ? `<td class="num">${fmt(alloc, { maximumFractionDigits: 1 })}%</td>` : ""}
-      <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
-      <td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}${h.netDividends ? `<div class="fx-note">${t("div.")} ${money(h.netDividends)}</div>` : ""}</td>
+    const isSameAsPrev = groupBy === "broker" && i > 0 && rows[i - 1].ticker === h.ticker;
+    return `<tr${isSameAsPrev ? ' class="same-ticker-row"' : ""}>
+      <td class="td-holding">
+        <a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a>
+        ${h.company ? `<div class="sub">${h.company}</div>` : ""}
+        ${brokerPills ? `<div class="broker-pills">${brokerPills}</div>` : ""}
+      </td>
+      ${cols.broker ? `<td><span class="chip">${brokerName(h.brokerId)}</span>${h.market ? `<div class="sub">${exchangeName(h.market)}</div>` : ""}</td>` : ""}
+      ${cols.shares ? `<td class="num">${fmt(h.shares, { maximumFractionDigits: 4 })}</td>` : ""}
+      ${cols.avgCost ? `<td class="num">${money(h.avgCost)}</td>` : ""}
+      ${cols.price ? `<td class="num">${h.hasPrice ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}${priceTag}` : `<span class="muted">—</span>`}</td>` : ""}
+      ${cols.priceMyr ? `<td class="num">${(h.hasPrice && h.currency !== FX.base) ? `${FX.base} ${fmt(h.currentPrice * (FX.rates[h.currency] || 1))}` : `<span class="muted">—</span>`}</td>` : ""}
+      ${cols.unrealizedAmt ? `<td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}</td>` : ""}
+      ${cols.unrealizedPct ? `<td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? pctTxt(h.unrealizedPct) : `<span class="muted">—</span>`}</td>` : ""}
+      ${cols.totalReturnAmt ? `<td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td>` : ""}
+      ${cols.totalReturnPct ? `<td class="num ${cls(h.totalReturn)}">${pctTxt(totalReturnPct)}</td>` : ""}
+      ${cols.marketValue ? `<td class="num">${h.hasPrice ? money(h.marketValue) : `<span class="muted">—</span>`}</td>` : ""}
+      ${cols.alloc ? `<td class="num">${h.hasPrice ? fmt(alloc, { maximumFractionDigits: 1 }) + "%" : `<span class="muted">—</span>`}</td>` : ""}
+      ${cols.netDiv ? `<td class="num">${h.netDividends ? money(h.netDividends) : `<span class="muted">—</span>`}</td>` : ""}
       <td class="num row-actions">
         <button class="icon-btn row-live" data-live-holding="${h.ticker}" title="${t("Fetch live price")}" aria-label="${t("Fetch live price")}">⟳</button>
-        <button class="icon-btn row-price" data-price-holding="${h.ticker}|${h.currentPriceCcy}" title="${t("Set current price")}" aria-label="${t("Set current price")}">＄</button>
-        <button class="icon-btn row-del" data-del-holding="${h.ticker}|${h.brokerId}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button></td></tr>`;
+        <button class="icon-btn row-price" data-price-holding="${h.ticker}|${h.currentPriceCcy || FX.base}" title="${t("Set current price")}" aria-label="${t("Set current price")}">＄</button>
+        <button class="icon-btn row-del" data-del-holding="${h.ticker}|${h.brokerId}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button>
+      </td></tr>`;
   }).join("");
   const headers = [
-    {label:"Holding"},{label:"Broker"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},
-    ...(portfolioColumnsExpanded ? [{label:"Market Value",num:1},{label:"Alloc",num:1}] : []),
-    {label:"Unrealized P/L",num:1},{label:"Total Return",num:1},{label:"",num:1},
+    {label: t("Holding")},
+    ...(cols.broker ? [{label: t("Broker")}] : []),
+    ...(cols.shares ? [{label: t("Shares"), num: 1}] : []),
+    ...(cols.avgCost ? [{label: t("Avg Cost"), num: 1}] : []),
+    ...(cols.price ? [{label: t("Price"), num: 1}] : []),
+    ...(cols.priceMyr ? [{label: "≈ MYR", num: 1}] : []),
+    ...(cols.unrealizedAmt ? [{label: t("Unrealized P/L"), num: 1}] : []),
+    ...(cols.unrealizedPct ? [{label: "P/L %", num: 1}] : []),
+    ...(cols.totalReturnAmt ? [{label: t("Total Return"), num: 1}] : []),
+    ...(cols.totalReturnPct ? [{label: "Return %", num: 1}] : []),
+    ...(cols.marketValue ? [{label: t("Market Value"), num: 1}] : []),
+    ...(cols.alloc ? [{label: "Alloc %", num: 1}] : []),
+    ...(cols.netDiv ? [{label: t("Net Dividends"), num: 1}] : []),
+    {label: "", num: 1},
   ];
   return table(headers, body);
 }
