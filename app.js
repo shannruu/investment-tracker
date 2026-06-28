@@ -1970,6 +1970,14 @@ function pagePortfolio() {
   const regionLabels = { malaysia: t("Malaysia stocks"), global: t("Global stocks") };
   const currencies = [...new Set(T.holdings.map((h) => h.currency))].filter(Boolean);
 
+  const filtersActive = !!(portfolioFilters.broker || portfolioFilters.market || portfolioFilters.currency || portfolioFilters.sort);
+  const colPanelHtml = `<div class="col-panel-wrap filters-col-panel" id="colPanelWrap">
+    <button class="btn ghost" id="colBtn">${t("Edit columns")}</button>
+    <div class="col-panel" id="colPanel" hidden>
+      <div class="col-panel-title">${t("Visible columns")}</div>
+      ${COL_DEFS.map((d) => `<label class="col-toggle"><input type="checkbox" data-col="${d.id}"${portfolioPrefs.cols[d.id] ? " checked" : ""}><span>${t(d.label)}</span></label>`).join("")}
+    </div>
+  </div>`;
   const filterBar = `<div class="filters">
     ${styledSelect("fBroker", [{ value: "", label: t("All brokers") }, ...BROKERS.map((b) => ({ value: b.id, label: b.name }))], portfolioFilters.broker, { id: "fBroker" })}
     ${styledSelect("fMarket", [{ value: "", label: t("All stocks") }, ...regions.map((r) => ({ value: r, label: regionLabels[r] }))], portfolioFilters.market, { id: "fMarket" })}
@@ -1982,7 +1990,8 @@ function pagePortfolio() {
       { value: "shares",      label: t("Shares") },
       { value: "marketValue", label: t("Market Value") },
     ], portfolioFilters.sort, { id: "fSort" })}
-    <button class="btn ghost" id="fReset">${t("Reset")}</button></div>`;
+    <button class="btn ghost btn-reset${filtersActive ? " active" : ""}" id="fReset">${t("Reset")}</button>
+    ${colPanelHtml}</div>`;
 
   const distinctBrokers = new Set(T.holdings.map((h) => h.brokerId)).size;
   const breakdowns = distinctBrokers >= 2
@@ -1999,17 +2008,10 @@ function pagePortfolio() {
          <a class="btn ghost" href="#/brokers">${t("Go to Brokers")}</a>
        </div>`;
 
-  const colPanelHtml = `<div class="col-panel-wrap" id="colPanelWrap">
-    <button class="btn ghost" id="colBtn">${t("Edit columns")}</button>
-    <div class="col-panel" id="colPanel" hidden>
-      <div class="col-panel-title">${t("Visible columns")}</div>
-      ${COL_DEFS.map((d) => `<label class="col-toggle"><input type="checkbox" data-col="${d.id}"${portfolioPrefs.cols[d.id] ? " checked" : ""}><span>${t(d.label)}</span></label>`).join("")}
-    </div>
-  </div>`;
-
+  const refreshBtn = `<button class="icon-btn pf-refresh" id="pfRefreshBtn" title="${t("Refresh live prices")}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>`;
   const html = has
     ? `${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
-          `<div class="panel-head-actions">${colPanelHtml}</div>`)}
+          `<div class="panel-head-actions">${refreshBtn}</div>`)}
        ${breakdowns ? `<section class="portfolio-breakdowns">${breakdowns}</section>` : ""}`
     : panel("Holdings", emptyContent);
 
@@ -2039,26 +2041,25 @@ function pagePortfolio() {
         };
         document.addEventListener("click", _colPanelCloseHandler);
       }
-      // Delegated actions: refresh prices + drag reorder
+      // Refresh button (panel head)
+      const pfRefreshBtn = $("#pfRefreshBtn");
+      if (pfRefreshBtn) pfRefreshBtn.addEventListener("click", async () => {
+        if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
+        pfRefreshBtn.disabled = true;
+        pfRefreshBtn.querySelector("svg").classList.add("spinning");
+        const tickers = [...new Set(T.holdings.map((h) => h.ticker))];
+        let ok = 0;
+        for (const tk of tickers) { if (await refreshLivePrice(tk)) ok++; }
+        const nonBase = Object.keys(FX.rates).filter((c) => c !== FX.base);
+        for (const ccy of nonBase) {
+          const q = await fetchQuote(`${ccy}${FX.base}=X`);
+          if (q && q.price > 0) FX.rates[ccy] = +q.price;
+        }
+        saveStore(); render();
+        toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
+      });
       const holdBody = $("#holdingsBody");
       if (holdBody) {
-        holdBody.addEventListener("click", async (e) => {
-          const rfBtn = e.target.closest("[data-refresh-prices]");
-          if (!rfBtn) return;
-          if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
-          rfBtn.disabled = true; rfBtn.textContent = "… " + t("Fetching");
-          const tickers = [...new Set(T.holdings.map((h) => h.ticker))];
-          let ok = 0;
-          for (const tk of tickers) { if (await refreshLivePrice(tk)) ok++; }
-          // Also refresh non-base FX rates
-          const nonBase = Object.keys(FX.rates).filter((c) => c !== FX.base);
-          for (const ccy of nonBase) {
-            const q = await fetchQuote(`${ccy}${FX.base}=X`);
-            if (q && q.price > 0) FX.rates[ccy] = +q.price;
-          }
-          saveStore(); render();
-          toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
-        });
         // Column drag-to-reorder
         let _dragColId = null;
         holdBody.addEventListener("dragstart", (e) => {
@@ -2122,11 +2123,11 @@ function portfolioTable() {
     ? t("No holdings match these filters.")
     : t("No holdings yet. Add a buy transaction to create your first holding."));
 
-  // Price freshness stamp with Refresh button
+  // Price freshness stamp
   const latestFetch = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();
   const priceStamp = `<div class="price-stamp">${
     latestFetch ? `${t("Prices as of")} ${fmtDateTime(latestFetch)}` : `<span class="muted">${t("No live prices fetched yet")}</span>`
-  } · <button class="link-btn" data-refresh-prices="1">↻ ${t("Refresh")}</button></div>`;
+  }</div>`;
 
   // Visible columns in user-defined order
   const orderedColIds = colOrder.filter((id) => cols[id]);
@@ -2161,9 +2162,15 @@ function portfolioTable() {
       ${orderedColIds.map((id) => cellMap[id] || "").join("")}</tr>`;
   }).join("");
 
-  const thCols = orderedColIds.map((id) =>
-    `<th class="num draggable-col" draggable="true" data-col-id="${id}">${colLabels[id] || id}</th>`
-  ).join("");
+  const colTooltips = {
+    unrealizedPct: t("Unrealized gain/loss as a percentage of your cost basis"),
+    totalReturnPct: t("Total return including dividends, as a percentage of cost basis"),
+    priceMyr: t("Live price converted to base currency at today's exchange rate"),
+  };
+  const thCols = orderedColIds.map((id) => {
+    const tip = colTooltips[id] ? ` <span class="col-info" title="${colTooltips[id]}">ⓘ</span>` : "";
+    return `<th class="num draggable-col" draggable="true" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
+  }).join("");
   const thead = `<thead><tr><th>${t("Holding")}</th>${thCols}</tr></thead>`;
 
   return `<div class="table-wrap">${priceStamp}<table class="data-table">${thead}<tbody>${body}</tbody></table></div>`;
@@ -2235,7 +2242,7 @@ function recordsTable(list) {
     const myr = tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * fxr;
     const isTrade = tx.type === "Buy" || tx.type === "Sell";
     const detail = isTrade && tx.qty != null
-      ? `<div class="sub">${fmt(tx.qty, { maximumFractionDigits: 4 })} @ ${tx.currency} ${fmt(tx.price)}</div>` : "";
+      ? `<div class="sub">${fmt(tx.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} @ ${tx.currency} ${fmt(tx.price)}</div>` : "";
     const orig = tx.type === "Currency Exchange"
       ? `${tx.currency} ${fmt(tx.gross || 0)} → ${tx.toCurrency || ""} ${fmt(tx.toAmount || 0)}`
       : `${tx.currency} ${fmt(tx.gross || 0)}${tx.fee ? ` · ${t("fee")} ${fmt(tx.fee)}` : ""}`;
@@ -2963,7 +2970,7 @@ function reportPortfolio() {
   const a = allocationData();
   const holdRows = [...T.holdings].sort((x, y) => y.marketValue - x.marketValue).map((h) => `<tr>
     <td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a></td>
-    <td class="num">${fmt(h.shares, { maximumFractionDigits: 4 })}</td><td class="num">${money(h.avgCost)}</td>
+    <td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td><td class="num">${money(h.avgCost)}</td>
     <td class="num">${money(h.marketValue)}</td><td class="num">${a.total ? fmt(h.marketValue / a.total * 100, { maximumFractionDigits: 1 }) : "0"}%</td>
     <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : "—"}</td>
     <td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td></tr>`).join("");
@@ -3610,7 +3617,7 @@ function pageHolding() {
   const txs = ALL_TRANSACTIONS.filter((x) => x.brokerId === brokerId && (x.ticker || "").toUpperCase() === tk)
     .sort((a, b) => (a.date < b.date ? 1 : -1));
   const txRows = txs.map((x) => `<tr><td>${fmtDate(x.date)}</td><td>${typeChip(x.type)}</td>
-    <td class="num">${x.qty != null ? fmt(x.qty, { maximumFractionDigits: 4 }) : "—"}</td>
+    <td class="num">${x.qty != null ? fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 }) : "—"}</td>
     <td class="num">${x.price != null ? x.currency + " " + fmt(x.price) : "—"}</td>
     <td class="num">${x.gross != null ? x.currency + " " + fmt(x.gross) : "—"}</td>
     <td class="num">${x.fee ? x.currency + " " + fmt(x.fee) : "—"}</td></tr>`).join("");
