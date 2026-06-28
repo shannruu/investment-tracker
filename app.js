@@ -1139,8 +1139,8 @@ function statusBadge(s) {
   return `<span class="badge ${map[s] || "subtle"}">${s}</span>`;
 }
 function typeChip(t) {
-  const c = { Buy: "pos", Sell: "neg", Dividend: "confirmed", Deposit: "subtle",
-    Withdrawal: "warn", Fee: "neg", "DRIP / Reinvested": "confirmed", "Currency Exchange": "subtle",
+  const c = { Buy: "info", Sell: "neg", Dividend: "pos", Deposit: "subtle",
+    Withdrawal: "warn", Fee: "subtle", "DRIP / Reinvested": "pos", "Currency Exchange": "subtle",
     "Stock Split": "subtle", Adjustment: "subtle" }[t] || "subtle";
   return `<span class="badge ${c}">${t}</span>`;
 }
@@ -1256,22 +1256,23 @@ function mountChartTooltips() {
 
 // Monochrome indigo ramp (+ one neutral) so the allocation chart stays on-brand.
 const PALETTE = ["#4a3ed9", "#6d5efc", "#8b80ff", "#a99dff", "#352c9e", "#c4bcff", "#8089a0"];
-function donutHTML(slices, centerLabel, centerValue) {
+function donutHTML(slices, centerLabel, centerValue, colors) {
   slices = (slices || []).filter((s) => s.value > 0);
   if (!slices.length) return emptyState(t("No holdings yet. Add a buy transaction to create your first holding."));
   const total = slices.reduce((s, x) => s + x.value, 0) || 1;
   const R = 70, r = 44, C = 88;
   let a0 = -Math.PI / 2;
+  const clr = (i) => (colors && colors[i]) || PALETTE[i % PALETTE.length];
   const arcs = slices.map((s, i) => {
     const a1 = a0 + (s.value / total) * Math.PI * 2;
     const large = a1 - a0 > Math.PI ? 1 : 0;
     const p = (ang, rad) => [C + rad * Math.cos(ang), C + rad * Math.sin(ang)];
     const [x0, y0] = p(a0, R), [x1, y1] = p(a1, R), [x2, y2] = p(a1, r), [x3, y3] = p(a0, r);
     a0 = a1;
-    return `<path d="M${x0},${y0} A${R},${R} 0 ${large} 1 ${x1},${y1} L${x2},${y2} A${r},${r} 0 ${large} 0 ${x3},${y3} Z" fill="${PALETTE[i % PALETTE.length]}"/>`;
+    return `<path d="M${x0},${y0} A${R},${R} 0 ${large} 1 ${x1},${y1} L${x2},${y2} A${r},${r} 0 ${large} 0 ${x3},${y3} Z" fill="${clr(i)}"/>`;
   }).join("");
   const legend = slices.map((s, i) => `<div class="legend-row">
-    <span class="legend-dot" style="background:${PALETTE[i % PALETTE.length]}"></span>
+    <span class="legend-dot" style="background:${clr(i)}"></span>
     <span>${s.label}</span><span class="lr-pct">${fmt((s.value / total) * 100, { maximumFractionDigits: 1 })}%</span></div>`).join("");
   return `<div class="chart alloc"><svg viewBox="0 0 176 176" width="176" height="176" role="img" aria-label="Allocation">
     ${arcs}<text x="88" y="84" text-anchor="middle" style="fill:var(--muted);font-size:10px;font-family:var(--font)">${centerLabel}</text>
@@ -1389,13 +1390,10 @@ function pageDashboard() {
 
   const holdingsRows = [...T.holdings].sort((a, b) => b.marketValue - a.marketValue).slice(0, 8).map((h) => `
     <tr><td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a><div class="sub">${h.company || ""}</div></td>
-      <td><span class="chip">${brokerName(h.brokerId)}</span></td><td class="sub">${h.market || "—"}</td>
       <td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>
-      <td class="num">${money(h.avgCost)}</td>
-      <td class="num">${h.hasPrice ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}` : `<span class="muted">—</span>`}</td>
       <td class="num">${money(h.marketValue)}</td>
       <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
-      <td class="num">${fmt(h.netDividends)}</td><td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td></tr>`).join("");
+      <td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td></tr>`).join("");
 
   // Upcoming dividends — manual (UPCOMING_DIVIDENDS), auto-fetched (AUTO_DIV_CACHE), and legacy Expected.
   const upcoming = allUpcomingDivs();
@@ -1407,14 +1405,20 @@ function pageDashboard() {
       <td class="num">${d.currency} ${fmt(d.expectedNet)}</td><td>${statusBadge(d.status)}</td></tr>`;
   }).join("");
 
-  const recentRows = ALL_TRANSACTIONS.slice(0, 6).map((tx) => `<tr><td>${fmtDate(tx.date)}</td><td>${typeChip(tx.type)}</td>
-    <td class="ticker">${tx.ticker || "—"}</td><td class="sub">${brokerName(tx.brokerId)}</td>
-    <td class="num">${tx.currency} ${fmt(tx.gross != null ? tx.gross : 0)}</td></tr>`).join("");
+  const recentRows = ALL_TRANSACTIONS.slice(0, 6).map((tx) => {
+    const txAmt = tx.gross != null ? tx.gross : 0;
+    const fxR = tx.fxRate || FX.rates[tx.currency] || 1;
+    const myrEq = tx.currency !== FX.base && txAmt > 0 ? txAmt * fxR : 0;
+    return `<tr><td>${fmtDate(tx.date)}</td><td>${typeChip(tx.type)}</td>
+      <td class="ticker">${tx.ticker || "—"}</td><td class="sub">${brokerName(tx.brokerId)}</td>
+      <td class="num">${tx.currency} ${fmt(txAmt)}${myrEq > 0 ? `<div class="fx-note">${FX.base} ${fmt(myrEq)}</div>` : ""}</td></tr>`;
+  }).join("");
 
   // In-card return-mode toggle (controls the Total P/L figure).
   const toggle = `<div class="seg seg-sm" role="group" aria-label="${t("Return mode")}">
-    <button class="seg-btn ${SETTINGS.returnMode !== "price" ? "on" : ""}" data-return="total">${t("Total")}</button>
-    <button class="seg-btn ${SETTINGS.returnMode === "price" ? "on" : ""}" data-return="price">${t("Price")}</button></div>`;
+    <button class="seg-btn ${SETTINGS.returnMode !== "price" ? "on" : ""}" data-return="total">${t("Total Return")}</button>
+    <button class="seg-btn ${SETTINGS.returnMode === "price" ? "on" : ""}" data-return="price">${t("Unrealized")}</button></div>`;
+  const cashLow = (T.totalCash || 0) < 50 || (netWorth > 0 && (T.totalCash || 0) < netWorth * 0.05);
 
   // Calc breakdowns (click a stat to see "how").
   const calcs = {
@@ -1461,15 +1465,15 @@ function pageDashboard() {
       <div class="stat-value">${money(netWorth)}</div>
       <div class="stat-sub muted">${t("Holdings")} ${money(T.portfolioValue)} · ${t("Cash")} ${money(T.totalCash || 0)}</div>
     </article>
-    <article class="stat pl ${up ? "is-up" : dn ? "is-down" : ""}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total P/L") : t("Price P/L")}, show calculation">
-      ${statHead(returnIsTotal ? t("Total P/L") : t("Price P/L"), toggle)}
+    <article class="stat pl ${up ? "is-up" : dn ? "is-down" : ""}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total P/L") : t("Unrealized P/L")}, show calculation">
+      ${statHead(returnIsTotal ? t("Total P/L") : t("Unrealized P/L"), toggle)}
       <div class="stat-value ${up ? "pos" : dn ? "neg" : ""}">${up ? "▲ " : dn ? "▼ " : ""}${signed(shownReturn)}</div>
-      <div class="stat-sub ${up ? "pos" : dn ? "neg" : "muted"}">${up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%"} · ${t("on net capital")}</div>
+      <div class="stat-sub ${up ? "pos" : dn ? "neg" : "muted"}">${up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%"} <span class="col-info" title="${t("Calculated as return ÷ net capital invested (total deposits minus withdrawals).")}">ⓘ</span> · ${t("on net capital")}</div>
     </article>
     <article class="stat" data-card="cash" tabindex="0" role="button" aria-label="${t("Available Cash")}, show calculation">
-      ${statHead(t("Available Cash"), howHint)}
-      <div class="stat-value">${money(T.totalCash || 0)}</div>
-      <div class="stat-sub muted">${t("Across all brokers")}</div>
+      ${statHead(`${t("Available Cash")}${cashLow ? ' <svg class="warn-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--warn);vertical-align:middle;margin-left:3px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' : ""}`, howHint)}
+      <div class="stat-value${cashLow ? " warn-val" : ""}">${money(T.totalCash || 0)}</div>
+      <div class="stat-sub${cashLow ? " warn-val" : " muted"}">${t("Across all brokers")}</div>
     </article>
     <article class="stat wide" data-card="principal" tabindex="0" role="button" aria-label="${t("Principal Invested")}, show calculation">
       ${statHead(t("Principal Invested"), howHint)}
@@ -1490,27 +1494,35 @@ function pageDashboard() {
   const html = `
     ${isEmpty ? onboardingHTML() : ""}
     ${metrics}
-    ${T.holdings.length ? `<div class="dash-asof">
-      <span class="muted">${pricesAsOf ? `${t("Prices as of")} ${pricesAsOfFmt}` : t("No prices set yet")}</span>
-    </div>` : ""}
     <section class="warn-wrap">${warningsHTML()}</section>
     <section class="grid-2 dash-charts">
       ${panel("Portfolio Value Over Time", (() => {
+        const pvPrincipal = T.netCapitalInvested || 0;
         const series = PV_HISTORY
-          .map((p) => ({ month: p.date.slice(5), date: p.date, value: p.value, principal: p.principal != null ? p.principal : p.value }))
-          .filter((p) => p.value > 0 || p.principal > 0);
-        return series.length >= 1
-          ? `<div class="chart">${lineChartSVG(series)}</div><div class="chart-legend"><span class="cl-item"><span class="cl-nw"></span>${t("Net Worth")}</span><span class="cl-item"><span class="cl-p"></span>${t("Principal Invested")}</span></div><p class="muted" style="font-size:11px;margin:4px 0 0">${t("Captured once per day when you use the app.")}</p>`
-          : emptyState(t("Record your first deposit or Buy to start tracking."));
-      })())}
-      ${panel("Asset Allocation", donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), "Portfolio", money(T.portfolioValue).replace(".00","")), `<span class="badge subtle">${t("By market value")}</span>`)}
+          .filter((p) => {
+            if (netWorth > 0 && p.value > 3 * netWorth) return false;
+            if (pvPrincipal > 0 && p.value > 3 * pvPrincipal) return false;
+            const pVal = p.principal != null ? p.principal : p.value;
+            return p.value > 0 || pVal > 0;
+          })
+          .map((p) => ({ month: p.date.slice(5), date: p.date, value: p.value, principal: p.principal != null ? p.principal : p.value }));
+        return series.length >= 2
+          ? `<div class="chart">${lineChartSVG(series)}</div><div class="chart-legend"><span class="cl-item"><span class="cl-nw"></span>${t("Net Worth")}</span><span class="cl-item"><span class="cl-p"></span>${t("Principal Invested")}</span></div>`
+          : emptyState(series.length === 0 ? t("Record your first deposit or Buy to start tracking.") : t("Not enough history yet — check back tomorrow"));
+      })(), `<span class="col-info" style="margin-left:auto" title="${t("Snapshots are saved once per day when you open the app.")}">ⓘ</span>`)}
+      ${(() => {
+        const CCY_COLORS = { [FX.base]: "var(--brand)", USD: "#14b8a6", SGD: "#f97316", HKD: "#a855f7", GBP: "#ec4899" };
+        const ccySlices = groupSum(T.holdings, (h) => h.currency || "Other", (h) => h.marketValue).filter((s) => s.value > 0);
+        const ccyColors = ccySlices.map((s) => CCY_COLORS[s.label] || PALETTE[Object.keys(CCY_COLORS).length % PALETTE.length]);
+        return panel("Asset Allocation", donutHTML(ccySlices, t("Currency"), money(T.portfolioValue).replace(".00",""), ccyColors), `<span class="badge subtle">${t("By currency")}</span>`);
+      })()}
     </section>
     <div id="dashDivSection">${listPanel("Upcoming Dividends", upcoming.length,
       table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
-      table([{label:"Holding"},{label:"Broker"},{label:"Market"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Net Div",num:1},{label:"Total Return",num:1}], holdingsRows),
-      t("No holdings yet — add a Buy to get started."), `<a class="link" href="#/portfolio">${t("View all")} →</a>`)}
+      table([{label:"Holding"},{label:"Shares",num:1},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Total Return",num:1}], holdingsRows),
+      t("No holdings yet — add a Buy to get started."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? `<span class="muted" style="font-size:11px">${t("Prices as of")} ${pricesAsOfFmt}</span>` : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
       table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Amount",num:1}], recentRows),

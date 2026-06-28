@@ -366,6 +366,8 @@ a { color: inherit; text-decoration: none; }
 .badge.neg { color: var(--neg); background: var(--neg-bg); border-color: transparent; }
 .badge.warn { color: var(--warn); background: transparent; border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
 .badge.confirmed { color: var(--pos); background: var(--pos-bg); border-color: transparent; }
+.badge.info { color: #3b82f6; background: color-mix(in srgb, #3b82f6 12%, transparent); border-color: transparent; }
+.warn-val { color: var(--warn) !important; }
 
 /* ===================== Charts ===================== */
 .chart { width: 100%; }
