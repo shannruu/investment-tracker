@@ -890,10 +890,12 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .cl-nw { display: inline-block; width: 22px; height: 2px; background: var(--brand); border-radius: 1px; }
 .cl-p { display: inline-block; width: 22px; height: 0; border-top: 1.5px dashed var(--muted); }
 
-/* Asset Allocation chart — compact side-by-side on dashboard */
-.dash-charts .chart.alloc { display: flex; flex-direction: row; align-items: flex-start; gap: 14px; }
-.dash-charts .chart.alloc svg { width: 88px !important; height: 88px !important; flex-shrink: 0; }
-.dash-charts .alloc-legend { font-size: 11px; padding-top: 2px; }
+/* Asset Allocation chart — column layout, fills card height */
+.dash-charts .panel { display: flex; flex-direction: column; }
+.dash-charts .panel .panel-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+.dash-charts .chart.alloc { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.dash-charts .chart.alloc svg { width: 160px !important; height: 160px !important; }
+.dash-charts .alloc-legend { font-size: 11px; padding-top: 0; }
 .dash-charts .alloc-legend .legend-row { padding: 2px 0; gap: 5px; }
 .dash-charts .alloc-legend .lr-pct { margin-left: auto; }
 
@@ -984,10 +986,9 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .more-fields[open] > summary::before { content: "−"; }
 .more-fields .form-grid { padding-bottom: 14px; }
 
-/* --- Dashboard charts row: equal columns, capped height (no oversized chart / empty space) --- */
-.grid-2.dash-charts { grid-template-columns: 1fr 1fr; }
+/* --- Dashboard charts row: equal columns, equal height --- */
+.grid-2.dash-charts { grid-template-columns: 1fr 1fr; align-items: stretch; }
 .dash-charts .chart svg { max-height: 340px; }
-.dash-charts .chart.alloc { justify-content: center; }
 @media (max-width: 920px) { .grid-2.dash-charts { grid-template-columns: 1fr; } }
 
 /* --- Records filter tabs --- */

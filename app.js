@@ -807,11 +807,28 @@ function seedPvHistory() {
   PV_HISTORY.push({ date: earliest, value: seedVal, seed: true });
   PV_HISTORY.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
+function prunePvHistory() {
+  if (!PV_HISTORY.length) return;
+  const today = todayISO();
+  for (let i = PV_HISTORY.length - 1; i >= 0; i--) {
+    if (PV_HISTORY[i].date > today) PV_HISTORY.splice(i, 1);
+  }
+  const allDates = [
+    ...ALL_TRANSACTIONS.map((x) => x.date),
+    ...HOLDINGS.map((h) => h.asOfDate).filter(Boolean),
+  ].filter(Boolean);
+  if (!allDates.length) { PV_HISTORY.splice(0); return; }
+  const earliest = allDates.reduce((a, b) => (a < b ? a : b));
+  for (let i = PV_HISTORY.length - 1; i >= 0; i--) {
+    if (PV_HISTORY[i].date < earliest && !PV_HISTORY[i].seed) PV_HISTORY.splice(i, 1);
+  }
+}
 function saveStore() {
   AUTO_DIV_CACHE_FETCHED = false;  // holdings may have changed — force re-fetch on next mount
   try {
     pruneOrphans();
     recompute();             // T reflects the latest data before we snapshot value
+    prunePvHistory();
     recordPvSnapshot();
     seedPvHistory();
     LAST_SAVED = new Date().toISOString();
@@ -1364,16 +1381,18 @@ function pageDashboard() {
     taxes: flowSum((x) => x.type === "Tax withholding", (x) => +x.gross || 0),
   };
 
-  // Latest "prices as of" date across priced holdings (market-data freshness, NOT the save time).
+  // Latest "prices as of" — ISO datetime from live fetch if available, else manual date.
   const priceDates = T.holdings.filter((h) => h.hasPrice && h.currentPriceDate).map((h) => h.currentPriceDate).sort();
-  const pricesAsOf = priceDates.length ? priceDates[priceDates.length - 1] : null;
+  const latestLiveFetch = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();
+  const pricesAsOf = latestLiveFetch || (priceDates.length ? priceDates[priceDates.length - 1] : null);
+  const pricesAsOfFmt = latestLiveFetch ? fmtDateTime(latestLiveFetch) : (priceDates.length ? fmtDate(priceDates[priceDates.length - 1]) : null);
 
   const holdingsRows = [...T.holdings].sort((a, b) => b.marketValue - a.marketValue).slice(0, 8).map((h) => `
     <tr><td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a><div class="sub">${h.company || ""}</div></td>
       <td><span class="chip">${brokerName(h.brokerId)}</span></td><td class="sub">${h.market || "—"}</td>
-      <td class="num">${fmt(h.shares, { maximumFractionDigits: 4 })}</td>
+      <td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>
       <td class="num">${money(h.avgCost)}</td>
-      <td class="num">${h.hasPrice ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}<div class="fx-note ${h.priceSource === "live" ? "live-price" : "manual-price"}">${h.priceSource === "live" ? t("Live") : t("Manual price")}</div>` : `<span class="muted">—</span>`}</td>
+      <td class="num">${h.hasPrice ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}` : `<span class="muted">—</span>`}</td>
       <td class="num">${money(h.marketValue)}</td>
       <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
       <td class="num">${fmt(h.netDividends)}</td><td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td></tr>`).join("");
@@ -1472,9 +1491,7 @@ function pageDashboard() {
     ${isEmpty ? onboardingHTML() : ""}
     ${metrics}
     ${T.holdings.length ? `<div class="dash-asof">
-      ${pricesAsOf
-        ? `<span class="muted">${t("Prices as of")} ${fmtDate(pricesAsOf)}</span><button class="btn ghost small" id="dashUpdatePrices">↻ ${t("Update prices")}</button>`
-        : `<span class="muted">${t("No prices set yet")}</span><button class="btn ghost small" id="dashUpdatePrices">↻ ${t("Update prices")}</button>`}
+      <span class="muted">${pricesAsOf ? `${t("Prices as of")} ${pricesAsOfFmt}` : t("No prices set yet")}</span>
     </div>` : ""}
     <section class="warn-wrap">${warningsHTML()}</section>
     <section class="grid-2 dash-charts">
@@ -1491,13 +1508,13 @@ function pageDashboard() {
     <div id="dashDivSection">${listPanel("Upcoming Dividends", upcoming.length,
       table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
-    ${listPanel("Top Holdings", T.holdings.length,
+    ${listPanel("Holdings", T.holdings.length,
       table([{label:"Holding"},{label:"Broker"},{label:"Market"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Current Price",num:1},{label:"Market Value",num:1},{label:"Unrealized P/L",num:1},{label:"Net Div",num:1},{label:"Total Return",num:1}], holdingsRows),
       t("No holdings yet — add a Buy to get started."), `<a class="link" href="#/portfolio">${t("View all")} →</a>`)}
+    ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
       table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Amount",num:1}], recentRows),
       t("No activity yet."), `<a class="link" href="#/records">${t("All")} →</a>`)}
-    ${insightsHTML()}
     <p class="dash-footnote muted">${LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet")}</p>`;
 
   return { title: "Dashboard", subtitle: "Welcome back — here is your portfolio at a glance.", html,
@@ -1511,17 +1528,6 @@ function pageDashboard() {
         e.stopPropagation();   // don't trigger the P/L card's calc modal
         SETTINGS.returnMode = b.dataset.return; saveStore(); render();
       }));
-      // Update market prices for all holdings (separate from the data save time)
-      const upBtn = $("#dashUpdatePrices");
-      if (upBtn) upBtn.addEventListener("click", async () => {
-        if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
-        upBtn.disabled = true; upBtn.textContent = "… " + t("Fetching prices");
-        const tickers = [...new Set(T.holdings.map((h) => h.ticker))];
-        let ok = 0;
-        for (const tk of tickers) { if (await refreshLivePrice(tk)) ok++; }
-        saveStore(); render();
-        toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
-      });
       [
         ["phDivYield", t("Dividend Yield (TTM)"), t("Trailing 12-month net dividends ÷ current portfolio market value.")],
         ["phCashAlloc", t("Cash Allocation"), t("Cash as a percentage of total net value (market value + available cash).")],
