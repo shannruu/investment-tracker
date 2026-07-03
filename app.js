@@ -7,6 +7,15 @@
 /* ---------- helpers ---------- */
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+/* HTML-escapes user-entered text before it's interpolated into an innerHTML
+ * template. This app has no framework auto-escaping, so every ticker, company
+ * name, broker name, or note that came from a form field or CSV import MUST be
+ * routed through this at render time — never trust it as already-safe markup. */
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+/* Plain text — matches the stored broker record exactly. CSV export needs the
+ * raw value; anything rendering this into innerHTML must wrap it in esc(). */
 const brokerName = (id) => (BROKERS.find((b) => b.id === id) || {}).name || id;
 const toBase = (amount, ccy) => amount * (FX.rates[ccy] ?? 1);
 
@@ -223,6 +232,8 @@ const ZH = {
   "Export Transactions CSV": "导出交易 CSV", "Export Cash CSV": "导出现金 CSV",
   "Load demo data": "加载演示数据", "Demo data loaded": "已加载演示数据",
   "This will replace your current data with demo data. Continue?": "这将用演示数据替换您当前的数据。是否继续？",
+  "This replaces your current data with this backup file. Export your current data first if you want to keep it. Continue?": "此操作将用该备份文件替换您当前的数据。如需保留当前数据，请先导出备份。是否继续？",
+  "That file isn't valid JSON.": "该文件不是有效的 JSON。", "That doesn't look like an Investment Ledger backup.": "该文件看起来不是 Investment Ledger 的备份文件。", "Backup restored": "备份已恢复",
   "Type DELETE to confirm": "输入 DELETE 确认", "Type DELETE to confirm.": "请输入 DELETE 确认。",
   "Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.": "清除会删除本浏览器中保存的所有券商、持仓和交易，且无法撤销 — 请先导出备份。",
   "Backup downloaded": "备份已下载", "Backup restored": "备份已恢复",
@@ -767,10 +778,20 @@ function snapshot() {
     BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS,
     CURRENT_PRICES, STOCK_META, RECON_CHECKS, SETTINGS, USER, FX, PV_HISTORY };
 }
+/* A restored backup is untrusted JSON — Object.assign(target, parsedJson)
+ * would let a crafted "__proto__"/"constructor"/"prototype" key in the file
+ * reach past the target object. Every merge of imported data goes through
+ * this instead of a bare Object.assign. */
+const UNSAFE_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+function safeAssign(target, next) {
+  if (!next || typeof next !== "object") return target;
+  Object.keys(next).forEach((k) => { if (!UNSAFE_KEYS.has(k)) target[k] = next[k]; });
+  return target;
+}
 function assignObj(target, next) {
   if (!next || typeof next !== "object") return;
   Object.keys(target).forEach((k) => delete target[k]);
-  Object.assign(target, next);
+  safeAssign(target, next);
 }
 /* F3: drop manual/live prices for tickers no longer referenced by any transaction
  * or opening holding (keeps STOCK_META metadata cache, which is harmless). */
@@ -823,6 +844,9 @@ function prunePvHistory() {
     if (PV_HISTORY[i].date < earliest && !PV_HISTORY[i].seed) PV_HISTORY.splice(i, 1);
   }
 }
+/* Returns true if the write actually reached localStorage. LAST_SAVED is only
+ * stamped on real success — callers' "Saved ✓" toasts must not be trusted
+ * blindly, since a full/blocked store fails setItem() silently otherwise. */
 function saveStore() {
   AUTO_DIV_CACHE_FETCHED = false;  // holdings may have changed — force re-fetch on next mount
   try {
@@ -831,23 +855,46 @@ function saveStore() {
     prunePvHistory();
     recordPvSnapshot();
     seedPvHistory();
-    LAST_SAVED = new Date().toISOString();
     localStorage.setItem(STORE_KEY, JSON.stringify(snapshot()));
-  } catch (e) {}
+    LAST_SAVED = new Date().toISOString();
+    hideSaveError();
+    return true;
+  } catch (e) {
+    showSaveError();
+    return false;
+  }
 }
-function replaceArr(arr, next) { arr.length = 0; if (Array.isArray(next)) next.forEach((x) => arr.push(x)); }
+function showSaveError() {
+  const el = document.getElementById("saveErrorBanner");
+  if (!el) return;
+  const msgEl = document.getElementById("saveErrorMsg");
+  if (msgEl) msgEl.textContent = t("Couldn't save your last change — this browser's storage may be full or blocked. Export a backup from Settings so nothing is lost, then free up space and try again.");
+  el.hidden = false;
+}
+function hideSaveError() {
+  const el = document.getElementById("saveErrorBanner");
+  if (el) el.hidden = true;
+}
+/* A malformed/partial import (e.g. a hand-edited or older-version backup
+ * missing a field entirely) must never wipe that field's existing data —
+ * only replace it once we actually have a valid replacement array. */
+function replaceArr(arr, next) {
+  if (!Array.isArray(next)) return;
+  arr.length = 0;
+  next.forEach((x) => arr.push(x));
+}
 function applySnapshot(s) {
   replaceArr(BROKERS, s.BROKERS); replaceArr(HOLDINGS, s.HOLDINGS);
   replaceArr(ALL_TRANSACTIONS, s.ALL_TRANSACTIONS); replaceArr(UPCOMING_DIVIDENDS, s.UPCOMING_DIVIDENDS);
   if (s.PV_HISTORY) replaceArr(PV_HISTORY, s.PV_HISTORY.filter((p) => p.value > 0));
   assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(RECON_CHECKS, s.RECON_CHECKS);
   assignObj(STOCK_META, s.STOCK_META);
-  if (s.SETTINGS) Object.assign(SETTINGS, s.SETTINGS);
-  if (s.USER) Object.assign(USER, s.USER);
+  if (s.SETTINGS) safeAssign(SETTINGS, s.SETTINGS);
+  if (s.USER) safeAssign(USER, s.USER);
   if (s.lastSaved) LAST_SAVED = s.lastSaved;
   if (s.FX) {
     if (s.FX.base) FX.base = s.FX.base;
-    if (s.FX.rates) { Object.keys(FX.rates).forEach((k) => delete FX.rates[k]); Object.assign(FX.rates, s.FX.rates); }
+    if (s.FX.rates) { Object.keys(FX.rates).forEach((k) => delete FX.rates[k]); safeAssign(FX.rates, s.FX.rates); }
     if (s.FX.updated) FX.updated = s.FX.updated;
   }
 }
@@ -1043,9 +1090,9 @@ function attachAutocomplete(form, statusEl, opts = {}) {
       menu._results = results;
       menu.innerHTML = results.map((r, i) =>
         `<button type="button" class="ac-item" data-i="${i}">
-          <span class="ac-sym">${r.symbol}</span>
-          <span class="ac-name">${r.name || ""}</span>
-          <span class="ac-exch">${r.exchange || ""}</span></button>`).join("");
+          <span class="ac-sym">${esc(r.symbol)}</span>
+          <span class="ac-name">${esc(r.name) || ""}</span>
+          <span class="ac-exch">${esc(r.exchange) || ""}</span></button>`).join("");
       menu.hidden = false;
     }, 260);
   });
@@ -1081,7 +1128,7 @@ async function autofillFromTicker(form, statusEl, opts = {}) {
   const symbol = normalizeSymbol(raw);
   if (statusEl) { statusEl.textContent = `${t("Looking up…")} (${symbol})`; statusEl.className = "lookup-status muted"; }
   const q = await fetchQuote(symbol);
-  if (!q) { if (statusEl) { statusEl.innerHTML = `⚠️ ${t("Couldn't fetch")} ${symbol} — ${t("check the code, or that /api is deployed on Vercel.")}`; statusEl.className = "lookup-status warn"; } return; }
+  if (!q) { if (statusEl) { statusEl.innerHTML = `⚠️ ${t("Couldn't fetch")} ${esc(symbol)} — ${t("check the code, or that /api is deployed on Vercel.")}`; statusEl.className = "lookup-status warn"; } return; }
 
   tEl.value = q.symbol || symbol;                       // normalise to the resolved symbol
   const set = (name, val) => { const el = form.querySelector(`[name="${name}"]`); if (el && val != null && val !== "") el.value = val; };
@@ -1102,8 +1149,8 @@ async function autofillFromTicker(form, statusEl, opts = {}) {
   if (q.currency) CURRENT_PRICES[q.symbol || symbol] = { price: +q.price, currency: q.currency, date: new Date().toISOString().slice(0, 10), source: "live", fetchedAt: new Date().toISOString(), changePct: q.changePct };
   if (statusEl) {
     statusEl.innerHTML = opts.showPrice === false
-      ? `✓ ${q.name || q.symbol}`                                                  // dividend: company only, price is irrelevant
-      : `✓ ${q.name || q.symbol} · ${q.currency || ""} ${fmt(q.price)} <span class="live-price">${t("Live")}</span>`;
+      ? `✓ ${esc(q.name || q.symbol)}`                                                  // dividend: company only, price is irrelevant
+      : `✓ ${esc(q.name || q.symbol)} · ${esc(q.currency) || ""} ${fmt(q.price)} <span class="live-price">${t("Live")}</span>`;
     statusEl.className = "lookup-status ok";
   }
 }
@@ -1299,7 +1346,7 @@ function donutHTML(slices, centerLabel, centerValue, colors) {
   }).join("");
   const legend = slices.map((s, i) => `<div class="legend-row">
     <span class="legend-dot" style="background:${clr(i)}"></span>
-    <span>${s.label}</span><span class="lr-pct">${fmt((s.value / total) * 100, { maximumFractionDigits: 1 })}%</span></div>`).join("");
+    <span>${esc(s.label)}</span><span class="lr-pct">${fmt((s.value / total) * 100, { maximumFractionDigits: 1 })}%</span></div>`).join("");
   return `<div class="chart alloc"><svg viewBox="0 0 176 176" width="176" height="176" role="img" aria-label="Allocation">
     ${arcs}<text x="88" y="84" text-anchor="middle" style="fill:var(--muted);font-size:10px;font-family:var(--font)">${centerLabel}</text>
     <text x="88" y="100" text-anchor="middle" style="fill:var(--text);font-size:12px;font-weight:700;font-family:var(--font)">${centerValue}</text></svg>
@@ -1330,7 +1377,7 @@ function allocationData() {
 function allocationPanel(title, rows, total) {
   const sorted = [...rows].filter((r) => r.value > 0).sort((a, b) => b.value - a.value);
   if (!sorted.length) return panel(title, emptyState(t("No priced holdings yet.")));
-  const tableRows = sorted.map((r) => `<tr><td>${r.label}</td><td class="num">${money(r.value)}</td>
+  const tableRows = sorted.map((r) => `<tr><td>${esc(r.label)}</td><td class="num">${money(r.value)}</td>
     <td class="num">${total ? fmt((r.value / total) * 100, { maximumFractionDigits: 1 }) : "0"}%</td></tr>`).join("");
   return panel(title, `${donutHTML(sorted.map((r) => ({ label: r.label, value: r.value })), title.replace(/^.* /, ""), "")}
     ${table([{label:"Group"},{label:"Value",num:1},{label:"%",num:1}], tableRows)}`);
@@ -1480,7 +1527,7 @@ function pageDashboard() {
   const pricesAsOfFmt = latestLiveFetch ? fmtDateTime(latestLiveFetch) : (priceDates.length ? fmtDate(priceDates[priceDates.length - 1]) : null);
 
   const holdingsRows = [...T.holdings].sort((a, b) => b.marketValue - a.marketValue).slice(0, 8).map((h) => `
-    <tr><td><div style="max-width:200px;overflow:hidden"><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.ticker}</a><div class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h.company || ""}</div></div></td>
+    <tr><td><div style="max-width:200px;overflow:hidden"><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(h.ticker)}</a><div class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(h.company) || ""}</div></div></td>
       <td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>
       <td class="num">${money(h.marketValue)}</td>
       <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
@@ -1491,9 +1538,9 @@ function pageDashboard() {
   const divRows = upcoming.map((d) => {
     const du = daysUntil(d.payDate);
     const dlabel = d.payDate ? (du >= 0 ? `${du} ${t("days")}` : t("overdue")) : "—";
-    return `<tr><td class="ticker">${d.ticker}</td><td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
+    return `<tr><td class="ticker">${esc(d.ticker)}</td><td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
       <td class="num">${dlabel}</td>
-      <td class="num">${d.currency} ${fmt(d.expectedNet)}</td><td>${statusBadge(d.status)}</td></tr>`;
+      <td class="num">${esc(d.currency)} ${fmt(d.expectedNet)}</td><td>${statusBadge(d.status)}</td></tr>`;
   }).join("");
 
   const recentRows = ALL_TRANSACTIONS.slice(0, 6).map((tx) => {
@@ -1501,8 +1548,8 @@ function pageDashboard() {
     const fxR = tx.fxRate || FX.rates[tx.currency] || 1;
     const myrEq = tx.currency !== FX.base && txAmt > 0 ? txAmt * fxR : 0;
     return `<tr><td>${fmtDate(tx.date)}</td><td>${typeChip(tx.type)}</td>
-      <td class="ticker">${tx.ticker || "—"}</td><td class="sub">${brokerName(tx.brokerId)}</td>
-      <td class="num">${tx.currency} ${fmt(txAmt)}${myrEq > 0 ? `<div class="fx-note">${FX.base} ${fmt(myrEq)}</div>` : ""}</td></tr>`;
+      <td class="ticker">${esc(tx.ticker) || "—"}</td><td class="sub">${esc(brokerName(tx.brokerId))}</td>
+      <td class="num">${esc(tx.currency)} ${fmt(txAmt)}${myrEq > 0 ? `<div class="fx-note">${FX.base} ${fmt(myrEq)}</div>` : ""}</td></tr>`;
   }).join("");
 
   // In-card return-mode toggle (controls the Total P/L figure).
@@ -1698,6 +1745,7 @@ function onboardingHTML() {
   const done = steps.filter(Boolean).length;
   return panel("Welcome to Investment Ledger", `
     <p class="muted" style="margin:-2px 0 14px">${t("Take a 1-minute guided tour — we'll point to exactly where to click.")}</p>
+    <p class="info-card" style="margin:0 0 14px"><span class="w-ico">💻</span><span class="w-body">${t("Your data stays on this device and this browser only — nothing is shared or synced. If you're trying this out from a shared link, your entries are private to you and won't affect anyone else's. Opening the app on a different device starts a separate, empty ledger there too.")}</span></p>
     <div class="form-actions">
       <button class="btn primary" id="startTour">▶ ${t("Start the guided tour")}</button>
       <span class="muted" style="align-self:center">${done} / ${steps.length} ${t("steps done")}</span>
@@ -1715,7 +1763,7 @@ function dashboardCards() {
   return [
     { label: "Total Deposits", value: money(T.totalDeposits), sub: tip("Cash put into brokers", "Net Capital Invested = Deposits − Withdrawals"),
       calc: { title: "Total Deposits", rows: depRows.map((c) => ({
-        op: "+", label: `${brokerName(c.brokerId)} · ${c.currency} ${fmt(c.gross)}${c.currency !== FX.base ? ` × ${txFx(c)}` : ""}`, val: fmt((+c.gross || 0) * txFx(c)) })), total: T.totalDeposits } },
+        op: "+", label: `${esc(brokerName(c.brokerId))} · ${esc(c.currency)} ${fmt(c.gross)}${c.currency !== FX.base ? ` × ${txFx(c)}` : ""}`, val: fmt((+c.gross || 0) * txFx(c)) })), total: T.totalDeposits } },
     { label: "Total Withdrawals", value: money(T.totalWithdrawals), sub: "Cash taken out",
       calc: { title: "Total Withdrawals", rows: wdrRows.map((c) => ({
         op: "+", label: `${brokerName(c.brokerId)} · ${c.currency} ${fmt(c.gross)}`, val: fmt((+c.gross || 0) * txFx(c)) })), total: T.totalWithdrawals } },
@@ -1762,7 +1810,7 @@ function warningsHTML() {
     const calc = T.brokerCash[bid] || 0;
     const diff = calc - (+chk.actual);
     if (Math.abs(diff) > (SETTINGS.reconTolerance || 0)) {
-      items.push({ level: "crit", html: `<strong>${t("Cash difference")} — ${brokerName(bid)}.</strong> ${t("Calculated")} ${money(calc)} ${t("vs actual")} ${money(+chk.actual)} (${t("difference")} ${money(Math.abs(diff))}). ${t("Check for a missing fee, dividend or transfer.")}` });
+      items.push({ level: "crit", html: `<strong>${t("Cash difference")} — ${esc(brokerName(bid))}.</strong> ${t("Calculated")} ${money(calc)} ${t("vs actual")} ${money(+chk.actual)} (${t("difference")} ${money(Math.abs(diff))}). ${t("Check for a missing fee, dividend or transfer.")}` });
     }
   });
   // Missing current prices
@@ -2288,7 +2336,7 @@ function portfolioTable() {
   const body = rows.map((h) => {
     const totalReturnPct = h.costBasis > 0 ? (h.totalReturn / h.costBasis) * 100 : 0;
     const cellMap = {
-      broker:         `<td><div class="broker-pills">${(h._brokerNames || [brokerName(h.brokerId)]).map((n) => `<span class="chip chip-pill">${n}</span>`).join("")}</div></td>`,
+      broker:         `<td><div class="broker-pills">${(h._brokerNames || [brokerName(h.brokerId)]).map((n) => `<span class="chip chip-pill">${esc(n)}</span>`).join("")}</div></td>`,
       shares:         `<td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>`,
       avgCost:        `<td class="num">${money(h.avgCost)}</td>`,
       price:          `<td class="num">${h.hasPrice ? `${h.currentPriceCcy} ${fmt(h.currentPrice)}` : `<span class="muted">—</span>`}</td>`,
@@ -2302,8 +2350,8 @@ function portfolioTable() {
     };
     return `<tr>
       <td class="td-holding">
-        <a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a>
-        ${h.company ? `<div class="sub">${h.company}</div>` : ""}
+        <a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${esc(h.ticker)}</a>
+        ${h.company ? `<div class="sub">${esc(h.company)}</div>` : ""}
       </td>
       ${orderedColIds.map((id) => cellMap[id] || "").join("")}</tr>`;
   }).join("");
@@ -2388,19 +2436,19 @@ function recordsTable(list) {
     const myr = tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * fxr;
     const isTrade = tx.type === "Buy" || tx.type === "Sell";
     const detail = isTrade && tx.qty != null
-      ? `<div class="sub">${fmt(tx.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} @ ${tx.currency} ${fmt(tx.price)}</div>` : "";
+      ? `<div class="sub">${fmt(tx.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} @ ${esc(tx.currency)} ${fmt(tx.price)}</div>` : "";
     const orig = tx.type === "Currency Exchange"
-      ? `${tx.currency} ${fmt(tx.gross || 0)} → ${tx.toCurrency || ""} ${fmt(tx.toAmount || 0)}`
-      : `${tx.currency} ${fmt(tx.gross || 0)}${tx.fee ? ` · ${t("fee")} ${fmt(tx.fee)}` : ""}`;
+      ? `${esc(tx.currency)} ${fmt(tx.gross || 0)} → ${esc(tx.toCurrency) || ""} ${fmt(tx.toAmount || 0)}`
+      : `${esc(tx.currency)} ${fmt(tx.gross || 0)}${tx.fee ? ` · ${t("fee")} ${fmt(tx.fee)}` : ""}`;
     const paidToTag = tx.type === "Dividend"
       ? `<span class="paid-to-tag${tx.paidTo === "bank" ? " bank" : ""}"> · → ${tx.paidTo === "bank" ? t("Bank") : t("Broker")}</span>`
       : "";
     return `<tr>
       <td>${fmtDate(tx.date)}</td>
       <td>${typeChip(tx.type)}</td>
-      <td class="ticker">${tx.ticker && tx.ticker !== "—" ? tx.ticker : "—"}${detail}${paidToTag}</td>
+      <td class="ticker">${tx.ticker && tx.ticker !== "—" ? esc(tx.ticker) : "—"}${detail}${paidToTag}</td>
       <td class="num">${money(myr)}<div class="fx-note">${orig}</div></td>
-      <td class="sub">${brokerName(tx.brokerId)}</td>
+      <td class="sub">${esc(brokerName(tx.brokerId))}</td>
       <td class="num"><div class="rec-actions">
         <button class="icon-btn rec-edit" data-edit-tx="${tx.id}" title="${t("Edit")}" aria-label="${t("Edit")}"><svg class="icon"><use href="#i-edit"/></svg></button>
         <button class="icon-btn rec-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></div></td></tr>`;
@@ -2470,7 +2518,7 @@ function pageAdd() {
 function addForm2(type, editing) {
   const e = editing || {};
   const sel = (val, cur) => (val === cur ? " selected" : "");
-  const v = (x) => (x == null ? "" : x);
+  const v = (x) => esc(x);
   const draft = editing ? {} : addDraft;   // preserve shared fields across type switches (new records only)
   const selectable = BROKERS.filter((b) => !b.archived || b.id === e.brokerId || b.id === e.toBrokerId);
   const defBroker = e.brokerId || draft.broker || (selectable[0] && selectable[0].id) || "";
@@ -2865,7 +2913,7 @@ function cashExtrasHTML() {
       else if (Math.abs(diff) <= (SETTINGS.reconTolerance || 0)) { status = t("Small difference"); scls = "warn"; }
       else { status = t("Needs review"); scls = "neg"; }
     }
-    return `<tr><td>${b.name}</td><td class="num">${money(calc)}</td>
+    return `<tr><td>${esc(b.name)}</td><td class="num">${money(calc)}</td>
       <td class="num">${hasActual ? money(+chk.actual) : "—"}${hasActual && chk.date ? `<div class="fx-note">${fmtDate(chk.date)}</div>` : ""}</td>
       <td class="num ${hasActual && Math.abs(diff) > (SETTINGS.reconTolerance || 0) ? "neg" : ""}">${hasActual ? signed(diff) : "—"}</td>
       <td><span class="badge ${scls}">${status}</span></td>
@@ -2875,7 +2923,7 @@ function cashExtrasHTML() {
   const ccyRows = BROKERS.map((b) => {
     const byc = T.brokerCashByCcy[b.id] || {};
     return Object.keys(byc).filter((c) => Math.abs(byc[c]) > 0.005).map((c) =>
-      `<tr><td>${b.name}</td><td>${c}</td><td class="num ${byc[c] < 0 ? "neg" : ""}">${fmt(byc[c])}</td><td class="num">${money(byc[c] * (FX.rates[c] || 1))}</td></tr>`).join("");
+      `<tr><td>${esc(b.name)}</td><td>${esc(c)}</td><td class="num ${byc[c] < 0 ? "neg" : ""}">${fmt(byc[c])}</td><td class="num">${money(byc[c] * (FX.rates[c] || 1))}</td></tr>`).join("");
   }).join("");
 
   return `${summary}
@@ -3026,10 +3074,10 @@ function pageDividends() {
     const du = daysUntil(d.payDate);
     const daysLabel = d.payDate ? (du >= 0 ? `${du}d` : `<span class="neg">${t("overdue")}</span>`) : "";
     return `<tr>
-      <td><span class="ticker">${d.ticker}</span><div class="sub">${d.brokerId ? brokerName(d.brokerId) : ""}</div></td>
+      <td><span class="ticker">${esc(d.ticker)}</span><div class="sub">${d.brokerId ? esc(brokerName(d.brokerId)) : ""}</div></td>
       <td>${fmtDate(d.exDate)}</td>
       <td>${fmtDate(d.payDate)}${daysLabel ? `<div class="fx-note">${daysLabel}</div>` : ""}</td>
-      <td class="num">${d.currency} ${fmt(d.expectedNet)}</td>
+      <td class="num">${esc(d.currency)} ${fmt(d.expectedNet)}</td>
       <td>${sourceBadge(d.source || "manual")}</td>
       <td>${d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : ""}</td></tr>`;
   }).join("");
@@ -3041,11 +3089,11 @@ function pageDividends() {
     const isForeign = d.currency && d.currency !== FX.base;
     const netMyrSub = isForeign ? `<div class="fx-note">${money(net * fx)}</div>` : "";
     return `<tr>
-      <td><span class="ticker">${d.ticker}</span><div class="sub">${brokerName(d.brokerId)}</div></td>
+      <td><span class="ticker">${esc(d.ticker)}</span><div class="sub">${esc(brokerName(d.brokerId))}</div></td>
       <td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate || d.date)}</td>
-      <td class="num">${d.currency} ${fmt(d.gross)}</td>
+      <td class="num">${esc(d.currency)} ${fmt(d.gross)}</td>
       <td class="num ${taxAmt > 0 ? "neg" : ""}">${taxAmt > 0 ? "−" + fmt(taxAmt) : "0.00"}</td>
-      <td class="num">${d.currency} ${fmt(net)}${netMyrSub}</td>
+      <td class="num">${esc(d.currency)} ${fmt(net)}${netMyrSub}</td>
       <td>${statusBadge("Received")}</td></tr>`;
   }).join("");
 
@@ -3153,7 +3201,7 @@ let reportTab = "portfolio";   // F3: portfolio | dividend | cashflow | performa
 function reportPortfolio() {
   const a = allocationData();
   const holdRows = [...T.holdings].sort((x, y) => y.marketValue - x.marketValue).map((h) => `<tr>
-    <td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${h.ticker}</a></td>
+    <td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${esc(h.ticker)}</a></td>
     <td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td><td class="num">${money(h.avgCost)}</td>
     <td class="num">${money(h.marketValue)}</td><td class="num">${a.total ? fmt(h.marketValue / a.total * 100, { maximumFractionDigits: 1 }) : "0"}%</td>
     <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : "—"}</td>
@@ -3189,9 +3237,9 @@ function reportCashflow() {
   const types = { Deposit: [], Withdrawal: [], "Currency Exchange": [] };
   ALL_TRANSACTIONS.forEach((x) => { if (types[x.type]) types[x.type].push(x); });
   const sum = (arr) => arr.reduce((s, x) => s + (+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1), 0);
-  const rows = (arr) => arr.sort((a, b) => (a.date < b.date ? 1 : -1)).map((x) => `<tr><td>${fmtDate(x.date)}</td><td class="sub">${brokerName(x.brokerId)}</td>
-    <td class="num">${x.currency} ${fmt(x.gross)}</td><td class="num">${money((+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1))}</td>
-    ${x.type === "Currency Exchange" ? `<td class="sub">→ ${x.toCurrency} ${fmt(x.toAmount)}</td>` : "<td></td>"}</tr>`).join("");
+  const rows = (arr) => arr.sort((a, b) => (a.date < b.date ? 1 : -1)).map((x) => `<tr><td>${fmtDate(x.date)}</td><td class="sub">${esc(brokerName(x.brokerId))}</td>
+    <td class="num">${esc(x.currency)} ${fmt(x.gross)}</td><td class="num">${money((+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1))}</td>
+    ${x.type === "Currency Exchange" ? `<td class="sub">→ ${esc(x.toCurrency)} ${fmt(x.toAmount)}</td>` : "<td></td>"}</tr>`).join("");
   const hdr = [{label:"Date"},{label:"Broker"},{label:"Amount",num:1},{label:"In MYR",num:1},{label:""}];
   return `
     <div class="mini-cards">${miniCard(t("Total Deposits"), money(sum(types.Deposit)))}${miniCard(t("Total Withdrawals"), money(sum(types.Withdrawal)))}${miniCard(t("Net Cash Added"), money(sum(types.Deposit) - sum(types.Withdrawal)), cls(sum(types.Deposit) - sum(types.Withdrawal)))}</div>
@@ -3212,9 +3260,9 @@ function reportPerformance() {
       ${stat("XIRR", T.xirr == null ? "—" : pctTxt(T.xirr), T.xirr == null ? "" : cls(T.xirr), t("money-weighted"))}
     </div>
     ${panel("Profit / Loss by Broker", table([{label:"Broker"},{label:"Total Return",num:1}],
-      groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.totalReturn).map((b) => `<tr><td>${b.label}</td><td class="num ${cls(b.value)}">${signed(b.value)}</td></tr>`).join("")))}
+      groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.totalReturn).map((b) => `<tr><td>${esc(b.label)}</td><td class="num ${cls(b.value)}">${signed(b.value)}</td></tr>`).join("")))}
     ${panel("Fees Paid by Broker", table([{label:"Broker"},{label:"Fees",num:1}],
-      groupSum(ALL_TRANSACTIONS.filter((x) => x.fee), (x) => brokerName(x.brokerId), (x) => (+x.fee || 0) * (x.fxRate || FX.rates[x.currency] || 1)).map((b) => `<tr><td>${b.label}</td><td class="num neg">${money(b.value)}</td></tr>`).join("")))}`;
+      groupSum(ALL_TRANSACTIONS.filter((x) => x.fee), (x) => brokerName(x.brokerId), (x) => (+x.fee || 0) * (x.fxRate || FX.rates[x.currency] || 1)).map((b) => `<tr><td>${esc(b.label)}</td><td class="num neg">${money(b.value)}</td></tr>`).join("")))}`;
 }
 
 function pageReports() {
@@ -3256,12 +3304,12 @@ function brokerCard(b) {
   const off = hasActual && Math.abs(diff) > (SETTINGS.reconTolerance || 0);
   const negBalances = (T.negativeCash || []).filter((n) => n.brokerId === b.id);
   const negWarnings = negBalances.map((n) =>
-    `<div class="warn-card crit bc-neg"><span class="w-ico">⚠</span><div class="w-body"><strong>${n.currency} ${t("balance is negative")} (${n.currency}&nbsp;${fmt(Math.abs(n.amount))})</strong> — ${t("a buy, fee, or withdrawal has no matching")} ${n.currency} ${t("deposit. Record one to balance this.")}</div></div>`
+    `<div class="warn-card crit bc-neg"><span class="w-ico">⚠</span><div class="w-body"><strong>${esc(n.currency)} ${t("balance is negative")} (${esc(n.currency)}&nbsp;${fmt(Math.abs(n.amount))})</strong> — ${t("a buy, fee, or withdrawal has no matching")} ${esc(n.currency)} ${t("deposit. Record one to balance this.")}</div></div>`
   ).join("");
   return `<article class="broker-card ${b.archived ? "archived" : ""}">
-      <div class="bc-head"><span class="brand-mark sm">${b.name.slice(0,2).toUpperCase()}</span>
-        <div><div class="bc-name">${b.name} ${b.archived ? `<span class="badge subtle">${t("Archived")}</span>` : ""}</div>
-          <div class="sub">${b.country || "—"} · ${b.currency}</div></div>
+      <div class="bc-head"><span class="brand-mark sm">${esc(b.name.slice(0,2).toUpperCase())}</span>
+        <div><div class="bc-name">${esc(b.name)} ${b.archived ? `<span class="badge subtle">${t("Archived")}</span>` : ""}</div>
+          <div class="sub">${esc(b.country) || "—"} · ${esc(b.currency)}</div></div>
         <div class="bc-actions">
           <button class="icon-btn row-edit" data-edit-broker="${b.id}" title="${t("Edit")}" aria-label="${t("Edit")}">✎</button>
           <button class="icon-btn" data-archive-broker="${b.id}" title="${b.archived ? t("Unarchive") : t("Archive")}" aria-label="${b.archived ? t("Unarchive") : t("Archive")}">${b.archived ? "↩" : "🗄"}</button>
@@ -3273,7 +3321,7 @@ function brokerCard(b) {
         <div><span class="sub">${t("Cash (calc)")}</span><strong>${money(calc)}</strong></div>
         <div><span class="sub">${t("Difference")}</span><strong class="${off ? "neg" : ""}">${hasActual ? signed(diff) : "—"}</strong></div>
       </div>
-      ${b.notes ? `<p class="bc-notes muted">${b.notes}</p>` : ""}
+      ${b.notes ? `<p class="bc-notes muted">${esc(b.notes)}</p>` : ""}
       ${negWarnings}</article>`;
 }
 
@@ -3289,11 +3337,11 @@ function pageBrokers() {
   const sel = (val, cur) => (val === cur ? " selected" : "");
   const brokerForm = `<form id="brokerForm" class="form" autocomplete="off">
     <div class="form-grid">
-      <label>${t("Broker name")}<input name="name" value="${e.name || ""}" placeholder="e.g. Rakuten Trade" required></label>
-      <label>${t("Country")}<input name="country" value="${e.country || ""}" placeholder="e.g. Malaysia"></label>
+      <label>${t("Broker name")}<input name="name" value="${esc(e.name)}" placeholder="e.g. Rakuten Trade" required></label>
+      <label>${t("Country")}<input name="country" value="${esc(e.country)}" placeholder="e.g. Malaysia"></label>
       <label>${t("Default currency")}${styledSelect("currency", currencyItems(), e.currency || FX.base, { more: "currency" })}</label>
     </div>
-    <label class="block">${t("Notes")}<input name="notes" value="${e.notes || ""}" placeholder="${t("optional")}"></label>
+    <label class="block">${t("Notes")}<input name="notes" value="${esc(e.notes)}" placeholder="${t("optional")}"></label>
     <div class="form-actions">
       <button class="btn primary" type="submit">${editing ? t("Update Broker") : t("Add Broker")}</button>
       ${editing ? `<button class="btn ghost" type="button" id="cancelBrokerEdit">${t("Cancel edit")}</button>` : ""}
@@ -3358,8 +3406,8 @@ function pageSettings() {
   const html = `
     ${panel("Profile", `<form id="profileForm" class="form" autocomplete="off">
       <div class="form-grid">
-        <label>${t("Name")}<input name="name" value="${USER.name || ""}" placeholder="${t("Your name")}"></label>
-        <label>${t("Email")}<input name="email" type="email" value="${USER.email || ""}" placeholder="you@example.com"></label>
+        <label>${t("Name")}<input name="name" value="${esc(USER.name)}" placeholder="${t("Your name")}"></label>
+        <label>${t("Email")}<input name="email" type="email" value="${esc(USER.email)}" placeholder="you@example.com"></label>
       </div>
       <div class="form-actions"><button class="btn primary" type="submit">${t("Save profile")}</button></div>
     </form>`)}
@@ -3541,6 +3589,7 @@ function importBackupJSON(file) {
     let s;
     try { s = JSON.parse(reader.result); } catch (e) { toast(t("That file isn't valid JSON.")); return; }
     if (!validBackup(s)) { toast(t("That doesn't look like an Investment Ledger backup.")); return; }
+    if (!confirm(t("This replaces your current data with this backup file. Export your current data first if you want to keep it. Continue?"))) return;
     applySnapshot(s); saveStore(); toast(t("Backup restored")); render();
   };
   reader.readAsText(file);
@@ -3852,12 +3901,12 @@ function pageHolding() {
   const html = `
     <p style="margin:-4px 0 12px"><a class="link" href="#/portfolio">← ${t("Back to Portfolio")}</a></p>
     <div class="holding-head">
-      <div><div class="ticker" style="font-size:20px">${h.ticker}</div><div class="sub">${h.company || ""}</div></div>
+      <div><div class="ticker" style="font-size:20px">${esc(h.ticker)}</div><div class="sub">${esc(h.company) || ""}</div></div>
       <div class="holding-meta">
-        <span class="chip">${brokerName(h.brokerId)}</span>
-        ${h.market ? `<span class="chip">${h.market}</span>` : ""}
-        <span class="chip">${meta.country || h.country || "—"}</span>
-        ${meta.sector ? `<span class="chip">${meta.sector}</span>` : ""}
+        <span class="chip">${esc(brokerName(h.brokerId))}</span>
+        ${h.market ? `<span class="chip">${esc(h.market)}</span>` : ""}
+        <span class="chip">${esc(meta.country || h.country) || "—"}</span>
+        ${meta.sector ? `<span class="chip">${esc(meta.sector)}</span>` : ""}
         <button class="btn" id="dtlPrice">＄ ${t("Set price")}</button>
         ${LIVE_ENABLED ? `<button class="btn" id="dtlLive">⟳ ${t("Live")}</button>` : ""}
         <button class="btn ghost" id="dtlDelete">✕ ${t("Delete holding")}</button>
@@ -3931,8 +3980,18 @@ function closeModal() { $("#modal").hidden = true; }
 /* =============================================================================
  * CSV EXPORT
  * ========================================================================== */
+/* Quote-escapes embedded " chars (proper CSV, not the old blind ' swap) and
+ * neutralizes formula injection — a cell that opens with =, +, - or @ runs as
+ * a formula the instant this file is opened in Excel/Sheets. A leading '
+ * disables that while leaving genuine negative numbers untouched. */
+function csvSafe(x) {
+  const s = String(x == null ? "" : x);
+  const escaped = s.replace(/"/g, '""');
+  const looksLikeFormula = /^[=+\-@]/.test(escaped) && isNaN(Number(s));
+  return looksLikeFormula ? "'" + escaped : escaped;
+}
 function downloadCSV(filename, header, lines) {
-  const csv = [header, ...lines].map((r) => r.map((x) => `"${x}"`).join(",")).join("\r\n");
+  const csv = [header, ...lines].map((r) => r.map((x) => `"${csvSafe(x)}"`).join(",")).join("\r\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -3951,7 +4010,7 @@ function exportCashCSV() {
 function exportTxCSV() {
   downloadCSV("investment-ledger-transactions.csv",
     ["Date","Broker","Type","Ticker","Quantity","Price","Gross","Fee","Tax","Currency","FX Rate","MYR Equivalent","Notes"],
-    ALL_TRANSACTIONS.map((x) => [x.date, brokerName(x.brokerId), x.type, x.ticker, x.qty ?? "", x.price ?? "", x.gross ?? "", x.fee ?? 0, x.tax ?? 0, x.currency, x.fxRate ?? "", (x.myrEquivalent != null ? x.myrEquivalent : "").toString(), (x.notes || "").replace(/"/g, "'")]));
+    ALL_TRANSACTIONS.map((x) => [x.date, brokerName(x.brokerId), x.type, x.ticker, x.qty ?? "", x.price ?? "", x.gross ?? "", x.fee ?? 0, x.tax ?? 0, x.currency, x.fxRate ?? "", (x.myrEquivalent != null ? x.myrEquivalent : "").toString(), x.notes || ""]));
 }
 function exportDivCSV() {
   const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend");
@@ -4125,24 +4184,24 @@ function importPreviewHTML() {
   const errCount = rows.filter((r) => r.errors.length).length;
   const unknown = pendingImport.unknownBrokers || [];
   const statusCell = (r) => {
-    if (r.errors.length) return `<span class="badge neg" title="${r.errors.join("; ")}">${r.errors.join("; ")}</span>`;
+    if (r.errors.length) return `<span class="badge neg" title="${escAttr(r.errors.join("; "))}">${esc(r.errors.join("; "))}</span>`;
     if (r.needsBroker) return `<span class="badge warn">${t("Create broker first")}</span>`;
     if (r.dup) return `<span class="badge subtle">${t("Duplicate — skipped")}</span>`;
     return `<span class="badge pos">${t("Ready")}</span>`;
   };
   const body = rows.map((r) => {
-    const amt = r.type === "Buy" || r.type === "Sell" ? `${r.qty} @ ${fmt(r.price)}`
-      : r.type === "Currency Exchange" ? `${fmt(r.gross)} → ${r.toCurrency} ${fmt(r.toAmount)}`
+    const amt = r.type === "Buy" || r.type === "Sell" ? `${esc(r.qty)} @ ${fmt(r.price)}`
+      : r.type === "Currency Exchange" ? `${fmt(r.gross)} → ${esc(r.toCurrency)} ${fmt(r.toAmount)}`
       : fmt(r.gross);
     return `<tr class="${rowReady(r) ? "" : (r.dup ? "row-dup" : "row-bad")}">
-      <td class="num">${r.line}</td><td>${fmtDate(r.date)}</td><td>${r.brokerName || "—"}</td>
-      <td>${r.type || "—"}</td><td>${r.ticker || "—"}</td><td class="num">${amt}</td><td>${r.currency}</td>
+      <td class="num">${r.line}</td><td>${fmtDate(r.date)}</td><td>${esc(r.brokerName) || "—"}</td>
+      <td>${esc(r.type) || "—"}</td><td>${esc(r.ticker) || "—"}</td><td class="num">${amt}</td><td>${esc(r.currency)}</td>
       <td>${statusCell(r)}</td></tr>`;
   }).join("");
   const chip = (n, cls, lbl) => n ? ` · <span class="${cls}">${n} ${lbl}</span>` : "";
   return `<div class="import-preview">
     <div class="import-summary"><strong>${rows.length}</strong> ${t("rows")} · <span class="pos">${okCount} ${t("ready")}</span>${chip(dupCount, "muted", t("duplicate"))}${chip(brokerCount, "warn-txt", t("need broker"))}${chip(errCount, "neg", t("with errors"))}</div>
-    ${unknown.length ? `<p class="muted" style="font-size:12.5px;margin:0 0 10px">${t("Missing brokers")}: ${unknown.map((u) => `<strong>${u.name}</strong>`).join(", ")}.
+    ${unknown.length ? `<p class="muted" style="font-size:12.5px;margin:0 0 10px">${t("Missing brokers")}: ${unknown.map((u) => `<strong>${esc(u.name)}</strong>`).join(", ")}.
       <button class="btn small" id="createBrokers" style="margin-left:6px">${t("Create")} ${unknown.length} ${t("broker(s)")}</button></p>` : ""}
     <div class="table-wrap"><table class="data-table"><thead><tr>
       <th>#</th><th>${t("Date")}</th><th>${t("Broker")}</th><th>${t("Type")}</th><th>${t("Ticker")}</th><th class="num">${t("Amount")}</th><th>${t("Ccy")}</th><th>${t("Status")}</th>
@@ -4312,6 +4371,8 @@ function init() {
   });
   $("#exportBtn").addEventListener("click", exportCashCSV);
   $("#modalClose").addEventListener("click", closeModal);
+  const saveErrDismiss = $("#saveErrorDismiss");
+  if (saveErrDismiss) saveErrDismiss.addEventListener("click", hideSaveError);
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeModal(); closeMoreSheet(); } });
   // "More" overlay — mobile bottom-nav only (desktop shows the items in the sidebar)
