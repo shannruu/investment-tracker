@@ -1309,6 +1309,17 @@ function lineChartSVG(series, opts) {
   </svg>`;
 }
 
+/* Tap-to-reveal fallback for .col-info tooltips, delegated on document once at
+ * bootstrap so it keeps working after every render() rebuilds the page. Touch
+ * devices have no :hover state, so without this the ⓘ content is unreachable. */
+function mountColInfoTaps() {
+  document.addEventListener("click", (e) => {
+    const hit = e.target.closest(".col-info");
+    $$(".col-info.tip-open").forEach((el) => { if (el !== hit) el.classList.remove("tip-open"); });
+    if (hit) { e.stopPropagation(); hit.classList.toggle("tip-open"); }
+  });
+}
+
 /* Wire hover/tap tooltips for all .dot-hit elements on the current page. */
 function mountChartTooltips() {
   const prev = document.getElementById("chart-tip");
@@ -1333,6 +1344,19 @@ function mountChartTooltips() {
     tip.style.left = (r.left + r.width / 2) + "px";
     tip.style.top = (r.top) + "px";
     tip.hidden = false;
+    // The tooltip is centered horizontally and sits above the point — on a narrow
+    // phone that can push it past the screen edge for the first/last/topmost point.
+    // Measure the actual rendered box and nudge it back on-screen if needed.
+    const margin = 8;
+    const tr = tip.getBoundingClientRect();
+    let dx = 0, dy = 0;
+    if (tr.left < margin) dx = margin - tr.left;
+    else if (tr.right > window.innerWidth - margin) dx = (window.innerWidth - margin) - tr.right;
+    if (tr.top < margin) dy = margin - tr.top;
+    if (dx || dy) {
+      tip.style.left = (r.left + r.width / 2 + dx) + "px";
+      tip.style.top = (r.top + dy) + "px";
+    }
   };
   const hide = () => { tip.hidden = true; };
   hits.forEach((el) => {
@@ -2174,12 +2198,20 @@ function pagePortfolio() {
         <span class="col-panel-title">${t("Columns")}</span>
         <button class="col-panel-close" id="colPanelClose" aria-label="${t("Close")}">${closeSvg}</button>
       </div>
-      <p class="col-panel-hint">${gripSvg} ${t("Drag to reorder · toggle to show/hide")}</p>
+      <p class="col-panel-hint">${gripSvg} ${t("Drag to reorder (or use the arrows on touch) · toggle to show/hide")}</p>
       <div class="col-panel-list" id="colPanelList">
-        ${COL_DEFS.map((d) => `<div class="col-toggle-row" data-col-id="${d.id}">
-          <span class="col-grip" draggable="true" aria-hidden="true">${gripSvg}</span>
-          <label class="col-toggle"><input type="checkbox" data-col="${d.id}"${portfolioPrefs.cols[d.id] ? " checked" : ""}><span>${t(d.label)}</span></label>
-        </div>`).join("")}
+        ${(() => {
+          const byId = Object.fromEntries(COL_DEFS.map((d) => [d.id, d]));
+          const orderedDefs = portfolioPrefs.colOrder.map((id) => byId[id]).filter(Boolean);
+          return orderedDefs.map((d, i) => `<div class="col-toggle-row" data-col-id="${d.id}">
+            <span class="col-grip" draggable="true" aria-hidden="true">${gripSvg}</span>
+            <label class="col-toggle"><input type="checkbox" data-col="${d.id}"${portfolioPrefs.cols[d.id] ? " checked" : ""}><span>${t(d.label)}</span></label>
+            <span class="col-move-btns">
+              <button type="button" class="col-move-up" data-col-id="${d.id}" aria-label="${t("Move up")}" ${i === 0 ? "disabled" : ""}>▲</button>
+              <button type="button" class="col-move-down" data-col-id="${d.id}" aria-label="${t("Move down")}" ${i === orderedDefs.length - 1 ? "disabled" : ""}>▼</button>
+            </span>
+          </div>`).join("");
+        })()}
       </div>
     </div>
   </div>`;
@@ -2298,6 +2330,23 @@ function pagePortfolio() {
           const row = e.target.closest(".col-toggle-row");
           if (row && !row.contains(e.relatedTarget)) row.classList.remove("col-row-drag-over");
         });
+        // Shared by drag-drop and the touch-friendly move-up/down buttons: persist the
+        // new order, re-append rows to match it, fix which move buttons are disabled
+        // at the new top/bottom, then refresh the actual table.
+        const applyColOrder = (order) => {
+          portfolioPrefs.colOrder = order;
+          savePortfolioPrefs();
+          const allRows = [...colPanel.querySelectorAll(".col-toggle-row")];
+          const sorted = order.map((id) => allRows.find((r) => r.dataset.colId === id)).filter(Boolean);
+          const colPanelList = colPanel.querySelector(".col-panel-list") || colPanel;
+          sorted.forEach((r, i) => {
+            colPanelList.appendChild(r);
+            const up = r.querySelector(".col-move-up"), down = r.querySelector(".col-move-down");
+            if (up) up.disabled = i === 0;
+            if (down) down.disabled = i === sorted.length - 1;
+          });
+          apply();
+        };
         colPanel.addEventListener("drop", (e) => {
           const row = e.target.closest(".col-toggle-row");
           if (!row || !_panelDragId || row.dataset.colId === _panelDragId) return;
@@ -2309,15 +2358,23 @@ function pagePortfolio() {
           if (fromIdx >= 0 && toIdx >= 0) {
             order.splice(fromIdx, 1);
             order.splice(toIdx, 0, _panelDragId);
-            portfolioPrefs.colOrder = order;
-            savePortfolioPrefs();
-            const allRows = [...colPanel.querySelectorAll(".col-toggle-row")];
-            const sorted = order.map((id) => allRows.find((r) => r.dataset.colId === id)).filter(Boolean);
-            const colPanelList = colPanel.querySelector(".col-panel-list") || colPanel;
-            sorted.forEach((r) => colPanelList.appendChild(r));
-            apply();
+            applyColOrder(order);
           }
           _panelDragId = null;
+        });
+        // Touch-friendly alternative to drag: HTML5 drag-and-drop never fires on
+        // touch browsers, so without these buttons the reorder feature is dead
+        // weight on a phone. Visible only on coarse-pointer devices (see CSS).
+        colPanel.addEventListener("click", (e) => {
+          const btn = e.target.closest(".col-move-up, .col-move-down");
+          if (!btn || btn.disabled) return;
+          const id = btn.dataset.colId;
+          const order = [...portfolioPrefs.colOrder];
+          const idx = order.indexOf(id);
+          const swapWith = btn.classList.contains("col-move-up") ? idx - 1 : idx + 1;
+          if (idx < 0 || swapWith < 0 || swapWith >= order.length) return;
+          [order[idx], order[swapWith]] = [order[swapWith], order[idx]];
+          applyColOrder(order);
         });
       }
     } };
@@ -4402,6 +4459,7 @@ function init() {
   $("#moreSheet").addEventListener("click", (e) => { if (e.target.id === "moreSheet") closeMoreSheet(); });
   $$("#moreSheet .more-item").forEach((a) => a.addEventListener("click", closeMoreSheet));
   initStyledSelects();   // delegated wiring for the custom dropdowns
+  mountColInfoTaps();     // tap-to-reveal fallback for hover-only .col-info tooltips (touch has no :hover)
 
   window.addEventListener("hashchange", render);
   if (!location.hash) location.hash = "#/dashboard";

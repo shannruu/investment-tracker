@@ -358,6 +358,22 @@ a { color: inherit; text-decoration: none; }
 .col-toggle:hover { background: transparent; }
 .col-toggle input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--brand); cursor: pointer; flex: none; }
 
+/* Move-up/down buttons: the touch-usable alternative to the drag handle, which
+ * never fires on a touchscreen. Each pointer type gets only the mechanism that
+ * actually works for it. */
+.col-move-btns { display: none; flex: none; gap: 2px; }
+.col-move-up, .col-move-down {
+  border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+  border-radius: 5px; width: 22px; height: 22px; font-size: 10px; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.col-move-up:disabled, .col-move-down:disabled { opacity: 0.3; cursor: default; }
+@media (pointer: coarse) {
+  .col-grip { display: none; }
+  .col-move-btns { display: flex; }
+  .col-move-up, .col-move-down { width: 30px; height: 30px; }
+}
+
 /* ---- Group-by segmented control ---- */
 .group-seg { display: flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
 .group-seg-btn {
@@ -487,14 +503,16 @@ a { color: inherit; text-decoration: none; }
 .modal-backdrop[hidden] { display: none; }
 .toast[hidden] { display: none; }
 .modal {
-  width: min(460px, 100%); background: var(--surface);
+  width: min(460px, 100%); max-height: min(600px, 85vh);
+  background: var(--surface);
   border: 1px solid var(--border); border-radius: var(--radius);
   box-shadow: var(--shadow); overflow: hidden;
+  display: flex; flex-direction: column;
 }
-.modal-head { display: flex; align-items: center; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+.modal-head { display: flex; align-items: center; flex: none; padding: 16px 18px; border-bottom: 1px solid var(--border); }
 .modal-head h3 { font-size: 15px; }
 .modal-head .icon-btn { margin-left: auto; width: 32px; height: 32px; }
-.modal-body { padding: 20px 24px; font-size: 13.5px; }
+.modal-body { padding: 20px 24px; font-size: 13.5px; overflow-y: auto; }
 .calc-row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; }
 .calc-row .cr-op { color: var(--muted); display: inline-block; min-width: 16px; margin-right: 4px; }
 .calc-row.total { font-weight: 600; font-size: 14px; border-top: 1px solid var(--border); border-bottom: 0; margin-top: 4px; padding-top: 12px; }
@@ -519,6 +537,21 @@ a { color: inherit; text-decoration: none; }
 .save-error-banner .w-ico { color: var(--neg); font-size: 15px; flex: none; }
 .save-error-banner span:not(.w-ico) { flex: 1; }
 .save-error-banner .icon-btn { flex: none; width: 26px; height: 26px; }
+
+/* Touch-target sizing — only on touchscreens (pointer: coarse), so the compact
+ * desktop density (mouse-precise) is untouched. Several icon buttons sit under
+ * the ~44px guideline; bumping them here avoids mis-taps without visually
+ * bulking up the app for anyone using a mouse or trackpad. */
+@media (pointer: coarse) {
+  .icon-btn, .rec-actions .icon-btn, .row-edit, .row-del, .bc-del,
+  .modal-head .icon-btn, .save-error-banner .icon-btn, .col-panel-close {
+    width: 44px; height: 44px;
+  }
+  .seg-btn { padding: 12px 14px; min-height: 44px; }
+  .seg-sm .seg-btn { padding: 9px 13px; min-height: 38px; }
+  .col-toggle-row { height: 44px; }
+  .col-grip { min-width: 28px; }
+}
 
 /* ===================== Mobile bottom nav ===================== */
 .bottom-nav { display: none; }
@@ -594,16 +627,19 @@ a { color: inherit; text-decoration: none; }
 .btn-reset { color: var(--muted); }
 .btn-reset.active { color: var(--neg, #dc2626); font-weight: 600; }
 .filters-col-panel { margin-left: auto; flex-shrink: 0; }
-/* Column header info tooltip */
+/* Column header info tooltip. Hover works with a mouse; touch has no hover
+ * state at all, so a tap toggles the same tooltip via the .tip-open class
+ * (wired in mountColInfoTaps()) — otherwise this content is unreachable on
+ * a phone. */
 .col-info { font-size: 10px; color: var(--muted); cursor: help; vertical-align: middle; position: relative; }
-.col-info:hover::after {
+.col-info:hover::after, .col-info.tip-open::after {
   content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); right: 50%;
   transform: translateX(50%); background: var(--surface); border: 1px solid var(--border);
   color: var(--text); font-size: 11px; font-weight: 400; font-family: var(--font);
   padding: 5px 9px; border-radius: 5px; max-width: 260px; z-index: 50; line-height: 1.5;
   box-shadow: 0 2px 8px rgba(0,0,0,.14); pointer-events: none; white-space: normal; text-align: left;
 }
-.col-info.tip-down:hover::after { bottom: auto; top: calc(100% + 6px); }
+.col-info.tip-down:hover::after, .col-info.tip-down.tip-open::after { bottom: auto; top: calc(100% + 6px); }
 .pv-clock-note { display: flex; align-items: center; font-size: 11px; margin-top: 6px; gap: 0; }
 th[data-col-id="shares"] { width: 80px; min-width: 80px; }
 .filters select, .form select, .form input {
