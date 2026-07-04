@@ -609,6 +609,19 @@ function xirrPercent(txns, terminalValue) {
 /* =============================================================================
  * DERIVED TOTALS
  * ========================================================================== */
+/* Transactions have no time-of-day field, so same-day entries sort by date alone
+ * have no defined order — a same-day Sell could process before its own Buy purely
+ * because of array position, corrupting that lot's cost basis. To make same-day
+ * processing deterministic and safe, share-increasing types always settle before
+ * share-decreasing types on the same date; everything else stays date-order-neutral. */
+const TX_ORDER_PRIORITY = {
+  "Deposit": 0, "Interest / cash yield": 0, "Interest": 0,
+  "Buy": 1, "Stock split": 1, "DRIP / Reinvested": 1,
+  "Sell": 3, "Withdrawal": 3, "Fee": 3, "Tax withholding": 3,
+};
+const txOrderPriority = (tx) => TX_ORDER_PRIORITY[tx.type] ?? 2;
+const txDateSort = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : txOrderPriority(a) - txOrderPriority(b));
+
 /* Transactions are the SINGLE SOURCE OF TRUTH. Holdings, cash, realized/unrealized
  * P/L, dividends and fees are all DERIVED here using a simple average-cost method.
  * Cost basis is tracked in MYR using each transaction's historical FX rate; current
@@ -646,11 +659,11 @@ function computeTotals() {
   BROKERS.forEach((b) => (cash[b.id] = {}));
   const addCash = (id, ccy, amt) => { if (!cash[id]) cash[id] = {}; cash[id][ccy] = (cash[id][ccy] || 0) + amt; };
 
-  let totalDeposits = 0, totalWithdrawals = 0, netDividends = 0, totalFees = 0, realizedPL = 0;
+  let totalDeposits = 0, totalWithdrawals = 0, netDividends = 0, totalFees = 0, realizedPL = 0, totalInterest = 0;
   const oversells = [];
 
   // Process chronologically so average cost is correct.
-  const txns = [...ALL_TRANSACTIONS].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  const txns = [...ALL_TRANSACTIONS].sort(txDateSort);
   txns.forEach((tx) => {
     const fx = histFx(tx);
     const ccy = tx.currency || FX.base;
@@ -660,7 +673,7 @@ function computeTotals() {
     switch (tx.type) {
       case "Deposit": totalDeposits += grossMYR; addCash(tx.brokerId, ccy, gross); break;
       case "Withdrawal": totalWithdrawals += grossMYR; addCash(tx.brokerId, ccy, -gross); break;
-      case "Interest / cash yield": case "Interest": addCash(tx.brokerId, ccy, gross); break;
+      case "Interest / cash yield": case "Interest": totalInterest += grossMYR; addCash(tx.brokerId, ccy, gross); break;
       case "Fee": totalFees += grossMYR; addCash(tx.brokerId, ccy, -gross); break;
       case "Tax withholding": totalFees += grossMYR; addCash(tx.brokerId, ccy, -gross); break;
       case "Buy": {
@@ -702,7 +715,10 @@ function computeTotals() {
         const fromAmt = +tx.fromAmount || gross || 0, toAmt = +tx.toAmount || 0;
         addCash(tx.brokerId, fromCcy, -(fromAmt + fee));
         if (toCcy) addCash(tx.brokerId, toCcy, toAmt);
-        totalFees += fee * (FX.rates[fromCcy] || 1);
+        // Use this transaction's own historical rate (fx), same as every other flow
+        // here — pricing the fee at today's live FX.rates would make an old, already-
+        // settled transaction's cost silently drift every time rates are updated.
+        totalFees += fee * fx;
         break;
       }
       default: break;
@@ -751,7 +767,7 @@ function computeTotals() {
   const fxUnrealizedPL = holdings.reduce((s, h) => s + h.fxUnrealized, 0);
   const netCapitalInvested = totalDeposits - totalWithdrawals;
   const priceReturn = unrealizedPL + realizedPL - totalFees;
-  const totalReturn = unrealizedPL + realizedPL + netDividends - totalFees;
+  const totalReturn = unrealizedPL + realizedPL + netDividends + totalInterest - totalFees;
   const totalReturnPct = netCapitalInvested ? (totalReturn / netCapitalInvested) * 100 : 0;
   const missingPrices = holdings.filter((h) => !h.hasPrice).length;
   // Negative cash detection per (broker, currency) — allowed, but flagged.
@@ -763,7 +779,7 @@ function computeTotals() {
   const xirrValue = xirrPercent(txns, portfolioValue + totalCash);
 
   return { totalDeposits, totalWithdrawals, netCapitalInvested, portfolioValue,
-    netDividends, unrealizedPL, realizedPL, totalFees, priceUnrealizedPL, fxUnrealizedPL, priceReturn, totalReturn, totalReturnPct,
+    netDividends, totalInterest, unrealizedPL, realizedPL, totalFees, priceUnrealizedPL, fxUnrealizedPL, priceReturn, totalReturn, totalReturnPct,
     holdings, brokerCash, brokerCashByCcy, oversells, missingPrices, negativeCash, xirr: xirrValue, totalCash };
 }
 /* =============================================================================
@@ -1567,6 +1583,7 @@ function pageDashboard() {
       { op: "+", label: "Unrealized P/L", val: signed(T.unrealizedPL) },
       { op: "+", label: "Realized P/L", val: signed(T.realizedPL) },
       ...(returnIsTotal ? [{ op: "+", label: "Net Dividends", val: signed(T.netDividends) }] : []),
+      ...(returnIsTotal && T.totalInterest ? [{ op: "+", label: "Interest Received", val: signed(T.totalInterest) }] : []),
       { op: "−", label: "Total Fees", val: fmt(T.totalFees) }], total: shownReturn },
     cash: (() => {
       const cf = cashFlow;
@@ -2885,7 +2902,7 @@ function sharesHeldExcluding(brokerId, ticker, excludeId) {
   const tk = (ticker || "").toUpperCase();
   let shares = 0;
   HOLDINGS.forEach((h) => { if (h.brokerId === brokerId && (h.ticker || "").toUpperCase() === tk) shares += +h.shares || 0; });
-  [...ALL_TRANSACTIONS].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)).forEach((x) => {
+  [...ALL_TRANSACTIONS].sort(txDateSort).forEach((x) => {
     if (x.id === excludeId || x.brokerId !== brokerId || (x.ticker || "").toUpperCase() !== tk) return;
     if (x.type === "Buy") shares += +x.qty || 0;
     else if (x.type === "Sell") shares -= +x.qty || 0;
@@ -3865,7 +3882,11 @@ function pageHolding() {
   const tReceived = divs.filter((d) => d.status !== "Expected");
   const tExpected = divs.filter((d) => d.status === "Expected").sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
   const totalDivReceived = tReceived.reduce((s, d) => s + divNetMYR(d), 0);
-  const tFc = dividendForecast(tReceived, tExpected);
+  // dividendForecast() expects allUpcomingDivs()-shaped rows (expectedNetMYR), not raw
+  // transaction rows (gross/tax/fxRate) — map before passing, same as allUpcomingDivs()'s
+  // own "legacy Expected" branch does, so the forecast can actually see this ticker's payment.
+  const tExpectedForForecast = tExpected.map((d) => ({ ticker: d.ticker, payDate: d.payDate, expectedNetMYR: divNetMYR(d) }));
+  const tFc = dividendForecast(tReceived, tExpectedForForecast);
   const upcomingRows = tExpected.map((d) => { const net = (+d.gross || 0) - (+d.tax || 0); const du = daysUntil(d.payDate);
     return `<tr><td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
       <td class="num">${d.payDate ? (du >= 0 ? du + " " + t("days") : t("overdue")) : "—"}</td>
