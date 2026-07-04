@@ -300,9 +300,14 @@ const ZH = {
   "Estimate only — not a guarantee.": "仅为估算 — 并非保证。",
   "Next Month (est.)": "下月（估）", "Next Quarter (est.)": "下季（估）", "Next Year (est.)": "下年（估）",
   "Next Month": "下月", "Next Quarter": "下季", "Next Year": "下年",
+  "Year 2": "第 2 年", "Year 3": "第 3 年",
   "Based on payment patterns and upcoming dividends.": "基于股息历史规律及即将派息数据。",
   "Record at least 2 dividends per holding, or add upcoming dividends, to enable pattern-based estimates.": "每个持仓至少录入 2 次股息，或添加即将派息，以启用规律预测。",
   "Received TTM": "过去 12 个月已收",
+  "monthly": "每月", "quarterly": "每季", "semi-annual": "每半年", "annual": "每年",
+  "Pattern detected for": "已侦测到规律", "payment": "次派息",
+  "Pattern detected": "已侦测到规律", "from market dividend history": "来自市场股息历史",
+  "from your logged dividends": "来自您记录的股息", "Record at least 2 dividends for this holding to enable pattern-based estimates.": "请为此持仓至少录入 2 次股息，以启用规律预测。",
   "div.": "股息",
   "Upcoming confirmed dividends in window": "窗口内已确认的即将派息",
   "Add upcoming dividend for": "添加即将派息：", "Per share": "每股金额",
@@ -1031,44 +1036,41 @@ async function searchSymbols(q) {
   } catch (e) { return []; }
 }
 
-/* ─── Dividend schedule (Finnhub) ──────────────────────────────────────────── */
-// In-memory cache of auto-fetched upcoming dividends, keyed by ticker.
-// Shape: { [ticker]: [{date (exDate), payDate, amount, currency}] }
-// NOT persisted — refreshed on first visit after each saveStore().
+/* ─── Dividend history & schedule (Yahoo Finance, keyless) ─────────────────── */
+// In-memory cache of auto-fetched dividend events — past history AND any
+// near-future declared payment — keyed by ticker, covering every market Yahoo
+// serves (not just US). Shape: { [ticker]: [{date (exDate), amount, currency}] }
+// NOT persisted — refreshed on first visit after each saveStore(). Past events
+// feed pattern-based forecasting (dividendForecast); future-dated events become
+// a confirmed upcoming payment (allUpcomingDivs).
 let AUTO_DIV_CACHE = {};
 let AUTO_DIV_CACHE_FETCHED = false;  // prevent the fetch→render→mount→fetch infinite loop
 
-/* Fetch upcoming dividends for one US ticker from Finnhub via our proxy.
- * Returns array or null. Only runs for plain tickers (no ".KL", ".SI", etc.). */
-/* Returns { ok, divs } — ok distinguishes "fetched cleanly, ticker just pays
- * nothing upcoming" from "the request itself failed", so callers can surface
- * a real error state instead of the two cases silently looking identical. */
-async function fetchFinnhubDivs(ticker) {
-  if (!LIVE_ENABLED || ticker.includes(".")) return { ok: true, divs: null };
-  const today = todayISO();
-  const futureDate = new Date(today.replace(/-/g, "/"));
-  futureDate.setFullYear(futureDate.getFullYear() + 1);
-  const to = futureDate.toISOString().slice(0, 10);
+/* Returns { ok, divs } — ok distinguishes "fetched cleanly, ticker just has no
+ * dividend history" from "the request itself failed", so callers can surface a
+ * real error state instead of the two cases silently looking identical. */
+async function fetchDivHistory(ticker) {
+  if (!LIVE_ENABLED) return { ok: true, divs: null };
   try {
-    const r = await fetch(`/api/dividend?symbol=${encodeURIComponent(ticker)}&from=${today}&to=${to}`);
+    const r = await fetch(`/api/dividend?symbol=${encodeURIComponent(ticker)}`);
     if (!r.ok) return { ok: false, divs: null };
     const data = await r.json();
     if (!Array.isArray(data)) return { ok: false, divs: null };
-    return { ok: true, divs: data.filter((d) => (d.payDate || d.date) >= today) };
+    return { ok: true, divs: data };
   } catch (e) { return { ok: false, divs: null }; }
 }
 
-/* Populate AUTO_DIV_CACHE for all held US tickers concurrently.
+/* Populate AUTO_DIV_CACHE for every held ticker concurrently, any market.
  * Returns { fetched, hadError } — hadError lets the dividends page tell the
  * user a schedule check actually failed instead of quietly showing "nothing
  * upcoming" either way. */
 async function fetchAllDivSchedules() {
   if (AUTO_DIV_CACHE_FETCHED) return { fetched: false, hadError: false };  // already fresh — skip to avoid render loop
   AUTO_DIV_CACHE_FETCHED = true;              // set before await so concurrent calls short-circuit
-  const tickers = [...new Set(T.holdings.filter((h) => !h.ticker.includes(".")).map((h) => h.ticker))];
+  const tickers = [...new Set(T.holdings.map((h) => h.ticker))];
   let hadError = false;
   await Promise.all(tickers.map(async (ticker) => {
-    const res = await fetchFinnhubDivs(ticker);
+    const res = await fetchDivHistory(ticker);
     if (!res.ok) hadError = true;
     if (res.divs && res.divs.length) AUTO_DIV_CACHE[ticker] = res.divs;
     else delete AUTO_DIV_CACHE[ticker];
@@ -1077,7 +1079,7 @@ async function fetchAllDivSchedules() {
 }
 
 /* Merge all upcoming dividend sources into one sorted list.
- * Sources: UPCOMING_DIVIDENDS (manual MY), AUTO_DIV_CACHE (Finnhub US), and
+ * Sources: UPCOMING_DIVIDENDS (manual), AUTO_DIV_CACHE (Yahoo, any market), and
  * any legacy ALL_TRANSACTIONS rows still carrying status="Expected". */
 /* upcomingDividends schema: { id, ticker, brokerId?, exDate, payDate, estimatedAmount (per share),
  * currency, source: 'manual'|'api', status: 'upcoming'|'confirmed'|'missed',
@@ -1812,7 +1814,7 @@ function pageDashboard() {
       if (isEmpty && !tourDone && tourIdx < 0 && !TOUR_SEEN) {
         TOUR_SEEN = true; setTimeout(startTour, 500);
       }
-      // Auto-fetch Finnhub dividend schedules for US holdings; re-render if still here
+      // Auto-fetch dividend schedules for all holdings; re-render if still here
       if (LIVE_ENABLED) {
         fetchAllDivSchedules().then(({ fetched }) => {
           if (fetched && document.getElementById("dashDivSection")) render();
@@ -3039,12 +3041,24 @@ function dividendByPeriod(received) {
   return { byMonth, byQuarter, byYear };
 }
 
-/* Dividend forecast.
- * METHOD (documented): a run-rate from your trailing-12-month (TTM) RECEIVED dividends —
- *   Next Year ≈ TTM, Next Quarter ≈ TTM ÷ 4, Next Month ≈ TTM ÷ 12.
- * Separately, we also sum any dividends you explicitly marked "Expected" whose payment
- * date falls inside the window (confirmed pipeline). The two are shown side by side so a
- * run-rate estimate is never confused with confirmed amounts. */
+/* Dividend forecast — pattern-based, never a flat TTM ÷ 12 run-rate.
+ * METHOD (documented):
+ *  1. Confirmed pipeline: any dividend you (or the market-data auto-fetch)
+ *     marked as an upcoming payment with a real pay date inside the window.
+ *  2. Pattern projection, per ticker not already covered by #1: detect payment
+ *     FREQUENCY from the gaps between past payments (snapped to monthly /
+ *     quarterly / semi-annual / annual to avoid drifting), then project future
+ *     pay dates at that cadence up to 3 years out. History comes from your own
+ *     logged dividends where you have ≥2; otherwise falls back to the ticker's
+ *     real market dividend history (Yahoo, via AUTO_DIV_CACHE), scaled to your
+ *     current share count and today's FX rate.
+ *  3. Growth: with ≥6 historical payments, the average of the most recent 3 is
+ *     compared to the 3 before that to estimate a per-payment growth rate
+ *     (clamped to ±25%/payment against outliers), compounded forward — so a
+ *     stock with a raising history projects growing payments, not a flat repeat.
+ * Confirmed and projected amounts are summed separately (expMonth/Quarter/Year
+ * vs nextMonth/Quarter/Year) so a run-rate estimate is never confused with a
+ * confirmed one. */
 function dividendForecast(received, upcoming) {
   const now = todayDate();
   const today = todayISO();
@@ -3056,59 +3070,93 @@ function dividendForecast(received, upcoming) {
     return (!isNaN(dt) && dt >= cutoff && dt <= now) ? s + divNetMYR(d) : s;
   }, 0);
 
-  // Confirmed/estimated upcoming payments from Finnhub auto-fetch and manual .KL entries
+  // Confirmed/estimated upcoming payments from the market-data auto-fetch and manual entries
   const knownUpcoming = upcoming
     .filter((d) => d.payDate && d.payDate >= today)
     .map((d) => ({ payDate: d.payDate, amtMYR: d.expectedNetMYR || 0, ticker: d.ticker }));
   const coveredTickers = new Set(knownUpcoming.map((p) => p.ticker));
 
-  // Pattern detection: group received history by ticker, detect payment frequency,
-  // project future dates. Only for tickers NOT already covered by upcoming data.
+  // Pattern detection: group history by ticker, detect payment frequency and
+  // growth, project future dates up to 3 years out. Only for tickers NOT
+  // already covered by confirmed upcoming data.
   const projected = [];
+  const tickerInfo = {};
   const byTicker = {};
   received.forEach((d) => { if (!byTicker[d.ticker]) byTicker[d.ticker] = []; byTicker[d.ticker].push(d); });
-  Object.entries(byTicker).forEach(([ticker, payments]) => {
+  const allTickers = new Set([...Object.keys(byTicker), ...Object.keys(AUTO_DIV_CACHE)]);
+
+  allTickers.forEach((ticker) => {
     if (coveredTickers.has(ticker)) return;
-    const sorted = payments
+    let sorted = (byTicker[ticker] || [])
       .map((d) => ({ net: divNetMYR(d), ds: d.payDate || d.date }))
       .filter((d) => d.ds)
       .sort((a, b) => (a.ds < b.ds ? -1 : 1));
-    if (sorted.length < 2) return; // need ≥2 payments to detect a reliable pattern
+    let source = "logged";
+    // Fall back to real market dividend history when you haven't logged ≥2
+    // payments yourself — per-share amounts scaled to your current shares.
+    if (sorted.length < 2 && AUTO_DIV_CACHE[ticker] && AUTO_DIV_CACHE[ticker].length >= 2) {
+      const h = T.holdings.find((x) => x.ticker === ticker);
+      const shares = h ? h.shares : 0;
+      sorted = AUTO_DIV_CACHE[ticker]
+        .map((d) => ({ net: (d.amount || 0) * shares * (FX.rates[d.currency] || 1), ds: d.date }))
+        .filter((d) => d.ds && d.ds < today)
+        .sort((a, b) => (a.ds < b.ds ? -1 : 1));
+      source = "market history";
+    }
+    if (sorted.length < 2) return; // still not enough to detect a reliable pattern
+
     const intervals = [];
     for (let i = 1; i < sorted.length; i++) {
       const days = Math.round((new Date(sorted[i].ds + "T00:00:00") - new Date(sorted[i - 1].ds + "T00:00:00")) / 86400000);
       if (days > 20) intervals.push(days);
     }
     if (!intervals.length) return;
-    const avg = Math.round(intervals.reduce((s, v) => s + v, 0) / intervals.length);
+    const avgInterval = Math.round(intervals.reduce((s, v) => s + v, 0) / intervals.length);
     // Snap to nearest standard frequency to prevent compounding date drift
-    const freq = avg < 50 ? 30 : avg < 110 ? 91 : avg < 220 ? 182 : 365;
-    const avgAmt = sorted.slice(-3).reduce((s, d) => s + d.net, 0) / Math.min(sorted.length, 3);
+    const freqDays = avgInterval < 50 ? 30 : avgInterval < 110 ? 91 : avgInterval < 220 ? 182 : 365;
+    const freqLabel = freqDays === 30 ? t("monthly") : freqDays === 91 ? t("quarterly") : freqDays === 182 ? t("semi-annual") : t("annual");
+
+    // Growth rate per payment: recent 3 payments vs the 3 before that.
+    let growthPerPayment = 0;
+    if (sorted.length >= 6) {
+      const recent3 = sorted.slice(-3), prior3 = sorted.slice(-6, -3);
+      const recentAvg = recent3.reduce((s, d) => s + d.net, 0) / 3;
+      const priorAvg = prior3.reduce((s, d) => s + d.net, 0) / 3;
+      if (priorAvg > 0) growthPerPayment = Math.max(-0.25, Math.min(0.25, Math.pow(recentAvg / priorAvg, 1 / 3) - 1));
+    }
+
+    let amt = sorted.slice(-3).reduce((s, d) => s + d.net, 0) / Math.min(sorted.length, 3);
     let next = new Date(sorted[sorted.length - 1].ds + "T00:00:00");
-    next.setDate(next.getDate() + freq);
-    const limit = new Date(now); limit.setFullYear(limit.getFullYear() + 1);
+    next.setDate(next.getDate() + freqDays);
+    const limit = new Date(now); limit.setFullYear(limit.getFullYear() + 3);
+    tickerInfo[ticker] = { count: sorted.length, freq: freqLabel, source, growthPct: growthPerPayment * 100 };
     while (next <= limit) {
       const ds = next.toISOString().slice(0, 10);
-      if (ds >= today) projected.push({ payDate: ds, amtMYR: avgAmt, ticker });
-      next = new Date(next); next.setDate(next.getDate() + freq);
+      if (ds >= today) { projected.push({ payDate: ds, amtMYR: amt, ticker }); amt *= (1 + growthPerPayment); }
+      next = new Date(next); next.setDate(next.getDate() + freqDays);
     }
   });
 
   const all = [...knownUpcoming, ...projected];
-  const winSum = (list, days) => {
-    const end = new Date(now); end.setDate(now.getDate() + days);
+  const winSum = (list, startDays, endDays) => {
+    const start = new Date(now); start.setDate(now.getDate() + startDays);
+    const startStr = startDays === 0 ? today : start.toISOString().slice(0, 10);
+    const end = new Date(now); end.setDate(now.getDate() + endDays);
     const endStr = end.toISOString().slice(0, 10);
-    return list.filter((p) => p.payDate >= today && p.payDate <= endStr).reduce((s, p) => s + p.amtMYR, 0);
+    return list.filter((p) => p.payDate >= startStr && p.payDate <= endStr).reduce((s, p) => s + p.amtMYR, 0);
   };
   return {
     ttm,
-    nextMonth:      winSum(all, 31),
-    nextQuarter:    winSum(all, 92),
-    nextYear:       winSum(all, 365),
-    expMonth:       winSum(knownUpcoming, 31),
-    expQuarter:     winSum(knownUpcoming, 92),
-    expYear:        winSum(knownUpcoming, 365),
+    nextMonth:      winSum(all, 0, 31),
+    nextQuarter:    winSum(all, 0, 92),
+    nextYear:       winSum(all, 0, 365),
+    year2:          winSum(all, 366, 730),
+    year3:          winSum(all, 731, 1095),
+    expMonth:       winSum(knownUpcoming, 0, 31),
+    expQuarter:     winSum(knownUpcoming, 0, 92),
+    expYear:        winSum(knownUpcoming, 0, 365),
     hasProjections: all.length > 0,
+    tickerInfo,
   };
 }
 
@@ -3199,12 +3247,26 @@ function pageDividends() {
 
   const fc = dividendForecast(received, upcoming);
   const dash = `<span class="muted" style="font-size:22px;line-height:1">—</span>`;
+  const tickerEntries = Object.entries(fc.tickerInfo || {});
+  const tickerSummary = tickerEntries.length
+    ? tickerEntries.map(([tk, info]) => {
+        const growth = info.growthPct ? `, ${info.growthPct > 0 ? "+" : ""}${fmt(info.growthPct, { maximumFractionDigits: 1 })}%/${t("payment")}` : "";
+        return `${esc(tk)} (${info.freq}${growth})`;
+      }).join(", ")
+    : "";
+  const patternLine = tickerSummary ? `<p class="muted" style="margin:6px 0 0;font-size:12px">${t("Pattern detected for")}: ${tickerSummary}</p>` : "";
+  const multiYear = (fc.year2 > 0 || fc.year3 > 0)
+    ? `<div class="mini-cards" style="margin-top:8px">
+        ${miniCard(t("Year 2"), fc.year2 > 0 ? money(fc.year2) : dash)}
+        ${miniCard(t("Year 3"), fc.year3 > 0 ? money(fc.year3) : dash)}</div>`
+    : "";
   const forecastBody = fc.hasProjections
     ? `<p class="muted" style="margin:-4px 0 12px">${t("Based on payment patterns and upcoming dividends.")} ${t("Estimate only — not a guarantee.")}${fc.ttm > 0 ? ` ${t("Received TTM")}: <strong>${money(fc.ttm)}</strong>.` : ""}</p>
       <div class="mini-cards">
         ${miniCard(t("Next Month"), fc.nextMonth > 0 ? money(fc.nextMonth) : dash)}
         ${miniCard(t("Next Quarter"), fc.nextQuarter > 0 ? money(fc.nextQuarter) : dash)}
         ${miniCard(t("Next Year"), fc.nextYear > 0 ? money(fc.nextYear) : dash)}</div>
+      ${multiYear}${patternLine}
       <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`
     : `<div class="div-fc-empty"><span>📅</span><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}</div></div>
       <p class="muted" style="margin:10px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
@@ -3873,9 +3935,9 @@ function pageHelp() {
     { q: "What is XIRR?", a: "XIRR (Extended Internal Rate of Return) is your money-weighted annual return. Unlike a simple return, it accounts for WHEN money entered and left your portfolio, so large contributions near the end don't unfairly flatter (or hurt) the percentage. It answers: 'what constant annual rate, compounded, turns my dated cash flows into my current account value?'" },
     { q: "How is XIRR calculated?", a: "Methodology: the account boundary is your whole portfolio (holdings + cash). External flows are dated: each Deposit is negative (cash in), each Withdrawal is positive (cash out). Today's terminal value = current holdings market value + cash balance, as a final positive flow. Buys, Sells and Dividends are INTERNAL to the account (they move value between cash and securities, or generate cash that stays in the account), so they are already captured in the terminal value — adding them as separate flows would double-count. XIRR is then the rate r solving Σ flow_i / (1+r)^(years_i) = 0, found by Newton-Raphson with a bisection fallback. Requires at least one deposit and ≥7 days of history." },
     { q: "Why is XIRR different from simple return?", a: "Simple return = (gain) ÷ (money invested), ignoring timing. XIRR is time-weighted by date and annualised. Example: depositing RM10,000 a year ago vs last week gives the same simple return but very different XIRR, because the recent money had almost no time to compound. XIRR is the fairer measure of the rate your money actually earned." },
-    { q: "How is the dividend forecast calculated?", a: "Methodology: a run-rate from your trailing-12-month (TTM) RECEIVED dividends, converted to your base currency at each dividend's historical FX rate. Next Year ≈ TTM, Next Quarter ≈ TTM ÷ 4, Next Month ≈ TTM ÷ 12. Separately, any dividends you mark 'Expected' with a payment date inside the window are summed as a 'confirmed pipeline'. Assumptions: your holdings and their payout rate stay roughly the same as the last 12 months." },
-    { q: "How accurate is the dividend forecast?", a: "It is a directional estimate, not a prediction. Accuracy is best for a stable, diversified dividend portfolio held for a full year (so the TTM base is complete). It is least accurate for new portfolios (incomplete TTM), recently changed holdings, or stocks with irregular/special dividends." },
-    { q: "What are the forecast's limitations?", a: "It does NOT model: future buys or sells, dividend cuts or raises, special/one-off dividends, changes in withholding tax, or FX movement on future payments. Equal monthly/quarterly splitting (TTM ÷ 12 / ÷ 4) ignores real payout calendars (many stocks pay semi-annually or annually). Treat it as a planning aid only — never as guaranteed income." },
+    { q: "How is the dividend forecast calculated?", a: "Methodology: not a flat TTM ÷ 12 run-rate. For each holding, past payment dates are used to detect a real frequency (monthly/quarterly/semi-annual/annual), and future pay dates are projected at that cadence up to 3 years out. History comes from your own logged dividends where you have at least 2; otherwise it falls back to the stock's real public dividend history (fetched automatically for any market), scaled to your current share count and today's FX rate. With at least 6 historical payments, a per-payment growth rate is also estimated (comparing your 3 most recent payments to the 3 before that, capped at ±25% per payment) and compounded forward, so a stock with a track record of raising its dividend projects growing future payments instead of a flat repeat. Any dividend already confirmed — one you marked 'Expected', or a near-term one already declared — is summed separately as a 'confirmed pipeline' so it's never mixed up with the pattern-based estimate." },
+    { q: "How accurate is the dividend forecast?", a: "It is a directional estimate, not a prediction. Accuracy is best for a holding with a long, regular payment history (own-logged or from public market data). It is least accurate for a brand-new holding with fewer than 2 payments on record anywhere, or a stock with irregular/special dividends that don't fit a monthly/quarterly/semi-annual/annual cadence." },
+    { q: "What are the forecast's limitations?", a: "It does NOT model: future buys or sells, special/one-off dividends, changes in withholding tax, or FX movement on future payments (today's FX rate is used throughout). Growth detection needs at least 6 historical payments per holding — with fewer, the projection is flat (no growth applied). Treat it as a planning aid only — never as guaranteed income." },
     { q: "How is dividend tax handled?", a: "Net Dividend = Gross Dividend − Withholding Tax. Withholding tax is tracked per dividend and summarised by country (using the stock's real country from the lookup) in the Dividends page." },
     { q: "What do the transaction types mean?", a: "Deposit/Withdrawal move cash in/out. Buy/Sell trade shares (and capture commission + taxes). Dividend records income (Received or Expected). Currency Exchange converts between currencies. Fee, Tax withholding, Interest, and Transfer-between-brokers cover the rest." },
     { q: "Why does a broker show a cash difference?", a: "Your calculated cash balance (deposits − buys − fees + sells + net dividends − withdrawals) differs from the actual balance you entered. Usually a missing fee, dividend or transfer entry. A negative balance means spending exceeded recorded cash." },
@@ -3886,9 +3948,9 @@ function pageHelp() {
     { q: "什么是 XIRR？", a: "XIRR（扩展内部收益率）是按资金加权的年化回报率。与简单回报不同，它考虑了资金进出投资组合的时间，因此临近期末的大额投入不会不公平地美化（或拖累）百分比。它回答：‘哪一个固定的年化复利率，能把我带日期的现金流变成当前的账户价值？’" },
     { q: "XIRR 是如何计算的？", a: "方法：账户边界为整个投资组合（持仓 + 现金）。外部现金流按日期计入：每笔存款为负（现金流入），每笔取款为正（现金流出）。今天的终值 = 当前持仓市值 + 现金余额，作为最后一笔正现金流。买入、卖出和股息属于账户内部（在现金与证券间转移价值，或产生留在账户内的现金），已包含在终值中——若再作为单独现金流会重复计算。XIRR 即求解 Σ 现金流 / (1+r)^(年数) = 0 的利率 r，采用牛顿法并以二分法兜底。至少需一笔存款且 ≥7 天历史。" },
     { q: "为什么 XIRR 与简单回报不同？", a: "简单回报 = 收益 ÷ 投入金额，忽略时间。XIRR 按日期加权并年化。例如：一年前投入 RM10,000 与上周投入，简单回报相同，但 XIRR 差别很大，因为近期资金几乎没有时间复利。XIRR 更公平地衡量您资金实际赚取的回报率。" },
-    { q: "股息预测是如何计算的？", a: "方法：基于您过去 12 个月（TTM）已收到股息的运行率，按每笔股息的历史汇率换算为基准货币。下一年 ≈ TTM，下一季 ≈ TTM ÷ 4，下一月 ≈ TTM ÷ 12。此外，凡是您标记为“预期”且派息日落在窗口内的股息，会单独汇总为“已确认管道”。假设：您的持仓及其派息率与过去 12 个月大致相同。" },
-    { q: "股息预测有多准确？", a: "这是方向性估算，并非预测。对于持有满一年的稳定、分散的股息组合（TTM 基数完整）最准确；对于新组合（TTM 不完整）、近期变动的持仓或不规则/特别股息的股票最不准确。" },
-    { q: "股息预测有哪些局限？", a: "它不建模：未来的买卖、股息上调或下调、特别/一次性股息、预扣税变动，或未来派息的汇率波动。按月/季均分（TTM ÷ 12 / ÷ 4）忽略了真实派息日历（许多股票按半年或一年派息）。请仅作为规划参考，切勿视为有保证的收入。" },
+    { q: "股息预测是如何计算的？", a: "方法：并非简单的 TTM ÷ 12 运行率。系统会为每个持仓从过去的派息日期侦测真实的派息频率（每月/每季/每半年/每年），并按该周期向未来预测最多 3 年的派息日期。历史数据优先使用您自己记录的股息（至少 2 笔）；不足时改用该股票的真实公开股息历史（自动获取，涵盖各市场），并按您当前持股数与当前汇率换算。若历史派息达 6 笔以上，还会估算每次派息的增长率（比较最近 3 笔与之前 3 笔的均值，增长率上限为每次派息 ±25%）并向前复利，因此有加息记录的股票会预测出增长的未来派息，而非简单重复。任何已确认的股息——您标记为“预期”的，或近期已宣布的——会单独汇总为“已确认管道”，绝不与规律预测混淆。" },
+    { q: "股息预测有多准确？", a: "这是方向性估算，并非预测。对于拥有长期、规律派息记录（无论是您自己记录的还是来自公开市场数据）的持仓最准确；对于任何来源派息记录都不足 2 笔的全新持仓，或不符合每月/每季/每半年/每年周期的不规则/特别股息股票最不准确。" },
+    { q: "股息预测有哪些局限？", a: "它不建模：未来的买卖、特别/一次性股息、预扣税变动，或未来派息的汇率波动（全程使用当前汇率）。增长侦测需要每个持仓至少 6 笔历史派息记录——不足时预测为持平（不套用增长）。请仅作为规划参考，切勿视为有保证的收入。" },
     { q: "股息税是如何处理的？", a: "净股息 = 总股息 − 预扣税。预扣税按每笔股息记录，并在股息页面按国家/地区（使用查询得到的真实国家）汇总。" },
     { q: "各交易类型是什么意思？", a: "存款/取款用于现金进出。买入/卖出用于交易股票（并记录佣金和税费）。股息记录收入（已收到或预期）。货币兑换在货币间转换。费用、预扣税、利息和券商间转账涵盖其余情况。" },
     { q: "为什么券商会显示现金差异？", a: "您的计算现金余额（存款 − 买入 − 费用 + 卖出 + 净股息 − 取款）与您输入的实际余额不一致，通常是漏记了费用、股息或转账。余额为负表示支出超过了已记录的现金。" },
@@ -3992,11 +4054,20 @@ function pageHolding() {
       ${panel("Dividend Income Over Time", divSeries.length >= 2 ? `<div class="chart">${lineChartSVG(divSeries)}</div>` : emptyState(t("Not enough dividend history yet.")))}
     </section>
 
-    ${panel("Dividend Summary", `<div class="mini-cards">
-      ${miniCard(t("Total Dividends Received"), money(totalDivReceived), "pos")}
-      ${miniCard(t("Next Year (est.)"), money(tFc.nextYear))}
-      ${miniCard(t("Dividend Yield (TTM)"), h.marketValue ? fmt(tFc.ttm / h.marketValue * 100, { maximumFractionDigits: 2 }) + "%" : "—")}</div>
-      <p class="muted" style="font-size:12px;margin:8px 0 0">${t("Forecast is a run-rate estimate from this holding's trailing-12-month dividends.")}</p>`)}
+    ${(() => {
+      const tInfo = (tFc.tickerInfo || {})[h.ticker];
+      const patternNote = tInfo
+        ? `${t("Pattern detected")}: ${tInfo.freq}${tInfo.growthPct ? `, ${tInfo.growthPct > 0 ? "+" : ""}${fmt(tInfo.growthPct, { maximumFractionDigits: 1 })}%/${t("payment")}` : ""} (${tInfo.source === "market history" ? t("from market dividend history") : t("from your logged dividends")}).`
+        : t("Record at least 2 dividends for this holding to enable pattern-based estimates.");
+      const multiYear = (tFc.year2 > 0 || tFc.year3 > 0)
+        ? `<div class="mini-cards" style="margin-top:8px">${miniCard(t("Year 2"), money(tFc.year2))}${miniCard(t("Year 3"), money(tFc.year3))}</div>` : "";
+      return panel("Dividend Summary", `<div class="mini-cards">
+        ${miniCard(t("Total Dividends Received"), money(totalDivReceived), "pos")}
+        ${miniCard(t("Next Year (est.)"), money(tFc.nextYear))}
+        ${miniCard(t("Dividend Yield (TTM)"), h.marketValue ? fmt(tFc.ttm / h.marketValue * 100, { maximumFractionDigits: 2 }) + "%" : "—")}</div>
+        ${multiYear}
+        <p class="muted" style="font-size:12px;margin:8px 0 0">${patternNote}</p>`);
+    })()}
 
     ${tExpected.length ? panel("Upcoming Dividends", table([{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1}], upcomingRows)) : ""}
 
