@@ -505,6 +505,7 @@ a { color: inherit; text-decoration: none; }
   display: flex; align-items: center; gap: 10px;
   color: var(--text); font-size: 13px; padding: 10px 16px;
 }
+.alert-banner[hidden] { display: none; }
 .alert-banner .w-ico { font-size: 15px; flex: none; }
 .alert-banner span:not(.w-ico) { flex: 1; }
 .alert-banner .icon-btn { flex: none; width: 26px; height: 26px; }
