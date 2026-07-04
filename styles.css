@@ -282,7 +282,6 @@ a { color: inherit; text-decoration: none; }
 .card .c-label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; font-weight: 600; }
 .card .c-value { font-size: 23px; font-weight: 720; margin-top: 8px; letter-spacing: -.02em; }
 .card .c-sub { font-size: 12px; margin-top: 5px; color: var(--text-soft); }
-.card .calc-hint { margin-left: auto; font-size: 11px; color: var(--muted); opacity: .7; }
 .card.feature { background: linear-gradient(150deg, color-mix(in srgb, var(--brand) 12%, var(--surface)), var(--surface)); }
 
 /* ===================== Panels ===================== */
@@ -601,7 +600,8 @@ a { color: inherit; text-decoration: none; }
  * state at all, so a tap toggles the same tooltip via the .tip-open class
  * (wired in mountColInfoTaps()) — otherwise this content is unreachable on
  * a phone. */
-.col-info { font-size: 10px; color: var(--muted); cursor: help; vertical-align: middle; position: relative; }
+.col-info { display: inline-flex; color: var(--muted); cursor: help; vertical-align: middle; position: relative; }
+.col-info svg { display: block; }
 .col-info:hover::after, .col-info.tip-open::after {
   content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); right: 50%;
   transform: translateX(50%); background: var(--surface); border: 1px solid var(--border);
@@ -730,7 +730,10 @@ input[type="date"] { cursor: pointer; }
 .mc-label .calc-hint { flex: none; }
 .mc-value { font-size: 21px; font-weight: 720; margin-top: 6px; letter-spacing: -.02em; }
 .mc-sub { font-size: 11.5px; margin-top: 4px; line-height: 1.35; }
-.ph-card { cursor: pointer; transition: border-color .15s; }
+/* Flatter than a regular .mini-card — these sit inside the Portfolio Health
+ * panel, which already has its own border/shadow; giving each one the same
+ * weight again reads as boxes-within-a-box instead of sections of one panel. */
+.ph-card { cursor: pointer; background: var(--surface-2); border-color: transparent; box-shadow: none; transition: border-color .15s; }
 .ph-card:hover { border-color: var(--brand); }
 
 .div-fc-empty { display: flex; align-items: flex-start; gap: 12px; padding: 4px 0 2px; }
@@ -915,14 +918,21 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .seg.seg-sm { border-radius: 999px; }
 .seg-sm .seg-btn { padding: 3px 11px; font-size: 11px; font-weight: 650; }
 
-/* Unified top-right card affordance pill ("how", badges, toggle all match) */
+/* Round icon-only "how was this calculated" affordance — fixed size so it
+ * never drifts, unlike a text-based ⓘ glyph across different fonts/OSes. */
 .calc-hint {
-  font-size: 11px; font-weight: 650; color: var(--text-soft);
-  border: 1px solid var(--border); border-radius: 999px; padding: 3px 9px;
-  background: transparent; opacity: 1; white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 24px; height: 24px; color: var(--text-soft);
+  border: 1px solid var(--border); border-radius: 999px;
+  background: transparent; cursor: pointer;
 }
+.calc-hint svg { display: block; }
 
 .dash-footnote { font-size: 11.5px; margin: 2px 0 0; text-align: right; }
+/* One shared look for every small "as of / last saved" status line, wherever
+ * it appears — icon + muted text, same size, same gap, every time. */
+.meta-note { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.meta-note svg { flex: none; }
 
 /* Prices-as-of row (market-data freshness) — sits under the hero metrics, separate from "Last saved" */
 .dash-asof { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: -6px; font-size: 12.5px; }

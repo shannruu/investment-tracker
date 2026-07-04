@@ -39,6 +39,21 @@ function marketInfo(ticker) {
 // Prefer a stored country (from the stock lookup); fall back to the suffix map.
 const countryForTicker = (ticker, stored) => stored || marketInfo(ticker).country;
 
+/* Info icon for "how was this calculated" affordances — an SVG, not the ⓘ
+ * Unicode glyph, so its size is pixel-exact everywhere instead of drifting
+ * with whatever font a browser/OS substitutes for that character. */
+const HOW_ICON_SVG = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+/* Same info icon, smaller, for the inline .col-info tooltip triggers (column
+ * header hints, calc-row hints) — a different visual weight than the .calc-hint
+ * button, but the same SVG-not-glyph fix for consistent sizing. */
+const COL_INFO_ICON_SVG = `<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+/* Shared small-status-line pattern ("Prices as of…", "Last saved…") — one
+ * template (icon + muted text via .meta-note) instead of each spot inventing
+ * its own inline style and placement. */
+const CLOCK_ICON_SVG = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+const SAVED_ICON_SVG = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="8 12.5 10.5 15 16 9"/></svg>`;
+const metaNote = (svg, text) => `<span class="meta-note">${svg}<span>${text}</span></span>`;
+
 const fmt = (n, opts = {}) => {
   const o = { minimumFractionDigits: 2, maximumFractionDigits: 2, ...opts };
   // Guard: Intl throws if min > max (e.g. share counts pass maximumFractionDigits: 0).
@@ -81,7 +96,7 @@ const ZH = {
   "Total Return": "总回报", "Unrealized / Realized P/L": "未实现 / 已实现盈亏",
   "Cash put into brokers": "投入券商的现金", "Cash taken out": "取出的现金",
   "Deposits − Withdrawals": "存款 − 取款", "Market value of holdings": "持仓市值",
-  "After withholding tax": "扣除预扣税后", "ⓘ how": "ⓘ 明细",
+  "After withholding tax": "扣除预扣税后", "How this was calculated": "查看计算方式",
   // Panel titles
   "Portfolio Value Over Time": "组合价值走势", "Asset Allocation": "资产配置",
   "Top Holdings": "主要持仓", "Upcoming Dividends": "即将到来的股息",
@@ -1426,16 +1441,24 @@ function donutHTML(slices, centerLabel, centerValue, colors) {
   if (!slices.length) return emptyState(t("No holdings yet. Add a buy transaction to create your first holding."));
   const total = slices.reduce((s, x) => s + x.value, 0) || 1;
   const R = 70, r = 44, C = 88;
-  let a0 = -Math.PI / 2;
   const clr = (i) => (colors && colors[i]) || PALETTE[i % PALETTE.length];
-  const arcs = slices.map((s, i) => {
-    const a1 = a0 + (s.value / total) * Math.PI * 2;
-    const large = a1 - a0 > Math.PI ? 1 : 0;
-    const p = (ang, rad) => [C + rad * Math.cos(ang), C + rad * Math.sin(ang)];
-    const [x0, y0] = p(a0, R), [x1, y1] = p(a1, R), [x2, y2] = p(a1, r), [x3, y3] = p(a0, r);
-    a0 = a1;
-    return `<path d="M${x0},${y0} A${R},${R} 0 ${large} 1 ${x1},${y1} L${x2},${y2} A${r},${r} 0 ${large} 0 ${x3},${y3} Z" fill="${clr(i)}"/>`;
-  }).join("");
+  // A single 100% slice can't be drawn with one SVG arc — its start and end
+  // points land on the exact same coordinate, which SVG renders as nothing at
+  // all (a zero-length path). Draw a plain ring instead in that one case.
+  let arcs;
+  if (slices.length === 1) {
+    arcs = `<circle cx="${C}" cy="${C}" r="${(R + r) / 2}" fill="none" stroke="${clr(0)}" stroke-width="${R - r}"/>`;
+  } else {
+    let a0 = -Math.PI / 2;
+    arcs = slices.map((s, i) => {
+      const a1 = a0 + (s.value / total) * Math.PI * 2;
+      const large = a1 - a0 > Math.PI ? 1 : 0;
+      const p = (ang, rad) => [C + rad * Math.cos(ang), C + rad * Math.sin(ang)];
+      const [x0, y0] = p(a0, R), [x1, y1] = p(a1, R), [x2, y2] = p(a1, r), [x3, y3] = p(a0, r);
+      a0 = a1;
+      return `<path d="M${x0},${y0} A${R},${R} 0 ${large} 1 ${x1},${y1} L${x2},${y2} A${r},${r} 0 ${large} 0 ${x3},${y3} Z" fill="${clr(i)}"/>`;
+    }).join("");
+  }
   const legend = slices.map((s, i) => `<div class="legend-row">
     <span class="legend-dot" style="background:${clr(i)}"></span>
     <span>${esc(s.label)}</span><span class="lr-pct">${fmt((s.value / total) * 100, { maximumFractionDigits: 1 })}%</span></div>`).join("");
@@ -1487,7 +1510,7 @@ function ttmDividends() {
 /* Portfolio Health panel — objective analytics only. */
 function insightsHTML() {
   const hp = portfolioHealth();
-  const howHint = `<span class="calc-hint">ⓘ ${t("how")}</span>`;
+  const howHint = `<span class="calc-hint" title="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${HOW_ICON_SVG}</span>`;
   const card = (id, label, val, sub) => `<div class="mini-card ph-card" id="${id}"><div class="mc-label">${label}${howHint}</div><div class="mc-value">${val}</div>${sub ? `<div class="mc-sub muted">${sub}</div>` : ""}</div>`;
   return panel("Portfolio Health", `<div class="mini-cards">
     ${card("phDivYield", t("Dividend Yield (TTM)"), hp.yieldEst != null ? fmt(hp.yieldEst, { maximumFractionDigits: 2 }) + "%" : "—")}
@@ -1574,7 +1597,7 @@ function buildDashChartContent() {
 
   const mvLabel = dashChartMode === "div" ? `${t("Total Return")} (${FX.base})` : t("Market Value");
   const clockNote = !filtered.length
-    ? `<div class="pv-clock-note muted"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${t("Prices as of today will appear here tomorrow — check back after your next visit.")}</div>`
+    ? `<div class="pv-clock-note">${metaNote(CLOCK_ICON_SVG, t("Prices as of today will appear here tomorrow — check back after your next visit."))}</div>`
     : "";
 
   return `<div class="chart" data-chart-mode="${dashChartMode}">${lineChartSVG(series, { noFill: true })}</div>
@@ -1691,7 +1714,7 @@ function pageDashboard() {
   };
 
   const statHead = (label, right) => `<div class="stat-head"><span class="stat-label">${label}</span>${right || ""}</div>`;
-  const howHint = `<span class="calc-hint">ⓘ ${t("how")}</span>`;
+  const howHint = `<span class="calc-hint" title="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${HOW_ICON_SVG}</span>`;
   const metrics = `<section class="metrics">
     <article class="stat net" data-card="nw" tabindex="0" role="button" aria-label="${t("Net Worth")}, show calculation">
       ${statHead(t("Net Worth"), howHint)}
@@ -1735,9 +1758,9 @@ function pageDashboard() {
       ${panel("Investment Return Over Time", (() => {
         const hasTxn = ALL_TRANSACTIONS.some((x) => x.type === "Buy" || x.type === "Deposit") || HOLDINGS.length > 0;
         if (!hasTxn) return emptyState(t("Record your first deposit or Buy to start tracking."));
-        const chartToggle = `<div class="seg seg-sm" id="dashChartSeg" style="margin-bottom:8px"><button class="seg-btn ${dashChartMode === "mv" ? "on" : ""}" data-chart="mv">${t("Market Value")}</button><button class="seg-btn ${dashChartMode === "div" ? "on" : ""}" data-chart="div">${t("Incl. Dividends")}</button></div>`;
+        const chartToggle = `<div class="seg seg-sm" id="dashChartSeg" style="margin-bottom:8px;align-self:flex-start"><button class="seg-btn ${dashChartMode === "mv" ? "on" : ""}" data-chart="mv">${t("Market Value")}</button><button class="seg-btn ${dashChartMode === "div" ? "on" : ""}" data-chart="div">${t("Incl. Dividends")}</button></div>`;
         return `${chartToggle}<div id="dashChartBody">${buildDashChartContent()}</div>`;
-      })(), `<span class="col-info tip-down" style="margin-left:auto" data-tip="${t("Shows your portfolio market value versus what you paid — the gap between the two lines is your unrealized gain or loss.")}">ⓘ</span>`)}
+      })(), `<span class="col-info tip-down" style="margin-left:auto" data-tip="${t("Shows your portfolio market value versus what you paid — the gap between the two lines is your unrealized gain or loss.")}">${COL_INFO_ICON_SVG}</span>`)}
       ${(() => {
         const allocToggle = `<div class="seg seg-sm" id="dashAllocSeg"><button class="seg-btn ${dashAllocMode === "currency" ? "on" : ""}" data-alloc="currency">${t("By currency")}</button><button class="seg-btn ${dashAllocMode === "stock" ? "on" : ""}" data-alloc="stock">${t("By stock")}</button></div>`;
         const totalStr = money(T.portfolioValue).replace(".00","");
@@ -1753,12 +1776,12 @@ function pageDashboard() {
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
       table([{label:"Holding",style:"width:200px;max-width:200px"},{label:"Shares",num:1,style:"width:64px"},{label:"Market Value",num:1,style:"width:144px"},{label:"Unrealized P/L",num:1,style:"width:144px"},{label:"Total Return",num:1,style:"width:144px"}], holdingsRows),
-      t("No holdings yet — add a Buy to get started."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? `<span class="muted" style="font-size:11px">${t("Prices as of")} ${pricesAsOfFmt}</span>` : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
+      t("No holdings yet — add a Buy to get started."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${pricesAsOfFmt}`) : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
       table([{label:"Date"},{label:"Type"},{label:"Ticker"},{label:"Broker"},{label:"Amount",num:1}], recentRows),
       t("No activity yet."), `<a class="link" href="#/records">${t("All")} →</a>`)}
-    <p class="dash-footnote muted">${LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet")}</p>`;
+    <p class="dash-footnote">${metaNote(SAVED_ICON_SVG, LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet"))}</p>`;
 
   return { title: "Dashboard", subtitle: "Welcome back — here is your portfolio at a glance.", html,
     mount() {
@@ -1868,7 +1891,7 @@ function warningsHTML() {
   // Stale FX
   if (FX.updated && daysSince(FX.updated) > 30) items.push({ level: "warn", html: `${t("Exchange rates were last updated")} ${daysSince(FX.updated)} ${t("days ago — refresh them in Settings.")}` });
   return items.map((it) => `<div class="warn-card ${it.level === "crit" ? "crit" : ""}">
-    <span class="w-ico">${it.level === "crit" ? "⚠️" : "ⓘ"}</span><div class="w-body">${it.html}</div></div>`).join("");
+    <span class="w-ico">${it.level === "crit" ? "⚠️" : HOW_ICON_SVG}</span><div class="w-body">${it.html}</div></div>`).join("");
 }
 
 /* =============================================================================
@@ -2250,7 +2273,7 @@ function pagePortfolio() {
        </div>`;
 
   const latestFetch = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();
-  const priceStampHtml = `<span class="muted" id="pfPriceStamp" style="font-size:11px;white-space:nowrap">${latestFetch ? `${t("Prices as of")} ${fmtDateTime(latestFetch)}` : ""}</span>`;
+  const priceStampHtml = `<span id="pfPriceStamp">${latestFetch ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${fmtDateTime(latestFetch)}`) : ""}</span>`;
   const refreshBtn = `<button class="icon-btn pf-refresh" id="pfRefreshBtn" title="${t("Refresh live prices")}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>`;
   const html = has
     ? `${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
@@ -2440,7 +2463,7 @@ function portfolioTable() {
     priceMyr: t("Live price converted to base currency at today's exchange rate"),
   };
   const thCols = orderedColIds.map((id) => {
-    const tip = colTooltips[id] ? ` <span class="col-info" data-tip="${colTooltips[id]}">ⓘ</span>` : "";
+    const tip = colTooltips[id] ? ` <span class="col-info" data-tip="${colTooltips[id]}">${COL_INFO_ICON_SVG}</span>` : "";
     return `<th class="num" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
   }).join("");
   const thead = `<thead><tr><th>${t("Holding")}</th>${thCols}</tr></thead>`;
@@ -4128,7 +4151,7 @@ function pageHolding() {
  * ========================================================================== */
 function showCalc(calc) {
   $("#modalTitle").textContent = t(calc.title);
-  const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span> ${t(r.label)}${r.hint ? ` <span class="col-info" data-tip="${r.hint}">ⓘ</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`).join("");
+  const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span> ${t(r.label)}${r.hint ? ` <span class="col-info" data-tip="${r.hint}">${COL_INFO_ICON_SVG}</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`).join("");
   $("#modalBody").innerHTML = `${rows}
     <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${calc.totalFmt != null ? calc.totalFmt : money(calc.total)}</span></div>
     <p class="muted" style="margin:14px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
