@@ -432,7 +432,7 @@ const ZH = {
   "records": "条记录", "Account": "账户", "Ticker / Detail": "代码 / 明细", "Amount (MYR)": "金额（MYR）",
   "No records in this view yet.": "此视图暂无记录。",
   "No transactions yet. Tap ＋ Add to record your first deposit or investment.": "暂无交易。点击 ＋ 添加，记录您的第一笔存款或投资。",
-  "fee": "费用", "Available Cash": "可用现金",
+  "fee": "费用", "Available Cash": "可用现金", "Can invest or withdraw": "可用于投资或提取",
   "What do you want to record?": "您想记录什么？", "Other record types": "其他记录类型",
   "Pick a type, then fill only what's needed.": "先选择类型，然后只填写所需字段。",
   "Pick what to record": "选择要记录的内容", "Change type": "更改类型", "Withdraw": "取款",
@@ -681,6 +681,11 @@ function computeTotals() {
 
   let totalDeposits = 0, totalWithdrawals = 0, netDividends = 0, totalFees = 0, realizedPL = 0, totalInterest = 0;
   const oversells = [];
+  // Same figures, broken out per broker — every transaction has exactly one
+  // brokerId, so each map's values sum back to the portfolio-wide total above
+  // (kept auditable: the Broker page shows these, and they must actually add up).
+  const depositsByBroker = {}, withdrawalsByBroker = {}, dividendsByBroker = {}, realizedByBroker = {}, feesByBroker = {}, interestByBroker = {};
+  const addTo = (map, id, amt) => { map[id] = (map[id] || 0) + amt; };
 
   // Process chronologically so average cost is correct.
   const txns = [...ALL_TRANSACTIONS].sort(txDateSort);
@@ -691,11 +696,11 @@ function computeTotals() {
     const grossMYR = gross * fx, feeMYR = fee * fx, taxMYR = taxv * fx;
     const q = +tx.qty || 0, price = +tx.price || 0;
     switch (tx.type) {
-      case "Deposit": totalDeposits += grossMYR; addCash(tx.brokerId, ccy, gross); break;
-      case "Withdrawal": totalWithdrawals += grossMYR; addCash(tx.brokerId, ccy, -gross); break;
-      case "Interest / cash yield": case "Interest": totalInterest += grossMYR; addCash(tx.brokerId, ccy, gross); break;
-      case "Fee": totalFees += grossMYR; addCash(tx.brokerId, ccy, -gross); break;
-      case "Tax withholding": totalFees += grossMYR; addCash(tx.brokerId, ccy, -gross); break;
+      case "Deposit": totalDeposits += grossMYR; addTo(depositsByBroker, tx.brokerId, grossMYR); addCash(tx.brokerId, ccy, gross); break;
+      case "Withdrawal": totalWithdrawals += grossMYR; addTo(withdrawalsByBroker, tx.brokerId, grossMYR); addCash(tx.brokerId, ccy, -gross); break;
+      case "Interest / cash yield": case "Interest": totalInterest += grossMYR; addTo(interestByBroker, tx.brokerId, grossMYR); addCash(tx.brokerId, ccy, gross); break;
+      case "Fee": totalFees += grossMYR; addTo(feesByBroker, tx.brokerId, grossMYR); addCash(tx.brokerId, ccy, -gross); break;
+      case "Tax withholding": totalFees += grossMYR; addTo(feesByBroker, tx.brokerId, grossMYR); addCash(tx.brokerId, ccy, -gross); break;
       case "Buy": {
         // Commission + taxes are CAPITALISED into cost basis (not double-counted as fees).
         const l = ensureLot(tx.brokerId, tx.ticker, tx);
@@ -711,6 +716,7 @@ function computeTotals() {
         const proceedsMYR = q * price * fx;
         const realizedThis = proceedsMYR - avgMYR * q - feeMYR - taxMYR;   // nets commission + taxes
         realizedPL += realizedThis; l.realizedMYR += realizedThis;
+        addTo(realizedByBroker, tx.brokerId, realizedThis);
         l.shares -= q; l.costMYR -= avgMYR * q; l.costLocal -= avgLocal * q;
         if (l.shares < 1e-9) { l.shares = 0; l.costMYR = Math.max(0, l.costMYR); l.costLocal = Math.max(0, l.costLocal); }
         addCash(tx.brokerId, ccy, gross - fee - taxv); break;
@@ -719,6 +725,7 @@ function computeTotals() {
         if (tx.status !== "Expected") {
           const net = gross - taxv;
           netDividends += net * fx;
+          addTo(dividendsByBroker, tx.brokerId, net * fx);
           if (tx.paidTo !== "bank") addCash(tx.brokerId, ccy, net);
           ensureLot(tx.brokerId, tx.ticker, tx).netDivMYR += net * fx;
         }
@@ -739,6 +746,7 @@ function computeTotals() {
         // here — pricing the fee at today's live FX.rates would make an old, already-
         // settled transaction's cost silently drift every time rates are updated.
         totalFees += fee * fx;
+        addTo(feesByBroker, tx.brokerId, fee * fx);
         break;
       }
       default: break;
@@ -798,9 +806,20 @@ function computeTotals() {
   const totalCash = Object.values(brokerCash).reduce((s, c) => s + c, 0);
   const xirrValue = xirrPercent(txns, portfolioValue + totalCash);
 
+  // Unrealized P/L per broker — holdings are already keyed by brokerId|ticker,
+  // so this partitions exactly (sums back to unrealizedPL above).
+  const unrealizedByBroker = {};
+  holdings.forEach((h) => addTo(unrealizedByBroker, h.brokerId, h.unrealized));
+  const totalReturnByBroker = {};
+  BROKERS.forEach((b) => {
+    totalReturnByBroker[b.id] = (unrealizedByBroker[b.id] || 0) + (realizedByBroker[b.id] || 0)
+      + (dividendsByBroker[b.id] || 0) + (interestByBroker[b.id] || 0) - (feesByBroker[b.id] || 0);
+  });
+
   return { totalDeposits, totalWithdrawals, netCapitalInvested, portfolioValue,
     netDividends, totalInterest, unrealizedPL, realizedPL, totalFees, priceUnrealizedPL, fxUnrealizedPL, priceReturn, totalReturn, totalReturnPct,
-    holdings, brokerCash, brokerCashByCcy, oversells, missingPrices, negativeCash, xirr: xirrValue, totalCash };
+    holdings, brokerCash, brokerCashByCcy, oversells, missingPrices, negativeCash, xirr: xirrValue, totalCash,
+    depositsByBroker, withdrawalsByBroker, dividendsByBroker, realizedByBroker, unrealizedByBroker, totalReturnByBroker };
 }
 /* =============================================================================
  * PERSISTENCE — saves everything to the browser (localStorage) so your data
@@ -3489,6 +3508,16 @@ function brokerCard(b) {
   const negWarnings = negBalances.map((n) =>
     `<div class="warn-card crit bc-neg"><span class="w-ico">⚠</span><div class="w-body"><strong>${esc(n.currency)} ${t("balance is negative")} (${esc(n.currency)}&nbsp;${fmt(Math.abs(n.amount))})</strong> — ${t("a buy, fee, or withdrawal has no matching")} ${esc(n.currency)} ${t("deposit. Record one to balance this.")}</div></div>`
   ).join("");
+
+  // How this broker has performed, not just where it stands right now:
+  // money in/out, current value, gain/loss, income — the full story per broker.
+  const deposits = T.depositsByBroker[b.id] || 0;
+  const withdrawals = T.withdrawalsByBroker[b.id] || 0;
+  const unrealized = T.unrealizedByBroker[b.id] || 0;
+  const totalReturn = T.totalReturnByBroker[b.id] || 0;
+  const dividends = T.dividendsByBroker[b.id] || 0;
+  const stat = (label, val, cls2 = "", sub = "") => `<div><span class="sub">${label}</span><strong class="${cls2}">${val}</strong>${sub ? `<span class="bc-stat-sub muted">${sub}</span>` : ""}</div>`;
+
   return `<article class="broker-card ${b.archived ? "archived" : ""}">
       <div class="bc-head"><span class="brand-mark sm">${esc(b.name.slice(0,2).toUpperCase())}</span>
         <div><div class="bc-name">${esc(b.name)} ${b.archived ? `<span class="badge subtle">${t("Archived")}</span>` : ""}</div>
@@ -3499,10 +3528,15 @@ function brokerCard(b) {
           <button class="icon-btn bc-del" data-del-broker="${b.id}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button>
         </div></div>
       <div class="bc-stats">
-        <div><span class="sub">${t("Holdings")}</span><strong>${holdings.length}</strong></div>
-        <div><span class="sub">${t("Market Value")}</span><strong>${money(value)}</strong></div>
-        <div><span class="sub">${t("Cash (calc)")}</span><strong>${money(calc)}</strong></div>
-        <div><span class="sub">${t("Difference")}</span><strong class="${off ? "neg" : ""}">${hasActual ? signed(diff) : "—"}</strong></div>
+        ${stat(t("Holdings"), holdings.length)}
+        ${stat(t("Market Value"), money(value))}
+        ${stat(t("Available Cash"), money(calc), "", t("Can invest or withdraw"))}
+        ${stat(t("Unrealized P/L"), signed(unrealized), cls(unrealized))}
+        ${stat(t("Total Return"), signed(totalReturn), cls(totalReturn))}
+        ${stat(t("Net Dividends"), money(dividends), dividends > 0 ? "pos" : "")}
+        ${stat(t("Total Deposits"), money(deposits))}
+        ${stat(t("Total Withdrawals"), money(withdrawals))}
+        ${stat(t("Difference"), hasActual ? signed(diff) : "—", off ? "neg" : "")}
       </div>
       ${b.notes ? `<p class="bc-notes muted">${esc(b.notes)}</p>` : ""}
       ${negWarnings}</article>`;

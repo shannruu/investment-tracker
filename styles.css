@@ -804,7 +804,7 @@ input[type="date"] { cursor: pointer; }
 .btn.danger:hover { filter: brightness(.94); }
 
 /* ---- Brokers ---- */
-.broker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px,1fr)); gap: 16px; }
+.broker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px,1fr)); gap: 16px; }
 .broker-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
@@ -813,9 +813,13 @@ input[type="date"] { cursor: pointer; }
 .bc-head .badge { margin-left: auto; }
 .brand-mark.sm { width: 30px; height: 30px; font-size: 12px; border-radius: 8px; }
 .bc-name { font-weight: 700; }
-.bc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+.bc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 10px; }
 .bc-stats > div { display: flex; flex-direction: column; }
 .bc-stats strong { font-size: 15px; margin-top: 2px; }
+.bc-stat-sub { font-size: 10.5px; margin-top: 1px; }
+@media (max-width: 480px) {
+  .bc-stats { grid-template-columns: 1fr 1fr; }
+}
 
 /* ---- Settings ---- */
 .setting-rows { display: flex; flex-direction: column; }
