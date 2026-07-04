@@ -1507,16 +1507,21 @@ function ttmDividends() {
   }, 0);
 }
 
-/* Portfolio Health panel — objective analytics only. */
+/* Portfolio Health — objective analytics only. No panel() wrapper: these mini-
+ * cards used to sit inside a bordered/shadowed panel that gave them the exact
+ * same visual weight as the panel itself (a box full of identical boxes). A
+ * plain section heading — the same pattern Reports uses for "Allocation" —
+ * lets them read as one flat group instead of cards nested in a card. Each
+ * card is its own click target for its breakdown (see mount()), so no
+ * separate "how" icon is needed here either. */
 function insightsHTML() {
   const hp = portfolioHealth();
-  const howHint = `<span class="calc-hint" title="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${HOW_ICON_SVG}</span>`;
-  const card = (id, label, val, sub) => `<div class="mini-card ph-card" id="${id}"><div class="mc-label">${label}${howHint}</div><div class="mc-value">${val}</div>${sub ? `<div class="mc-sub muted">${sub}</div>` : ""}</div>`;
-  return panel("Portfolio Health", `<div class="mini-cards">
+  const card = (id, label, val, sub) => `<div class="mini-card ph-card" id="${id}"><div class="mc-label">${label}</div><div class="mc-value">${val}</div>${sub ? `<div class="mc-sub muted">${sub}</div>` : ""}</div>`;
+  return `<h3 class="report-h">${t("Portfolio Health")}</h3><div class="mini-cards">
     ${card("phDivYield", t("Dividend Yield (TTM)"), hp.yieldEst != null ? fmt(hp.yieldEst, { maximumFractionDigits: 2 }) + "%" : "—")}
     ${card("phCashAlloc", t("Cash Allocation"), hp.cashAlloc != null ? fmt(hp.cashAlloc, { maximumFractionDigits: 1 }) + "%" : "—", t("of total net value"))}
     ${card("phDivScore", t("Diversification Score"), T.holdings.length >= 2 ? `${hp.divScore}/100` : "—", T.holdings.length >= 2 ? `${fmt(hp.effectiveN, { maximumFractionDigits: 1 })} ${t("effective holdings")}` : t("Add more holdings to score"))}
-  </div>`);
+  </div>`;
 }
 
 /* Objective portfolio-health metrics (no advice). */
@@ -1714,15 +1719,17 @@ function pageDashboard() {
   };
 
   const statHead = (label, right) => `<div class="stat-head"><span class="stat-label">${label}</span>${right || ""}</div>`;
-  const howHint = `<span class="calc-hint" title="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${HOW_ICON_SVG}</span>`;
+  // No separate "how" icon: the whole card is already the click target for its
+  // calculation breakdown (see mount()'s [data-card] handler) — a second icon
+  // that does the exact same thing was pure visual clutter, not a distinct control.
   const metrics = `<section class="metrics">
     <article class="stat net" data-card="nw" tabindex="0" role="button" aria-label="${t("Net Worth")}, show calculation">
-      ${statHead(t("Net Worth"), howHint)}
+      ${statHead(t("Net Worth"))}
       <div class="stat-value">${money(netWorth)}</div>
       <div class="stat-sub muted">${t("Holdings")} ${money(T.portfolioValue)} · ${t("Cash")} ${money(T.totalCash || 0)}</div>
     </article>
     <article class="stat pl ${up ? "is-up" : dn ? "is-down" : ""}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total Return") : t("Unrealized P/L")}, show calculation">
-      ${statHead(returnIsTotal ? t("Total Return") : t("Unrealized P/L"), `<div class="seg-hint-group">${toggle}${howHint}</div>`)}
+      ${statHead(returnIsTotal ? t("Total Return") : t("Unrealized P/L"), toggle)}
       <div class="stat-value ${up ? "pos" : dn ? "neg" : ""}">${up ? "▲ " : dn ? "▼ " : ""}${signed(shownReturn)}</div>
       <div class="stat-sub" style="display:flex;align-items:baseline;gap:6px">
         <span class="${up ? "pos" : dn ? "neg" : "muted"}">${up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%"}</span>
@@ -1730,12 +1737,12 @@ function pageDashboard() {
       </div>
     </article>
     <article class="stat" data-card="cash" tabindex="0" role="button" aria-label="${t("Available Cash")}, show calculation">
-      ${statHead(`${t("Available Cash")}${cashLow ? ' <svg class="warn-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--warn);vertical-align:middle;margin-left:3px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' : ""}`, howHint)}
+      ${statHead(`${t("Available Cash")}${cashLow ? ' <svg class="warn-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--warn);vertical-align:middle;margin-left:3px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' : ""}`)}
       <div class="stat-value${cashLow ? " warn-val" : ""}">${money(T.totalCash || 0)}</div>
       <div class="stat-sub${cashLow ? " warn-val" : " muted"}">${t("Across all brokers")}</div>
     </article>
     <article class="stat wide" data-card="principal" tabindex="0" role="button" aria-label="${t("Principal Invested")}, show calculation">
-      ${statHead(t("Principal Invested"), howHint)}
+      ${statHead(t("Principal Invested"))}
       <div class="stat-value">${money(T.netCapitalInvested)}</div>
       <div class="stat-sub muted">${t("Deposits − Withdrawals")}</div>
     </article>
@@ -1755,12 +1762,20 @@ function pageDashboard() {
     ${metrics}
     <section class="warn-wrap">${warningsHTML()}</section>
     <section class="grid-2 dash-charts">
-      ${panel("Investment Return Over Time", (() => {
+      ${(() => {
         const hasTxn = ALL_TRANSACTIONS.some((x) => x.type === "Buy" || x.type === "Deposit") || HOLDINGS.length > 0;
-        if (!hasTxn) return emptyState(t("Record your first deposit or Buy to start tracking."));
-        const chartToggle = `<div class="seg seg-sm" id="dashChartSeg" style="margin-bottom:8px;align-self:flex-start"><button class="seg-btn ${dashChartMode === "mv" ? "on" : ""}" data-chart="mv">${t("Market Value")}</button><button class="seg-btn ${dashChartMode === "div" ? "on" : ""}" data-chart="div">${t("Incl. Dividends")}</button></div>`;
-        return `${chartToggle}<div id="dashChartBody">${buildDashChartContent()}</div>`;
-      })(), `<span class="col-info tip-down" style="margin-left:auto" data-tip="${t("Shows your portfolio market value versus what you paid — the gap between the two lines is your unrealized gain or loss.")}">${COL_INFO_ICON_SVG}</span>`)}
+        const chartToggle = `<div class="seg seg-sm" id="dashChartSeg" style="margin-left:0"><button class="seg-btn ${dashChartMode === "mv" ? "on" : ""}" data-chart="mv">${t("Market Value")}</button><button class="seg-btn ${dashChartMode === "div" ? "on" : ""}" data-chart="div">${t("Incl. Dividends")}</button></div>`;
+        // Toggle + explainer icon grouped together and right-aligned in the panel
+        // head, same position as the Asset Allocation toggle right next to it —
+        // not left-aligned inside the body like a second, competing header.
+        const chartHeadExtra = hasTxn
+          ? `<div style="display:flex;align-items:center;gap:8px;margin-left:auto">${chartToggle}<span class="col-info tip-down" data-tip="${t("Shows your portfolio market value versus what you paid — the gap between the two lines is your unrealized gain or loss.")}">${COL_INFO_ICON_SVG}</span></div>`
+          : "";
+        const chartBody = hasTxn
+          ? `<div id="dashChartBody">${buildDashChartContent()}</div>`
+          : emptyState(t("Record your first deposit or Buy to start tracking."));
+        return panel("Investment Return Over Time", chartBody, chartHeadExtra);
+      })()}
       ${(() => {
         const allocToggle = `<div class="seg seg-sm" id="dashAllocSeg"><button class="seg-btn ${dashAllocMode === "currency" ? "on" : ""}" data-alloc="currency">${t("By currency")}</button><button class="seg-btn ${dashAllocMode === "stock" ? "on" : ""}" data-alloc="stock">${t("By stock")}</button></div>`;
         const totalStr = money(T.portfolioValue).replace(".00","");

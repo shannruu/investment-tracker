@@ -730,10 +730,10 @@ input[type="date"] { cursor: pointer; }
 .mc-label .calc-hint { flex: none; }
 .mc-value { font-size: 21px; font-weight: 720; margin-top: 6px; letter-spacing: -.02em; }
 .mc-sub { font-size: 11.5px; margin-top: 4px; line-height: 1.35; }
-/* Flatter than a regular .mini-card — these sit inside the Portfolio Health
- * panel, which already has its own border/shadow; giving each one the same
- * weight again reads as boxes-within-a-box instead of sections of one panel. */
-.ph-card { cursor: pointer; background: var(--surface-2); border-color: transparent; box-shadow: none; transition: border-color .15s; }
+/* Portfolio Health no longer sits inside its own panel (see insightsHTML), so
+ * these are just regular .mini-cards on the page background — same as every
+ * other un-wrapped mini-card grid (Dividends summary, Cash Flow summary, etc). */
+.ph-card { cursor: pointer; transition: border-color .15s; }
 .ph-card:hover { border-color: var(--brand); }
 
 .div-fc-empty { display: flex; align-items: flex-start; gap: 12px; padding: 4px 0 2px; }
@@ -908,8 +908,6 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .stat-value { font-size: 30px; font-weight: 780; letter-spacing: -.03em; margin-top: 8px; line-height: 1.05; }
 .stat.net .stat-value { font-size: 33px; }
 .stat-sub { font-size: 12px; margin-top: 6px; }
-.seg-hint-group { display: flex; align-items: center; gap: 6px; margin-left: auto; }
-.seg-hint-group .seg { margin-left: 0; }
 .td-holding { width: 220px; max-width: 220px; overflow: hidden; }
 .td-holding .ticker-link { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .td-holding .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
