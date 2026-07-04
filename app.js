@@ -214,7 +214,7 @@ const ZH = {
   "Not checked": "未核对", "Matched": "已匹配", "Small difference": "小幅差异", "Needs review": "需复核",
   "Update": "更新", "Actual cash balance for": "实际现金余额：", "Note (optional)": "备注（可选）",
   "Reconciliation saved": "对账已保存", "Enter a valid number.": "请输入有效数字。",
-  "Calculated = Deposits − Buys − Fees + Sells + Net Dividends − Withdrawals": "计算余额 = 存款 − 买入 − 费用 + 卖出 + 净股息 − 取款",
+  "Calculated from every recorded cash movement: deposits, withdrawals, buys, sells, dividends, fees, transfers and currency exchanges.": "计算值来自所有已记录的现金变动：存款、取款、买入、卖出、股息、费用、转账与货币兑换。",
   "Cash difference": "现金差异", "Calculated": "计算值", "vs actual": "对比实际", "difference": "差额",
   "Check for a missing fee, dividend or transfer.": "请检查是否漏记费用、股息或转账。",
   "A sell exceeds shares held for": "卖出超过持有股数：", "Use the oversell override if intentional.": "如有意为之，请使用超卖覆盖。",
@@ -302,7 +302,7 @@ const ZH = {
   "Next Month": "下月", "Next Quarter": "下季", "Next Year": "下年",
   "Year 2": "第 2 年", "Year 3": "第 3 年",
   "Based on payment patterns and upcoming dividends.": "基于股息历史规律及即将派息数据。",
-  "Record at least 2 dividends per holding, or add upcoming dividends, to enable pattern-based estimates.": "每个持仓至少录入 2 次股息，或添加即将派息，以启用规律预测。",
+  "Record at least 2 dividends for any holding to enable pattern-based estimates.": "请为任一持仓至少录入 2 次股息，以启用规律预测。",
   "Received TTM": "过去 12 个月已收",
   "monthly": "每月", "quarterly": "每季", "semi-annual": "每半年", "annual": "每年",
   "Pattern detected for": "已侦测到规律", "payment": "次派息",
@@ -312,7 +312,7 @@ const ZH = {
   "Upcoming confirmed dividends in window": "窗口内已确认的即将派息",
   "Add upcoming dividend for": "添加即将派息：", "Per share": "每股金额",
   "Upcoming dividends will appear here once connected.": "连接后，即将派息将显示于此。",
-  "Fetching US schedules…": "正在获取美股派息日程…",
+  "Checking dividend schedules…": "正在查询股息日程…",
   "next month": "下月", "next quarter": "下季", "next year": "下年",
   "How is the forecast calculated?": "预测是如何计算的？",
   "Net Dividends (Lifetime)": "净股息（累计）", "Net (MYR)": "净额 (MYR)", "Month": "月份", "Quarter": "季度",
@@ -1245,11 +1245,11 @@ function statusBadge(s) {
   const map = { Confirmed: "confirmed", Estimated: "warn", Paid: "pos", Cancelled: "neg", Unknown: "subtle", Received: "pos", Expected: "warn" };
   return `<span class="badge ${map[s] || "subtle"}">${s}</span>`;
 }
-function typeChip(t) {
+function typeChip(type) {
   const c = { Buy: "info", Sell: "neg", Dividend: "pos", Deposit: "subtle",
     Withdrawal: "warn", Fee: "subtle", "DRIP / Reinvested": "pos", "Currency Exchange": "subtle",
-    "Stock Split": "subtle", Adjustment: "subtle" }[t] || "subtle";
-  return `<span class="badge ${c}">${t}</span>`;
+    "Stock Split": "subtle", Adjustment: "subtle" }[type] || "subtle";
+  return `<span class="badge ${c}">${t(type)}</span>`;
 }
 
 function lineChartSVG(series, opts) {
@@ -1570,7 +1570,7 @@ function buildDashChartContent() {
     ? [...filtered, todayPoint].sort((a, b) => (a.date < b.date ? -1 : 1))
     : [todayPoint];
 
-  const mvLabel = dashChartMode === "div" ? t("Total Return (MYR)") : t("Market Value");
+  const mvLabel = dashChartMode === "div" ? `${t("Total Return")} (${FX.base})` : t("Market Value");
   const clockNote = !filtered.length
     ? `<div class="pv-clock-note muted"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${t("Prices as of today will appear here tomorrow — check back after your next visit.")}</div>`
     : "";
@@ -1614,8 +1614,11 @@ function pageDashboard() {
   const pricesAsOf = latestLiveFetch || (priceDates.length ? priceDates[priceDates.length - 1] : null);
   const pricesAsOfFmt = latestLiveFetch ? fmtDateTime(latestLiveFetch) : (priceDates.length ? fmtDate(priceDates[priceDates.length - 1]) : null);
 
-  const holdingsRows = [...T.holdings].sort((a, b) => b.marketValue - a.marketValue).slice(0, 8).map((h) => `
-    <tr><td><div style="max-width:200px;overflow:hidden"><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}" style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(h.ticker)}</a><div class="sub" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(h.company) || ""}</div></div></td>
+  const holdingsRows = aggregateHoldingsByTicker(T.holdings).sort((a, b) => b.marketValue - a.marketValue).slice(0, 8).map((h) => `
+    <tr><td class="td-holding">
+        <a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${esc(h.ticker)}</a>
+        ${h.company ? `<div class="sub">${esc(h.company)}</div>` : ""}
+      </td>
       <td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>
       <td class="num">${money(h.marketValue)}</td>
       <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
@@ -1651,7 +1654,7 @@ function pageDashboard() {
     nw: { title: "Net Worth", rows: [
       { op: "+", label: "Current Portfolio Value", val: fmt(T.portfolioValue) },
       { op: "+", label: "Available cash (all brokers)", val: fmt(T.totalCash || 0) }], total: netWorth },
-    pl: { title: returnIsTotal ? "Total Return" : "Price Return", rows: [
+    pl: { title: returnIsTotal ? "Total Return" : "Unrealized P/L", rows: [
       { op: "+", label: "Unrealized P/L", val: signed(T.unrealizedPL) },
       { op: "+", label: "Realized P/L", val: signed(T.realizedPL) },
       ...(returnIsTotal ? [{ op: "+", label: "Net Dividends", val: signed(T.netDividends) }] : []),
@@ -1680,7 +1683,7 @@ function pageDashboard() {
       if (!rows.length) rows = [{ op: "+", label: "No cash movements recorded yet", val: mfmt(0) }];
       return { title: "Available Cash", rows, total: T.totalCash || 0 };
     })(),
-    principal: { title: "Net Capital Invested", rows: [
+    principal: { title: "Principal Invested", rows: [
       { op: "+", label: "Total Deposits", val: fmt(T.totalDeposits) },
       { op: "−", label: "Total Withdrawals", val: fmt(T.totalWithdrawals) }], total: T.netCapitalInvested },
   };
@@ -2122,7 +2125,7 @@ const PORTFOLIO_PREFS_KEY = "il-portfolio-v2";
 const COL_DEFS = [
   { id: "broker",         label: "Broker" },
   { id: "shares",         label: "Shares" },
-  { id: "avgCost",        label: "Avg Cost (MYR)" },
+  { id: "avgCost",        label: "Avg Cost" },
   { id: "price",          label: "Price" },
   { id: "priceMyr",       label: "≈ Base currency" },
   { id: "unrealizedAmt",  label: "Unrealized P/L" },
@@ -2521,7 +2524,7 @@ function recordsTable(list) {
       <td>${typeChip(tx.type)}</td>
       <td class="ticker">${tx.ticker && tx.ticker !== "—" ? esc(tx.ticker) : "—"}${detail}${paidToTag}</td>
       <td class="num">${money(myr)}<div class="fx-note">${orig}</div></td>
-      <td class="sub">${esc(brokerName(tx.brokerId))}</td>
+      <td class="sub">${esc(brokerName(tx.brokerId))}${tx.type === "Transfer between brokers" && tx.toBrokerId ? `<div class="fx-note">→ ${esc(brokerName(tx.toBrokerId))}</div>` : ""}</td>
       <td class="num"><div class="rec-actions">
         <button class="icon-btn rec-edit" data-edit-tx="${tx.id}" title="${t("Edit")}" aria-label="${t("Edit")}"><svg class="icon"><use href="#i-edit"/></svg></button>
         <button class="icon-btn rec-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></div></td></tr>`;
@@ -2609,10 +2612,7 @@ function addForm2(type, editing) {
       ${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency", combo: true })}
     </div>`;
 
-  const head = type === "Dividend"
-    ? `<input type="hidden" name="broker" id="afBroker" value="${defBroker}">
-       <label>${t("Date")}<input type="date" name="date" value="${dateVal}" required></label>`
-    : `<label>${type === "Transfer between brokers" ? t("From broker") : t("Broker")}${styledSelect("broker", brokerList, defBroker, { id: "afBroker" })}</label>
+  const head = `<label>${type === "Transfer between brokers" ? t("From broker") : t("Broker")}${styledSelect("broker", brokerList, defBroker, { id: "afBroker" })}</label>
        <label>${t("Date")}<input type="date" name="date" value="${dateVal}" required></label>`;
 
   let core = "", extra = "";
@@ -2999,7 +2999,7 @@ function cashExtrasHTML() {
       [{label:"Broker"},{label:"Currency"},{label:"Balance",num:1},{label:"In MYR",num:1}], ccyRows))}
     ${panel("Broker Cash Reconciliation", table(
       [{label:"Broker"},{label:"Calculated Balance",num:1},{label:"Actual Balance",num:1},{label:"Difference",num:1},{label:"Status"},{label:"",num:1}], recRows),
-      `<span class="badge subtle">${t("Calculated = Deposits − Buys − Fees + Sells + Net Dividends − Withdrawals")}</span>`)}`;
+      `<span class="badge subtle">${t("Calculated from every recorded cash movement: deposits, withdrawals, buys, sells, dividends, fees, transfers and currency exchanges.")}</span>`)}`;
 }
 
 function mountCashExtras() {
@@ -3255,18 +3255,16 @@ function pageDividends() {
       }).join(", ")
     : "";
   const patternLine = tickerSummary ? `<p class="muted" style="margin:6px 0 0;font-size:12px">${t("Pattern detected for")}: ${tickerSummary}</p>` : "";
-  const multiYear = (fc.year2 > 0 || fc.year3 > 0)
-    ? `<div class="mini-cards" style="margin-top:8px">
-        ${miniCard(t("Year 2"), fc.year2 > 0 ? money(fc.year2) : dash)}
-        ${miniCard(t("Year 3"), fc.year3 > 0 ? money(fc.year3) : dash)}</div>`
+  const multiYearCards = (fc.year2 > 0 || fc.year3 > 0)
+    ? `${miniCard(t("Year 2"), fc.year2 > 0 ? money(fc.year2) : dash)}${miniCard(t("Year 3"), fc.year3 > 0 ? money(fc.year3) : dash)}`
     : "";
   const forecastBody = fc.hasProjections
     ? `<p class="muted" style="margin:-4px 0 12px">${t("Based on payment patterns and upcoming dividends.")} ${t("Estimate only — not a guarantee.")}${fc.ttm > 0 ? ` ${t("Received TTM")}: <strong>${money(fc.ttm)}</strong>.` : ""}</p>
       <div class="mini-cards">
         ${miniCard(t("Next Month"), fc.nextMonth > 0 ? money(fc.nextMonth) : dash)}
         ${miniCard(t("Next Quarter"), fc.nextQuarter > 0 ? money(fc.nextQuarter) : dash)}
-        ${miniCard(t("Next Year"), fc.nextYear > 0 ? money(fc.nextYear) : dash)}</div>
-      ${multiYear}${patternLine}
+        ${miniCard(t("Next Year"), fc.nextYear > 0 ? money(fc.nextYear) : dash)}${multiYearCards}</div>
+      ${patternLine}
       <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`
     : `<div class="div-fc-empty"><span>📅</span><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}</div></div>
       <p class="muted" style="margin:10px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
@@ -3310,7 +3308,7 @@ function pageDividends() {
       });
       if (LIVE_ENABLED) {
         const statusEl = document.getElementById("divFetchStatus");
-        if (statusEl) statusEl.textContent = t("Fetching US schedules…");
+        if (statusEl) statusEl.textContent = t("Checking dividend schedules…");
         fetchAllDivSchedules().then(({ fetched, hadError }) => {
           if (fetched && document.getElementById("divUpcomingSection")) render();
           const s = document.getElementById("divFetchStatus");
@@ -3367,7 +3365,7 @@ function reportCashflow() {
   const sum = (arr) => arr.reduce((s, x) => s + (+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1), 0);
   const rows = (arr) => arr.sort((a, b) => (a.date < b.date ? 1 : -1)).map((x) => `<tr><td>${fmtDate(x.date)}</td><td class="sub">${esc(brokerName(x.brokerId))}</td>
     <td class="num">${esc(x.currency)} ${fmt(x.gross)}</td><td class="num">${money((+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1))}</td>
-    ${x.type === "Currency Exchange" ? `<td class="sub">→ ${esc(x.toCurrency)} ${fmt(x.toAmount)}</td>` : "<td></td>"}</tr>`).join("");
+    ${x.type === "Currency Exchange" ? `<td class="sub">→ ${esc(x.toCurrency)} ${fmt(x.toAmount)}${x.fee ? ` · ${t("fee")} ${esc(x.currency)} ${fmt(x.fee)}` : ""}</td>` : "<td></td>"}</tr>`).join("");
   const hdr = [{label:"Date"},{label:"Broker"},{label:"Amount",num:1},{label:"In MYR",num:1},{label:""}];
   return `
     <div class="mini-cards">${miniCard(t("Total Deposits"), money(sum(types.Deposit)))}${miniCard(t("Total Withdrawals"), money(sum(types.Withdrawal)))}${miniCard(t("Net Cash Added"), money(sum(types.Deposit) - sum(types.Withdrawal)), cls(sum(types.Deposit) - sum(types.Withdrawal)))}</div>
@@ -4060,12 +4058,11 @@ function pageHolding() {
         ? `${t("Pattern detected")}: ${tInfo.freq}${tInfo.growthPct ? `, ${tInfo.growthPct > 0 ? "+" : ""}${fmt(tInfo.growthPct, { maximumFractionDigits: 1 })}%/${t("payment")}` : ""} (${tInfo.source === "market history" ? t("from market dividend history") : t("from your logged dividends")}).`
         : t("Record at least 2 dividends for this holding to enable pattern-based estimates.");
       const multiYear = (tFc.year2 > 0 || tFc.year3 > 0)
-        ? `<div class="mini-cards" style="margin-top:8px">${miniCard(t("Year 2"), money(tFc.year2))}${miniCard(t("Year 3"), money(tFc.year3))}</div>` : "";
+        ? `${miniCard(t("Year 2"), tFc.year2 > 0 ? money(tFc.year2) : "—")}${miniCard(t("Year 3"), tFc.year3 > 0 ? money(tFc.year3) : "—")}` : "";
       return panel("Dividend Summary", `<div class="mini-cards">
         ${miniCard(t("Total Dividends Received"), money(totalDivReceived), "pos")}
-        ${miniCard(t("Next Year (est.)"), money(tFc.nextYear))}
-        ${miniCard(t("Dividend Yield (TTM)"), h.marketValue ? fmt(tFc.ttm / h.marketValue * 100, { maximumFractionDigits: 2 }) + "%" : "—")}</div>
-        ${multiYear}
+        ${miniCard(t("Next Year (est.)"), tFc.nextYear > 0 ? money(tFc.nextYear) : "—")}
+        ${miniCard(t("Dividend Yield (TTM)"), h.marketValue ? fmt(tFc.ttm / h.marketValue * 100, { maximumFractionDigits: 2 }) + "%" : "—")}${multiYear}</div>
         <p class="muted" style="font-size:12px;margin:8px 0 0">${patternNote}</p>`);
     })()}
 

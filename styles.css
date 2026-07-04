@@ -278,9 +278,7 @@ a { color: inherit; text-decoration: none; }
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 16px 16px 14px;
   box-shadow: var(--shadow); position: relative;
-  cursor: pointer; transition: transform .08s, border-color .12s;
 }
-.card:hover { border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); }
 .card .c-label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; font-weight: 600; }
 .card .c-value { font-size: 23px; font-weight: 720; margin-top: 8px; letter-spacing: -.02em; }
 .card .c-sub { font-size: 12px; margin-top: 5px; color: var(--text-soft); }
@@ -295,7 +293,7 @@ a { color: inherit; text-decoration: none; }
 }
 .panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
 .panel-head h2 { font-size: 15px; }
-.panel-head .link, .panel-head .badge, .panel-head .seg { margin-left: auto; }
+.panel-head .link, .panel-head .badge, .panel-head .seg, .panel-head small { margin-left: auto; }
 .panel-head-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
 /* ---- Column visibility panel ---- */
@@ -337,8 +335,9 @@ a { color: inherit; text-decoration: none; }
 .grip-ico { display: block; }
 .col-toggle {
   display: flex; align-items: center; gap: 8px; height: 100%;
-  cursor: pointer; font-size: 13px; color: var(--text); flex: 1;
+  cursor: pointer; font-size: 13px; color: var(--text); flex: 1; min-width: 0;
 }
+.col-toggle span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .col-toggle:hover { background: transparent; }
 .col-toggle input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--brand); cursor: pointer; flex: none; }
 
@@ -900,7 +899,7 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .stat[role="button"]:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); }
 .stat:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .stat.net { background: linear-gradient(150deg, color-mix(in srgb, var(--brand) 12%, var(--surface)), var(--surface)); }
-.stat-head { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.stat-head { display: flex; align-items: center; gap: 8px; min-height: 28px; flex-wrap: wrap; }
 .stat-label { font-size: 12.5px; color: var(--muted); font-weight: 600; }
 .stat-head .calc-hint, .stat-head .seg { margin-left: auto; }
 .stat-value { font-size: 30px; font-weight: 780; letter-spacing: -.03em; margin-top: 8px; line-height: 1.05; }
