@@ -602,6 +602,12 @@ a { color: inherit; text-decoration: none; }
  * a phone. */
 .col-info { display: inline-flex; color: var(--muted); cursor: help; vertical-align: middle; position: relative; }
 .col-info svg { display: block; }
+/* Panel-header-level info icon (e.g. next to a chart title) — same fixed
+ * 24x24 bordered circle as .calc-hint's "how" button, so every top-right
+ * card affordance is the same size regardless of whether it opens a modal
+ * or shows a hover tooltip. Table-header/calc-row .col-info stays smaller —
+ * those are dense contexts with many icons in a row, not a card header. */
+.col-info.panel-hint { width: 24px; height: 24px; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 999px; flex: none; }
 .col-info:hover::after, .col-info.tip-open::after {
   content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); right: 50%;
   transform: translateX(50%); background: var(--surface); border: 1px solid var(--border);
@@ -730,11 +736,14 @@ input[type="date"] { cursor: pointer; }
 .mc-label .calc-hint { flex: none; }
 .mc-value { font-size: 21px; font-weight: 720; margin-top: 6px; letter-spacing: -.02em; }
 .mc-sub { font-size: 11.5px; margin-top: 4px; line-height: 1.35; }
-/* Portfolio Health no longer sits inside its own panel (see insightsHTML), so
- * these are just regular .mini-cards on the page background — same as every
- * other un-wrapped mini-card grid (Dividends summary, Cash Flow summary, etc). */
-.ph-card { cursor: pointer; transition: border-color .15s; }
-.ph-card:hover { border-color: var(--brand); }
+/* Portfolio Health stats — plain columns inside one panel, not individually
+ * bordered/shadowed cards. Gap and a hover tint separate them; no competing
+ * borders fighting the panel's own border for attention. */
+.ph-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 8px; }
+.ph-stat { cursor: pointer; padding: 10px 12px; border-radius: 10px; transition: background-color .12s; }
+.ph-stat:hover { background: var(--surface-2); }
+.ph-stat-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ph-stat-value { font-size: 21px; font-weight: 720; margin-top: 6px; letter-spacing: -.02em; }
 
 .div-fc-empty { display: flex; align-items: flex-start; gap: 12px; padding: 4px 0 2px; }
 .div-fc-empty > span { font-size: 22px; line-height: 1.2; flex: none; }
@@ -904,7 +913,12 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .stat.net { background: linear-gradient(150deg, color-mix(in srgb, var(--brand) 12%, var(--surface)), var(--surface)); }
 .stat-head { display: flex; align-items: center; gap: 8px; min-height: 28px; flex-wrap: wrap; }
 .stat-label { font-size: 12.5px; color: var(--muted); font-weight: 600; }
-.stat-head .calc-hint, .stat-head .seg { margin-left: auto; }
+.stat-head .calc-hint, .stat-head .seg, .stat-head .stat-head-group { margin-left: auto; }
+/* Toggle + "how" icon together (P/L card) — a bit more breathing room between
+ * them than a plain gap, so two controls next to each other don't read as one
+ * crowded cluster. */
+.stat-head-group { display: flex; align-items: center; gap: 10px; }
+.stat-head-group .seg { margin-left: 0; }
 .stat-value { font-size: 30px; font-weight: 780; letter-spacing: -.03em; margin-top: 8px; line-height: 1.05; }
 .stat.net .stat-value { font-size: 33px; }
 .stat-sub { font-size: 12px; margin-top: 6px; }
