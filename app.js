@@ -1533,7 +1533,7 @@ function ttmDividends() {
  * tint alone, no competing borders. */
 function insightsHTML() {
   const hp = portfolioHealth();
-  const howHint = `<span class="calc-hint" title="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${HOW_ICON_SVG}</span>`;
+  const howHint = `<span class="calc-hint" data-tip="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${HOW_ICON_SVG}</span>`;
   const stat = (id, label, val, sub) => `<div class="ph-stat" id="${id}">
     <div class="ph-stat-head"><span class="stat-label">${label}</span>${howHint}</div>
     <div class="ph-stat-value">${val}</div>
@@ -1741,7 +1741,7 @@ function pageDashboard() {
   };
 
   const statHead = (label, right) => `<div class="stat-head"><span class="stat-label">${label}</span>${right || ""}</div>`;
-  const howHint = `<span class="calc-hint" title="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${HOW_ICON_SVG}</span>`;
+  const howHint = `<span class="calc-hint" data-tip="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${HOW_ICON_SVG}</span>`;
   const metrics = `<section class="metrics">
     <article class="stat net" data-card="nw" tabindex="0" role="button" aria-label="${t("Net Worth")}, show calculation">
       ${statHead(t("Net Worth"), howHint)}
@@ -1844,7 +1844,7 @@ function pageDashboard() {
         }
       }));
       // Smart tooltip direction: if trigger is in top 40% of viewport, open below to avoid clipping
-      $$(".col-info").forEach((el) => {
+      $$(".col-info, .calc-hint").forEach((el) => {
         const rect = el.getBoundingClientRect();
         if (rect.top < window.innerHeight * 0.4) el.classList.add("tip-down");
       });
