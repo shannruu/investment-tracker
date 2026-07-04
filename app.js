@@ -2311,7 +2311,8 @@ function pagePortfolio() {
   const priceStampHtml = `<span id="pfPriceStamp">${latestFetch ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${fmtDateTime(latestFetch)}`) : ""}</span>`;
   const refreshBtn = `<button class="icon-btn pf-refresh" id="pfRefreshBtn" title="${t("Refresh live prices")}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>`;
   const html = has
-    ? `${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
+    ? `<div id="pfSummary">${portfolioSummaryHTML()}</div>
+       ${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
           `<div class="panel-head-actions">${priceStampHtml}${refreshBtn}</div>`)}
        ${breakdowns ? `<section class="portfolio-breakdowns">${breakdowns}</section>` : ""}`
     : panel("Holdings", emptyContent);
@@ -2320,7 +2321,10 @@ function pagePortfolio() {
       ? `${T.holdings.length} 个持仓，${BROKERS.length} 个券商 · ${money(T.portfolioValue)}`
       : `${plural(T.holdings.length, "holding", "holdings")} across ${plural(BROKERS.length, "broker", "brokers")} · ${money(T.portfolioValue)}`, html,
     mount() {
-      const apply = () => { const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioTable(); };
+      const apply = () => {
+        const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioTable();
+        const sm = $("#pfSummary"); if (sm) sm.innerHTML = portfolioSummaryHTML();
+      };
       const onFilter = (id, key) => { const el = $(id); if (el) el.addEventListener("change", (e) => { portfolioFilters[key] = e.target.value; apply(); }); };
       onFilter("#fBroker", "broker"); onFilter("#fMarket", "market"); onFilter("#fCurrency", "currency"); onFilter("#fSort", "sort");
       const fr = $("#fReset");
@@ -2442,14 +2446,42 @@ function pagePortfolio() {
     } };
 }
 
-function portfolioTable() {
+/* Holdings matching the current Portfolio-page filters (broker/market/currency)
+ * — shared by the table and the summary strip above it, so "respect filters"
+ * means the same thing in both places instead of two separate filter copies
+ * silently drifting apart. */
+function filteredHoldings() {
   const f = portfolioFilters;
-  const { cols, colOrder } = portfolioPrefs;
-  let rows = T.holdings.filter((h) =>
+  return T.holdings.filter((h) =>
     (!f.broker || h.brokerId === f.broker) &&
     (!f.market || marketRegion(h.market) === f.market) &&
     (!f.currency || h.currency === f.currency));
-  rows = aggregateHoldingsByTicker(rows);
+}
+
+/* Summary strip above the holdings table — respects the same filters as the
+ * table below it, so it's a running total of whatever's currently shown, not
+ * always the whole portfolio. % figures are weighted by cost basis (sum of
+ * gain ÷ sum of cost), not an average of each row's own percentage — those
+ * aren't the same thing once holdings have different position sizes. */
+function portfolioSummaryHTML() {
+  const rows = filteredHoldings();
+  const mv = rows.reduce((s, h) => s + h.marketValue, 0);
+  const costBasis = rows.reduce((s, h) => s + h.costBasis, 0);
+  const unrealized = rows.reduce((s, h) => s + h.unrealized, 0);
+  const totalReturn = rows.reduce((s, h) => s + h.totalReturn, 0);
+  const unrealizedPct = costBasis ? (unrealized / costBasis) * 100 : 0;
+  const totalReturnPct = costBasis ? (totalReturn / costBasis) * 100 : 0;
+  return `<div class="mini-cards" style="margin-bottom:16px">
+    <div class="mini-card"><div class="mc-label">${t("Market Value")}</div><div class="mc-value">${money(mv)}</div></div>
+    <div class="mini-card"><div class="mc-label">${t("Unrealized P/L")}</div><div class="mc-value ${cls(unrealized)}">${signed(unrealized)}</div><div class="mc-sub ${cls(unrealizedPct)}">${pctTxt(unrealizedPct)}</div></div>
+    <div class="mini-card"><div class="mc-label">${t("Total Return")}</div><div class="mc-value ${cls(totalReturn)}">${signed(totalReturn)}</div><div class="mc-sub ${cls(totalReturnPct)}">${pctTxt(totalReturnPct)}</div></div>
+  </div>`;
+}
+
+function portfolioTable() {
+  const f = portfolioFilters;
+  const { cols, colOrder } = portfolioPrefs;
+  let rows = aggregateHoldingsByTicker(filteredHoldings());
   if (f.sort === "name")             rows.sort((a, b) => (a.ticker || "").localeCompare(b.ticker || ""));
   else if (f.sort === "gainPct")     rows.sort((a, b) => (b.unrealizedPct || 0) - (a.unrealizedPct || 0));
   else if (f.sort === "totalReturn") rows.sort((a, b) => (b.totalReturn || 0) - (a.totalReturn || 0));
@@ -2498,7 +2530,7 @@ function portfolioTable() {
     priceMyr: t("Live price converted to base currency at today's exchange rate"),
   };
   const thCols = orderedColIds.map((id) => {
-    const tip = colTooltips[id] ? ` <span class="col-info" data-tip="${colTooltips[id]}">${COL_INFO_ICON_SVG}</span>` : "";
+    const tip = colTooltips[id] ? ` <span class="col-info tip-down" data-tip="${colTooltips[id]}">${COL_INFO_ICON_SVG}</span>` : "";
     return `<th class="num" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
   }).join("");
   const thead = `<thead><tr><th>${t("Holding")}</th>${thCols}</tr></thead>`;
@@ -4201,7 +4233,7 @@ function pageHolding() {
  * ========================================================================== */
 function showCalc(calc) {
   $("#modalTitle").textContent = t(calc.title);
-  const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span> ${t(r.label)}${r.hint ? ` <span class="col-info" data-tip="${r.hint}">${COL_INFO_ICON_SVG}</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`).join("");
+  const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span> ${t(r.label)}${r.hint ? ` <span class="col-info tip-down" data-tip="${r.hint}">${COL_INFO_ICON_SVG}</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`).join("");
   $("#modalBody").innerHTML = `${rows}
     <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${calc.totalFmt != null ? calc.totalFmt : money(calc.total)}</span></div>
     <p class="muted" style="margin:14px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
