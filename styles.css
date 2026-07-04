@@ -816,7 +816,6 @@ input[type="date"] { cursor: pointer; }
 .bc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 10px; }
 .bc-stats > div { display: flex; flex-direction: column; }
 .bc-stats strong { font-size: 15px; margin-top: 2px; }
-.bc-stat-sub { font-size: 10.5px; margin-top: 1px; }
 @media (max-width: 480px) {
   .bc-stats { grid-template-columns: 1fr 1fr; }
 }

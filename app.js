@@ -3516,7 +3516,7 @@ function brokerCard(b) {
   const unrealized = T.unrealizedByBroker[b.id] || 0;
   const totalReturn = T.totalReturnByBroker[b.id] || 0;
   const dividends = T.dividendsByBroker[b.id] || 0;
-  const stat = (label, val, cls2 = "", sub = "") => `<div><span class="sub">${label}</span><strong class="${cls2}">${val}</strong>${sub ? `<span class="bc-stat-sub muted">${sub}</span>` : ""}</div>`;
+  const stat = (label, val, cls2 = "", tip = "") => `<div><span class="sub">${label}${tip ? ` <span class="col-info" data-tip="${tip}">${COL_INFO_ICON_SVG}</span>` : ""}</span><strong class="${cls2}">${val}</strong></div>`;
 
   return `<article class="broker-card ${b.archived ? "archived" : ""}">
       <div class="bc-head"><span class="brand-mark sm">${esc(b.name.slice(0,2).toUpperCase())}</span>
