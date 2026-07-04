@@ -354,6 +354,7 @@ const ZH = {
   "Lifetime Net Dividends": "累计净股息", "Realized Return": "已实现收益",
   "Unrealized Return": "未实现收益", "Total Return": "总收益",
   "Total Deposits": "存款总额", "Total Withdrawals": "取款总额", "Net Cash Added": "净投入现金",
+  "Deposits & Withdrawals by Broker": "各券商存取款", "Deposits": "存款", "Withdrawals": "取款", "Net": "净额",
   "Monthly": "按月", "Quarterly": "按季", "Annual": "按年",
   // Phase 2 — Holding Detail extras (F1)
   "Cost Basis Over Time": "成本随时间变化", "Dividend Income Over Time": "股息收入随时间变化",
@@ -465,6 +466,7 @@ const ZH = {
   "FX revaluation of foreign cash": "外币现金的汇率重估",
   "Holdings": "持仓", "Principal Invested": "已投入本金", "Dividends YTD": "今年至今股息",
   "By market value": "按市值", "Calendar": "日历", "View all": "查看全部", "Recent Activity": "近期活动",
+  "View the full holdings table": "查看完整持仓表",
   "Top Holdings": "主要持仓", "Asset Allocation": "资产配置", "Upcoming Dividends": "即将派发股息",
   // Tour (updated steps)
   "Open More to reach Brokers — add your investment app first. Every transaction belongs to a broker.": "打开「更多」进入券商 — 请先添加您的投资平台。每笔交易都属于某个券商。",
@@ -2136,9 +2138,9 @@ const COL_DEFS = [
   { id: "netDiv",         label: "Net Dividends" },
 ];
 const COL_DEFAULTS = {
-  broker: false, shares: true, avgCost: true, price: true, priceMyr: false,
+  broker: true, shares: true, avgCost: true, price: true, priceMyr: false,
   unrealizedAmt: false, unrealizedPct: true, totalReturnAmt: true, totalReturnPct: false,
-  marketValue: false, netDiv: false,
+  marketValue: true, netDiv: false,
 };
 function loadPortfolioPrefs() {
   try {
@@ -3324,16 +3326,13 @@ function pageDividends() {
  * ========================================================================== */
 let reportTab = "portfolio";   // F3: portfolio | dividend | cashflow | performance
 
+/* The full sortable/filterable/customizable holdings table already lives on
+ * the Portfolio page (pagePortfolio → portfolioTable) — this report only adds
+ * the allocation breakdowns that aren't shown anywhere else, rather than a
+ * second, strictly weaker copy of the same holdings list. */
 function reportPortfolio() {
   const a = allocationData();
-  const holdRows = [...T.holdings].sort((x, y) => y.marketValue - x.marketValue).map((h) => `<tr>
-    <td><a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${esc(h.ticker)}</a></td>
-    <td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td><td class="num">${money(h.avgCost)}</td>
-    <td class="num">${money(h.marketValue)}</td><td class="num">${a.total ? fmt(h.marketValue / a.total * 100, { maximumFractionDigits: 1 }) : "0"}%</td>
-    <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : "—"}</td>
-    <td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td></tr>`).join("");
   return `
-    ${panel("Holdings", table([{label:"Holding"},{label:"Shares",num:1},{label:"Avg Cost",num:1},{label:"Market Value",num:1},{label:"Allocation",num:1},{label:"Unrealized",num:1},{label:"Total Return",num:1}], holdRows))}
     <h3 class="report-h">${t("Allocation")}</h3>
     <section class="grid-2">
       ${allocationPanel(t("By Country"), a.byCountry, a.total)}
@@ -3342,7 +3341,8 @@ function reportPortfolio() {
     <section class="grid-2">
       ${allocationPanel(t("By Currency"), a.byCurrency, a.total)}
       ${allocationPanel(t("By Brokerage"), a.byBroker, a.total)}
-    </section>`;
+    </section>
+    <p class="muted" style="font-size:12px;margin:10px 2px 0"><a class="link" href="#/portfolio">${t("View the full holdings table")} →</a></p>`;
 }
 
 function reportDividend() {
@@ -3367,8 +3367,26 @@ function reportCashflow() {
     <td class="num">${esc(x.currency)} ${fmt(x.gross)}</td><td class="num">${money((+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1))}</td>
     ${x.type === "Currency Exchange" ? `<td class="sub">→ ${esc(x.toCurrency)} ${fmt(x.toAmount)}${x.fee ? ` · ${t("fee")} ${esc(x.currency)} ${fmt(x.fee)}` : ""}</td>` : "<td></td>"}</tr>`).join("");
   const hdr = [{label:"Date"},{label:"Broker"},{label:"Amount",num:1},{label:"In MYR",num:1},{label:""}];
+
+  // How much has gone INTO vs OUT OF each broker specifically — the global
+  // Total Deposits/Withdrawals mini-cards above don't answer "how much have
+  // I put into Broker A vs Broker B" on their own.
+  const depByBroker = groupSum(types.Deposit, (x) => brokerName(x.brokerId), (x) => (+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1));
+  const wdrByBroker = groupSum(types.Withdrawal, (x) => brokerName(x.brokerId), (x) => (+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1));
+  const brokerNames = [...new Set([...depByBroker.map((d) => d.label), ...wdrByBroker.map((d) => d.label)])];
+  const byBrokerRows = brokerNames
+    .map((name) => {
+      const dep = (depByBroker.find((d) => d.label === name) || { value: 0 }).value;
+      const wdr = (wdrByBroker.find((d) => d.label === name) || { value: 0 }).value;
+      return { name, dep, wdr, net: dep - wdr };
+    })
+    .sort((a, b) => b.dep - a.dep)
+    .map((r) => `<tr><td>${esc(r.name)}</td><td class="num">${money(r.dep)}</td><td class="num">${money(r.wdr)}</td><td class="num ${cls(r.net)}">${signed(r.net)}</td></tr>`)
+    .join("");
+
   return `
     <div class="mini-cards">${miniCard(t("Total Deposits"), money(sum(types.Deposit)))}${miniCard(t("Total Withdrawals"), money(sum(types.Withdrawal)))}${miniCard(t("Net Cash Added"), money(sum(types.Deposit) - sum(types.Withdrawal)), cls(sum(types.Deposit) - sum(types.Withdrawal)))}</div>
+    ${panel("Deposits & Withdrawals by Broker", table([{label:"Broker"},{label:"Deposits",num:1},{label:"Withdrawals",num:1},{label:"Net",num:1}], byBrokerRows))}
     ${panel("Deposits", table(hdr, rows(types.Deposit)))}
     ${panel("Withdrawals", table(hdr, rows(types.Withdrawal)))}
     ${panel("Currency Exchanges", table(hdr, rows(types["Currency Exchange"])))}`;
