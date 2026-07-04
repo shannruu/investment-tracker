@@ -1,9 +1,12 @@
 /* =============================================================================
  * Investment Ledger — YOUR DATA
  * -----------------------------------------------------------------------------
- * This is the single source of truth for the whole app. Fill in your own
- * records below. Each array starts EMPTY. A commented-out example sits above
- * each one showing the exact shape — copy it, remove the //, and edit.
+ * This is the seed data loaded the very first time the app runs on a device —
+ * after that, everything lives in the browser's localStorage and this file is
+ * no longer read (edit records through the app's UI instead: Add, Brokers,
+ * Settings). ALL_TRANSACTIONS is the single source of truth for every deposit,
+ * withdrawal, buy, sell, dividend, and fee — everything else (cash balances,
+ * holdings, gain/loss, dividend totals) is derived from it.
  *
  * Rules:
  *  - Keep each record's ORIGINAL currency and amount. Base-currency values are
@@ -25,16 +28,9 @@ const FX = {
 const BROKERS = [
 ];
 
-/* Cash ledger — deposits & withdrawals (original currency preserved).
- * Example:
- *   { date: "2025-01-06", brokerId: "rkt", type: "Deposit",    amount: 20000, currency: "MYR" },
- *   { date: "2025-08-02", brokerId: "rkt", type: "Withdrawal", amount: 5000,  currency: "MYR" },
- */
-const CASH_LEDGER = [
-];
-
-/* Current holdings. avgCost & price are in the asset's OWN currency.
- * netDividends is the net dividend you've received for this holding, in BASE currency.
+/* Opening positions you owned BEFORE you started tracking here (skip this if
+ * you're recording everything from day one — a Buy transaction is enough).
+ * avgCost & price are in the asset's OWN currency; netDividends is in BASE currency.
  * Example:
  *   {
  *     ticker: "AAPL", company: "Apple Inc.", brokerId: "ibkr", market: "NASDAQ",
@@ -45,50 +41,12 @@ const CASH_LEDGER = [
 const HOLDINGS = [
 ];
 
-/* Closed positions feed Realized P/L (figures in the asset's own currency).
- * Example:
- *   { ticker: "NVDA", brokerId: "ibkr", proceeds: 4100, costBasis: 3300, fees: 18, currency: "USD" },
- */
-const REALIZED = [
-];
-
-/* Standalone fees not attached to a buy/sell (platform / FX fees), in BASE currency. */
-const STANDALONE_FEES_BASE = 0;
-
-/* Portfolio value over time (base currency) for the line chart.
- * Example:
- *   { month: "Jan 26", value: 44800 },
- *   { month: "Feb 26", value: 43900 },
- */
-const PORTFOLIO_SERIES = [
-];
-
 /* Upcoming dividends. status: Confirmed | Estimated | Paid | Cancelled | Unknown.
  * Never mark an estimate as "Confirmed".
  * Example:
  *   { ticker: "O", company: "Realty Income", brokerId: "ibkr", exDate: "2026-06-30", payDate: "2026-07-15", expectedNet: 49.6, currency: "USD", status: "Confirmed" },
  */
 const UPCOMING_DIVIDENDS = [
-];
-
-/* Recent transactions feed shown on the dashboard.
- * Example:
- *   { date: "2026-06-12", brokerId: "ibkr", type: "Dividend", ticker: "O", amount: 49.6, currency: "USD" },
- */
-const RECENT_TX = [
-];
-
-/* Reconciliation: your calculated vs actual broker cash balance (base currency).
- * A mismatch shows a warning. Example:
- *   { brokerId: "rkt", calculated: 6240.0, actual: 6240.0 },
- */
-const RECONCILIATION = [
-];
-
-/* Extra dashboard warnings. level: "warn" | "crit". Example:
- *   { level: "warn", text: "AAPL dividend on 9 Aug 2026 is estimated — not confirmed." },
- */
-const EXTRA_WARNINGS = [
 ];
 
 /* Your profile (Settings / Profile). */
@@ -99,20 +57,17 @@ const USER = {
   joined: "",
 };
 
-/* Full transactions ledger. type can be:
- * Deposit | Withdrawal | Buy | Sell | Dividend | Dividend Tax | Fee |
- * Currency Exchange | Stock Split | DRIP / Reinvested | Adjustment
- * net = gross - tax - fee. Example:
- *   { id: "t01", date: "2025-01-06", brokerId: "rkt", type: "Deposit", ticker: "—", qty: null, price: null, gross: 20000, fee: 0, tax: 0, net: 20000, currency: "MYR" },
- *   { id: "t02", date: "2025-01-10", brokerId: "rkt", type: "Buy", ticker: "1155.KL", qty: 1000, price: 9.20, gross: 9200, fee: 9.2, tax: 0, net: 9209.2, currency: "MYR" },
+/* Full transactions ledger — deposits, withdrawals, buys, sells, dividends
+ * (paid and expected), fees, currency exchanges, splits, all in one place.
+ * type can be:
+ * Deposit | Withdrawal | Buy | Sell | Dividend | Fee |
+ * Currency Exchange | Stock split | Transfer between brokers | Interest
+ * gross = the amount before fee/tax. Example:
+ *   { id: "t01", date: "2025-01-06", brokerId: "rkt", type: "Deposit", ticker: "—", qty: null, price: null, gross: 20000, fee: 0, tax: 0, currency: "MYR" },
+ *   { id: "t02", date: "2025-01-10", brokerId: "rkt", type: "Buy", ticker: "1155.KL", qty: 1000, price: 9.20, gross: 9200, fee: 9.2, tax: 0, currency: "MYR" },
+ *   { id: "t03", date: "2025-04-15", brokerId: "ibkr", type: "Dividend", ticker: "O", gross: 12.4, tax: 1.86, currency: "USD", status: "Received" },
  */
 const ALL_TRANSACTIONS = [
-];
-
-/* Dividend history (paid). Net = gross − withholding tax − other fees. Example:
- *   { ticker: "O", brokerId: "ibkr", exDate: "2025-04-01", payDate: "2025-04-15", gross: 12.4, tax: 1.86, fees: 0, currency: "USD", status: "Paid" },
- */
-const DIVIDEND_HISTORY = [
 ];
 
 /* Manually entered CURRENT prices (NOT live). Keyed by ticker.

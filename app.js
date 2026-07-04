@@ -15,9 +15,11 @@ function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 /* Plain text — matches the stored broker record exactly. CSV export needs the
- * raw value; anything rendering this into innerHTML must wrap it in esc(). */
-const brokerName = (id) => (BROKERS.find((b) => b.id === id) || {}).name || id;
-const toBase = (amount, ccy) => amount * (FX.rates[ccy] ?? 1);
+ * raw value; anything rendering this into innerHTML must wrap it in esc().
+ * Falls back to a clear label (not the raw internal id) for transactions or
+ * holdings left behind after their broker was force-deleted with records
+ * still attached — those rows are kept, not silently reassigned or dropped. */
+const brokerName = (id) => (BROKERS.find((b) => b.id === id) || {}).name || t("Deleted broker");
 
 /* Yahoo ticker suffix → [country, currency]. No suffix = United States. */
 const MARKET_MAP = {
@@ -133,12 +135,7 @@ const ZH = {
   "⭱ Import CSV": "⭱ 导入 CSV", "⭳ Cash Ledger CSV": "⭳ 现金账本 CSV",
   "⭳ Transactions CSV": "⭳ 交易 CSV", "⭳ Dividends CSV": "⭳ 股息 CSV",
   // Empty states
-  "No records yet — add them in data.js.": "暂无记录 — 请在 data.js 中添加。",
-  "No holdings yet — add them to HOLDINGS in data.js.": "暂无持仓 — 请在 data.js 的 HOLDINGS 中添加。",
   "No holdings match these filters.": "没有符合筛选条件的持仓。",
-  "No portfolio history yet — add entries to PORTFOLIO_SERIES in data.js.": "暂无组合历史 — 请在 data.js 的 PORTFOLIO_SERIES 中添加。",
-  "No allocation data yet — add holdings in data.js.": "暂无配置数据 — 请在 data.js 中添加持仓。",
-  "No brokers yet — add them to BROKERS in data.js.": "暂无券商 — 请在 data.js 的 BROKERS 中添加。",
   // Calc modal
   "Result": "结果",
   "Profit / Loss": "盈亏",
@@ -291,6 +288,7 @@ const ZH = {
   "Broker archived": "券商已归档", "Broker unarchived": "已取消归档", "Enter a broker name.": "请输入券商名称。",
   "No brokers yet. Add your first one below.": "暂无券商。在下方添加第一个。",
   "This broker still has records. Remove it anyway? (Consider Archive instead.)": "该券商仍有记录。仍要删除吗？（建议改为归档。）",
+  "Deleted broker": "已删除的券商",
   "Money-weighted annual return": "资金加权年化回报",
   "XIRR = the annual rate that makes the net present value of your dated deposits, withdrawals and today's account value equal zero.": "XIRR = 使您的带日期存款、取款与今日账户总值的净现值为零的年化利率。",
   "XIRR (money-weighted return)": "XIRR（资金加权回报）",
@@ -787,10 +785,24 @@ function computeTotals() {
  * survives reloads. Defaults come from data.js the first time.
  * ========================================================================== */
 const STORE_KEY = "il-data-v2";
-function uid(prefix) { return prefix + Math.random().toString(36).slice(2, 8); }
+/* Collision-checked against every id-bearing array — matters most for bulk CSV
+ * import, which can call this hundreds of times in one pass; a collision there
+ * would make edit/delete silently target the wrong record. */
+function uid(prefix) {
+  let id;
+  do { id = prefix + Math.random().toString(36).slice(2, 8); }
+  while (BROKERS.some((b) => b.id === id) || ALL_TRANSACTIONS.some((x) => x.id === id) || UPCOMING_DIVIDENDS.some((d) => d.id === id));
+  return id;
+}
 
+/* Bumped only if a future change reshapes the snapshot in a way old code
+ * couldn't read safely. Checked on import (see importBackupJSON) — there's no
+ * migration table because every version so far has shared this shape; the
+ * check exists so a backup from a NEWER app version says so instead of
+ * silently restoring only what this version recognizes. */
+const SCHEMA_VERSION = 4;
 function snapshot() {
-  return { version: 4, lastSaved: LAST_SAVED,
+  return { version: SCHEMA_VERSION, lastSaved: LAST_SAVED,
     BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS,
     CURRENT_PRICES, STOCK_META, RECON_CHECKS, SETTINGS, USER, FX, PV_HISTORY };
 }
@@ -889,6 +901,21 @@ function showSaveError() {
 }
 function hideSaveError() {
   const el = document.getElementById("saveErrorBanner");
+  if (el) el.hidden = true;
+}
+/* Cross-tab staleness: the browser's "storage" event fires in every OTHER tab
+ * sharing this origin when one tab writes STORE_KEY — never in the tab that
+ * wrote it. With no conflict detection, whichever tab saves last would
+ * silently overwrite the other's edits with no warning in either tab. */
+function showStaleDataWarning() {
+  const el = document.getElementById("staleDataBanner");
+  if (!el) return;
+  const msgEl = document.getElementById("staleDataMsg");
+  if (msgEl) msgEl.textContent = t("Your data was updated in another tab or window. Reload to see the latest — saving here first would overwrite those changes.");
+  el.hidden = false;
+}
+function hideStaleDataWarning() {
+  const el = document.getElementById("staleDataBanner");
   if (el) el.hidden = true;
 }
 /* A malformed/partial import (e.g. a hand-edited or older-version backup
@@ -1013,32 +1040,40 @@ let AUTO_DIV_CACHE_FETCHED = false;  // prevent the fetch→render→mount→fet
 
 /* Fetch upcoming dividends for one US ticker from Finnhub via our proxy.
  * Returns array or null. Only runs for plain tickers (no ".KL", ".SI", etc.). */
+/* Returns { ok, divs } — ok distinguishes "fetched cleanly, ticker just pays
+ * nothing upcoming" from "the request itself failed", so callers can surface
+ * a real error state instead of the two cases silently looking identical. */
 async function fetchFinnhubDivs(ticker) {
-  if (!LIVE_ENABLED || ticker.includes(".")) return null;
+  if (!LIVE_ENABLED || ticker.includes(".")) return { ok: true, divs: null };
   const today = todayISO();
   const futureDate = new Date(today.replace(/-/g, "/"));
   futureDate.setFullYear(futureDate.getFullYear() + 1);
   const to = futureDate.toISOString().slice(0, 10);
   try {
     const r = await fetch(`/api/dividend?symbol=${encodeURIComponent(ticker)}&from=${today}&to=${to}`);
-    if (!r.ok) return null;
+    if (!r.ok) return { ok: false, divs: null };
     const data = await r.json();
-    if (!Array.isArray(data)) return null;
-    return data.filter((d) => (d.payDate || d.date) >= today);
-  } catch (e) { return null; }
+    if (!Array.isArray(data)) return { ok: false, divs: null };
+    return { ok: true, divs: data.filter((d) => (d.payDate || d.date) >= today) };
+  } catch (e) { return { ok: false, divs: null }; }
 }
 
-/* Populate AUTO_DIV_CACHE for all held US tickers concurrently. */
+/* Populate AUTO_DIV_CACHE for all held US tickers concurrently.
+ * Returns { fetched, hadError } — hadError lets the dividends page tell the
+ * user a schedule check actually failed instead of quietly showing "nothing
+ * upcoming" either way. */
 async function fetchAllDivSchedules() {
-  if (AUTO_DIV_CACHE_FETCHED) return false;  // already fresh — skip to avoid render loop
+  if (AUTO_DIV_CACHE_FETCHED) return { fetched: false, hadError: false };  // already fresh — skip to avoid render loop
   AUTO_DIV_CACHE_FETCHED = true;              // set before await so concurrent calls short-circuit
   const tickers = [...new Set(T.holdings.filter((h) => !h.ticker.includes(".")).map((h) => h.ticker))];
+  let hadError = false;
   await Promise.all(tickers.map(async (ticker) => {
-    const divs = await fetchFinnhubDivs(ticker);
-    if (divs && divs.length) AUTO_DIV_CACHE[ticker] = divs;
+    const res = await fetchFinnhubDivs(ticker);
+    if (!res.ok) hadError = true;
+    if (res.divs && res.divs.length) AUTO_DIV_CACHE[ticker] = res.divs;
     else delete AUTO_DIV_CACHE[ticker];
   }));
-  return true;
+  return { fetched: true, hadError };
 }
 
 /* Merge all upcoming dividend sources into one sorted list.
@@ -1369,6 +1404,19 @@ function mountChartTooltips() {
 
 // Monochrome indigo ramp (+ one neutral) so the allocation chart stays on-brand.
 const PALETTE = ["#4a3ed9", "#6d5efc", "#8b80ff", "#a99dff", "#352c9e", "#c4bcff", "#8089a0"];
+
+/* Currency colors for the dashboard's by-currency allocation donut. MYR/USD
+ * get fixed, memorable colors; any 3rd+ currency gets a stable PALETTE color
+ * assigned once and cached — module-level so it stays the same currency-to-
+ * color mapping across re-renders instead of shifting on every render(). */
+const CCY_COLORS = { MYR: "var(--brand)", USD: "#3b82f6" };
+const _ccyColorCache = {};
+let _ccyColorIdx = 0;
+function ccyColor(ccy) {
+  if (CCY_COLORS[ccy]) return CCY_COLORS[ccy];
+  if (!_ccyColorCache[ccy]) { _ccyColorCache[ccy] = PALETTE[_ccyColorIdx % PALETTE.length]; _ccyColorIdx++; }
+  return _ccyColorCache[ccy];
+}
 function donutHTML(slices, centerLabel, centerValue, colors) {
   slices = (slices || []).filter((s) => s.value > 0);
   if (!slices.length) return emptyState(t("No holdings yet. Add a buy transaction to create your first holding."));
@@ -1531,8 +1579,6 @@ function buildDashChartContent() {
 }
 
 function pageDashboard() {
-  const CCY_COLORS = { MYR: "var(--brand)", USD: "#3b82f6" };
-  const ccyColor = (ccy) => CCY_COLORS[ccy] || "#94a3b8";
   const isEmpty = ALL_TRANSACTIONS.length === 0 && HOLDINGS.length === 0;
 
   const netWorth = (T.portfolioValue || 0) + (T.totalCash || 0);
@@ -1692,7 +1738,7 @@ function pageDashboard() {
         const donut = dashAllocMode === "stock"
           ? donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), t("Portfolio"), totalStr, T.holdings.map((h) => ccyColor(h.currency || "Other")))
           : donutHTML(ccySlices, t("Portfolio"), totalStr, ccySlices.map((s) => ccyColor(s.label)));
-        return panel("Asset Allocation", `<div id="dashAllocBody">${donut}</div>`, allocToggle);
+        return panel("Asset Allocation", `<div id="dashAllocBody" class="panel-body">${donut}</div>`, allocToggle);
       })()}
     </section>
     <div id="dashDivSection">${listPanel("Upcoming Dividends", upcoming.length,
@@ -1768,7 +1814,7 @@ function pageDashboard() {
       }
       // Auto-fetch Finnhub dividend schedules for US holdings; re-render if still here
       if (LIVE_ENABLED) {
-        fetchAllDivSchedules().then((fetched) => {
+        fetchAllDivSchedules().then(({ fetched }) => {
           if (fetched && document.getElementById("dashDivSection")) render();
         });
       }
@@ -1791,55 +1837,6 @@ function onboardingHTML() {
       <button class="btn primary" id="startTour">▶ ${t("Start the guided tour")}</button>
       <span class="muted" style="align-self:center">${done} / ${steps.length} ${t("steps done")}</span>
     </div>`);
-}
-
-function dashboardCards() {
-  const depRows = ALL_TRANSACTIONS.filter((x) => x.type === "Deposit");
-  const wdrRows = ALL_TRANSACTIONS.filter((x) => x.type === "Withdrawal");
-  const txFx = (x) => (x.fxRate != null && x.fxRate !== "" ? +x.fxRate : (FX.rates[x.currency] || 1));
-  const returnIsTotal = SETTINGS.returnMode !== "price";
-  const shownReturn = returnIsTotal ? T.totalReturn : T.priceReturn;
-  const shownPct = T.netCapitalInvested ? (shownReturn / T.netCapitalInvested) * 100 : 0;
-
-  return [
-    { label: "Total Deposits", value: money(T.totalDeposits), sub: tip("Cash put into brokers", "Net Capital Invested = Deposits − Withdrawals"),
-      calc: { title: "Total Deposits", rows: depRows.map((c) => ({
-        op: "+", label: `${esc(brokerName(c.brokerId))} · ${esc(c.currency)} ${fmt(c.gross)}${c.currency !== FX.base ? ` × ${txFx(c)}` : ""}`, val: fmt((+c.gross || 0) * txFx(c)) })), total: T.totalDeposits } },
-    { label: "Total Withdrawals", value: money(T.totalWithdrawals), sub: "Cash taken out",
-      calc: { title: "Total Withdrawals", rows: wdrRows.map((c) => ({
-        op: "+", label: `${brokerName(c.brokerId)} · ${c.currency} ${fmt(c.gross)}`, val: fmt((+c.gross || 0) * txFx(c)) })), total: T.totalWithdrawals } },
-    { label: "Net Capital Invested", value: money(T.netCapitalInvested), sub: tip("Deposits − Withdrawals", "Money you have actually committed, net of cash taken back out."),
-      calc: { title: "Net Capital Invested", rows: [{ op: "+", label: "Total Deposits", val: fmt(T.totalDeposits) }, { op: "−", label: "Total Withdrawals", val: fmt(T.totalWithdrawals) }], total: T.netCapitalInvested } },
-    { label: "Current Portfolio Value", value: money(T.portfolioValue), sub: T.missingPrices ? `${T.missingPrices} ${t("holdings without a current price")}` : "Market value of holdings",
-      calc: { title: "Current Portfolio Value", rows: T.holdings.map((h) => ({ op: "+",
-        label: `${h.ticker} · ${fmt(h.shares, { maximumFractionDigits: 4 })}${h.hasPrice ? ` × ${h.currentPriceCcy} ${fmt(h.currentPrice)}` : ` (${t("no price")})`}`, val: fmt(h.marketValue) })), total: T.portfolioValue } },
-    { label: "Net Dividends Received", value: money(T.netDividends), sub: tip("After withholding tax", "Net Dividends = Gross dividends − withholding tax"),
-      calc: { title: "Net Dividends Received (after tax)", rows: T.holdings.filter((h) => h.netDividends).map((h) => ({ op: "+", label: h.ticker, val: fmt(h.netDividends) })), total: T.netDividends } },
-    { label: returnIsTotal ? "Total Return" : "Price Return", value: money(shownReturn), feature: true,
-      sub: tip(`${pctTxt(shownPct)} on net capital invested`, returnIsTotal ? "Total Return = Unrealized P/L + Realized P/L + Net Dividends − fees" : "Price Return = Unrealized P/L + Realized P/L − fees (excludes dividends)"),
-      badge: { text: pctTxt(shownPct), cls: shownReturn >= 0 ? "pos" : "neg" }, valCls: cls(shownReturn),
-      calc: { title: returnIsTotal ? "Total Return" : "Price Return", rows: [
-        { op: "+", label: "Unrealized P/L", val: signed(T.unrealizedPL) },
-        { op: "+", label: "Realized P/L", val: signed(T.realizedPL) },
-        ...(returnIsTotal ? [{ op: "+", label: "Net Dividends", val: signed(T.netDividends) }] : []),
-        { op: "−", label: "Total Fees", val: fmt(T.totalFees) }], total: shownReturn } },
-    { label: "Unrealized / Realized P/L", value: `${signed(T.unrealizedPL)}`, valCls: cls(T.unrealizedPL), sub: `Realized: ${money(T.realizedPL)}`,
-      calc: { title: "Profit / Loss", rows: [
-        { op: "+", label: "Unrealized P/L (current value − remaining cost basis)", val: signed(T.unrealizedPL) },
-        { op: "+", label: "Realized P/L (proceeds − cost basis of sold − fees)", val: signed(T.realizedPL) }], total: T.unrealizedPL + T.realizedPL } },
-    { label: "XIRR", value: T.xirr == null ? "—" : pctTxt(T.xirr), valCls: T.xirr == null ? "" : cls(T.xirr),
-      sub: tip("Money-weighted annual return", "XIRR = the annual rate that makes the net present value of your dated deposits, withdrawals and today's account value equal zero."),
-      calc: { title: "XIRR (money-weighted return)", rows: [
-        { op: "•", label: "Deposits = cash in (−), Withdrawals = cash out (+)", val: "" },
-        { op: "•", label: "Terminal value today = holdings + cash", val: fmt(T.portfolioValue + (T.totalCash || 0)) },
-        { op: "•", label: "Solved so discounted flows net to 0", val: "" }],
-        total: T.xirr == null ? 0 : T.xirr, totalFmt: T.xirr == null ? t("Not enough cash-flow history") : pctTxt(T.xirr) } },
-  ];
-}
-
-// Inline tooltip wrapper (uses native title for accessibility + an ⓘ marker).
-function tip(text, explain) {
-  return `${text} <span class="tip" tabindex="0" role="note" title="${explain.replace(/"/g, "&quot;")}" aria-label="${explain.replace(/"/g, "&quot;")}">ⓘ</span>`;
 }
 
 function warningsHTML() {
@@ -2948,11 +2945,6 @@ function wireTxSubmit(form) {
   });
 }
 
-function availableShares(brokerId, ticker) {
-  const h = T.holdings.find((x) => x.brokerId === brokerId && x.ticker === ticker);
-  return h ? h.shares : 0;
-}
-
 /* Shares held for (broker, ticker), DERIVED from transactions but EXCLUDING one id.
  * Used by the oversell check so editing a Sell doesn't count its own old version (F1). */
 function sharesHeldExcluding(brokerId, ticker, excludeId) {
@@ -3153,7 +3145,7 @@ function pageDividends() {
       <td>${fmtDate(d.payDate)}${daysLabel ? `<div class="fx-note">${daysLabel}</div>` : ""}</td>
       <td class="num">${esc(d.currency)} ${fmt(d.expectedNet)}</td>
       <td>${sourceBadge(d.source || "manual")}</td>
-      <td>${d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : ""}</td></tr>`;
+      <td>${d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" aria-label="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : ""}</td></tr>`;
   }).join("");
 
   const histRows = received.sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1)).map((d) => {
@@ -3257,10 +3249,10 @@ function pageDividends() {
       if (LIVE_ENABLED) {
         const statusEl = document.getElementById("divFetchStatus");
         if (statusEl) statusEl.textContent = t("Fetching US schedules…");
-        fetchAllDivSchedules().then((fetched) => {
+        fetchAllDivSchedules().then(({ fetched, hadError }) => {
           if (fetched && document.getElementById("divUpcomingSection")) render();
           const s = document.getElementById("divFetchStatus");
-          if (s) s.textContent = "";
+          if (s) s.textContent = hadError ? t("Couldn't check some dividend schedules — try again later.") : "";
         });
       }
     },
@@ -3663,7 +3655,10 @@ function importBackupJSON(file) {
     let s;
     try { s = JSON.parse(reader.result); } catch (e) { toast(t("That file isn't valid JSON.")); return; }
     if (!validBackup(s)) { toast(t("That doesn't look like an Investment Ledger backup.")); return; }
-    if (!confirm(t("This replaces your current data with this backup file. Export your current data first if you want to keep it. Continue?"))) return;
+    const versionNote = (typeof s.version === "number" && s.version > SCHEMA_VERSION)
+      ? " " + t("This backup was made by a newer version of the app — some newer fields may not be restored.")
+      : "";
+    if (!confirm(t("This replaces your current data with this backup file. Export your current data first if you want to keep it. Continue?") + versionNote)) return;
     applySnapshot(s); saveStore(); toast(t("Backup restored")); render();
   };
   reader.readAsText(file);
@@ -4368,7 +4363,6 @@ function toast(msg) {
 /* =============================================================================
  * "MORE" SHEET — secondary navigation (Records, Reports, Brokers, Settings, Help)
  * ========================================================================== */
-function openMoreSheet() { const s = $("#moreSheet"); if (s) s.hidden = false; }
 function closeMoreSheet() { const s = $("#moreSheet"); if (s) s.hidden = true; }
 function toggleMoreSheet() { const s = $("#moreSheet"); if (s) s.hidden = !s.hidden; }
 
@@ -4451,6 +4445,11 @@ function init() {
   $("#modalClose").addEventListener("click", closeModal);
   const saveErrDismiss = $("#saveErrorDismiss");
   if (saveErrDismiss) saveErrDismiss.addEventListener("click", hideSaveError);
+  const staleReload = $("#staleDataReload");
+  if (staleReload) staleReload.addEventListener("click", () => location.reload());
+  const staleDismiss = $("#staleDataDismiss");
+  if (staleDismiss) staleDismiss.addEventListener("click", hideStaleDataWarning);
+  window.addEventListener("storage", (e) => { if (e.key === STORE_KEY) showStaleDataWarning(); });
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeModal(); closeMoreSheet(); } });
   // "More" overlay — mobile bottom-nav only (desktop shows the items in the sidebar)

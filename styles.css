@@ -188,10 +188,6 @@ a { color: inherit; text-decoration: none; }
 
 /* ===== Stage-1 additions ===== */
 .app-disclaimer { padding: 18px 26px 28px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 8px; }
-.dash-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 12.5px; }
-.quick-summary { display: flex; flex-wrap: wrap; gap: 10px 22px; padding: 2px 2px 2px; }
-.quick-summary .qs-item { font-size: 13px; color: var(--text-soft); }
-.quick-summary .qs-item strong { color: var(--text); font-size: 16px; margin-right: 4px; }
 .bc-actions { margin-left: auto; display: flex; gap: 4px; }
 .bc-actions .icon-btn { width: 30px; height: 30px; font-size: 13px; }
 .bc-notes { margin: 10px 0 0; font-size: 12.5px; }
@@ -199,8 +195,6 @@ a { color: inherit; text-decoration: none; }
 .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .seg-btn { border: 0; background: var(--surface); color: var(--text-soft); font-family: inherit; font-size: 12.5px; font-weight: 600; padding: 7px 12px; cursor: pointer; }
 .seg-btn.on { background: var(--brand); color: #fff; }
-.tip { cursor: help; color: var(--muted); font-size: 11px; border: 1px solid var(--border); border-radius: 50%; padding: 0 4px; margin-left: 2px; }
-.tip:focus { outline: 2px solid var(--brand); }
 .manual-price { color: var(--warn); }
 .live-price { color: var(--pos); font-weight: 650; }
 .lookup-status { font-size: 12.5px; margin: -4px 0 4px; min-height: 16px; }
@@ -227,7 +221,6 @@ a { color: inherit; text-decoration: none; }
 .ac-sym { font-weight: 700; font-size: 13px; white-space: nowrap; }
 .ac-name { min-width: 0; font-size: 12.5px; color: var(--text-soft); white-space: normal; overflow-wrap: anywhere; }
 .ac-exch { font-size: 11px; color: var(--muted); white-space: nowrap; text-align: right; }
-.row-live { color: var(--brand-ink); }
 .row-edit { width: 28px; height: 28px; font-size: 13px; color: var(--brand-ink); }
 .row-edit:hover { border-color: var(--brand); }
 /* Holding detail */
@@ -235,15 +228,8 @@ a { color: inherit; text-decoration: none; }
 .ticker-link:hover { text-decoration: underline; }
 .holding-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 16px; }
 .holding-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.row-live.spin { animation: liveSpin .7s linear infinite; }
-.pf-refresh svg.spinning { animation: liveSpin .7s linear infinite; }
+.spin, .pf-refresh svg.spinning { animation: liveSpin .7s linear infinite; }
 @keyframes liveSpin { to { transform: rotate(360deg); } }
-.onboard { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.onboard li { display: flex; align-items: center; gap: 10px; font-size: 14px; }
-.onboard li.done a { color: var(--muted); text-decoration: line-through; }
-.onboard .ob-check { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--border); font-size: 12px; }
-.onboard li.done .ob-check { background: var(--pos); color: #fff; border-color: transparent; }
-.onboard a { color: var(--brand-ink); font-weight: 600; }
 .form .check { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-soft); }
 .form .check input[type="checkbox"] { flex: 0 0 auto; width: 16px; height: 16px; margin: 0; }
 .form label.block { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
@@ -278,9 +264,7 @@ a { color: inherit; text-decoration: none; }
 .tour-pop .btn { height: 32px; padding: 0 12px; }
 @media (prefers-reduced-motion: reduce) { .tour-ring { animation: none; } }
 
-/* Small delete buttons (table rows, broker cards) */
-.row-del { width: 28px; height: 28px; font-size: 12px; color: var(--muted); }
-.row-del:hover { color: var(--neg); border-color: var(--neg); }
+/* Small delete buttons (broker cards) */
 .bc-del { width: 30px; height: 30px; font-size: 13px; margin-left: auto; color: var(--muted); }
 .bc-del:hover { color: var(--neg); border-color: var(--neg); }
 
@@ -374,25 +358,12 @@ a { color: inherit; text-decoration: none; }
   .col-move-up, .col-move-down { width: 30px; height: 30px; }
 }
 
-/* ---- Group-by segmented control ---- */
-.group-seg { display: flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; }
-.group-seg-btn {
-  padding: 6px 12px; font-size: 12px; font-weight: 600; border: none;
-  background: transparent; cursor: pointer; color: var(--text-soft); white-space: nowrap;
-  transition: background .12s, color .12s;
-}
-.group-seg-btn:hover { background: var(--surface-2); }
-.group-seg-btn.on { background: var(--brand); color: #fff; }
-
 /* ---- Broker pills in holding cell (by-stock grouped view) ---- */
 .broker-pills { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
 .chip-pill {
   font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 4px;
   background: var(--surface-2); border: 1px solid var(--border); color: var(--text-soft);
 }
-
-/* ---- Same-ticker grouping indicator in by-broker view ---- */
-.data-table tbody tr.same-ticker-row > td { border-top: 1px dashed color-mix(in srgb, var(--brand) 35%, var(--border)); }
 
 /* ---- Holding cell min-width ---- */
 .td-holding { min-width: 130px; }
@@ -466,7 +437,6 @@ a { color: inherit; text-decoration: none; }
   background: var(--surface-2); border: 1px solid var(--border); color: var(--text-soft);
 }
 .fx-note { color: var(--muted); font-size: 11px; }
-.avg-label { font-size: 12px; color: var(--text-soft); }
 
 /* ===================== Warnings ===================== */
 .warn-wrap { display: flex; flex-direction: column; gap: 10px; }
@@ -526,25 +496,30 @@ a { color: inherit; text-decoration: none; }
   z-index: 200; box-shadow: var(--shadow);
 }
 
-/* Persistent save-failure banner — unlike .toast this never auto-hides, so a
- * false "Saved ✓" toast fired right after it can't quietly bury the warning. */
-.save-error-banner {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 300;
+/* Persistent alert banners (save failure, stale cross-tab data) — unlike
+ * .toast these never auto-hide, so a "Saved ✓" toast fired right after can't
+ * quietly bury the warning. Stacked in a shared fixed container so if more
+ * than one is visible at once they stack instead of overlapping. */
+.alert-stack { position: fixed; top: 0; left: 0; right: 0; z-index: 300; display: flex; flex-direction: column; }
+.alert-banner {
   display: flex; align-items: center; gap: 10px;
-  background: var(--neg-bg); border-bottom: 1px solid var(--neg);
   color: var(--text); font-size: 13px; padding: 10px 16px;
 }
-.save-error-banner .w-ico { color: var(--neg); font-size: 15px; flex: none; }
-.save-error-banner span:not(.w-ico) { flex: 1; }
-.save-error-banner .icon-btn { flex: none; width: 26px; height: 26px; }
+.alert-banner .w-ico { font-size: 15px; flex: none; }
+.alert-banner span:not(.w-ico) { flex: 1; }
+.alert-banner .icon-btn { flex: none; width: 26px; height: 26px; }
+.alert-banner.crit { background: var(--neg-bg); border-bottom: 1px solid var(--neg); }
+.alert-banner.crit .w-ico { color: var(--neg); }
+.alert-banner.info { background: color-mix(in srgb, var(--brand) 10%, var(--surface)); border-bottom: 1px solid color-mix(in srgb, var(--brand) 30%, transparent); }
+.alert-banner.info .w-ico { color: var(--brand-ink); }
 
 /* Touch-target sizing — only on touchscreens (pointer: coarse), so the compact
  * desktop density (mouse-precise) is untouched. Several icon buttons sit under
  * the ~44px guideline; bumping them here avoids mis-taps without visually
  * bulking up the app for anyone using a mouse or trackpad. */
 @media (pointer: coarse) {
-  .icon-btn, .rec-actions .icon-btn, .row-edit, .row-del, .bc-del,
-  .modal-head .icon-btn, .save-error-banner .icon-btn, .col-panel-close {
+  .icon-btn, .rec-actions .icon-btn, .row-edit, .bc-del,
+  .modal-head .icon-btn, .alert-banner .icon-btn, .col-panel-close {
     width: 44px; height: 44px;
   }
   .seg-btn { padding: 12px 14px; min-height: 44px; }
@@ -555,7 +530,6 @@ a { color: inherit; text-decoration: none; }
 
 /* ===================== Mobile bottom nav ===================== */
 .bottom-nav { display: none; }
-.only-mobile { display: none; }
 
 @media (max-width: 920px) {
   .grid-2 { grid-template-columns: 1fr; }
@@ -567,8 +541,6 @@ a { color: inherit; text-decoration: none; }
     display: flex; position: fixed; z-index: 60; top: 0; left: 0; bottom: 0;
     box-shadow: var(--shadow);
   }
-  .only-mobile { display: grid; }
-  .only-desktop { display: none; }
   .content { padding: 16px 14px 96px; }
   .topbar { padding: 12px 14px; }
 
@@ -605,9 +577,7 @@ a { color: inherit; text-decoration: none; }
  * ========================================================================== */
 .nav-item.active, .bn-item.active { /* ensure router-set active wins */ }
 
-.page-foot { padding-top: 4px; font-size: 12px; }
 .empty { color: var(--muted); padding: 24px 4px; text-align: center; }
-.empty-hint { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
 .portfolio-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 32px 24px 28px; gap: 16px; }
 .portfolio-empty .pe-msg { margin: 0; color: var(--text-soft); font-size: 14px; line-height: 1.65; max-width: 360px; }
 
@@ -763,15 +733,6 @@ input[type="date"] { cursor: pointer; }
 .ph-card { cursor: pointer; transition: border-color .15s; }
 .ph-card:hover { border-color: var(--brand); }
 
-/* ---- Dividend calendar: .KL manual-entry prompts ---- */
-.kl-prompts { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
-.kl-prompt { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; }
-.kl-prompt-hd { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.kl-prompt-label { font-size: 13px; color: var(--text-soft); flex: 1; }
-.kl-div-form { margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.kl-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-.kl-field input { font-family: inherit; font-size: 13px; color: var(--text); font-weight: 400; text-transform: none; letter-spacing: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; width: 100%; box-sizing: border-box; }
-.kl-div-form .form-actions { grid-column: 1/-1; display: flex; gap: 8px; padding-top: 2px; }
 .div-fc-empty { display: flex; align-items: flex-start; gap: 12px; padding: 4px 0 2px; }
 .div-fc-empty > span { font-size: 22px; line-height: 1.2; flex: none; }
 
@@ -805,8 +766,6 @@ input[type="date"] { cursor: pointer; }
 .add-total { margin-left: auto; font-size: 13px; color: var(--text-soft); white-space: nowrap; }
 .add-total strong { color: var(--text); font-weight: 750; }
 .fx-hint { display: none; margin-top: 4px; font-size: 11.5px; font-weight: 600; color: var(--warn); }
-.fx-rate-display { display: block; padding: 8px 11px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 9px; font-size: 13px; font-weight: 700; color: var(--text); }
-.fx-rate-display.fx-rate-ph { font-weight: 400; color: var(--muted); font-style: italic; }
 .form-optional { font-weight: 400; color: var(--muted); font-size: 11px; margin-left: 3px; }
 .note-wrap { margin-top: 6px; }
 .note-add-btn { background: none; border: none; cursor: pointer; font-size: 13px; font-weight: 650; color: var(--brand); padding: 2px 0; }
@@ -831,11 +790,6 @@ input[type="date"] { cursor: pointer; }
 .fx-rate-info .fx-rate-val { font-weight: 650; color: var(--text); }
 .btn.danger { background: var(--neg); border-color: var(--neg); color: #fff; }
 .btn.danger:hover { filter: brightness(.94); }
-
-/* ---- Reports ---- */
-.report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px,1fr)); gap: 20px; }
-.report-stat { padding: 6px 0; }
-.rs-value { font-size: 26px; font-weight: 750; letter-spacing: -.02em; }
 
 /* ---- Brokers ---- */
 .broker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px,1fr)); gap: 16px; }
@@ -998,11 +952,6 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .dash-charts .alloc-legend { font-size: 11px; padding-top: 0; }
 .dash-charts .alloc-legend .legend-row { padding: 2px 0; gap: 5px; }
 .dash-charts .alloc-legend .lr-pct { margin-left: auto; }
-
-/* Portfolio price stamp (anchored inside table-wrap, directly above column headers) */
-.price-stamp { font-size: 12px; color: var(--text-soft); padding: 6px 0 5px; display: flex; align-items: center; gap: 6px; }
-.link-btn { background: none; border: none; color: var(--brand); font-size: inherit; cursor: pointer; padding: 0; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
-.link-btn:hover { opacity: 0.75; }
 
 /* Column drag-to-reorder */
 
