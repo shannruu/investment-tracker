@@ -4274,11 +4274,11 @@ function pageHolding() {
       // the invisible column boundary does. Centering in five equal columns means the leftover
       // space on each side of every value is symmetric, so the row reads as evenly filled.
       const heads = [
-        { label: "Date", style: "width:20%;text-align:center" },
-        { label: `${t("Per Share")} (${esc(perShareCcy)})`, style: "width:20%;text-align:center" },
-        { label: `${t("Total")} (${esc(FX.base)})`, style: "width:20%;text-align:center" },
-        { label: `${t("Yield")}${yieldTip}`, style: "width:20%;text-align:center" },
-        { label: "Status", style: "width:20%;text-align:center" },
+        { label: "Date", style: "width:20%;text-align:left" },
+        { label: `${t("Per Share")} (${esc(perShareCcy)})`, style: "width:20%;text-align:left" },
+        { label: `${t("Total")} (${esc(FX.base)})`, style: "width:20%;text-align:left" },
+        { label: `${t("Yield")}${yieldTip}`, style: "width:20%;text-align:left" },
+        { label: "Status", style: "width:20%;text-align:left" },
       ];
       const titleTip = `<span class="col-info tip-down panel-hint" style="margin-left:10px" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${HOW_ICON_SVG}</span>`;
       return panel(`${t("Dividend Calendar")}${titleTip}`, `<div class="dcc-table-scroll">${table(heads, rows)}</div>`, `<div class="panel-head-actions">${filterSel}</div>`);
