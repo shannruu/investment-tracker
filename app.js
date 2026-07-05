@@ -4249,22 +4249,26 @@ function pageHolding() {
       const rows = filtered.map((r) => {
         const yieldPct = (h.hasPrice && h.currentPrice > 0 && r.perShareAmt != null) ? (r.perShareAmt / h.currentPrice * 100) : null;
         const isNext = nextIdx >= 0 && r === allRows[nextIdx];
-        return `<tr${isNext ? ` class="next-div-row"` : ""}><td>${fmtDate(r.date)}${isNext ? ` <span class="badge confirmed" style="margin-left:4px">${t("Next payment")}</span>` : ""}</td><td class="num">${r.perShareLbl}</td><td class="num">${money(r.amtMYR)}</td><td class="num">${yieldPct != null ? fmt(yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td><td>${statusBadge(r.status)}</td></tr>`;
+        return `<tr${isNext ? ` class="next-div-row"` : ""}><td>${fmtDate(r.date)}</td><td>${r.perShareLbl}</td><td>${money(r.amtMYR)}</td><td>${yieldPct != null ? fmt(yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td><td>${statusBadge(r.status)}${isNext ? ` <span class="badge confirmed">${t("Next payment")}</span>` : ""}</td></tr>`;
       }).join("");
-      const filterSel = `<div style="max-width:200px;margin-bottom:12px">${styledSelect("divCalFilter", [
+      const filterSel = `<div style="max-width:180px">${styledSelect("divCalFilter", [
         { value: "all", label: t("All") },
         { value: "past", label: t("Past") },
         { value: "upcoming", label: t("Upcoming") },
       ], holdingDivFilter, { id: "divCalFilterSel" })}</div>`;
       const yieldTip = ` <span class="col-info tip-down" data-tip="${esc(t("This payment as a % of the current share price — a per-payment figure, not the annualized TTM yield shown above."))}">${COL_INFO_ICON_SVG}</span>`;
+      // Left-aligned throughout (rather than right-aligning the numeric columns) so every
+      // column-to-column gap is just "column width minus content width" — consistent and
+      // predictable, instead of right-aligned cells visually clinging to the next column.
       const heads = [
-        { label: "Date", style: "width:20%" },
-        { label: "Per Share", num: 1, style: "width:16%" },
-        { label: "Amount (your shares)", num: 1, style: "width:22%" },
-        { label: `${t("Yield")}${yieldTip}`, num: 1, style: "width:14%" },
-        { label: "Status", style: "width:16%" },
+        { label: "Date", style: "width:16%" },
+        { label: "Per Share", style: "width:14%" },
+        { label: "Amount (your shares)", style: "width:20%" },
+        { label: `${t("Yield")}${yieldTip}`, style: "width:14%" },
+        { label: "Status", style: "width:36%" },
       ];
-      return panel("Dividend Calendar", `<p class="muted" style="font-size:12px;margin:-4px 0 10px">${t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above.")}</p>${filterSel}${table(heads, rows)}`);
+      const titleTip = ` <span class="col-info" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${COL_INFO_ICON_SVG}</span>`;
+      return panel(`${t("Dividend Calendar")}${titleTip}`, table(heads, rows), `<div class="panel-head-actions">${filterSel}</div>`);
     })()}
 
     ${panel("Transactions", txRows ? table([{label:"Date"},{label:"Type"},{label:"Qty",num:1},{label:"Price",num:1},{label:"Gross",num:1},{label:"Fee",num:1}], txRows) : emptyState(t("No transactions for this holding.")))}
