@@ -423,27 +423,13 @@ a { color: inherit; text-decoration: none; }
 .data-table th.num { text-align: right; }
 .data-table td { padding: 11px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; vertical-align: middle; }
 
-/* Dividend Calendar — wide row "cards" instead of a sparse table, so each row uses the
-   panel's full width via flexible groups rather than fixed narrow table columns. */
-.dcc-list { display: flex; flex-direction: column; max-height: 480px; overflow-y: auto; }
-.dcc-row {
-  display: flex; align-items: center; justify-content: space-between; gap: 20px;
-  padding: 16px 6px; border-bottom: 1px solid var(--border); flex-wrap: wrap;
-}
-.dcc-row:last-child { border-bottom: 0; }
-.dcc-row.dcc-next { background: color-mix(in srgb, var(--brand) 8%, transparent); border-radius: var(--radius); padding-left: 12px; padding-right: 12px; }
-.dcc-date { flex: 1 1 150px; }
-.dcc-date-main { font-weight: 700; font-size: 14.5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.dcc-stats { display: flex; flex: 3 1 300px; justify-content: space-between; flex-wrap: wrap; }
-.dcc-stat { text-align: center; min-width: 76px; }
-.dcc-stat-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--text-soft); font-weight: 700; margin-bottom: 4px; }
-.dcc-stat-val { font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
-.dcc-status { flex: 1 1 130px; text-align: right; }
-@media (max-width: 640px) {
-  .dcc-row { justify-content: flex-start; }
-  .dcc-stats { justify-content: flex-start; gap: 22px; width: 100%; order: 3; }
-  .dcc-status { order: 2; }
-}
+/* Dividend Calendar table: first 4 columns pinned to their natural content width in px;
+   Status is left unconstrained so it alone absorbs 100% of the leftover width. Because
+   Status is left-aligned, that leftover space trails harmlessly after the badge (like a
+   normal last-of-row column in a wide table) instead of stretching gaps between the
+   earlier, right-aligned numeric columns. */
+.dcc-table-scroll { max-height: 480px; overflow-y: auto; }
+.data-table tr.next-div-row td { background: color-mix(in srgb, var(--brand) 8%, transparent); }
 .data-table tr:last-child td { border-bottom: 0; }
 .data-table tbody tr:hover { background: var(--surface-2); }
 @media (hover: hover) {
