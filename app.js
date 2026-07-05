@@ -4195,15 +4195,13 @@ function pageHolding() {
       const patternNote = tInfo
         ? `${t("Pattern detected")}: ${tInfo.freq}${tInfo.growthPct ? `, ${tInfo.growthPct > 0 ? "+" : ""}${fmt(tInfo.growthPct, { maximumFractionDigits: 1 })}%/${t("payment")}` : ""} (${tInfo.source === "market history" ? t("from market dividend history") : t("from your logged dividends")}).`
         : t("Record at least 2 dividends for this holding to enable pattern-based estimates.");
-      const nextPay = tFc.nextPayments && tFc.nextPayments[0];
-      const lastPaid = marketHist[0];
-      const nextDivHighlight = nextPay ? `<p class="info-card" style="margin:0 0 14px">
-          <span class="w-ico">📅</span>
-          <span class="w-body"><strong>${t("Next Dividend")}</strong>: ${fmtDate(nextPay.payDate)} (${daysUntil(nextPay.payDate)} ${t("days")}) — ${t("est.")} ${money(nextPay.amtMYR)} ${t("for your")} ${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")}${nextPay.confirmed ? "" : ` (${t("estimated")})`}${lastPaid ? `<br><span class="muted" style="font-size:12px">${t("Last paid")}: ${esc(lastPaid.currency)} ${fmt(lastPaid.amount, { maximumFractionDigits: 4 })}/${t("share")} (${fmtDate(lastPaid.date)})</span>` : ""}</span>
-        </p>` : "";
-      const multiYear = (tFc.year2 > 0 || tFc.year3 > 0)
-        ? `${miniCard(t("Year 2"), tFc.year2 > 0 ? money(tFc.year2) : "—")}${miniCard(t("Year 3"), tFc.year3 > 0 ? money(tFc.year3) : "—")}` : "";
-      return panel("Dividend Summary", `${nextDivHighlight}<div class="mini-cards">
+      // Year 2 / Year 3 only earn their own cards when the forecast actually diverges from
+      // Next Year (i.e. growth was detected) — otherwise they just repeat the same number
+      // and add nothing "Next Year" hasn't already said.
+      const yearsDiffer = Math.abs(tFc.year2 - tFc.nextYear) > 0.5 || Math.abs(tFc.year3 - tFc.nextYear) > 0.5;
+      const multiYear = (tFc.year2 > 0 && yearsDiffer)
+        ? `${miniCard(t("Year 2"), money(tFc.year2))}${miniCard(t("Year 3"), tFc.year3 > 0 ? money(tFc.year3) : "—")}` : "";
+      return panel("Dividend Summary", `<div class="mini-cards">
         ${miniCard(t("Total Dividends Received"), money(totalDivReceived), "pos")}
         ${miniCard(t("Dividend Yield (TTM)"), h.marketValue ? fmt(tFc.ttm / h.marketValue * 100, { maximumFractionDigits: 2 }) + "%" : "—")}
         ${miniCard(t("Next Month"), tFc.nextMonth > 0 ? money(tFc.nextMonth) : "—")}
