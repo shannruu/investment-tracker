@@ -4172,7 +4172,7 @@ function pageHolding() {
       <div class="stat-value ${valCls}">${val}</div>
     </div>`;
   const positionPanel = panel("Position", `
-    <div class="metrics">
+    <div class="metrics pos-metrics">
       ${posStat(t("Market Value"), money(h.marketValue), "", "net")}
       ${posStat(t("Total Return"), signed(h.totalReturn), cls(h.totalReturn))}
       ${posStat(t("Shares Held"), fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }))}
@@ -4278,9 +4278,9 @@ function pageHolding() {
         { label: "Status", style: "width:20%;text-align:left" },
       ];
       const titleTip = `<span class="col-info tip-down panel-hint" style="margin-left:10px" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${HOW_ICON_SVG}</span>`;
-      // Only scroll once there's more than 10 rows to show — a short list shouldn't sit
+      // Only scroll once there's more than 5 rows to show — a short list shouldn't sit
       // inside a scroll container it doesn't need.
-      const scrollCls = filtered.length > 10 ? "dcc-table-scroll" : "";
+      const scrollCls = filtered.length > 5 ? "dcc-table-scroll" : "";
       return panel(`${t("Dividend Calendar")}${titleTip}`, `<div class="${scrollCls}">${table(heads, rows)}</div>`, `<div class="panel-head-actions">${filterSel}</div>`);
     })()}
 
