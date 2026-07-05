@@ -349,6 +349,7 @@ const ZH = {
   "Next Dividend": "下一次派息", "est.": "预估", "for your": "适用于您的", "shares": "股", "estimated": "预估值",
   "Last paid": "上次派发", "Per Share": "每股", "Est. for your shares": "您持股的预估金额",
   "Your Recorded Dividends": "您记录的股息", "Dividend Calendar": "股息日历", "Amount (your shares)": "金额（您的持股）",
+  "Market record": "市场记录（非您所持）",
   "Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above.": "此股票的真实派息记录（自动从市场数据获取）延续至以上预测所用的已确认／预估派息款项。",
   "The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment.": "您必须在此日期之前已持有该股票才能获得此次股息。若在此日期当天或之后才买入，将无法获得这次派息。",
   // Multi-currency cash + FX split fixes
@@ -1285,8 +1286,8 @@ function table(headers, rows) {
 }
 
 function statusBadge(s) {
-  const map = { Confirmed: "confirmed", Estimated: "warn", Paid: "pos", Cancelled: "neg", Unknown: "subtle", Received: "pos", Expected: "warn" };
-  return `<span class="badge ${map[s] || "subtle"}">${s}</span>`;
+  const map = { Confirmed: "confirmed", Estimated: "warn", Paid: "pos", Cancelled: "neg", Unknown: "subtle", Received: "pos", Expected: "warn", "Market record": "subtle" };
+  return `<span class="badge ${map[s] || "subtle"}">${t(s)}</span>`;
 }
 function typeChip(type) {
   const c = { Buy: "info", Sell: "neg", Dividend: "pos", Deposit: "subtle",
@@ -4155,11 +4156,11 @@ function pageHolding() {
 
   const cards = `<div class="cards">
     ${detailCard(t("Shares Held"), fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }))}
-    ${detailCard(t("Average Cost"), `${money(h.avgCost)}<div class="c-sub">${h.currency} ${fmt(h.avgCostLocal)} / ${t("share")}</div>`)}
+    ${detailCard(t("Average Cost"), `${money(h.avgCost)}${h.currency !== FX.base ? `<div class="c-sub">${h.currency} ${fmt(h.avgCostLocal)} / ${t("share")}</div>` : ""}`)}
     ${detailCard(t("Current Price"), priceLbl)}
     ${detailCard(t("Market Value"), money(h.marketValue))}
     ${detailCard(t("Cost Basis"), money(h.costBasis))}
-    ${detailCard(t("Unrealized P/L"), h.hasPrice ? `${signed(h.unrealized)}<div class="c-sub">${t("price")} ${signed(h.priceUnrealized)} · ${t("FX")} ${signed(h.fxUnrealized)}</div>` : "—", h.hasPrice ? cls(h.unrealized) : "")}
+    ${detailCard(t("Unrealized P/L"), h.hasPrice ? `${signed(h.unrealized)}${h.currency !== FX.base ? `<div class="c-sub">${t("price")} ${signed(h.priceUnrealized)} · ${t("FX")} ${signed(h.fxUnrealized)}</div>` : ""}` : "—", h.hasPrice ? cls(h.unrealized) : "")}
     ${detailCard(t("Realized P/L"), signed(h.realized), cls(h.realized))}
     ${detailCard(t("Net Dividends"), money(h.netDividends))}
     ${detailCard(t("Total Return"), signed(h.totalReturn), cls(h.totalReturn))}
@@ -4218,15 +4219,18 @@ function pageHolding() {
       // instead of two disconnected tables the user has to mentally stitch together.
       const perShareCcy = marketHist.length ? marketHist[0].currency : h.currency;
       const fxRate = FX.rates[perShareCcy] || 1;
+      // A past market payment only counts as something you were actually paid if you already
+      // held the position by then — otherwise it's just the stock's history, not your money.
+      const earliestTxDate = txs.length ? txs.reduce((min, x) => (x.date < min ? x.date : min), txs[0].date) : null;
       const pastRows = marketHist.map((d) => ({
         date: d.date,
-        perShare: `${esc(d.currency)} ${fmt(d.amount, { maximumFractionDigits: 4 })}`,
+        perShare: `${esc(d.currency)} ${fmt(d.amount, { maximumFractionDigits: 2 })}`,
         amtMYR: (d.amount || 0) * h.shares * (FX.rates[d.currency] || 1),
-        status: "Paid",
+        status: (earliestTxDate && d.date >= earliestTxDate) ? "Paid" : "Market record",
       }));
       const futureRows = (tFc.nextPayments || []).map((p) => ({
         date: p.payDate,
-        perShare: h.shares ? `${esc(perShareCcy)} ${fmt(p.amtMYR / h.shares / fxRate, { maximumFractionDigits: 4 })}` : "—",
+        perShare: h.shares ? `${esc(perShareCcy)} ${fmt(p.amtMYR / h.shares / fxRate, { maximumFractionDigits: 2 })}` : "—",
         amtMYR: p.amtMYR,
         status: p.confirmed ? "Confirmed" : "Estimated",
       }));
