@@ -4188,18 +4188,19 @@ function pageHolding() {
   const html = `
     <p style="margin:-4px 0 12px"><a class="link" href="#/portfolio">← ${t("Back to Portfolio")}</a></p>
     <div class="holding-head">
-      <div><div class="ticker" style="font-size:20px">${esc(h.ticker)}</div><div class="sub">${esc(h.company) || ""}</div></div>
-      <div class="holding-meta">
+      <div>
+        <div class="ticker" style="font-size:20px">${esc(h.ticker)}</div>
+        <div class="sub">${esc(h.company) || ""}</div>
         <div class="holding-chips">
           <span class="chip">${esc(brokerName(h.brokerId))}</span>
           <span class="chip">${esc(meta.country || h.country) || "—"}</span>
           ${meta.sector ? `<span class="chip">${esc(meta.sector)}</span>` : ""}
         </div>
-        <div class="holding-actions">
-          <button class="btn" id="dtlPrice">＄ ${t("Set price")}</button>
-          ${LIVE_ENABLED ? `<button class="btn" id="dtlLive">⟳ ${t("Live")}</button>` : ""}
-          <button class="btn ghost" id="dtlDelete">✕ ${t("Delete holding")}</button>
-        </div>
+      </div>
+      <div class="holding-actions">
+        <button class="btn" id="dtlPrice">＄ ${t("Set price")}</button>
+        ${LIVE_ENABLED ? `<button class="btn" id="dtlLive">⟳ ${t("Live")}</button>` : ""}
+        <button class="btn ghost" id="dtlDelete">✕ ${t("Delete holding")}</button>
       </div>
     </div>
     ${positionPanel}
@@ -4209,19 +4210,23 @@ function pageHolding() {
       const patternNote = tInfo
         ? `${t("Pattern detected")}: ${tInfo.freq}${tInfo.growthPct ? `, ${tInfo.growthPct > 0 ? "+" : ""}${fmt(tInfo.growthPct, { maximumFractionDigits: 1 })}%/${t("payment")}` : ""} (${tInfo.source === "market history" ? t("from market dividend history") : t("from your logged dividends")}).`
         : t("Record at least 2 dividends for this holding to enable pattern-based estimates.");
-      // Year 2 / Year 3 only earn their own cards when the forecast actually diverges from
+      // Year 2 / Year 3 only earn their own stats when the forecast actually diverges from
       // Next Year (i.e. growth was detected) — otherwise they just repeat the same number
       // and add nothing "Next Year" hasn't already said.
       const yearsDiffer = Math.abs(tFc.year2 - tFc.nextYear) > 0.5 || Math.abs(tFc.year3 - tFc.nextYear) > 0.5;
+      // Plain stat row instead of individually bordered cards — same "no boxes inside a box"
+      // treatment as the Position panel and Portfolio Health.
+      const stat = (label, val, valCls = "") => `<div class="plain-stat"><div class="mc-label">${label}</div><div class="mc-value ${valCls}">${val}</div></div>`;
       const multiYear = (tFc.year2 > 0 && yearsDiffer)
-        ? `${miniCard(t("Year 2"), money(tFc.year2))}${miniCard(t("Year 3"), tFc.year3 > 0 ? money(tFc.year3) : "—")}` : "";
-      return panel("Dividend Summary", `<div class="mini-cards">
-        ${miniCard(t("Total Dividends Received"), money(totalDivReceived), "pos")}
-        ${miniCard(t("Dividend Yield (TTM)"), h.marketValue ? fmt(tFc.ttm / h.marketValue * 100, { maximumFractionDigits: 2 }) + "%" : "—")}
-        ${miniCard(t("Next Month"), tFc.nextMonth > 0 ? money(tFc.nextMonth) : "—")}
-        ${miniCard(t("Next Quarter"), tFc.nextQuarter > 0 ? money(tFc.nextQuarter) : "—")}
-        ${miniCard(t("Next Year"), tFc.nextYear > 0 ? money(tFc.nextYear) : "—")}${multiYear}</div>
-        <p class="muted" style="font-size:12px;margin:8px 0 0">${patternNote}</p>`);
+        ? `${stat(t("Year 2"), money(tFc.year2))}${stat(t("Year 3"), tFc.year3 > 0 ? money(tFc.year3) : "—")}` : "";
+      return panel("Dividend Summary", `<div class="plain-stat-row">
+        ${stat(t("Total Dividends Received"), money(totalDivReceived), "pos")}
+        ${stat(t("Dividend Yield (TTM)"), h.marketValue ? fmt(tFc.ttm / h.marketValue * 100, { maximumFractionDigits: 2 }) + "%" : "—")}
+        ${stat(t("Next Month"), tFc.nextMonth > 0 ? money(tFc.nextMonth) : "—")}
+        ${stat(t("Next Quarter"), tFc.nextQuarter > 0 ? money(tFc.nextQuarter) : "—")}
+        ${stat(t("Next Year"), tFc.nextYear > 0 ? money(tFc.nextYear) : "—")}${multiYear}</div>
+        <div class="soft-divider"></div>
+        <p class="muted" style="font-size:12px;margin:0">${patternNote}</p>`);
     })()}
 
     ${(() => {
@@ -4255,7 +4260,7 @@ function pageHolding() {
         // Exactly one badge per row — the "next payment" row shows that instead of its
         // Confirmed/Estimated badge, rather than stacking two pills in the same cell.
         const statusCell = isNext ? `<span class="badge confirmed">${t("Next payment")}</span>` : statusBadge(r.status);
-        return `<tr${isNext ? ` class="next-div-row"` : ""}><td>${fmtDate(r.date)}</td><td class="num">${r.perShareAmt != null ? fmt(r.perShareAmt, { maximumFractionDigits: 2 }) : "—"}</td><td class="num">${fmt(r.amtMYR, { maximumFractionDigits: 2 })}</td><td class="num">${yieldPct != null ? fmt(yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td><td>${statusCell}</td></tr>`;
+        return `<tr${isNext ? ` class="next-div-row"` : ""}><td class="dcc-c">${fmtDate(r.date)}</td><td class="dcc-c">${r.perShareAmt != null ? fmt(r.perShareAmt, { maximumFractionDigits: 2 }) : "—"}</td><td class="dcc-c">${fmt(r.amtMYR, { maximumFractionDigits: 2 })}</td><td class="dcc-c">${yieldPct != null ? fmt(yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td><td class="dcc-c">${statusCell}</td></tr>`;
       }).join("");
       const filterSel = `<div style="width:150px">${styledSelect("divCalFilter", [
         { value: "all", label: t("All") },
@@ -4263,17 +4268,17 @@ function pageHolding() {
         { value: "upcoming", label: t("Upcoming") },
       ], holdingDivFilter, { id: "divCalFilterSel" })}</div>`;
       const yieldTip = ` <span class="col-info tip-down" data-tip="${esc(t("This payment as a % of the current share price — a per-payment figure, not the annualized TTM yield shown above. Identical values across rows reflect a flat, no-growth projection, not an error."))}">${COL_INFO_ICON_SVG}</span>`;
-      // The first 4 columns are pinned to their natural content width in px; Status is left
-      // deliberately unconstrained so it — and only it — absorbs 100% of the table's leftover
-      // width. Because Status is left-aligned, that leftover space trails harmlessly after the
-      // badge (like a normal last-of-row column in a wide table) instead of showing up as a
-      // stretched gap between the earlier, right-aligned numeric columns.
+      // Equal-width, center-aligned columns: every previous attempt at uneven widths (fixed
+      // px, one flexible column) still left content visually clustered to one side, because
+      // left/right-aligned text in an unevenly-sized column doesn't actually spread out — only
+      // the invisible column boundary does. Centering in five equal columns means the leftover
+      // space on each side of every value is symmetric, so the row reads as evenly filled.
       const heads = [
-        { label: "Date", style: "width:120px" },
-        { label: `${t("Per Share")} (${esc(perShareCcy)})`, num: 1, style: "width:130px" },
-        { label: `${t("Total")} (${esc(FX.base)})`, num: 1, style: "width:110px" },
-        { label: `${t("Yield")}${yieldTip}`, num: 1, style: "width:100px" },
-        { label: "Status" },
+        { label: "Date", style: "width:20%;text-align:center" },
+        { label: `${t("Per Share")} (${esc(perShareCcy)})`, style: "width:20%;text-align:center" },
+        { label: `${t("Total")} (${esc(FX.base)})`, style: "width:20%;text-align:center" },
+        { label: `${t("Yield")}${yieldTip}`, style: "width:20%;text-align:center" },
+        { label: "Status", style: "width:20%;text-align:center" },
       ];
       const titleTip = `<span class="col-info tip-down panel-hint" style="margin-left:10px" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${HOW_ICON_SVG}</span>`;
       return panel(`${t("Dividend Calendar")}${titleTip}`, `<div class="dcc-table-scroll">${table(heads, rows)}</div>`, `<div class="panel-head-actions">${filterSel}</div>`);
