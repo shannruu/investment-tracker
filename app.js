@@ -4264,12 +4264,18 @@ function pageHolding() {
       const heads = [
         { label: "Date" },
         { label: `${t("Per Share")} (${esc(perShareCcy)})`, num: 1 },
-        { label: `${t("Amount (your shares)")} (${esc(FX.base)})`, num: 1 },
+        { label: `${t("Total")} (${esc(FX.base)})`, num: 1 },
         { label: `${t("Yield")}${yieldTip}`, num: 1 },
         { label: "Status" },
       ];
       const titleTip = ` <span class="col-info" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${COL_INFO_ICON_SVG}</span>`;
-      return panel(`${t("Dividend Calendar")}${titleTip}`, table(heads, rows), `<div class="panel-head-actions">${filterSel}</div>`);
+      // A 5-column, narrow-content table stretched to the full panel width (~1800px) is what
+      // was actually creating the huge gaps between Date and the right-aligned numeric columns —
+      // the browser distributes that leftover width, and right-aligned cells absorb it by
+      // drifting away from their left neighbor. Capping the table to its natural content width
+      // removes the excess space to distribute in the first place, instead of fighting the
+      // symptom with per-column width tuning again.
+      return panel(`${t("Dividend Calendar")}${titleTip}`, `<div style="max-width:640px">${table(heads, rows)}</div>`, `<div class="panel-head-actions">${filterSel}</div>`);
     })()}
 
     ${panel("Transactions", txRows ? table([{label:"Date"},{label:"Type"},{label:"Qty",num:1},{label:"Price",num:1},{label:"Gross",num:1},{label:"Fee",num:1}], txRows) : emptyState(t("No transactions for this holding.")))}
