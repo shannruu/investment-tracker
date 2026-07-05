@@ -350,6 +350,8 @@ const ZH = {
   "Last paid": "上次派发", "Per Share": "每股", "Est. for your shares": "您持股的预估金额",
   "Your Recorded Dividends": "您记录的股息", "Dividend Calendar": "股息日历", "Amount (your shares)": "金额（您的持股）",
   "Market record": "市场记录（非您所持）",
+  "Past": "过去", "Upcoming": "即将到来", "Yield": "收益率", "Next payment": "下一次派息",
+  "This payment as a % of the current share price — a per-payment figure, not the annualized TTM yield shown above.": "此次派息占目前股价的百分比——为单次派息数值，并非以上显示的年化 TTM 收益率。",
   "Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above.": "此股票的真实派息记录（自动从市场数据获取）延续至以上预测所用的已确认／预估派息款项。",
   "The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment.": "您必须在此日期之前已持有该股票才能获得此次股息。若在此日期当天或之后才买入，将无法获得这次派息。",
   // Multi-currency cash + FX split fixes
@@ -4099,6 +4101,7 @@ function pageHelp() {
 /* =============================================================================
  * PAGE: HOLDING DETAIL  (#/holding/<encoded brokerId|ticker>)
  * ========================================================================== */
+let holdingDivFilter = "all";   // all | past | upcoming
 function detailCard(label, value, valCls = "") {
   return `<article class="card"><div class="c-label">${label}</div><div class="c-value ${valCls}">${value}</div></article>`;
 }
@@ -4217,24 +4220,44 @@ function pageHolding() {
       // instead of two disconnected tables the user has to mentally stitch together.
       const perShareCcy = marketHist.length ? marketHist[0].currency : h.currency;
       const fxRate = FX.rates[perShareCcy] || 1;
+      const today = todayISO();
       // A past market payment only counts as something you were actually paid if you already
       // held the position by then — otherwise it's just the stock's history, not your money.
       const earliestTxDate = txs.length ? txs.reduce((min, x) => (x.date < min ? x.date : min), txs[0].date) : null;
       const pastRows = marketHist.map((d) => ({
         date: d.date,
-        perShare: `${esc(d.currency)} ${fmt(d.amount, { maximumFractionDigits: 2 })}`,
+        perShareAmt: d.amount || 0,
+        perShareLbl: `${esc(d.currency)} ${fmt(d.amount, { maximumFractionDigits: 2 })}`,
         amtMYR: (d.amount || 0) * h.shares * (FX.rates[d.currency] || 1),
         status: (earliestTxDate && d.date >= earliestTxDate) ? "Paid" : "Market record",
       }));
-      const futureRows = (tFc.nextPayments || []).map((p) => ({
-        date: p.payDate,
-        perShare: h.shares ? `${esc(perShareCcy)} ${fmt(p.amtMYR / h.shares / fxRate, { maximumFractionDigits: 2 })}` : "—",
-        amtMYR: p.amtMYR,
-        status: p.confirmed ? "Confirmed" : "Estimated",
-      }));
-      const rows = [...pastRows, ...futureRows].sort((a, b) => (a.date < b.date ? -1 : 1))
-        .map((r) => `<tr><td>${fmtDate(r.date)}</td><td class="num">${r.perShare}</td><td class="num">${money(r.amtMYR)}</td><td>${statusBadge(r.status)}</td></tr>`).join("");
-      return panel("Dividend Calendar", `<p class="muted" style="font-size:12px;margin:-4px 0 10px">${t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above.")}</p>${table([{label:"Date"},{label:"Per Share",num:1},{label:"Amount (your shares)",num:1},{label:"Status"}], rows)}`);
+      const futureRows = (tFc.nextPayments || []).map((p) => {
+        const perShareAmt = h.shares ? p.amtMYR / h.shares / fxRate : null;
+        return {
+          date: p.payDate,
+          perShareAmt,
+          perShareLbl: perShareAmt != null ? `${esc(perShareCcy)} ${fmt(perShareAmt, { maximumFractionDigits: 2 })}` : "—",
+          amtMYR: p.amtMYR,
+          status: p.confirmed ? "Confirmed" : "Estimated",
+        };
+      });
+      const allRows = [...pastRows, ...futureRows].sort((a, b) => (a.date < b.date ? -1 : 1));
+      const nextIdx = allRows.findIndex((r) => r.date >= today);
+      const filtered = holdingDivFilter === "past" ? allRows.filter((r) => r.date < today)
+        : holdingDivFilter === "upcoming" ? allRows.filter((r) => r.date >= today)
+        : allRows;
+      const rows = filtered.map((r) => {
+        const yieldPct = (h.hasPrice && h.currentPrice > 0 && r.perShareAmt != null) ? (r.perShareAmt / h.currentPrice * 100) : null;
+        const isNext = nextIdx >= 0 && r === allRows[nextIdx];
+        return `<tr${isNext ? ` class="next-div-row"` : ""}><td>${fmtDate(r.date)}${isNext ? ` <span class="badge confirmed" style="margin-left:4px">${t("Next payment")}</span>` : ""}</td><td class="num">${r.perShareLbl}</td><td class="num">${money(r.amtMYR)}</td><td class="num">${yieldPct != null ? fmt(yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td><td>${statusBadge(r.status)}</td></tr>`;
+      }).join("");
+      const filterSeg = `<div class="seg seg-sm" id="divCalSeg" style="margin-bottom:12px">
+        <button class="seg-btn ${holdingDivFilter === "all" ? "on" : ""}" data-divcal="all">${t("All")}</button>
+        <button class="seg-btn ${holdingDivFilter === "past" ? "on" : ""}" data-divcal="past">${t("Past")}</button>
+        <button class="seg-btn ${holdingDivFilter === "upcoming" ? "on" : ""}" data-divcal="upcoming">${t("Upcoming")}</button>
+      </div>`;
+      const yieldTip = ` <span class="col-info tip-down" data-tip="${esc(t("This payment as a % of the current share price — a per-payment figure, not the annualized TTM yield shown above."))}">${COL_INFO_ICON_SVG}</span>`;
+      return panel("Dividend Calendar", `<p class="muted" style="font-size:12px;margin:-4px 0 10px">${t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above.")}</p>${filterSeg}<div style="max-width:820px">${table([{label:"Date"},{label:"Per Share",num:1},{label:"Amount (your shares)",num:1},{label:`${t("Yield")}${yieldTip}`,num:1},{label:"Status"}], rows)}</div>`);
     })()}
 
     ${panel("Transactions", txRows ? table([{label:"Date"},{label:"Type"},{label:"Qty",num:1},{label:"Price",num:1},{label:"Gross",num:1},{label:"Fee",num:1}], txRows) : emptyState(t("No transactions for this holding.")))}
@@ -4263,6 +4286,7 @@ function pageHolding() {
           toast(t("This holding comes from your transactions — delete the related transactions to remove it."));
         }
       });
+      $$("[data-divcal]").forEach((b) => b.addEventListener("click", () => { holdingDivFilter = b.dataset.divcal; render(); }));
     } };
 }
 
