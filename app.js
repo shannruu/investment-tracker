@@ -351,7 +351,7 @@ const ZH = {
   "Your Recorded Dividends": "您记录的股息", "Dividend Calendar": "股息日历", "Amount (your shares)": "金额（您的持股）",
   "Market record": "市场记录（非您所持）",
   "Past": "过去", "Upcoming": "即将到来", "Yield": "收益率", "Next payment": "下一次派息",
-  "This payment as a % of the current share price — a per-payment figure, not the annualized TTM yield shown above.": "此次派息占目前股价的百分比——为单次派息数值，并非以上显示的年化 TTM 收益率。",
+  "This payment as a % of the current share price — a per-payment figure, not the annualized TTM yield shown above. Identical values across rows reflect a flat, no-growth projection, not an error.": "此次派息占目前股价的百分比——为单次派息数值，并非以上显示的年化 TTM 收益率。多行数值相同，是因为预测採用无增长的平稳预估，并非错误。",
   "Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above.": "此股票的真实派息记录（自动从市场数据获取）延续至以上预测所用的已确认／预估派息款项。",
   "The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment.": "您必须在此日期之前已持有该股票才能获得此次股息。若在此日期当天或之后才买入，将无法获得这次派息。",
   // Multi-currency cash + FX split fixes
@@ -4227,20 +4227,15 @@ function pageHolding() {
       const pastRows = marketHist.map((d) => ({
         date: d.date,
         perShareAmt: d.amount || 0,
-        perShareLbl: `${esc(d.currency)} ${fmt(d.amount, { maximumFractionDigits: 2 })}`,
         amtMYR: (d.amount || 0) * h.shares * (FX.rates[d.currency] || 1),
         status: (earliestTxDate && d.date >= earliestTxDate) ? "Paid" : "Market record",
       }));
-      const futureRows = (tFc.nextPayments || []).map((p) => {
-        const perShareAmt = h.shares ? p.amtMYR / h.shares / fxRate : null;
-        return {
-          date: p.payDate,
-          perShareAmt,
-          perShareLbl: perShareAmt != null ? `${esc(perShareCcy)} ${fmt(perShareAmt, { maximumFractionDigits: 2 })}` : "—",
-          amtMYR: p.amtMYR,
-          status: p.confirmed ? "Confirmed" : "Estimated",
-        };
-      });
+      const futureRows = (tFc.nextPayments || []).map((p) => ({
+        date: p.payDate,
+        perShareAmt: h.shares ? p.amtMYR / h.shares / fxRate : null,
+        amtMYR: p.amtMYR,
+        status: p.confirmed ? "Confirmed" : "Estimated",
+      }));
       const allRows = [...pastRows, ...futureRows].sort((a, b) => (a.date < b.date ? -1 : 1));
       const nextIdx = allRows.findIndex((r) => r.date >= today);
       const filtered = holdingDivFilter === "past" ? allRows.filter((r) => r.date < today)
@@ -4249,23 +4244,29 @@ function pageHolding() {
       const rows = filtered.map((r) => {
         const yieldPct = (h.hasPrice && h.currentPrice > 0 && r.perShareAmt != null) ? (r.perShareAmt / h.currentPrice * 100) : null;
         const isNext = nextIdx >= 0 && r === allRows[nextIdx];
-        return `<tr${isNext ? ` class="next-div-row"` : ""}><td>${fmtDate(r.date)}</td><td>${r.perShareLbl}</td><td>${money(r.amtMYR)}</td><td>${yieldPct != null ? fmt(yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td><td>${statusBadge(r.status)}${isNext ? ` <span class="badge confirmed">${t("Next payment")}</span>` : ""}</td></tr>`;
+        // Exactly one badge per row (matches every other table in the app) — the "next payment"
+        // row shows that instead of its Confirmed/Estimated badge, rather than stacking two pills,
+        // which is what forced the Status column to reserve extra width in the first place.
+        const statusCell = isNext ? `<span class="badge confirmed">${t("Next payment")}</span>` : statusBadge(r.status);
+        return `<tr${isNext ? ` class="next-div-row"` : ""}><td>${fmtDate(r.date)}</td><td class="num">${r.perShareAmt != null ? fmt(r.perShareAmt, { maximumFractionDigits: 2 }) : "—"}</td><td class="num">${fmt(r.amtMYR, { maximumFractionDigits: 2 })}</td><td class="num">${yieldPct != null ? fmt(yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td><td>${statusCell}</td></tr>`;
       }).join("");
       const filterSel = `<div style="max-width:180px">${styledSelect("divCalFilter", [
         { value: "all", label: t("All") },
         { value: "past", label: t("Past") },
         { value: "upcoming", label: t("Upcoming") },
       ], holdingDivFilter, { id: "divCalFilterSel" })}</div>`;
-      const yieldTip = ` <span class="col-info tip-down" data-tip="${esc(t("This payment as a % of the current share price — a per-payment figure, not the annualized TTM yield shown above."))}">${COL_INFO_ICON_SVG}</span>`;
-      // Left-aligned throughout (rather than right-aligning the numeric columns) so every
-      // column-to-column gap is just "column width minus content width" — consistent and
-      // predictable, instead of right-aligned cells visually clinging to the next column.
+      const yieldTip = ` <span class="col-info tip-down" data-tip="${esc(t("This payment as a % of the current share price — a per-payment figure, not the annualized TTM yield shown above. Identical values across rows reflect a flat, no-growth projection, not an error."))}">${COL_INFO_ICON_SVG}</span>`;
+      // Right-aligned numeric columns (class="num") match every other table in this app
+      // (Portfolio Holdings, Transactions, Cash Ledger all do the same) — this also restores
+      // tabular-nums, which was lost as a side effect when "num" was dropped last round to
+      // chase an alignment complaint that was really a header/data mismatch, not right-align
+      // itself. Currency codes now live once in the header instead of repeating on every row.
       const heads = [
-        { label: "Date", style: "width:16%" },
-        { label: "Per Share", style: "width:14%" },
-        { label: "Amount (your shares)", style: "width:20%" },
-        { label: `${t("Yield")}${yieldTip}`, style: "width:14%" },
-        { label: "Status", style: "width:36%" },
+        { label: "Date" },
+        { label: `${t("Per Share")} (${esc(perShareCcy)})`, num: 1 },
+        { label: `${t("Amount (your shares)")} (${esc(FX.base)})`, num: 1 },
+        { label: `${t("Yield")}${yieldTip}`, num: 1 },
+        { label: "Status" },
       ];
       const titleTip = ` <span class="col-info" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${COL_INFO_ICON_SVG}</span>`;
       return panel(`${t("Dividend Calendar")}${titleTip}`, table(heads, rows), `<div class="panel-head-actions">${filterSel}</div>`);
