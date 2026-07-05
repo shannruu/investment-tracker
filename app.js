@@ -4105,7 +4105,7 @@ function pageHelp() {
 /* =============================================================================
  * PAGE: HOLDING DETAIL  (#/holding/<encoded brokerId|ticker>)
  * ========================================================================== */
-let holdingDivFilter = "all";   // all | past | upcoming
+let holdingDivFilter = "upcoming";   // all | past | upcoming
 function pageHolding() {
   const key = decodeURIComponent((location.hash.split("/")[2] || ""));
   const [brokerId, ticker] = key.split("|");
@@ -4162,15 +4162,18 @@ function pageHolding() {
     ? `${h.currentPriceCcy} ${fmt(h.currentPrice)} <span class="fx-note ${h.priceSource === "live" ? "live-price" : "manual-price"}">${h.priceSource === "live" ? t("Live") : t("Manual price")}</span>`
     : `<span class="muted">${t("No price set")}</span>`;
 
-  // Position snapshot: one unified stat bar (same "no individual card borders, thin vertical
-  // dividers" treatment as Dividend Summary) instead of 9 separate bordered cards or a
-  // hero-numbers-plus-text-strip split — every fact is equal weight, separated only by a
-  // divider line, consistent top to bottom.
+  // Position snapshot: reuses the Dashboard's own card system (.metrics/.stat/.stat.net)
+  // directly, rather than a bespoke component — same 6-column grid with each stat spanning
+  // 2 columns (3 per row, 2 even rows for 6 stats, so it never leaves an orphaned partial
+  // row), same brand-tinted border, same gradient "headline" treatment on Market Value.
   const openedRecently = earliestTxDate && (todayDate() - new Date(earliestTxDate + "T00:00:00")) < 7 * 86400000;
-  const posStat = (label, val, valCls = "", wrapCls = "") => `<div class="plain-stat ${wrapCls}"><div class="mc-label">${label}</div><div class="mc-value ${valCls}">${val}</div></div>`;
+  const posStat = (label, val, valCls = "", wrapCls = "") => `<div class="stat ${wrapCls}">
+      <div class="stat-head"><span class="stat-label">${label}</span></div>
+      <div class="stat-value ${valCls}">${val}</div>
+    </div>`;
   const positionPanel = panel("Position", `
-    <div class="plain-stat-row">
-      ${posStat(t("Market Value"), money(h.marketValue), "", "feature")}
+    <div class="metrics">
+      ${posStat(t("Market Value"), money(h.marketValue), "", "net")}
       ${posStat(t("Total Return"), signed(h.totalReturn), cls(h.totalReturn))}
       ${posStat(t("Shares Held"), fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }))}
       ${posStat(t("Average Cost"), money(h.avgCost))}
@@ -4275,7 +4278,10 @@ function pageHolding() {
         { label: "Status", style: "width:20%;text-align:left" },
       ];
       const titleTip = `<span class="col-info tip-down panel-hint" style="margin-left:10px" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${HOW_ICON_SVG}</span>`;
-      return panel(`${t("Dividend Calendar")}${titleTip}`, `<div class="dcc-table-scroll">${table(heads, rows)}</div>`, `<div class="panel-head-actions">${filterSel}</div>`);
+      // Only scroll once there's more than 10 rows to show — a short list shouldn't sit
+      // inside a scroll container it doesn't need.
+      const scrollCls = filtered.length > 10 ? "dcc-table-scroll" : "";
+      return panel(`${t("Dividend Calendar")}${titleTip}`, `<div class="${scrollCls}">${table(heads, rows)}</div>`, `<div class="panel-head-actions">${filterSel}</div>`);
     })()}
 
     ${(() => {
