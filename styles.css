@@ -230,16 +230,6 @@ a { color: inherit; text-decoration: none; }
 .holding-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .holding-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: none; }
 
-/* Position snapshot panel — two hero numbers instead of a grid of equal-weight cards.
-   Stats size to their own content (not stretched to fill the panel) so they sit together
-   near the left with a fixed gap, instead of anchoring at opposite edges of a wide panel
-   with an unexplained gap stranded in between. */
-.pos-hero { display: flex; gap: 64px; flex-wrap: wrap; }
-.pos-hero-stat { flex: 0 1 auto; min-width: 160px; }
-.pos-hero-stat .c-label { font-size: 12px; color: var(--muted); font-weight: 600; }
-.pos-hero-stat .c-sub { font-size: 12px; margin-top: 5px; color: var(--text-soft); }
-.pos-hero-val { font-size: 28px; font-weight: 750; letter-spacing: -.02em; margin-top: 4px; }
-.pos-meta { font-size: 14px; font-weight: 550; color: var(--text); margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
 .spin, .pf-refresh svg.spinning { animation: liveSpin .7s linear infinite; }
 @keyframes liveSpin { to { transform: rotate(360deg); } }
 .form .check { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-soft); }

@@ -4162,27 +4162,22 @@ function pageHolding() {
     ? `${h.currentPriceCcy} ${fmt(h.currentPrice)} <span class="fx-note ${h.priceSource === "live" ? "live-price" : "manual-price"}">${h.priceSource === "live" ? t("Live") : t("Manual price")}</span>`
     : `<span class="muted">${t("No price set")}</span>`;
 
-  // Position snapshot: was 9 equal-weight bordered cards (several of them pure restatements —
-  // Cost Basis = Shares x Avg Cost, Market Value = Shares x Price — and 4 that read exactly
-  // "0.00" for any freshly-opened holding). Replaced with one panel: two hero numbers that
-  // actually matter (Market Value, Total Return), a subline breaking Total Return into its
-  // components, and the remaining mechanical facts as a single plain-text strip instead of
-  // their own boxes.
+  // Position snapshot: one unified stat bar (same "no individual card borders, thin vertical
+  // dividers" treatment as Dividend Summary) instead of 9 separate bordered cards or a
+  // hero-numbers-plus-text-strip split — every fact is equal weight, separated only by a
+  // divider line, consistent top to bottom.
   const openedRecently = earliestTxDate && (todayDate() - new Date(earliestTxDate + "T00:00:00")) < 7 * 86400000;
+  const posStat = (label, val, valCls = "") => `<div class="plain-stat"><div class="mc-label">${label}</div><div class="mc-value ${valCls}">${val}</div></div>`;
   const positionPanel = panel("Position", `
-    <div class="pos-hero">
-      <div class="pos-hero-stat">
-        <div class="c-label">${t("Market Value")}</div>
-        <div class="pos-hero-val">${money(h.marketValue)}</div>
-      </div>
-      <div class="pos-hero-stat">
-        <div class="c-label">${t("Total Return")}</div>
-        <div class="pos-hero-val ${cls(h.totalReturn)}">${signed(h.totalReturn)}</div>
-        <div class="c-sub" style="margin-top:4px">${t("Unrealized P/L")} ${signed(h.unrealized)} · ${t("Realized P/L")} ${signed(h.realized)} · ${t("Net Dividends")} ${money(h.netDividends)}</div>
-      </div>
+    <div class="plain-stat-row">
+      ${posStat(t("Market Value"), money(h.marketValue))}
+      ${posStat(t("Total Return"), signed(h.totalReturn), cls(h.totalReturn))}
+      ${posStat(t("Shares Held"), fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }))}
+      ${posStat(t("Average Cost"), money(h.avgCost))}
+      ${posStat(t("Current Price"), priceLbl)}
+      ${posStat(t("Cost Basis"), money(h.costBasis))}
     </div>
-    <p class="pos-meta">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} · ${t("Average Cost")} ${money(h.avgCost)} · ${t("Current Price")} ${priceLbl} · ${t("Cost Basis")} ${money(h.costBasis)}</p>
-    ${openedRecently ? `<p class="muted" style="font-size:12px;margin:12px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}
+    ${openedRecently ? `<p class="muted" style="font-size:12px;margin:16px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}
   `);
 
   const html = `
