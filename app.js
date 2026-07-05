@@ -4251,13 +4251,20 @@ function pageHolding() {
         const isNext = nextIdx >= 0 && r === allRows[nextIdx];
         return `<tr${isNext ? ` class="next-div-row"` : ""}><td>${fmtDate(r.date)}${isNext ? ` <span class="badge confirmed" style="margin-left:4px">${t("Next payment")}</span>` : ""}</td><td class="num">${r.perShareLbl}</td><td class="num">${money(r.amtMYR)}</td><td class="num">${yieldPct != null ? fmt(yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td><td>${statusBadge(r.status)}</td></tr>`;
       }).join("");
-      const filterSeg = `<div class="seg seg-sm" id="divCalSeg" style="margin-bottom:12px">
-        <button class="seg-btn ${holdingDivFilter === "all" ? "on" : ""}" data-divcal="all">${t("All")}</button>
-        <button class="seg-btn ${holdingDivFilter === "past" ? "on" : ""}" data-divcal="past">${t("Past")}</button>
-        <button class="seg-btn ${holdingDivFilter === "upcoming" ? "on" : ""}" data-divcal="upcoming">${t("Upcoming")}</button>
-      </div>`;
+      const filterSel = `<div style="max-width:200px;margin-bottom:12px">${styledSelect("divCalFilter", [
+        { value: "all", label: t("All") },
+        { value: "past", label: t("Past") },
+        { value: "upcoming", label: t("Upcoming") },
+      ], holdingDivFilter, { id: "divCalFilterSel" })}</div>`;
       const yieldTip = ` <span class="col-info tip-down" data-tip="${esc(t("This payment as a % of the current share price — a per-payment figure, not the annualized TTM yield shown above."))}">${COL_INFO_ICON_SVG}</span>`;
-      return panel("Dividend Calendar", `<p class="muted" style="font-size:12px;margin:-4px 0 10px">${t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above.")}</p>${filterSeg}<div style="max-width:820px">${table([{label:"Date"},{label:"Per Share",num:1},{label:"Amount (your shares)",num:1},{label:`${t("Yield")}${yieldTip}`,num:1},{label:"Status"}], rows)}</div>`);
+      const heads = [
+        { label: "Date", style: "width:20%" },
+        { label: "Per Share", num: 1, style: "width:16%" },
+        { label: "Amount (your shares)", num: 1, style: "width:22%" },
+        { label: `${t("Yield")}${yieldTip}`, num: 1, style: "width:14%" },
+        { label: "Status", style: "width:16%" },
+      ];
+      return panel("Dividend Calendar", `<p class="muted" style="font-size:12px;margin:-4px 0 10px">${t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above.")}</p>${filterSel}${table(heads, rows)}`);
     })()}
 
     ${panel("Transactions", txRows ? table([{label:"Date"},{label:"Type"},{label:"Qty",num:1},{label:"Price",num:1},{label:"Gross",num:1},{label:"Fee",num:1}], txRows) : emptyState(t("No transactions for this holding.")))}
@@ -4286,7 +4293,8 @@ function pageHolding() {
           toast(t("This holding comes from your transactions — delete the related transactions to remove it."));
         }
       });
-      $$("[data-divcal]").forEach((b) => b.addEventListener("click", () => { holdingDivFilter = b.dataset.divcal; render(); }));
+      const dcf = $("#divCalFilterSel");
+      if (dcf) dcf.addEventListener("change", () => { holdingDivFilter = dcf.value; render(); });
     } };
 }
 
