@@ -351,6 +351,9 @@ const ZH = {
   "Your Recorded Dividends": "您记录的股息", "Dividend Calendar": "股息日历", "Amount (your shares)": "金额（您的持股）",
   "Market record": "市场记录",
   "Past": "过去", "Upcoming": "即将到来", "Yield": "收益率", "Next payment": "下一次派息",
+  "This is the ex-dividend date — the cutoff for already owning the stock to qualify — not the payment date. Actual payment into your account typically follows 2-4 weeks later; market data sources report the ex-date only, so that's what's shown here.": "这是除息日——决定您是否持股以符合领取资格的截止日期——并非派息（入账）日期。实际款项入账通常在此之后 2 至 4 周才发生；市场数据来源只提供除息日，因此这里显示的即为除息日。",
+  "Not logged": "尚未记录",
+  "Log this in \"Your Recorded Dividends\" below (via Add → Dividend) to include it in Total Dividends Received.": "请在下方「您记录的股息」中记录此笔股息（透过「新增 → 股息」），以将其计入总收股息。",
   "Position": "持仓概况", "Position opened": "持仓建立于",
   "unrealized P/L, realized P/L and dividends will build up over time.": "未实现盈亏、已实现盈亏和股息将随时间累积。",
   "Full trade history for this holding": "此持仓的完整交易记录",
@@ -1292,7 +1295,7 @@ function table(headers, rows) {
 }
 
 function statusBadge(s) {
-  const map = { Confirmed: "confirmed", Estimated: "warn", Paid: "pos", Cancelled: "neg", Unknown: "subtle", Received: "pos", Expected: "warn", "Market record": "subtle" };
+  const map = { Confirmed: "confirmed", Estimated: "warn", Paid: "pos", Cancelled: "neg", Unknown: "subtle", Received: "pos", Expected: "warn", "Market record": "subtle", "Not logged": "warn" };
   return `<span class="badge ${map[s] || "subtle"}">${t(s)}</span>`;
 }
 function typeChip(type) {
@@ -3222,9 +3225,26 @@ function dividendForecast(received, upcoming) {
     const freqDays = avgInterval < 50 ? 30 : avgInterval < 110 ? 91 : avgInterval < 220 ? 182 : 365;
     const freqLabel = freqDays === 30 ? t("monthly") : freqDays === 91 ? t("quarterly") : freqDays === 182 ? t("semi-annual") : t("annual");
 
-    // Growth rate per payment: recent 3 payments vs the 3 before that.
+    // Growth rate per payment. For anything paying more than once a year, compare each
+    // payment to the same position in the cycle one year back (this March vs last March,
+    // this September vs last September) rather than a blunt last-3-vs-prior-3 average —
+    // that avoids conflating e.g. a smaller interim with a larger final dividend as if it
+    // were a trend, and can detect a real pattern from just 2 cycles (4 payments) instead
+    // of needing 6. Falls back to the last-3-vs-prior-3 method for annual payers or when
+    // there isn't enough same-season history yet.
     let growthPerPayment = 0;
-    if (sorted.length >= 6) {
+    const paymentsPerYear = freqDays <= 31 ? 12 : freqDays <= 100 ? 4 : freqDays <= 200 ? 2 : 1;
+    if (paymentsPerYear >= 2 && sorted.length >= paymentsPerYear * 2) {
+      const seasonGrowths = [];
+      for (let i = sorted.length - 1; i >= paymentsPerYear; i--) {
+        const cur = sorted[i].net, prev = sorted[i - paymentsPerYear].net;
+        if (prev > 0) seasonGrowths.push(cur / prev - 1);
+      }
+      if (seasonGrowths.length) {
+        const avgSeasonGrowth = seasonGrowths.reduce((s, v) => s + v, 0) / seasonGrowths.length;
+        growthPerPayment = Math.max(-0.25, Math.min(0.25, Math.pow(1 + avgSeasonGrowth, 1 / paymentsPerYear) - 1));
+      }
+    } else if (sorted.length >= 6) {
       const recent3 = sorted.slice(-3), prior3 = sorted.slice(-6, -3);
       const recentAvg = recent3.reduce((s, d) => s + d.net, 0) / 3;
       const priorAvg = prior3.reduce((s, d) => s + d.net, 0) / 3;
@@ -4123,17 +4143,20 @@ function pageHolding() {
   // held the position by then — otherwise it's just the stock's history, not your money.
   // Also used to flag a freshly-opened position so its zero P/L figures don't read as broken.
   const earliestTxDate = txs.length ? txs.reduce((min, x) => (x.date < min ? x.date : min), txs[0].date) : null;
-  const txRows = txs.map((x) => `<tr><td>${fmtDate(x.date)}</td><td>${typeChip(x.type)}</td>
-    <td class="num">${x.qty != null ? fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 }) : "—"}</td>
-    <td class="num">${x.price != null ? x.currency + " " + fmt(x.price) : "—"}</td>
-    <td class="num">${x.gross != null ? x.currency + " " + fmt(x.gross) : "—"}</td>
-    <td class="num">${x.fee ? x.currency + " " + fmt(x.fee) : "—"}</td></tr>`).join("");
+  // Left-aligned, equal-width columns — same convention as the Dividend Calendar table,
+  // rather than the app-wide right-aligned ".num" numeric style, so the two tables on this
+  // page read consistently instead of one being right-aligned and the other left-aligned.
+  const txRows = txs.map((x) => `<tr><td class="dcc-c">${fmtDate(x.date)}</td><td class="dcc-c">${typeChip(x.type)}</td>
+    <td class="dcc-c">${x.qty != null ? fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 }) : "—"}</td>
+    <td class="dcc-c">${x.price != null ? x.currency + " " + fmt(x.price) : "—"}</td>
+    <td class="dcc-c">${x.gross != null ? x.currency + " " + fmt(x.gross) : "—"}</td>
+    <td class="dcc-c">${x.fee ? x.currency + " " + fmt(x.fee) : "—"}</td></tr>`).join("");
   const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && (x.ticker || "").toUpperCase() === tk)
     .sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1));
   const divRows = divs.map((d) => { const net = (+d.gross || 0) - (+d.tax || 0); const fx = d.fxRate || FX.rates[d.currency] || 1;
-    return `<tr><td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate || d.date)}</td><td class="num">${esc(d.currency)} ${fmt(d.gross)}</td>
-      <td class="num neg">${d.tax ? "−" + fmt(d.tax) : "0.00"}</td><td class="num pos">${esc(d.currency)} ${fmt(net)}</td>
-      <td class="num">${money(net * fx)}</td><td>${statusBadge(d.status || "Received")}</td></tr>`; }).join("");
+    return `<tr><td class="dcc-c">${fmtDate(d.exDate)}</td><td class="dcc-c">${fmtDate(d.payDate || d.date)}</td><td class="dcc-c">${esc(d.currency)} ${fmt(d.gross)}</td>
+      <td class="dcc-c neg">${d.tax ? "−" + fmt(d.tax) : "0.00"}</td><td class="dcc-c pos">${esc(d.currency)} ${fmt(net)}</td>
+      <td class="dcc-c">${money(net * fx)}</td><td class="dcc-c">${statusBadge(d.status || "Received")}</td></tr>`; }).join("");
 
   // Per-ticker dividend analytics + forecast + charts (F1)
   const tReceived = divs.filter((d) => d.status !== "Expected");
@@ -4162,25 +4185,25 @@ function pageHolding() {
     ? `${h.currentPriceCcy} ${fmt(h.currentPrice)} <span class="fx-note ${h.priceSource === "live" ? "live-price" : "manual-price"}">${h.priceSource === "live" ? t("Live") : t("Manual price")}</span>`
     : `<span class="muted">${t("No price set")}</span>`;
 
-  // Position snapshot: reuses the Dashboard's own card system (.metrics/.stat/.stat.net)
-  // directly, rather than a bespoke component — same 6-column grid with each stat spanning
-  // 2 columns (3 per row, 2 even rows for 6 stats, so it never leaves an orphaned partial
-  // row), same brand-tinted border, same gradient "headline" treatment on Market Value.
+  // Position snapshot: only 3 things here are independent facts (Shares Held, Average Cost,
+  // Current Price) — Market Value and Cost Basis are pure arithmetic on those (Shares x Price,
+  // Shares x Avg Cost), not new information. Showing all 6 as equal-weight cards was really
+  // just 3 numbers said 6 ways. Cards now: Market Value (the headline), Total Return (the
+  // bottom line), Current Price (the live data point) — same Dashboard card system, 3-per-row
+  // via its default span. The static/derived facts move to one plain descriptive line below.
   const openedRecently = earliestTxDate && (todayDate() - new Date(earliestTxDate + "T00:00:00")) < 7 * 86400000;
   const posStat = (label, val, valCls = "", wrapCls = "") => `<div class="stat ${wrapCls}">
       <div class="stat-head"><span class="stat-label">${label}</span></div>
       <div class="stat-value ${valCls}">${val}</div>
     </div>`;
   const positionPanel = panel("Position", `
-    <div class="metrics pos-metrics">
+    <div class="metrics">
       ${posStat(t("Market Value"), money(h.marketValue), "", "net")}
       ${posStat(t("Total Return"), signed(h.totalReturn), cls(h.totalReturn))}
-      ${posStat(t("Shares Held"), fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }))}
-      ${posStat(t("Average Cost"), money(h.avgCost))}
       ${posStat(t("Current Price"), priceLbl)}
-      ${posStat(t("Cost Basis"), money(h.costBasis))}
     </div>
-    ${openedRecently ? `<p class="muted" style="font-size:12px;margin:16px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}
+    <p style="font-size:14px;margin:14px 0 0">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} · ${t("Average Cost")} ${money(h.avgCost)} · ${t("Cost Basis")} ${money(h.costBasis)}</p>
+    ${openedRecently ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}
   `);
 
   const html = `
@@ -4234,18 +4257,38 @@ function pageHolding() {
       const perShareCcy = marketHist.length ? marketHist[0].currency : h.currency;
       const fxRate = FX.rates[perShareCcy] || 1;
       const today = todayISO();
-      const pastRows = marketHist.map((d) => ({
-        date: d.date,
-        perShareAmt: d.amount || 0,
-        amtMYR: (d.amount || 0) * h.shares * (FX.rates[d.currency] || 1),
-        status: (earliestTxDate && d.date >= earliestTxDate) ? "Paid" : "Market record",
-      }));
-      const futureRows = (tFc.nextPayments || []).map((p) => ({
-        date: p.payDate,
-        perShareAmt: h.shares ? p.amtMYR / h.shares / fxRate : null,
-        amtMYR: p.amtMYR,
-        status: p.confirmed ? "Confirmed" : "Estimated",
-      }));
+      // A market-history row from while you held the position doesn't mean you've actually
+      // logged receiving it — "Total Dividends Received" only counts what's in "Your Recorded
+      // Dividends" below. Cross-check against your own logged dividends (within a loose ±10
+      // day window, since ex-date here vs. your logged pay date won't line up exactly) so the
+      // badge honestly distinguishes "you recorded this" from "you were eligible but haven't."
+      const loggedDivDates = divs.map((dv) => dv.payDate || dv.date).filter(Boolean).map((ds) => new Date(ds + "T00:00:00").getTime());
+      const pastRows = marketHist.map((d) => {
+        const heldAtTime = earliestTxDate && d.date >= earliestTxDate;
+        const dTime = new Date(d.date + "T00:00:00").getTime();
+        const logged = heldAtTime && loggedDivDates.some((t) => Math.abs(t - dTime) <= 10 * 86400000);
+        return {
+          date: d.date,
+          perShareAmt: d.amount || 0,
+          amtMYR: (d.amount || 0) * h.shares * (FX.rates[d.currency] || 1),
+          status: !heldAtTime ? "Market record" : logged ? "Received" : "Not logged",
+        };
+      });
+      // Confirmed payments (real declared dividends) show regardless of how far out they are —
+      // that's real, decided data. But algorithmically "Estimated" rows are a guess, and the
+      // company hasn't actually declared them yet — showing years of them reads as far more
+      // certain than it is, so those are capped to the next 12 months (matching the "Next
+      // Year" window already shown above) rather than the full 3-year projection horizon.
+      const oneYearOut = new Date(todayDate()); oneYearOut.setFullYear(oneYearOut.getFullYear() + 1);
+      const oneYearOutStr = oneYearOut.toISOString().slice(0, 10);
+      const futureRows = (tFc.nextPayments || [])
+        .filter((p) => p.confirmed || p.payDate <= oneYearOutStr)
+        .map((p) => ({
+          date: p.payDate,
+          perShareAmt: h.shares ? p.amtMYR / h.shares / fxRate : null,
+          amtMYR: p.amtMYR,
+          status: p.confirmed ? "Confirmed" : "Estimated",
+        }));
       const allRows = [...pastRows, ...futureRows].sort((a, b) => (a.date < b.date ? -1 : 1));
       const nextIdx = allRows.findIndex((r) => r.date >= today);
       const filtered = holdingDivFilter === "past" ? allRows.filter((r) => r.date < today)
@@ -4270,8 +4313,9 @@ function pageHolding() {
       // left/right-aligned text in an unevenly-sized column doesn't actually spread out — only
       // the invisible column boundary does. Centering in five equal columns means the leftover
       // space on each side of every value is symmetric, so the row reads as evenly filled.
+      const dateTip = ` <span class="col-info tip-down" data-tip="${esc(t("This is the ex-dividend date — the cutoff for already owning the stock to qualify — not the payment date. Actual payment into your account typically follows 2-4 weeks later; market data sources report the ex-date only, so that's what's shown here."))}">${COL_INFO_ICON_SVG}</span>`;
       const heads = [
-        { label: "Date", style: "width:20%;text-align:left" },
+        { label: `${t("Date")}${dateTip}`, style: "width:20%;text-align:left" },
         { label: `${t("Per Share")} (${esc(perShareCcy)})`, style: "width:20%;text-align:left" },
         { label: `${t("Total")} (${esc(FX.base)})`, style: "width:20%;text-align:left" },
         { label: `${t("Yield")}${yieldTip}`, style: "width:20%;text-align:left" },
@@ -4299,11 +4343,18 @@ function pageHolding() {
 
     <details class="panel addhold">
       <summary><span class="addhold-head"><span class="addhold-title">${t("Transactions")} (${txs.length})</span><span class="addhold-sub">${t("Full trade history for this holding")}</span></span></summary>
-      <div class="addhold-body">${txRows ? table([{label:"Date"},{label:"Type"},{label:"Qty",num:1},{label:"Price",num:1},{label:"Gross",num:1},{label:"Fee",num:1}], txRows) : emptyState(t("No transactions for this holding."))}</div>
+      <div class="addhold-body">${txRows ? table([
+        {label:"Date", style:"width:16.6%"},{label:"Type", style:"width:16.6%"},{label:"Qty", style:"width:16.6%"},
+        {label:"Price", style:"width:16.6%"},{label:"Gross", style:"width:16.6%"},{label:"Fee", style:"width:16.6%"},
+      ], txRows) : emptyState(t("No transactions for this holding."))}</div>
     </details>
     <details class="panel addhold">
       <summary><span class="addhold-head"><span class="addhold-title">${t("Your Recorded Dividends")} (${divs.length})</span><span class="addhold-sub">${t("Dividends you've manually logged for this holding")}</span></span></summary>
-      <div class="addhold-body">${divRows ? table([{label:`${t("Ex-Date")} <span class="col-info tip-down" data-tip="${esc(t("The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment."))}">${COL_INFO_ICON_SVG}</span>`},{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], divRows) : emptyState(t("No dividends recorded for this holding."))}</div>
+      <div class="addhold-body">${divRows ? table([
+        {label:`${t("Ex-Date")} <span class="col-info tip-down" data-tip="${esc(t("The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment."))}">${COL_INFO_ICON_SVG}</span>`, style:"width:14.3%"},
+        {label:"Payment", style:"width:14.3%"},{label:"Gross", style:"width:14.3%"},{label:"Tax", style:"width:14.3%"},
+        {label:"Net", style:"width:14.3%"},{label:"In MYR", style:"width:14.3%"},{label:"Status", style:"width:14.3%"},
+      ], divRows) : emptyState(t("No dividends recorded for this holding."))}</div>
     </details>`;
 
   return { title: h.ticker, subtitle: h.company || t("Holding detail"), html,
@@ -4331,6 +4382,16 @@ function pageHolding() {
       });
       const dcf = $("#divCalFilterSel");
       if (dcf) dcf.addEventListener("change", () => { holdingDivFilter = dcf.value; render(); });
+      // AUTO_DIV_CACHE is in-memory only (not persisted) and was previously only ever
+      // populated by the Dashboard's or Reports page's mount() — landing here directly
+      // (bookmark, back-button, or a hard refresh while already on this page) left it
+      // empty with nothing to re-fetch it, hiding the Dividend Calendar even though the
+      // underlying holding data was fine. Fetch it here too, same pattern as those pages.
+      if (LIVE_ENABLED) {
+        fetchAllDivSchedules().then(({ fetched }) => {
+          if (fetched && document.getElementById("dtlPrice")) render();
+        });
+      }
     } };
 }
 
