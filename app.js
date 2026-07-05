@@ -353,7 +353,8 @@ const ZH = {
   "Past": "过去", "Upcoming": "即将到来", "Yield": "收益率", "Next payment": "下一次派息",
   "This is the ex-dividend date — the cutoff for already owning the stock to qualify — not the payment date. Actual payment into your account typically follows 2-4 weeks later; market data sources report the ex-date only, so that's what's shown here.": "这是除息日——决定您是否持股以符合领取资格的截止日期——并非派息（入账）日期。实际款项入账通常在此之后 2 至 4 周才发生；市场数据来源只提供除息日，因此这里显示的即为除息日。",
   "Not logged": "尚未记录",
-  "Log this in \"Your Recorded Dividends\" below (via Add → Dividend) to include it in Total Dividends Received.": "请在下方「您记录的股息」中记录此笔股息（透过「新增 → 股息」），以将其计入总收股息。",
+  "Auto-logged from market dividend history — review the tax withheld.": "已根据市场股息记录自动登记——请自行核对预扣税金额。",
+  "dividends auto-logged from market history": "笔股息已根据市场记录自动登记",
   "Position": "持仓概况", "Position opened": "持仓建立于",
   "unrealized P/L, realized P/L and dividends will build up over time.": "未实现盈亏、已实现盈亏和股息将随时间累积。",
   "Full trade history for this holding": "此持仓的完整交易记录",
@@ -1113,6 +1114,44 @@ async function fetchDivHistory(ticker) {
   } catch (e) { return { ok: false, divs: null }; }
 }
 
+/* Auto-log dividends you're eligible for (held the stock on/after its ex-date) but haven't
+ * recorded yet — same eligibility check the Holding Detail calendar's "Not logged" badge
+ * uses. Creates real "Dividend" transactions (0 tax withheld — edit afterward if it differs)
+ * so Total Dividends Received and the rest of the ledger reflect them without manual entry.
+ * Idempotent: re-running skips anything already logged (by itself or by hand), matched by
+ * ticker/broker and a ±10-day date window. Returns how many were newly logged. */
+function autoSyncDividends() {
+  const today = todayISO();
+  let added = 0;
+  T.holdings.forEach((h) => {
+    const marketHist = AUTO_DIV_CACHE[h.ticker];
+    if (!marketHist || !marketHist.length) return;
+    const holdingTxs = ALL_TRANSACTIONS.filter((x) => x.brokerId === h.brokerId && (x.ticker || "").toUpperCase() === h.ticker.toUpperCase());
+    if (!holdingTxs.length) return;
+    const earliestTxDate = holdingTxs.reduce((min, x) => (x.date < min ? x.date : min), holdingTxs[0].date);
+    const loggedDates = ALL_TRANSACTIONS
+      .filter((x) => x.type === "Dividend" && x.brokerId === h.brokerId && (x.ticker || "").toUpperCase() === h.ticker.toUpperCase())
+      .map((dv) => dv.payDate || dv.date).filter(Boolean).map((ds) => new Date(ds + "T00:00:00").getTime());
+    marketHist.forEach((d) => {
+      if (d.date < earliestTxDate || d.date > today) return;   // before you held it, or hasn't happened yet
+      const dTime = new Date(d.date + "T00:00:00").getTime();
+      if (loggedDates.some((t) => Math.abs(t - dTime) <= 10 * 86400000)) return;   // already logged
+      const fxRate = FX.rates[d.currency] || 1;
+      const gross = (d.amount || 0) * h.shares;
+      ALL_TRANSACTIONS.unshift({
+        id: uid("t"), date: d.date, brokerId: h.brokerId, type: "Dividend",
+        ticker: h.ticker, company: h.company || "", market: h.market || "",
+        currency: d.currency, gross, tax: 0, fxRate, myrEquivalent: gross * fxRate,
+        status: "Received", paidTo: "broker", exDate: d.date, payDate: d.date,
+        notes: t("Auto-logged from market dividend history — review the tax withheld."),
+      });
+      loggedDates.push(dTime);   // don't double-log within the same pass
+      added++;
+    });
+  });
+  return added;
+}
+
 /* Populate AUTO_DIV_CACHE for every held ticker concurrently, any market.
  * Returns { fetched, hadError } — hadError lets the dividends page tell the
  * user a schedule check actually failed instead of quietly showing "nothing
@@ -1128,6 +1167,11 @@ async function fetchAllDivSchedules() {
     if (res.divs && res.divs.length) AUTO_DIV_CACHE[ticker] = res.divs;
     else delete AUTO_DIV_CACHE[ticker];
   }));
+  const autoLogged = autoSyncDividends();
+  if (autoLogged) {
+    saveStore();
+    toast(`${autoLogged} ${t("dividends auto-logged from market history")}`);
+  }
   return { fetched: true, hadError };
 }
 
