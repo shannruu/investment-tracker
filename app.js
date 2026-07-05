@@ -348,8 +348,8 @@ const ZH = {
   "This holding no longer exists (fully sold or deleted). Its realized P/L still counts in your totals.": "此持仓已不存在（已全部卖出或删除）。其已实现盈亏仍计入您的总额。",
   "Next Dividend": "下一次派息", "est.": "预估", "for your": "适用于您的", "shares": "股", "estimated": "预估值",
   "Last paid": "上次派发", "Per Share": "每股", "Est. for your shares": "您持股的预估金额",
-  "Market Dividend History": "市场派息记录", "Your Recorded Dividends": "您记录的股息", "Upcoming & Projected Dividends": "即将到来及预测的股息",
-  "Real dividend payments for this stock, fetched automatically from market data — this is what powers the estimates above, not something you entered.": "此股票的真实派息记录，自动从市场数据获取——以上的预估数值即由此推算，并非您手动输入的内容。",
+  "Your Recorded Dividends": "您记录的股息", "Dividend Calendar": "股息日历", "Amount (your shares)": "金额（您的持股）",
+  "Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above.": "此股票的真实派息记录（自动从市场数据获取）延续至以上预测所用的已确认／预估派息款项。",
   "The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment.": "您必须在此日期之前已持有该股票才能获得此次股息。若在此日期当天或之后才买入，将无法获得这次派息。",
   // Multi-currency cash + FX split fixes
   "To amount (received)": "兑入金额（收到）", "Implied rate": "隐含汇率",
@@ -4211,11 +4211,29 @@ function pageHolding() {
         <p class="muted" style="font-size:12px;margin:8px 0 0">${patternNote}</p>`);
     })()}
 
-    ${tFc.nextPayments && tFc.nextPayments.length ? panel("Upcoming & Projected Dividends", table([{label:"Date"},{label:"Status"},{label:"Amount",num:1}],
-      tFc.nextPayments.map((p) => `<tr><td>${fmtDate(p.payDate)}</td><td>${p.confirmed ? statusBadge("Confirmed") : statusBadge("Estimated")}</td><td class="num">${money(p.amtMYR)}</td></tr>`).join(""))) : ""}
-
-    ${marketHist.length ? panel("Market Dividend History", `<p class="muted" style="font-size:12px;margin:-4px 0 10px">${t("Real dividend payments for this stock, fetched automatically from market data — this is what powers the estimates above, not something you entered.")}</p>${table([{label:"Ex-Date"},{label:"Per Share",num:1},{label:"Est. for your shares",num:1}],
-      marketHist.map((d) => `<tr><td>${fmtDate(d.date)}</td><td class="num">${esc(d.currency)} ${fmt(d.amount, { maximumFractionDigits: 4 })}</td><td class="num">${money((d.amount || 0) * h.shares * (FX.rates[d.currency] || 1))}</td></tr>`).join(""))}`) : ""}
+    ${(() => {
+      if (!marketHist.length && !(tFc.nextPayments && tFc.nextPayments.length)) return "";
+      // One continuous timeline: real past payments (market data) flow straight into
+      // future confirmed/estimated ones, so the calendar reads as a single history-to-forecast line
+      // instead of two disconnected tables the user has to mentally stitch together.
+      const perShareCcy = marketHist.length ? marketHist[0].currency : h.currency;
+      const fxRate = FX.rates[perShareCcy] || 1;
+      const pastRows = marketHist.map((d) => ({
+        date: d.date,
+        perShare: `${esc(d.currency)} ${fmt(d.amount, { maximumFractionDigits: 4 })}`,
+        amtMYR: (d.amount || 0) * h.shares * (FX.rates[d.currency] || 1),
+        status: "Paid",
+      }));
+      const futureRows = (tFc.nextPayments || []).map((p) => ({
+        date: p.payDate,
+        perShare: h.shares ? `${esc(perShareCcy)} ${fmt(p.amtMYR / h.shares / fxRate, { maximumFractionDigits: 4 })}` : "—",
+        amtMYR: p.amtMYR,
+        status: p.confirmed ? "Confirmed" : "Estimated",
+      }));
+      const rows = [...pastRows, ...futureRows].sort((a, b) => (a.date < b.date ? -1 : 1))
+        .map((r) => `<tr><td>${fmtDate(r.date)}</td><td class="num">${r.perShare}</td><td class="num">${money(r.amtMYR)}</td><td>${statusBadge(r.status)}</td></tr>`).join("");
+      return panel("Dividend Calendar", `<p class="muted" style="font-size:12px;margin:-4px 0 10px">${t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above.")}</p>${table([{label:"Date"},{label:"Per Share",num:1},{label:"Amount (your shares)",num:1},{label:"Status"}], rows)}`);
+    })()}
 
     ${panel("Transactions", txRows ? table([{label:"Date"},{label:"Type"},{label:"Qty",num:1},{label:"Price",num:1},{label:"Gross",num:1},{label:"Fee",num:1}], txRows) : emptyState(t("No transactions for this holding.")))}
     ${panel("Your Recorded Dividends", divRows ? table([{label:`${t("Ex-Date")} <span class="col-info tip-down" data-tip="${esc(t("The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment."))}">${COL_INFO_ICON_SVG}</span>`},{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], divRows) : emptyState(t("No dividends recorded for this holding.")))}`;
