@@ -351,6 +351,10 @@ const ZH = {
   "Your Recorded Dividends": "您记录的股息", "Dividend Calendar": "股息日历", "Amount (your shares)": "金额（您的持股）",
   "Market record": "市场记录",
   "Past": "过去", "Upcoming": "即将到来", "Yield": "收益率", "Next payment": "下一次派息",
+  "Position": "持仓概况", "Position opened": "持仓建立于",
+  "unrealized P/L, realized P/L and dividends will build up over time.": "未实现盈亏、已实现盈亏和股息将随时间累积。",
+  "Full trade history for this holding": "此持仓的完整交易记录",
+  "Dividends you've manually logged for this holding": "您为此持仓手动记录的股息",
   "Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above.": "此股票的真实派息记录（自动从市场数据获取）延续至以上预测所用的已确认／预估派息款项。",
   "This payment as a % of the current share price — a per-payment figure, not the annualized TTM yield shown above. Identical values across rows reflect a flat, no-growth projection, not an error.": "此次派息占目前股价的百分比——为单次派息数值，并非以上显示的年化 TTM 收益率。多行数值相同，是因为预测採用无增长的平稳预估，并非错误。",
   "The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment.": "您必须在此日期之前已持有该股票才能获得此次股息。若在此日期当天或之后才买入，将无法获得这次派息。",
@@ -787,7 +791,7 @@ function computeTotals() {
       marketValue = costBasis; unrealized = 0; priceUnrealized = 0; fxUnrealized = 0;
     }
     const unrealizedPct = costBasis ? (unrealized / costBasis) * 100 : 0;
-    const totalReturn = unrealized + l.netDivMYR;
+    const totalReturn = unrealized + (l.realizedMYR || 0) + l.netDivMYR;
     const meta = STOCK_META[l.ticker] || {};
     return { ...l, costBasis, marketValue, avgCost, avgCostLocal, unrealized, unrealizedPct, priceUnrealized, fxUnrealized,
       realized: l.realizedMYR || 0, netDividends: l.netDivMYR, totalReturn,
@@ -4102,9 +4106,6 @@ function pageHelp() {
  * PAGE: HOLDING DETAIL  (#/holding/<encoded brokerId|ticker>)
  * ========================================================================== */
 let holdingDivFilter = "all";   // all | past | upcoming
-function detailCard(label, value, valCls = "") {
-  return `<article class="card"><div class="c-label">${label}</div><div class="c-value ${valCls}">${value}</div></article>`;
-}
 function pageHolding() {
   const key = decodeURIComponent((location.hash.split("/")[2] || ""));
   const [brokerId, ticker] = key.split("|");
@@ -4118,6 +4119,10 @@ function pageHolding() {
   const tk = ticker.toUpperCase();
   const txs = ALL_TRANSACTIONS.filter((x) => x.brokerId === brokerId && (x.ticker || "").toUpperCase() === tk)
     .sort((a, b) => (a.date < b.date ? 1 : -1));
+  // A past market payment only counts as something you were actually paid if you already
+  // held the position by then — otherwise it's just the stock's history, not your money.
+  // Also used to flag a freshly-opened position so its zero P/L figures don't read as broken.
+  const earliestTxDate = txs.length ? txs.reduce((min, x) => (x.date < min ? x.date : min), txs[0].date) : null;
   const txRows = txs.map((x) => `<tr><td>${fmtDate(x.date)}</td><td>${typeChip(x.type)}</td>
     <td class="num">${x.qty != null ? fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 }) : "—"}</td>
     <td class="num">${x.price != null ? x.currency + " " + fmt(x.price) : "—"}</td>
@@ -4157,17 +4162,28 @@ function pageHolding() {
     ? `${h.currentPriceCcy} ${fmt(h.currentPrice)} <span class="fx-note ${h.priceSource === "live" ? "live-price" : "manual-price"}">${h.priceSource === "live" ? t("Live") : t("Manual price")}</span>`
     : `<span class="muted">${t("No price set")}</span>`;
 
-  const cards = `<div class="cards">
-    ${detailCard(t("Shares Held"), fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }))}
-    ${detailCard(t("Average Cost"), `${money(h.avgCost)}${h.currency !== FX.base ? `<div class="c-sub">${h.currency} ${fmt(h.avgCostLocal)} / ${t("share")}</div>` : ""}`)}
-    ${detailCard(t("Current Price"), priceLbl)}
-    ${detailCard(t("Market Value"), money(h.marketValue))}
-    ${detailCard(t("Cost Basis"), money(h.costBasis))}
-    ${detailCard(t("Unrealized P/L"), h.hasPrice ? `${signed(h.unrealized)}${h.currency !== FX.base ? `<div class="c-sub">${t("price")} ${signed(h.priceUnrealized)} · ${t("FX")} ${signed(h.fxUnrealized)}</div>` : ""}` : "—", h.hasPrice ? cls(h.unrealized) : "")}
-    ${detailCard(t("Realized P/L"), signed(h.realized), cls(h.realized))}
-    ${detailCard(t("Net Dividends"), money(h.netDividends))}
-    ${detailCard(t("Total Return"), signed(h.totalReturn), cls(h.totalReturn))}
-  </div>`;
+  // Position snapshot: was 9 equal-weight bordered cards (several of them pure restatements —
+  // Cost Basis = Shares x Avg Cost, Market Value = Shares x Price — and 4 that read exactly
+  // "0.00" for any freshly-opened holding). Replaced with one panel: two hero numbers that
+  // actually matter (Market Value, Total Return), a subline breaking Total Return into its
+  // components, and the remaining mechanical facts as a single plain-text strip instead of
+  // their own boxes.
+  const openedRecently = earliestTxDate && (todayDate() - new Date(earliestTxDate + "T00:00:00")) < 7 * 86400000;
+  const positionPanel = panel("Position", `
+    <div class="pos-hero">
+      <div class="pos-hero-stat">
+        <div class="c-label">${t("Market Value")}</div>
+        <div class="pos-hero-val">${money(h.marketValue)}</div>
+      </div>
+      <div class="pos-hero-stat">
+        <div class="c-label">${t("Total Return")}</div>
+        <div class="pos-hero-val ${cls(h.totalReturn)}">${signed(h.totalReturn)}</div>
+        <div class="c-sub" style="margin-top:4px">${t("Unrealized P/L")} ${signed(h.unrealized)} · ${t("Realized P/L")} ${signed(h.realized)} · ${t("Net Dividends")} ${money(h.netDividends)}</div>
+      </div>
+    </div>
+    <p class="pos-meta">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} · ${t("Average Cost")} ${money(h.avgCost)} · ${t("Current Price")} ${priceLbl} · ${t("Cost Basis")} ${money(h.costBasis)}</p>
+    ${openedRecently ? `<p class="muted" style="font-size:12px;margin:12px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}
+  `);
 
   const html = `
     <p style="margin:-4px 0 12px"><a class="link" href="#/portfolio">← ${t("Back to Portfolio")}</a></p>
@@ -4186,12 +4202,7 @@ function pageHolding() {
         </div>
       </div>
     </div>
-    ${cards}
-
-    <section class="grid-2">
-      ${panel("Cost Basis Over Time", costSeries.length >= 2 ? `<div class="chart">${lineChartSVG(costSeries)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Cumulative cost — historical market prices are not stored.")}</p>` : emptyState(t("Add at least two trades to see a trend.")))}
-      ${panel("Dividend Income Over Time", divSeries.length >= 2 ? `<div class="chart">${lineChartSVG(divSeries)}</div>` : emptyState(t("Not enough dividend history yet.")))}
-    </section>
+    ${positionPanel}
 
     ${(() => {
       const tInfo = (tFc.tickerInfo || {})[h.ticker];
@@ -4221,9 +4232,6 @@ function pageHolding() {
       const perShareCcy = marketHist.length ? marketHist[0].currency : h.currency;
       const fxRate = FX.rates[perShareCcy] || 1;
       const today = todayISO();
-      // A past market payment only counts as something you were actually paid if you already
-      // held the position by then — otherwise it's just the stock's history, not your money.
-      const earliestTxDate = txs.length ? txs.reduce((min, x) => (x.date < min ? x.date : min), txs[0].date) : null;
       const pastRows = marketHist.map((d) => ({
         date: d.date,
         perShareAmt: d.amount || 0,
@@ -4271,8 +4279,27 @@ function pageHolding() {
       return panel(`${t("Dividend Calendar")}${titleTip}`, `<div class="dcc-table-scroll">${table(heads, rows)}</div>`, `<div class="panel-head-actions">${filterSel}</div>`);
     })()}
 
-    ${panel("Transactions", txRows ? table([{label:"Date"},{label:"Type"},{label:"Qty",num:1},{label:"Price",num:1},{label:"Gross",num:1},{label:"Fee",num:1}], txRows) : emptyState(t("No transactions for this holding.")))}
-    ${panel("Your Recorded Dividends", divRows ? table([{label:`${t("Ex-Date")} <span class="col-info tip-down" data-tip="${esc(t("The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment."))}">${COL_INFO_ICON_SVG}</span>`},{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], divRows) : emptyState(t("No dividends recorded for this holding.")))}`;
+    ${(() => {
+      // Each chart is omitted entirely (no box at all) when there isn't enough data to draw
+      // it, instead of a full-height panel that just says "not enough data" — a freshly-opened
+      // position hits this on every visit until a second trade / first dividend exists.
+      const showCost = costSeries.length >= 2;
+      const showDiv = divSeries.length >= 2;
+      if (!showCost && !showDiv) return "";
+      const costPanel = panel("Cost Basis Over Time", `<div class="chart">${lineChartSVG(costSeries)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Cumulative cost — historical market prices are not stored.")}</p>`);
+      const divPanel = panel("Dividend Income Over Time", `<div class="chart">${lineChartSVG(divSeries)}</div>`);
+      if (showCost && showDiv) return `<section class="grid-2">${costPanel}${divPanel}</section>`;
+      return showCost ? costPanel : divPanel;
+    })()}
+
+    <details class="panel addhold">
+      <summary><span class="addhold-head"><span class="addhold-title">${t("Transactions")} (${txs.length})</span><span class="addhold-sub">${t("Full trade history for this holding")}</span></span></summary>
+      <div class="addhold-body">${txRows ? table([{label:"Date"},{label:"Type"},{label:"Qty",num:1},{label:"Price",num:1},{label:"Gross",num:1},{label:"Fee",num:1}], txRows) : emptyState(t("No transactions for this holding."))}</div>
+    </details>
+    <details class="panel addhold">
+      <summary><span class="addhold-head"><span class="addhold-title">${t("Your Recorded Dividends")} (${divs.length})</span><span class="addhold-sub">${t("Dividends you've manually logged for this holding")}</span></span></summary>
+      <div class="addhold-body">${divRows ? table([{label:`${t("Ex-Date")} <span class="col-info tip-down" data-tip="${esc(t("The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment."))}">${COL_INFO_ICON_SVG}</span>`},{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], divRows) : emptyState(t("No dividends recorded for this holding."))}</div>
+    </details>`;
 
   return { title: h.ticker, subtitle: h.company || t("Holding detail"), html,
     mount() {

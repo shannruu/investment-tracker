@@ -230,6 +230,14 @@ a { color: inherit; text-decoration: none; }
 .holding-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .holding-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .holding-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* Position snapshot panel — two hero numbers instead of a grid of equal-weight cards. */
+.pos-hero { display: flex; gap: 40px; flex-wrap: wrap; }
+.pos-hero-stat { flex: 1 1 200px; }
+.pos-hero-stat .c-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+.pos-hero-stat .c-sub { font-size: 12px; margin-top: 5px; color: var(--text-soft); }
+.pos-hero-val { font-size: 28px; font-weight: 750; letter-spacing: -.02em; margin-top: 4px; }
+.pos-meta { font-size: 13px; color: var(--text-soft); margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border); }
 .spin, .pf-refresh svg.spinning { animation: liveSpin .7s linear infinite; }
 @keyframes liveSpin { to { transform: rotate(360deg); } }
 .form .check { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-soft); }
