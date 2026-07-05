@@ -2596,23 +2596,27 @@ function portfolioTable() {
     marketValue: t("Market Value"), netDiv: t("Net Dividends"),
   };
 
+  // Equal-width, left-aligned columns (same convention as the Dashboard/Holding Detail
+  // tables) — computed dynamically since the column set here is user-configurable via
+  // "Edit columns", so a fixed percentage split wouldn't fit every combination.
+  const colPct = (100 / (orderedColIds.length + 1)).toFixed(2);
   const body = rows.map((h) => {
     const totalReturnPct = h.costBasis > 0 ? (h.totalReturn / h.costBasis) * 100 : 0;
     const cellMap = {
-      broker:         `<td><div class="broker-pills">${(h._brokerNames || [brokerName(h.brokerId)]).map((n) => `<span class="chip chip-pill">${esc(n)}</span>`).join("")}</div></td>`,
-      shares:         `<td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>`,
-      avgCost:        `<td class="num">${money(h.avgCost)}</td>`,
-      price:          `<td class="num">${h.hasPrice ? `${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}` : `<span class="muted">—</span>`}</td>`,
-      priceMyr:       `<td class="num">${(h.hasPrice && h.currency !== FX.base) ? `${ccyLabel(FX.base)} ${fmt(h.currentPrice * (FX.rates[h.currency] || 1))}` : `<span class="muted">—</span>`}</td>`,
-      unrealizedAmt:  `<td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}</td>`,
-      unrealizedPct:  `<td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? pctTxt(h.unrealizedPct) : `<span class="muted">—</span>`}</td>`,
-      totalReturnAmt: `<td class="num ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td>`,
-      totalReturnPct: `<td class="num ${cls(h.totalReturn)}">${pctTxt(totalReturnPct)}</td>`,
-      marketValue:    `<td class="num">${h.hasPrice ? money(h.marketValue) : `<span class="muted">—</span>`}</td>`,
-      netDiv:         `<td class="num">${h.netDividends ? money(h.netDividends) : `<span class="muted">—</span>`}</td>`,
+      broker:         `<td class="dcc-c"><div class="broker-pills">${(h._brokerNames || [brokerName(h.brokerId)]).map((n) => `<span class="chip chip-pill">${esc(n)}</span>`).join("")}</div></td>`,
+      shares:         `<td class="dcc-c">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>`,
+      avgCost:        `<td class="dcc-c">${money(h.avgCost)}</td>`,
+      price:          `<td class="dcc-c">${h.hasPrice ? `${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}` : `<span class="muted">—</span>`}</td>`,
+      priceMyr:       `<td class="dcc-c">${(h.hasPrice && h.currency !== FX.base) ? `${ccyLabel(FX.base)} ${fmt(h.currentPrice * (FX.rates[h.currency] || 1))}` : `<span class="muted">—</span>`}</td>`,
+      unrealizedAmt:  `<td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}</td>`,
+      unrealizedPct:  `<td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? pctTxt(h.unrealizedPct) : `<span class="muted">—</span>`}</td>`,
+      totalReturnAmt: `<td class="dcc-c ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td>`,
+      totalReturnPct: `<td class="dcc-c ${cls(h.totalReturn)}">${pctTxt(totalReturnPct)}</td>`,
+      marketValue:    `<td class="dcc-c">${h.hasPrice ? money(h.marketValue) : `<span class="muted">—</span>`}</td>`,
+      netDiv:         `<td class="dcc-c">${h.netDividends ? money(h.netDividends) : `<span class="muted">—</span>`}</td>`,
     };
     return `<tr>
-      <td class="td-holding">
+      <td class="dcc-c td-holding">
         <a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${esc(h.ticker)}</a>
         ${h.company ? `<div class="sub">${esc(h.company)}</div>` : ""}
       </td>
@@ -2626,9 +2630,9 @@ function portfolioTable() {
   };
   const thCols = orderedColIds.map((id) => {
     const tip = colTooltips[id] ? ` <span class="col-info tip-down" data-tip="${colTooltips[id]}">${COL_INFO_ICON_SVG}</span>` : "";
-    return `<th class="num" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
+    return `<th style="width:${colPct}%;text-align:left" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
   }).join("");
-  const thead = `<thead><tr><th>${t("Holding")}</th>${thCols}</tr></thead>`;
+  const thead = `<thead><tr><th style="width:${colPct}%">${t("Holding")}</th>${thCols}</tr></thead>`;
 
   return `<div class="table-wrap"><table class="data-table">${thead}<tbody>${body}</tbody></table></div>`;
 }
