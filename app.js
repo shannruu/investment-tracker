@@ -349,7 +349,7 @@ const ZH = {
   "Next Dividend": "下一次派息", "est.": "预估", "for your": "适用于您的", "shares": "股", "estimated": "预估值",
   "Last paid": "上次派发", "Per Share": "每股", "Est. for your shares": "您持股的预估金额",
   "Your Recorded Dividends": "您记录的股息", "Dividend Calendar": "股息日历", "Amount (your shares)": "金额（您的持股）",
-  "Market record": "市场记录（非您所持）",
+  "Market record": "市场记录",
   "Past": "过去", "Upcoming": "即将到来", "Yield": "收益率", "Next payment": "下一次派息",
   "Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above. Yield is per payment vs. the current share price, not an annualized figure — identical values across rows reflect a flat, no-growth projection, not an error.": "此股票的真实派息记录（自动从市场数据获取）延续至以上预测所用的已确认／预估派息款项。收益率为单次派息相对目前股价的比例，并非年化数值——多行数值相同，是因为预测採用无增长的平稳预估，并非错误。",
   "The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment.": "您必须在此日期之前已持有该股票才能获得此次股息。若在此日期当天或之后才买入，将无法获得这次派息。",
@@ -4259,13 +4259,13 @@ function pageHolding() {
           <div class="dcc-status">${statusBadge(r.status)}</div>
         </div>`;
       }).join("");
-      const filterSel = `<div style="max-width:180px">${styledSelect("divCalFilter", [
+      const filterSel = `<div style="width:150px">${styledSelect("divCalFilter", [
         { value: "all", label: t("All") },
         { value: "past", label: t("Past") },
         { value: "upcoming", label: t("Upcoming") },
       ], holdingDivFilter, { id: "divCalFilterSel" })}</div>`;
       const body = rowsHtml ? `<div class="dcc-list">${rowsHtml}</div>` : emptyState(t("Nothing to show yet."));
-      const titleTip = `<span class="col-info" style="margin-left:8px" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above. Yield is per payment vs. the current share price, not an annualized figure — identical values across rows reflect a flat, no-growth projection, not an error."))}">${COL_INFO_ICON_SVG}</span>`;
+      const titleTip = `<span class="col-info tip-down panel-hint" style="margin-left:10px" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above. Yield is per payment vs. the current share price, not an annualized figure — identical values across rows reflect a flat, no-growth projection, not an error."))}">${HOW_ICON_SVG}</span>`;
       return panel(`${t("Dividend Calendar")}${titleTip}`, body, `<div class="panel-head-actions">${filterSel}</div>`);
     })()}
 
