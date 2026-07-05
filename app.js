@@ -111,7 +111,7 @@ const ZH = {
   "Profile": "个人资料", "Appearance": "外观", "Base Currency": "基准货币",
   "Exchange Rates": "汇率", "Data Import / Export": "数据导入 / 导出", "Danger Zone": "危险操作",
   // Table headers
-  "Holding": "持仓", "Broker": "券商", "Market": "市场", "Shares": "股数",
+  "Holding": "持仓", "Broker": "券商", "Bank": "银行", "Market": "市场", "Shares": "股数",
   "Avg Cost": "平均成本", "Price": "价格", "Cost Basis": "成本", "Market Value": "市值",
   "Unrealized P/L": "未实现盈亏", "Net Div": "净股息", "Ticker": "代码", "Stock code": "股票代号",
   "Ex-Date": "除息日", "Payment": "派息日", "Expected Net": "预计净额", "Status": "状态",
@@ -351,9 +351,11 @@ const ZH = {
   "Your Recorded Dividends": "您记录的股息", "Dividend Calendar": "股息日历", "Amount (your shares)": "金额（您的持股）",
   "Market record": "市场记录",
   "Past": "过去", "Upcoming": "即将到来", "Yield": "收益率", "Next payment": "下一次派息",
-  "This is the ex-dividend date — the cutoff for already owning the stock to qualify — not the payment date. Actual payment into your account typically follows 2-4 weeks later; market data sources report the ex-date only, so that's what's shown here.": "这是除息日——决定您是否持股以符合领取资格的截止日期——并非派息（入账）日期。实际款项入账通常在此之后 2 至 4 周才发生；市场数据来源只提供除息日，因此这里显示的即为除息日。",
+  "Buy before this date to qualify for this dividend — buy on or after it and you'll miss this specific payment. This is the ex-dividend date; market data sources don't report a separate payment date.": "您必须在此日期之前买入才能符合领取此次股息的资格——若在此日期当天或之后才买入，将无法领取这次派息。这是除息日；市场数据来源并未提供另外的派息（入账）日期。",
+  "A rough estimate (Ex-Date + 14 days) of when the money would actually land in your account — not real data, since market sources don't report an actual payment date.": "这是款项实际入账时间的粗略估计（除息日 + 14 天）——并非真实数据，因为市场数据来源并未提供实际派息（入账）日期。",
+  "Est. Payment": "预估派息日",
   "Not logged": "尚未记录",
-  "Auto-logged from market dividend history — review the tax withheld.": "已根据市场股息记录自动登记——请自行核对预扣税金额。",
+  "Auto-logged from market dividend history — review the tax withheld and \"Paid to\".": "已根据市场股息记录自动登记——请自行核对预扣税金额及「派发至」设定。",
   "dividends auto-logged from market history": "笔股息已根据市场记录自动登记",
   "Position": "持仓概况", "Position opened": "持仓建立于",
   "unrealized P/L, realized P/L and dividends will build up over time.": "未实现盈亏、已实现盈亏和股息将随时间累积。",
@@ -1129,9 +1131,17 @@ function autoSyncDividends() {
     const holdingTxs = ALL_TRANSACTIONS.filter((x) => x.brokerId === h.brokerId && (x.ticker || "").toUpperCase() === h.ticker.toUpperCase());
     if (!holdingTxs.length) return;
     const earliestTxDate = holdingTxs.reduce((min, x) => (x.date < min ? x.date : min), holdingTxs[0].date);
-    const loggedDates = ALL_TRANSACTIONS
-      .filter((x) => x.type === "Dividend" && x.brokerId === h.brokerId && (x.ticker || "").toUpperCase() === h.ticker.toUpperCase())
+    const brokerDivs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.brokerId === h.brokerId);
+    const loggedDates = brokerDivs
+      .filter((x) => (x.ticker || "").toUpperCase() === h.ticker.toUpperCase())
       .map((dv) => dv.payDate || dv.date).filter(Boolean).map((ds) => new Date(ds + "T00:00:00").getTime());
+    // Not every broker routes dividends into the trading-account cash balance — some pay
+    // straight to a linked bank account instead. Rather than always guessing "broker" (which
+    // would silently inflate Available Cash for a broker that doesn't work that way), infer
+    // it from how you've classified your own most recent dividend at this same broker — any
+    // ticker, since this is a broker-level routing behavior, not a per-stock one.
+    const mostRecentAtBroker = brokerDivs.slice().sort((a, b) => ((b.payDate || b.date || "") < (a.payDate || a.date || "") ? -1 : 1))[0];
+    const inferredPaidTo = mostRecentAtBroker ? (mostRecentAtBroker.paidTo || "broker") : "broker";
     marketHist.forEach((d) => {
       if (d.date < earliestTxDate || d.date > today) return;   // before you held it, or hasn't happened yet
       const dTime = new Date(d.date + "T00:00:00").getTime();
@@ -1142,8 +1152,8 @@ function autoSyncDividends() {
         id: uid("t"), date: d.date, brokerId: h.brokerId, type: "Dividend",
         ticker: h.ticker, company: h.company || "", market: h.market || "",
         currency: d.currency, gross, tax: 0, fxRate, myrEquivalent: gross * fxRate,
-        status: "Received", paidTo: "broker", exDate: d.date, payDate: d.date,
-        notes: t("Auto-logged from market dividend history — review the tax withheld."),
+        status: "Received", paidTo: inferredPaidTo, exDate: d.date, payDate: d.date,
+        notes: t("Auto-logged from market dividend history — review the tax withheld and \"Paid to\"."),
       });
       loggedDates.push(dTime);   // don't double-log within the same pass
       added++;
@@ -4198,9 +4208,12 @@ function pageHolding() {
   const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && (x.ticker || "").toUpperCase() === tk)
     .sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1));
   const divRows = divs.map((d) => { const net = (+d.gross || 0) - (+d.tax || 0); const fx = d.fxRate || FX.rates[d.currency] || 1;
+    // Same "paid to broker cash vs. straight to bank" tag used on the Records page — matters
+    // here because only "broker" dividends add to that broker's Available Cash figure.
+    const paidToTag = `<span class="paid-to-tag${d.paidTo === "bank" ? " bank" : ""}"> · → ${d.paidTo === "bank" ? t("Bank") : t("Broker")}</span>`;
     return `<tr><td class="dcc-c">${fmtDate(d.exDate)}</td><td class="dcc-c">${fmtDate(d.payDate || d.date)}</td><td class="dcc-c">${esc(d.currency)} ${fmt(d.gross)}</td>
-      <td class="dcc-c neg">${d.tax ? "−" + fmt(d.tax) : "0.00"}</td><td class="dcc-c pos">${esc(d.currency)} ${fmt(net)}</td>
-      <td class="dcc-c">${money(net * fx)}</td><td class="dcc-c">${statusBadge(d.status || "Received")}</td></tr>`; }).join("");
+      <td class="dcc-c${d.tax ? " neg" : ""}">${d.tax ? "−" + fmt(d.tax) : "0.00"}</td><td class="dcc-c pos">${esc(d.currency)} ${fmt(net)}</td>
+      <td class="dcc-c">${money(net * fx)}</td><td class="dcc-c">${statusBadge(d.status || "Received")}${paidToTag}</td></tr>`; }).join("");
 
   // Per-ticker dividend analytics + forecast + charts (F1)
   const tReceived = divs.filter((d) => d.status !== "Expected");
@@ -4338,13 +4351,19 @@ function pageHolding() {
       const filtered = holdingDivFilter === "past" ? allRows.filter((r) => r.date < today)
         : holdingDivFilter === "upcoming" ? allRows.filter((r) => r.date >= today)
         : allRows;
+      // Rough universal estimate — real payment date isn't in the market data (only the
+      // ex-date is), but issuers typically settle 2-4 weeks after ex-date. Shown clearly
+      // labeled "(est.)" alongside the real ex-date so a user deciding "do I need to buy
+      // before or after this date" has both: the hard cutoff (Ex-Date) and a rough sense
+      // of when the money would actually show up (Est. Payment).
+      const estPayDate = (ds) => { const dd = new Date(ds + "T00:00:00"); dd.setDate(dd.getDate() + 14); return dd.toISOString().slice(0, 10); };
       const rows = filtered.map((r) => {
         const yieldPct = (h.hasPrice && h.currentPrice > 0 && r.perShareAmt != null) ? (r.perShareAmt / h.currentPrice * 100) : null;
         const isNext = nextIdx >= 0 && r === allRows[nextIdx];
         // Exactly one badge per row — the "next payment" row shows that instead of its
         // Confirmed/Estimated badge, rather than stacking two pills in the same cell.
         const statusCell = isNext ? `<span class="badge confirmed">${t("Next payment")}</span>` : statusBadge(r.status);
-        return `<tr${isNext ? ` class="next-div-row"` : ""}><td class="dcc-c">${fmtDate(r.date)}</td><td class="dcc-c">${r.perShareAmt != null ? fmt(r.perShareAmt, { maximumFractionDigits: 2 }) : "—"}</td><td class="dcc-c">${fmt(r.amtMYR, { maximumFractionDigits: 2 })}</td><td class="dcc-c">${yieldPct != null ? fmt(yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td><td class="dcc-c">${statusCell}</td></tr>`;
+        return `<tr${isNext ? ` class="next-div-row"` : ""}><td class="dcc-c">${fmtDate(r.date)}</td><td class="dcc-c">${fmtDate(estPayDate(r.date))}</td><td class="dcc-c">${r.perShareAmt != null ? fmt(r.perShareAmt, { maximumFractionDigits: 2 }) : "—"}</td><td class="dcc-c">${fmt(r.amtMYR, { maximumFractionDigits: 2 })}</td><td class="dcc-c">${yieldPct != null ? fmt(yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td><td class="dcc-c">${statusCell}</td></tr>`;
       }).join("");
       const filterSel = `<div style="width:150px">${styledSelect("divCalFilter", [
         { value: "all", label: t("All") },
@@ -4357,13 +4376,15 @@ function pageHolding() {
       // left/right-aligned text in an unevenly-sized column doesn't actually spread out — only
       // the invisible column boundary does. Centering in five equal columns means the leftover
       // space on each side of every value is symmetric, so the row reads as evenly filled.
-      const dateTip = ` <span class="col-info tip-down" data-tip="${esc(t("This is the ex-dividend date — the cutoff for already owning the stock to qualify — not the payment date. Actual payment into your account typically follows 2-4 weeks later; market data sources report the ex-date only, so that's what's shown here."))}">${COL_INFO_ICON_SVG}</span>`;
+      const dateTip = ` <span class="col-info tip-down" data-tip="${esc(t("Buy before this date to qualify for this dividend — buy on or after it and you'll miss this specific payment. This is the ex-dividend date; market data sources don't report a separate payment date."))}">${COL_INFO_ICON_SVG}</span>`;
+      const estPayTip = ` <span class="col-info tip-down" data-tip="${esc(t("A rough estimate (Ex-Date + 14 days) of when the money would actually land in your account — not real data, since market sources don't report an actual payment date."))}">${COL_INFO_ICON_SVG}</span>`;
       const heads = [
-        { label: `${t("Date")}${dateTip}`, style: "width:20%;text-align:left" },
-        { label: `${t("Per Share")} (${esc(perShareCcy)})`, style: "width:20%;text-align:left" },
-        { label: `${t("Total")} (${esc(FX.base)})`, style: "width:20%;text-align:left" },
-        { label: `${t("Yield")}${yieldTip}`, style: "width:20%;text-align:left" },
-        { label: "Status", style: "width:20%;text-align:left" },
+        { label: `${t("Ex-Date")}${dateTip}`, style: "width:16.6%;text-align:left" },
+        { label: `${t("Est. Payment")}${estPayTip}`, style: "width:16.6%;text-align:left" },
+        { label: `${t("Per Share")} (${esc(perShareCcy)})`, style: "width:16.6%;text-align:left" },
+        { label: `${t("Total")} (${esc(FX.base)})`, style: "width:16.6%;text-align:left" },
+        { label: `${t("Yield")}${yieldTip}`, style: "width:16.6%;text-align:left" },
+        { label: "Status", style: "width:16.6%;text-align:left" },
       ];
       const titleTip = `<span class="col-info tip-down panel-hint" style="margin-left:10px" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${HOW_ICON_SVG}</span>`;
       // Only scroll once there's more than 5 rows to show — a short list shouldn't sit

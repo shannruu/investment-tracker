@@ -7,11 +7,11 @@
  * per-market restriction (the previous version of this file used Finnhub,
  * which required a free API key and only reliably covered US tickers).
  *
- * The window defaults to roughly 2 years back through 1 year ahead, so one
- * call serves two purposes: recent PAST events feed pattern-based dividend
- * forecasting (frequency + growth detection), while any FUTURE-dated event
- * (rare — most issuers don't declare that far ahead) becomes a confirmed
- * upcoming payment.
+ * The window defaults to roughly 5 years back through 1 year ahead, so one
+ * call serves two purposes: PAST events feed pattern-based dividend
+ * forecasting (frequency + growth detection) and let a user browse several
+ * years of history, while any FUTURE-dated event (rare — most issuers don't
+ * declare that far ahead) becomes a confirmed upcoming payment.
  *
  * Usage:
  *   /api/dividend?symbol=AAPL
@@ -33,7 +33,7 @@ module.exports = async (req, res) => {
 
   const today = new Date().toISOString().slice(0, 10);
   const from = String((req.query && req.query.from) || "").trim() || (() => {
-    const d = new Date(today.replace(/-/g, "/")); d.setFullYear(d.getFullYear() - 2); return d.toISOString().slice(0, 10);
+    const d = new Date(today.replace(/-/g, "/")); d.setFullYear(d.getFullYear() - 5); return d.toISOString().slice(0, 10);
   })();
   const to = String((req.query && req.query.to) || "").trim() || (() => {
     const d = new Date(today.replace(/-/g, "/")); d.setFullYear(d.getFullYear() + 1); return d.toISOString().slice(0, 10);
