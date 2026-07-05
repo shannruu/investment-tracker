@@ -4261,21 +4261,20 @@ function pageHolding() {
       // tabular-nums, which was lost as a side effect when "num" was dropped last round to
       // chase an alignment complaint that was really a header/data mismatch, not right-align
       // itself. Currency codes now live once in the header instead of repeating on every row.
+      // The first 4 columns are pinned to their natural content width in px; Status is left
+      // deliberately unconstrained so it — and only it — absorbs 100% of the table's leftover
+      // width. Because Status is left-aligned, that leftover space trails harmlessly after the
+      // badge (exactly like a normal last-of-row column in a wide table), instead of showing up
+      // as either a stretched gap between earlier columns or a disconnected void past the table.
       const heads = [
-        { label: "Date" },
-        { label: `${t("Per Share")} (${esc(perShareCcy)})`, num: 1 },
-        { label: `${t("Total")} (${esc(FX.base)})`, num: 1 },
-        { label: `${t("Yield")}${yieldTip}`, num: 1 },
+        { label: "Date", style: "width:120px" },
+        { label: `${t("Per Share")} (${esc(perShareCcy)})`, num: 1, style: "width:130px" },
+        { label: `${t("Total")} (${esc(FX.base)})`, num: 1, style: "width:110px" },
+        { label: `${t("Yield")}${yieldTip}`, num: 1, style: "width:100px" },
         { label: "Status" },
       ];
       const titleTip = ` <span class="col-info" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${COL_INFO_ICON_SVG}</span>`;
-      // A 5-column, narrow-content table stretched to the full panel width (~1800px) is what
-      // was actually creating the huge gaps between Date and the right-aligned numeric columns —
-      // the browser distributes that leftover width, and right-aligned cells absorb it by
-      // drifting away from their left neighbor. Capping the table to its natural content width
-      // removes the excess space to distribute in the first place, instead of fighting the
-      // symptom with per-column width tuning again.
-      return panel(`${t("Dividend Calendar")}${titleTip}`, `<div style="max-width:640px">${table(heads, rows)}</div>`, `<div class="panel-head-actions">${filterSel}</div>`);
+      return panel(`${t("Dividend Calendar")}${titleTip}`, table(heads, rows), `<div class="panel-head-actions">${filterSel}</div>`);
     })()}
 
     ${panel("Transactions", txRows ? table([{label:"Date"},{label:"Type"},{label:"Qty",num:1},{label:"Price",num:1},{label:"Gross",num:1},{label:"Fee",num:1}], txRows) : emptyState(t("No transactions for this holding.")))}
