@@ -760,6 +760,10 @@ input[type="date"] { cursor: pointer; }
 .plain-stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 0; }
 .plain-stat { padding: 10px 20px; border-left: 1px solid var(--border); }
 .plain-stat:first-child { border-left: 0; padding-left: 12px; }
+/* Headline stat gets a soft brand tint (same idea as the Dashboard's "Net Worth" feature
+   card) instead of its own border — a nudge of emphasis without breaking the "no boxes"
+   treatment the rest of the row uses. */
+.plain-stat.feature { background: linear-gradient(150deg, color-mix(in srgb, var(--brand) 10%, transparent), transparent); border-radius: var(--radius); }
 
 .div-fc-empty { display: flex; align-items: flex-start; gap: 12px; padding: 4px 0 2px; }
 .div-fc-empty > span { font-size: 22px; line-height: 1.2; flex: none; }

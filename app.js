@@ -4167,10 +4167,10 @@ function pageHolding() {
   // hero-numbers-plus-text-strip split — every fact is equal weight, separated only by a
   // divider line, consistent top to bottom.
   const openedRecently = earliestTxDate && (todayDate() - new Date(earliestTxDate + "T00:00:00")) < 7 * 86400000;
-  const posStat = (label, val, valCls = "") => `<div class="plain-stat"><div class="mc-label">${label}</div><div class="mc-value ${valCls}">${val}</div></div>`;
+  const posStat = (label, val, valCls = "", wrapCls = "") => `<div class="plain-stat ${wrapCls}"><div class="mc-label">${label}</div><div class="mc-value ${valCls}">${val}</div></div>`;
   const positionPanel = panel("Position", `
     <div class="plain-stat-row">
-      ${posStat(t("Market Value"), money(h.marketValue))}
+      ${posStat(t("Market Value"), money(h.marketValue), "", "feature")}
       ${posStat(t("Total Return"), signed(h.totalReturn), cls(h.totalReturn))}
       ${posStat(t("Shares Held"), fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }))}
       ${posStat(t("Average Cost"), money(h.avgCost))}
