@@ -4170,19 +4170,21 @@ function pageHolding() {
   // their own boxes.
   const openedRecently = earliestTxDate && (todayDate() - new Date(earliestTxDate + "T00:00:00")) < 7 * 86400000;
   const positionPanel = panel("Position", `
-    <div class="pos-hero">
-      <div class="pos-hero-stat">
-        <div class="c-label">${t("Market Value")}</div>
-        <div class="pos-hero-val">${money(h.marketValue)}</div>
+    <div class="pos-body">
+      <div class="pos-hero">
+        <div class="pos-hero-stat">
+          <div class="c-label">${t("Market Value")}</div>
+          <div class="pos-hero-val">${money(h.marketValue)}</div>
+        </div>
+        <div class="pos-hero-stat">
+          <div class="c-label">${t("Total Return")}</div>
+          <div class="pos-hero-val ${cls(h.totalReturn)}">${signed(h.totalReturn)}</div>
+          <div class="c-sub" style="margin-top:4px">${t("Unrealized P/L")} ${signed(h.unrealized)} · ${t("Realized P/L")} ${signed(h.realized)} · ${t("Net Dividends")} ${money(h.netDividends)}</div>
+        </div>
       </div>
-      <div class="pos-hero-stat">
-        <div class="c-label">${t("Total Return")}</div>
-        <div class="pos-hero-val ${cls(h.totalReturn)}">${signed(h.totalReturn)}</div>
-        <div class="c-sub" style="margin-top:4px">${t("Unrealized P/L")} ${signed(h.unrealized)} · ${t("Realized P/L")} ${signed(h.realized)} · ${t("Net Dividends")} ${money(h.netDividends)}</div>
-      </div>
+      <p class="pos-meta">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} · ${t("Average Cost")} ${money(h.avgCost)} · ${t("Current Price")} ${priceLbl} · ${t("Cost Basis")} ${money(h.costBasis)}</p>
+      ${openedRecently ? `<p class="muted" style="font-size:12px;margin:12px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}
     </div>
-    <p class="pos-meta">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} · ${t("Average Cost")} ${money(h.avgCost)} · ${t("Current Price")} ${priceLbl} · ${t("Cost Basis")} ${money(h.costBasis)}</p>
-    ${openedRecently ? `<p class="muted" style="font-size:12px;margin:12px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}
   `);
 
   const html = `
@@ -4225,8 +4227,7 @@ function pageHolding() {
         ${stat(t("Next Month"), tFc.nextMonth > 0 ? money(tFc.nextMonth) : "—")}
         ${stat(t("Next Quarter"), tFc.nextQuarter > 0 ? money(tFc.nextQuarter) : "—")}
         ${stat(t("Next Year"), tFc.nextYear > 0 ? money(tFc.nextYear) : "—")}${multiYear}</div>
-        <div class="soft-divider"></div>
-        <p class="muted" style="font-size:12px;margin:0">${patternNote}</p>`);
+        <p class="muted" style="font-size:12px;margin:8px 0 0">${patternNote}</p>`);
     })()}
 
     ${(() => {
