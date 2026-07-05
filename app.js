@@ -339,11 +339,18 @@ const ZH = {
   "Back to Portfolio": "返回投资组合", "Holding detail": "持仓明细",
   "Shares Held": "持有股数", "Average Cost": "平均成本", "share": "股",
   "Set price": "设置价格", "Realized P/L": "已实现盈亏", "Net Dividends": "净股息",
+  "Set Price": "设置价格", "Price per share": "每股价格", "Save": "保存",
+  "Manually entered prices are always labelled \"Manual price\" and are never mistaken for live market data.": "手动输入的价格始终标记为「手动价格」，绝不会与实时市场数据混淆。",
   "price": "价格", "FX": "汇率", "Manual": "手动",
   "Transactions": "交易记录",
   "No transactions for this holding.": "此持仓暂无交易。",
   "No dividends recorded for this holding.": "此持仓暂无股息记录。",
   "This holding no longer exists (fully sold or deleted). Its realized P/L still counts in your totals.": "此持仓已不存在（已全部卖出或删除）。其已实现盈亏仍计入您的总额。",
+  "Next Dividend": "下一次派息", "est.": "预估", "for your": "适用于您的", "shares": "股", "estimated": "预估值",
+  "Last paid": "上次派发", "Per Share": "每股", "Est. for your shares": "您持股的预估金额",
+  "Market Dividend History": "市场派息记录", "Your Recorded Dividends": "您记录的股息", "Upcoming & Projected Dividends": "即将到来及预测的股息",
+  "Real dividend payments for this stock, fetched automatically from market data — this is what powers the estimates above, not something you entered.": "此股票的真实派息记录，自动从市场数据获取——以上的预估数值即由此推算，并非您手动输入的内容。",
+  "The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment.": "您必须在此日期之前已持有该股票才能获得此次股息。若在此日期当天或之后才买入，将无法获得这次派息。",
   // Multi-currency cash + FX split fixes
   "To amount (received)": "兑入金额（收到）", "Implied rate": "隐含汇率",
   "Enter the amount you received.": "请输入您收到的金额。",
@@ -3165,7 +3172,7 @@ function dividendForecast(received, upcoming) {
   // Confirmed/estimated upcoming payments from the market-data auto-fetch and manual entries
   const knownUpcoming = upcoming
     .filter((d) => d.payDate && d.payDate >= today)
-    .map((d) => ({ payDate: d.payDate, amtMYR: d.expectedNetMYR || 0, ticker: d.ticker }));
+    .map((d) => ({ payDate: d.payDate, amtMYR: d.expectedNetMYR || 0, ticker: d.ticker, confirmed: true }));
   const coveredTickers = new Set(knownUpcoming.map((p) => p.ticker));
 
   // Pattern detection: group history by ticker, detect payment frequency and
@@ -3224,7 +3231,7 @@ function dividendForecast(received, upcoming) {
     tickerInfo[ticker] = { count: sorted.length, freq: freqLabel, source, growthPct: growthPerPayment * 100 };
     while (next <= limit) {
       const ds = next.toISOString().slice(0, 10);
-      if (ds >= today) { projected.push({ payDate: ds, amtMYR: amt, ticker }); amt *= (1 + growthPerPayment); }
+      if (ds >= today) { projected.push({ payDate: ds, amtMYR: amt, ticker, confirmed: false }); amt *= (1 + growthPerPayment); }
       next = new Date(next); next.setDate(next.getDate() + freqDays);
     }
   });
@@ -3237,6 +3244,11 @@ function dividendForecast(received, upcoming) {
     const endStr = end.toISOString().slice(0, 10);
     return list.filter((p) => p.payDate >= startStr && p.payDate <= endStr).reduce((s, p) => s + p.amtMYR, 0);
   };
+  // The actual upcoming payment calendar (dates + amounts), not just summed
+  // windows — lets a caller show "next payment: DATE, MYR X" instead of only
+  // a lump total. Most useful for a single-ticker call (a portfolio-wide call
+  // mixes many tickers' dates together, less meaningful as one list).
+  const nextPayments = all.filter((p) => p.payDate >= today).sort((a, b) => (a.payDate < b.payDate ? -1 : 1)).slice(0, 12);
   return {
     ttm,
     nextMonth:      winSum(all, 0, 31),
@@ -3249,6 +3261,7 @@ function dividendForecast(received, upcoming) {
     expYear:        winSum(knownUpcoming, 0, 365),
     hasProjections: all.length > 0,
     tickerInfo,
+    nextPayments,
   };
 }
 
@@ -4109,8 +4122,8 @@ function pageHolding() {
   const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && (x.ticker || "").toUpperCase() === tk)
     .sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1));
   const divRows = divs.map((d) => { const net = (+d.gross || 0) - (+d.tax || 0); const fx = d.fxRate || FX.rates[d.currency] || 1;
-    return `<tr><td>${fmtDate(d.payDate || d.date)}</td><td class="num">${d.currency} ${fmt(d.gross)}</td>
-      <td class="num neg">${d.tax ? "−" + fmt(d.tax) : "0.00"}</td><td class="num pos">${d.currency} ${fmt(net)}</td>
+    return `<tr><td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate || d.date)}</td><td class="num">${esc(d.currency)} ${fmt(d.gross)}</td>
+      <td class="num neg">${d.tax ? "−" + fmt(d.tax) : "0.00"}</td><td class="num pos">${esc(d.currency)} ${fmt(net)}</td>
       <td class="num">${money(net * fx)}</td><td>${statusBadge(d.status || "Received")}</td></tr>`; }).join("");
 
   // Per-ticker dividend analytics + forecast + charts (F1)
@@ -4122,10 +4135,8 @@ function pageHolding() {
   // own "legacy Expected" branch does, so the forecast can actually see this ticker's payment.
   const tExpectedForForecast = tExpected.map((d) => ({ ticker: d.ticker, payDate: d.payDate, expectedNetMYR: divNetMYR(d) }));
   const tFc = dividendForecast(tReceived, tExpectedForForecast);
-  const upcomingRows = tExpected.map((d) => { const net = (+d.gross || 0) - (+d.tax || 0); const du = daysUntil(d.payDate);
-    return `<tr><td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
-      <td class="num">${d.payDate ? (du >= 0 ? du + " " + t("days") : t("overdue")) : "—"}</td>
-      <td class="num">${d.currency} ${fmt(net)}</td></tr>`; }).join("");
+  // Raw market dividend history (Yahoo-fetched, per-share, native currency) — the actual data behind the estimates above.
+  const marketHist = (AUTO_DIV_CACHE[h.ticker] || []).slice().sort((a, b) => (a.date < b.date ? 1 : -1));
   // Dividend income over time (monthly, base ccy)
   const dPer = dividendByPeriod(tReceived).byMonth;
   const divSeries = Object.keys(dPer).sort().map((k) => ({ month: k.slice(2), value: dPer[k] }));
@@ -4159,13 +4170,16 @@ function pageHolding() {
     <div class="holding-head">
       <div><div class="ticker" style="font-size:20px">${esc(h.ticker)}</div><div class="sub">${esc(h.company) || ""}</div></div>
       <div class="holding-meta">
-        <span class="chip">${esc(brokerName(h.brokerId))}</span>
-        ${h.market ? `<span class="chip">${esc(h.market)}</span>` : ""}
-        <span class="chip">${esc(meta.country || h.country) || "—"}</span>
-        ${meta.sector ? `<span class="chip">${esc(meta.sector)}</span>` : ""}
-        <button class="btn" id="dtlPrice">＄ ${t("Set price")}</button>
-        ${LIVE_ENABLED ? `<button class="btn" id="dtlLive">⟳ ${t("Live")}</button>` : ""}
-        <button class="btn ghost" id="dtlDelete">✕ ${t("Delete holding")}</button>
+        <div class="holding-chips">
+          <span class="chip">${esc(brokerName(h.brokerId))}</span>
+          <span class="chip">${esc(meta.country || h.country) || "—"}</span>
+          ${meta.sector ? `<span class="chip">${esc(meta.sector)}</span>` : ""}
+        </div>
+        <div class="holding-actions">
+          <button class="btn" id="dtlPrice">＄ ${t("Set price")}</button>
+          ${LIVE_ENABLED ? `<button class="btn" id="dtlLive">⟳ ${t("Live")}</button>` : ""}
+          <button class="btn ghost" id="dtlDelete">✕ ${t("Delete holding")}</button>
+        </div>
       </div>
     </div>
     ${cards}
@@ -4180,32 +4194,36 @@ function pageHolding() {
       const patternNote = tInfo
         ? `${t("Pattern detected")}: ${tInfo.freq}${tInfo.growthPct ? `, ${tInfo.growthPct > 0 ? "+" : ""}${fmt(tInfo.growthPct, { maximumFractionDigits: 1 })}%/${t("payment")}` : ""} (${tInfo.source === "market history" ? t("from market dividend history") : t("from your logged dividends")}).`
         : t("Record at least 2 dividends for this holding to enable pattern-based estimates.");
+      const nextPay = tFc.nextPayments && tFc.nextPayments[0];
+      const lastPaid = marketHist[0];
+      const nextDivHighlight = nextPay ? `<p class="info-card" style="margin:0 0 14px">
+          <span class="w-ico">📅</span>
+          <span class="w-body"><strong>${t("Next Dividend")}</strong>: ${fmtDate(nextPay.payDate)} (${daysUntil(nextPay.payDate)} ${t("days")}) — ${t("est.")} ${money(nextPay.amtMYR)} ${t("for your")} ${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")}${nextPay.confirmed ? "" : ` (${t("estimated")})`}${lastPaid ? `<br><span class="muted" style="font-size:12px">${t("Last paid")}: ${esc(lastPaid.currency)} ${fmt(lastPaid.amount, { maximumFractionDigits: 4 })}/${t("share")} (${fmtDate(lastPaid.date)})</span>` : ""}</span>
+        </p>` : "";
       const multiYear = (tFc.year2 > 0 || tFc.year3 > 0)
         ? `${miniCard(t("Year 2"), tFc.year2 > 0 ? money(tFc.year2) : "—")}${miniCard(t("Year 3"), tFc.year3 > 0 ? money(tFc.year3) : "—")}` : "";
-      return panel("Dividend Summary", `<div class="mini-cards">
+      return panel("Dividend Summary", `${nextDivHighlight}<div class="mini-cards">
         ${miniCard(t("Total Dividends Received"), money(totalDivReceived), "pos")}
-        ${miniCard(t("Next Year (est.)"), tFc.nextYear > 0 ? money(tFc.nextYear) : "—")}
-        ${miniCard(t("Dividend Yield (TTM)"), h.marketValue ? fmt(tFc.ttm / h.marketValue * 100, { maximumFractionDigits: 2 }) + "%" : "—")}${multiYear}</div>
+        ${miniCard(t("Dividend Yield (TTM)"), h.marketValue ? fmt(tFc.ttm / h.marketValue * 100, { maximumFractionDigits: 2 }) + "%" : "—")}
+        ${miniCard(t("Next Month"), tFc.nextMonth > 0 ? money(tFc.nextMonth) : "—")}
+        ${miniCard(t("Next Quarter"), tFc.nextQuarter > 0 ? money(tFc.nextQuarter) : "—")}
+        ${miniCard(t("Next Year"), tFc.nextYear > 0 ? money(tFc.nextYear) : "—")}${multiYear}</div>
         <p class="muted" style="font-size:12px;margin:8px 0 0">${patternNote}</p>`);
     })()}
 
-    ${tExpected.length ? panel("Upcoming Dividends", table([{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1}], upcomingRows)) : ""}
+    ${tFc.nextPayments && tFc.nextPayments.length ? panel("Upcoming & Projected Dividends", table([{label:"Date"},{label:"Status"},{label:"Amount",num:1}],
+      tFc.nextPayments.map((p) => `<tr><td>${fmtDate(p.payDate)}</td><td>${p.confirmed ? statusBadge("Confirmed") : statusBadge("Estimated")}</td><td class="num">${money(p.amtMYR)}</td></tr>`).join(""))) : ""}
+
+    ${marketHist.length ? panel("Market Dividend History", `<p class="muted" style="font-size:12px;margin:-4px 0 10px">${t("Real dividend payments for this stock, fetched automatically from market data — this is what powers the estimates above, not something you entered.")}</p>${table([{label:"Ex-Date"},{label:"Per Share",num:1},{label:"Est. for your shares",num:1}],
+      marketHist.map((d) => `<tr><td>${fmtDate(d.date)}</td><td class="num">${esc(d.currency)} ${fmt(d.amount, { maximumFractionDigits: 4 })}</td><td class="num">${money((d.amount || 0) * h.shares * (FX.rates[d.currency] || 1))}</td></tr>`).join(""))}`) : ""}
 
     ${panel("Transactions", txRows ? table([{label:"Date"},{label:"Type"},{label:"Qty",num:1},{label:"Price",num:1},{label:"Gross",num:1},{label:"Fee",num:1}], txRows) : emptyState(t("No transactions for this holding.")))}
-    ${panel("Dividend History", divRows ? table([{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], divRows) : emptyState(t("No dividends recorded for this holding.")))}`;
+    ${panel("Your Recorded Dividends", divRows ? table([{label:`${t("Ex-Date")} <span class="col-info tip-down" data-tip="${esc(t("The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment."))}">${COL_INFO_ICON_SVG}</span>`},{label:"Payment"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Net",num:1},{label:"In MYR",num:1},{label:"Status"}], divRows) : emptyState(t("No dividends recorded for this holding.")))}`;
 
   return { title: h.ticker, subtitle: h.company || t("Holding detail"), html,
     mount() {
       const p = $("#dtlPrice");
-      if (p) p.addEventListener("click", () => {
-        const cur = CURRENT_PRICES[h.ticker];
-        const input = prompt(`${t("Current price per share for")} ${h.ticker} (${h.currentPriceCcy}) — ${t("manual, not live")}`, cur ? cur.price : "");
-        if (input == null) return;
-        const price = parseFloat(input);
-        if (!(price > 0)) { toast(t("Enter a valid price.")); return; }
-        CURRENT_PRICES[h.ticker] = { price, currency: h.currentPriceCcy, date: new Date().toISOString().slice(0, 10), source: "manual" };
-        saveStore(); toast(t("Price updated")); render();
-      });
+      if (p) p.addEventListener("click", () => showSetPriceModal(h));
       const lv = $("#dtlLive");
       if (lv) lv.addEventListener("click", async () => {
         if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
@@ -4240,6 +4258,38 @@ function showCalc(calc) {
   $("#modal").hidden = false;
 }
 function closeModal() { $("#modal").hidden = true; }
+
+/* Manual price entry — reuses the same modal shell as showCalc() (title +
+ * body + the existing Escape/backdrop-click/× close wiring) instead of the
+ * browser's native prompt(), which can't be styled and looks like it belongs
+ * to a different app entirely. */
+function showSetPriceModal(h) {
+  const cur = CURRENT_PRICES[h.ticker];
+  $("#modalTitle").textContent = `${t("Set Price")} — ${h.ticker}`;
+  $("#modalBody").innerHTML = `
+    <form id="setPriceForm" class="form">
+      <label>${t("Price per share")} (${esc(h.currentPriceCcy)})
+        <input type="number" step="any" name="price" value="${cur ? esc(cur.price) : ""}" placeholder="0.00" required>
+      </label>
+      <p class="muted" style="font-size:12px;margin:10px 0 0">${t("Manually entered prices are always labelled \"Manual price\" and are never mistaken for live market data.")}</p>
+      <div class="form-actions" style="margin-top:14px">
+        <button class="btn primary" type="submit">${t("Save")}</button>
+        <button class="btn ghost" type="button" id="setPriceCancel">${t("Cancel")}</button>
+      </div>
+    </form>`;
+  $("#modal").hidden = false;
+  const form = $("#setPriceForm");
+  const priceInput = form.querySelector('[name="price"]');
+  priceInput.focus();
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const price = parseFloat(priceInput.value);
+    if (!(price > 0)) { toast(t("Enter a valid price.")); return; }
+    CURRENT_PRICES[h.ticker] = { price, currency: h.currentPriceCcy, date: todayISO(), source: "manual" };
+    saveStore(); closeModal(); toast(t("Price updated")); render();
+  });
+  $("#setPriceCancel").addEventListener("click", closeModal);
+}
 
 /* =============================================================================
  * CSV EXPORT
