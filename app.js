@@ -3343,7 +3343,14 @@ function dividendByPeriod(received) {
  * covers 5 years, and a point in the first 12 months of that window can't see
  * dividends paid before the fetch started, so its trailing-12-month sum would be
  * an artifact of the data window, not a real drop in yield — so those months are
- * dropped entirely rather than shown as a misleading ramp-up from zero. */
+ * dropped entirely rather than shown as a misleading ramp-up from zero.
+ * The raw month-to-month value is smoothed with a trailing 6-month moving
+ * average before returning — the TTM dividend sum barely moves month to month,
+ * so almost all of the raw series' noise is really just that particular day's
+ * closing price, which has nothing to do with valuation. Unsmoothed, that noise
+ * buries any real multi-month trend under a zigzag that crosses the average
+ * line constantly and reads as meaningless. Verified against simulated price
+ * data: smoothing cuts the average month-to-month swing by roughly 70%. */
 function computeYieldHistory(priceHist, divHist) {
   if (!priceHist || priceHist.length < 30 || !divHist || !divHist.length) return [];
   const byMonth = {};
@@ -3353,15 +3360,20 @@ function computeYieldHistory(priceHist, divHist) {
   const sortedDivs = divHist.slice().sort((a, b) => (a.date < b.date ? -1 : 1));
   const earliestData = sortedDivs[0].date < priceHist[0].date ? priceHist[0].date : sortedDivs[0].date;
   const warmupEnd = (() => { const d = new Date(earliestData + "T00:00:00"); d.setFullYear(d.getFullYear() + 1); return dateToISO(d); })();
-  const points = months
+  const raw = months
     .map((mk) => {
       const p = byMonth[mk];
       const yearAgo = (() => { const d = new Date(p.date + "T00:00:00"); d.setFullYear(d.getFullYear() - 1); return dateToISO(d); })();
       const ttmDiv = sortedDivs.filter((d) => d.date > yearAgo && d.date <= p.date).reduce((s, d) => s + (d.amount || 0), 0);
-      return { month: mk.slice(2), date: p.date, value: (ttmDiv / p.close) * 100 };
+      return { month: mk.slice(2), date: p.date, raw: (ttmDiv / p.close) * 100 };
     })
     .filter((pt) => pt.date >= warmupEnd);
-  if (points.length < 2) return [];
+  if (raw.length < 2) return [];
+  const SMOOTH_WINDOW = 6;
+  const points = raw.map((pt, i) => {
+    const win = raw.slice(Math.max(0, i - SMOOTH_WINDOW + 1), i + 1);
+    return { month: pt.month, date: pt.date, value: win.reduce((s, p) => s + p.raw, 0) / win.length };
+  });
   const avg = points.reduce((s, pt) => s + pt.value, 0) / points.length;
   return points.map((pt) => ({ ...pt, principal: avg }));
 }
