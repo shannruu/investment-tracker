@@ -8,23 +8,19 @@
  * which required a free API key and only reliably covered US tickers).
  *
  * The window defaults to roughly 5 years back through 1 year ahead, so one
- * call serves three purposes: PAST events feed pattern-based dividend
+ * call serves two purposes: PAST events feed pattern-based dividend
  * forecasting (frequency + growth detection) and let a user browse several
- * years of history; any FUTURE-dated event (rare — most issuers don't declare
- * that far ahead) becomes a confirmed upcoming payment; and the same chart
- * response already carries historical daily closes, used to build a
- * trailing-yield-over-time valuation chart without a second API call.
+ * years of history, while any FUTURE-dated event (rare — most issuers don't
+ * declare that far ahead) becomes a confirmed upcoming payment.
  *
  * Usage:
  *   /api/dividend?symbol=AAPL
  *   /api/dividend?symbol=1155.KL&from=2024-01-01&to=2027-01-01
  *
- * Response shape:
- *   { dividends: [{ date, amount, currency }, ...],   // ascending by date
- *     prices: [{ date, close }, ...] }                // ascending by date
- * date = ex-dividend date for dividends (Yahoo's chart API doesn't separately
- * report a pay date) / trading day for prices; amount = per share, in the
- * security's own currency; close is also in that same currency.
+ * Response shape (array, ascending by date):
+ *   [{ date, amount, currency }, ...]
+ * date = ex-dividend date (Yahoo's chart API doesn't separately report a pay
+ * date); amount = per share, in the security's own currency.
  * ========================================================================== */
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -66,18 +62,12 @@ module.exports = async (req, res) => {
     if (!result) { res.status(404).json({ error: `No data for ${symbol}` }); return; }
     const currency = (result.meta && result.meta.currency) || null;
     const divEvents = (result.events && result.events.dividends) || {};
-    const dividends = Object.values(divEvents)
+    const out = Object.values(divEvents)
       .map((d) => ({ date: new Date(d.date * 1000).toISOString().slice(0, 10), amount: d.amount, currency }))
-      .sort((a, b) => (a.date < b.date ? -1 : 1));
-    const timestamps = result.timestamp || [];
-    const closes = (result.indicators && result.indicators.quote && result.indicators.quote[0] && result.indicators.quote[0].close) || [];
-    const prices = timestamps
-      .map((ts, i) => ({ date: new Date(ts * 1000).toISOString().slice(0, 10), close: closes[i] }))
-      .filter((p) => p.close != null)
       .sort((a, b) => (a.date < b.date ? -1 : 1));
     // Cache at the edge for 1 hour — dividend schedules rarely change intra-day.
     res.setHeader("Cache-Control", "s-maxage=3600, stale-while-revalidate=7200");
-    res.status(200).json({ dividends, prices });
+    res.status(200).json(out);
   } catch (e) {
     res.status(500).json({ error: String((e && e.message) || e) });
   }

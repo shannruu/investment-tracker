@@ -112,9 +112,6 @@ const ZH = {
   "All Transactions": "全部交易", "Cash Ledger — Deposits & Withdrawals": "现金账本 — 存款与取款",
   "Broker Cash Reconciliation": "券商现金对账", "Dividend History": "股息历史",
   "Dividend History by Year": "年度股息历史", "Projected (this year)": "预计（今年）",
-  "Dividend Yield vs. Historical Average": "股息率与历史平均对比", "Average": "平均值",
-  "Currently yielding above its own historical average — more income per dollar invested than usual, one signal (not the only one) that a stock may be relatively cheap right now.": "目前股息率高于其自身历史平均水平——每投入一元获得的收益高于平常，这是该股票目前可能相对便宜的其中一项参考信号（并非唯一依据）。",
-  "Currently yielding below its own historical average — less income per dollar invested than usual, one signal (not the only one) that a stock may be relatively expensive right now.": "目前股息率低于其自身历史平均水平——每投入一元获得的收益低于平常，这是该股票目前可能相对昂贵的其中一项参考信号（并非唯一依据）。",
   "Dividend history by year": "年度股息历史图",
   "Dividend Tax Paid by Country": "按国家/地区缴纳的股息税",
   "Profit / Loss by Holding": "按持仓盈亏", "Profit / Loss by Broker": "按券商盈亏",
@@ -317,7 +314,7 @@ const ZH = {
   "Where this broker's dividends land by default — used when auto-logging market dividends.": "此券商股息默认派发的去向——用于自动登记市场股息记录时的判断依据。",
   "Default dividend tax rate": "默认股息预扣税率",
   "Payout Ratio": "派息比率", "Set EPS": "设置每股盈利",
-  "The share of earnings paid out as dividends. Below 60% is generally considered sustainable; over 100% means the company is paying out more than it currently earns.": "以股息形式派发的盈利比例。一般而言，低于60%属可持续水平；超过100%则代表公司派发的股息已超过其当前盈利。",
+  "TTM dividends per share ÷ TTM EPS. Below 60% is generally considered sustainable; over 100% means the company is paying out more than it currently earns.": "近12个月每股股息 ÷ 近12个月每股盈利。一般而言，低于60%属可持续水平；超过100%则代表公司派发的股息已超过其当前盈利。",
   "Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward.": "适用于此券商自动登记的市场股息记录——例如无税务协定的美股填 30，马来西亚股票填 0。之后仍可在个别股息记录上自行修改税额。",
   "Applied to dividends auto-logged from market history at this broker.": "适用于此券商自动登记的市场股息记录。",
   "Broker archived": "券商已归档", "Broker unarchived": "已取消归档", "Enter a broker name.": "请输入券商名称。",
@@ -402,7 +399,6 @@ const ZH = {
   // Phase 2 — Portfolio Health (F6)
   "Portfolio Health": "投资组合健康度", "Best / Worst": "最优 / 最差",
   "Dividend Yield (TTM)": "股息率（近12个月）", "Cash Allocation": "现金占比",
-  "Dividend Yield": "股息率", "Average Yield": "平均股息率",
   "Yield on Cost": "成本股息率",
   "Based on what you originally paid (your average cost), not today's market value — shows the effective income dividend growth has earned you over time on your original investment.": "以您原始买入成本（平均成本）计算，而非目前市值——反映股息增长为您原始投资带来的实际收益率。",
   "Diversification Score": "分散度评分", "effective holdings": "有效持仓数",
@@ -848,7 +844,6 @@ function computeTotals() {
       priceFetchedAt: hasPrice ? cp.fetchedAt : null,
       changePct: hasPrice ? cp.changePct : null,
       high52: (cp && cp.high52 != null) ? cp.high52 : null, low52: (cp && cp.low52 != null) ? cp.low52 : null,
-      autoPayoutRatio: (cp && cp.payoutRatio != null) ? cp.payoutRatio : null,
       autoTrailingEps: (cp && cp.trailingEps != null) ? cp.trailingEps : null,
       manualEps: MANUAL_EPS[l.ticker] != null ? +MANUAL_EPS[l.ticker] : null };
   });
@@ -1146,24 +1141,19 @@ async function searchSymbols(q) {
 // a confirmed upcoming payment (allUpcomingDivs).
 let AUTO_DIV_CACHE = {};
 let AUTO_DIV_CACHE_FETCHED = false;  // prevent the fetch→render→mount→fetch infinite loop
-// Historical daily closes, same /api/dividend call as AUTO_DIV_CACHE (one round
-// trip covers both). Shape: { [ticker]: [{date, close}] }. Feeds the historical
-// dividend-yield valuation chart. Same non-persisted, same-fetch-cycle lifetime
-// as AUTO_DIV_CACHE — no separate _FETCHED flag needed, they're set together.
-let PRICE_HIST_CACHE = {};
 
-/* Returns { ok, divs, prices } — ok distinguishes "fetched cleanly, ticker just
- * has no dividend history" from "the request itself failed", so callers can
- * surface a real error state instead of the two cases silently looking identical. */
+/* Returns { ok, divs } — ok distinguishes "fetched cleanly, ticker just has no
+ * dividend history" from "the request itself failed", so callers can surface a
+ * real error state instead of the two cases silently looking identical. */
 async function fetchDivHistory(ticker) {
-  if (!LIVE_ENABLED) return { ok: true, divs: null, prices: null };
+  if (!LIVE_ENABLED) return { ok: true, divs: null };
   try {
     const r = await fetch(`/api/dividend?symbol=${encodeURIComponent(ticker)}`);
-    if (!r.ok) return { ok: false, divs: null, prices: null };
+    if (!r.ok) return { ok: false, divs: null };
     const data = await r.json();
-    if (!data || !Array.isArray(data.dividends)) return { ok: false, divs: null, prices: null };
-    return { ok: true, divs: data.dividends, prices: Array.isArray(data.prices) ? data.prices : null };
-  } catch (e) { return { ok: false, divs: null, prices: null }; }
+    if (!Array.isArray(data)) return { ok: false, divs: null };
+    return { ok: true, divs: data };
+  } catch (e) { return { ok: false, divs: null }; }
 }
 
 /* Auto-log dividends you're eligible for (held the stock on/after its ex-date) but haven't
@@ -1228,8 +1218,6 @@ async function fetchAllDivSchedules() {
     if (!res.ok) hadError = true;
     if (res.divs && res.divs.length) AUTO_DIV_CACHE[ticker] = res.divs;
     else delete AUTO_DIV_CACHE[ticker];
-    if (res.prices && res.prices.length) PRICE_HIST_CACHE[ticker] = res.prices;
-    else delete PRICE_HIST_CACHE[ticker];
   }));
   const autoLogged = autoSyncDividends();
   if (autoLogged) {
@@ -1379,7 +1367,6 @@ async function refreshLivePrice(ticker) {
     fetchedAt: new Date().toISOString(), changePct: q.changePct,
     high52: q.fiftyTwoWeekHigh != null ? +q.fiftyTwoWeekHigh : null,
     low52: q.fiftyTwoWeekLow != null ? +q.fiftyTwoWeekLow : null,
-    payoutRatio: q.payoutRatio != null ? +q.payoutRatio : null,
     trailingEps: q.trailingEps != null ? +q.trailingEps : null,
   };
   return true;
@@ -1598,12 +1585,10 @@ function mountChartTooltips() {
     // cost/dividend charts), and a global query would mislabel/misformat whichever
     // chart happened to render first in the DOM.
     const chartDiv = el.closest(".chart[data-chart-mode]");
-    const mode = chartDiv && chartDiv.dataset.chartMode;
-    const valLabel = mode === "div" ? t("Total Return") : mode === "yield" ? t("Dividend Yield") : t("Market Value");
-    const fmtVal = (n) => mode === "yield" ? `${fmt(n, { maximumFractionDigits: 2 })}%` : money(n);
+    const valLabel = (chartDiv && chartDiv.dataset.chartMode === "div") ? t("Total Return") : t("Market Value");
     const valHtml = hasCb
-      ? `<div class="ct-row"><span class="ct-lbl">${valLabel}</span><span class="ct-val">${fmtVal(v)}</span></div><div class="ct-row"><span class="ct-lbl">${mode === "yield" ? t("Average Yield") : t("Cost Basis")}</span><span class="ct-val">${fmtVal(+cb)}</span></div>`
-      : `<div class="ct-val">${fmtVal(v)}</div>`;
+      ? `<div class="ct-row"><span class="ct-lbl">${valLabel}</span><span class="ct-val">${money(v)}</span></div><div class="ct-row"><span class="ct-lbl">${t("Cost Basis")}</span><span class="ct-val">${money(+cb)}</span></div>`
+      : `<div class="ct-val">${money(v)}</div>`;
     tip.innerHTML = d ? `<div class="ct-date">${fmtDate(d)}</div>${valHtml}` : valHtml;
     const r = el.getBoundingClientRect();
     tip.style.left = (r.left + r.width / 2) + "px";
@@ -3332,52 +3317,6 @@ function dividendByPeriod(received) {
   return { byMonth, byQuarter, byYear };
 }
 
-/* Historical dividend yield (trailing 12 months) at each point in time, from raw
- * per-share market data (priceHist/divHist — both native currency, same source,
- * so no FX conversion needed). Feeds the "is this stock cheap or expensive
- * relative to its OWN history" valuation chart: a current yield above its own
- * average suggests more income per dollar than usual (historically cheap); below
- * average suggests the opposite. One point per calendar month (last trading day),
- * not daily — 5 years of daily closes is far too dense to read as a trend.
- * The window is deliberately trimmed to only the "true" TTM span: the raw fetch
- * covers 5 years, and a point in the first 12 months of that window can't see
- * dividends paid before the fetch started, so its trailing-12-month sum would be
- * an artifact of the data window, not a real drop in yield — so those months are
- * dropped entirely rather than shown as a misleading ramp-up from zero.
- * The raw month-to-month value is smoothed with a trailing 6-month moving
- * average before returning — the TTM dividend sum barely moves month to month,
- * so almost all of the raw series' noise is really just that particular day's
- * closing price, which has nothing to do with valuation. Unsmoothed, that noise
- * buries any real multi-month trend under a zigzag that crosses the average
- * line constantly and reads as meaningless. Verified against simulated price
- * data: smoothing cuts the average month-to-month swing by roughly 70%. */
-function computeYieldHistory(priceHist, divHist) {
-  if (!priceHist || priceHist.length < 30 || !divHist || !divHist.length) return [];
-  const byMonth = {};
-  priceHist.forEach((p) => { if (p.close > 0) byMonth[p.date.slice(0, 7)] = p; });  // last trading day of each month wins (dates ascending)
-  const months = Object.keys(byMonth).sort();
-  if (months.length < 2) return [];
-  const sortedDivs = divHist.slice().sort((a, b) => (a.date < b.date ? -1 : 1));
-  const earliestData = sortedDivs[0].date < priceHist[0].date ? priceHist[0].date : sortedDivs[0].date;
-  const warmupEnd = (() => { const d = new Date(earliestData + "T00:00:00"); d.setFullYear(d.getFullYear() + 1); return dateToISO(d); })();
-  const raw = months
-    .map((mk) => {
-      const p = byMonth[mk];
-      const yearAgo = (() => { const d = new Date(p.date + "T00:00:00"); d.setFullYear(d.getFullYear() - 1); return dateToISO(d); })();
-      const ttmDiv = sortedDivs.filter((d) => d.date > yearAgo && d.date <= p.date).reduce((s, d) => s + (d.amount || 0), 0);
-      return { month: mk.slice(2), date: p.date, raw: (ttmDiv / p.close) * 100 };
-    })
-    .filter((pt) => pt.date >= warmupEnd);
-  if (raw.length < 2) return [];
-  const SMOOTH_WINDOW = 6;
-  const points = raw.map((pt, i) => {
-    const win = raw.slice(Math.max(0, i - SMOOTH_WINDOW + 1), i + 1);
-    return { month: pt.month, date: pt.date, value: win.reduce((s, p) => s + p.raw, 0) / win.length };
-  });
-  const avg = points.reduce((s, pt) => s + pt.value, 0) / points.length;
-  return points.map((pt) => ({ ...pt, principal: avg }));
-}
-
 /* Dividend forecast — pattern-based, never a flat TTM ÷ 12 run-rate.
  * METHOD (documented):
  *  1. Confirmed pipeline: any dividend you (or the market-data auto-fetch)
@@ -4402,11 +4341,6 @@ function pageHolding() {
   const tFc = dividendForecast(tReceived, tExpectedForForecast);
   // Raw market dividend history (Yahoo-fetched, per-share, native currency) — the actual data behind the estimates above.
   const marketHist = (AUTO_DIV_CACHE[h.ticker] || []).slice().sort((a, b) => (a.date < b.date ? 1 : -1));
-  // Historical dividend yield vs. its own average — "is this cheap or expensive
-  // relative to its own history", not vs. the market. Uses raw per-share market
-  // data (price + dividend history), independent of your own cost basis or share
-  // count — same data whether you've held it 1 month or 10 years.
-  const yieldHistSeries = computeYieldHistory(PRICE_HIST_CACHE[h.ticker], AUTO_DIV_CACHE[h.ticker]);
   // Dividend income over time (monthly, base ccy)
   const dPer = dividendByPeriod(tReceived).byMonth;
   const divSeries = Object.keys(dPer).sort().map((k) => ({ month: k.slice(2), value: dPer[k] }));
@@ -4506,14 +4440,16 @@ function pageHolding() {
         ? `${stat(t("Year 2"), money(tFc.year2))}${stat(t("Year 3"), tFc.year3 > 0 ? money(tFc.year3) : "—")}` : "";
       const yieldOnCostTip = ` <span class="col-info" data-tip="${esc(t("Based on what you originally paid (your average cost), not today's market value — shows the effective income dividend growth has earned you over time on your original investment."))}">${COL_INFO_ICON_SVG}</span>`;
       const divYieldTtmPct = h.marketValue ? (tFc.ttm / h.marketValue) * 100 : 0;
-      // Payout ratio = dividend per share ÷ EPS. Rather than converting the TTM dividend
-      // (base currency) back into the holding's local currency, this uses
+      // Payout Ratio = TTM dividends per share ÷ TTM EPS (DivTracker's own stated
+      // method). EPS prefers your manual entry when set (an explicit correction should
+      // always win), else the auto-fetched trailing EPS. Rather than converting the TTM
+      // dividend (base currency) back into the holding's local currency, this uses
       // yield × (price ÷ EPS) — algebraically identical (divPerShare/EPS = (divPerShare/price)
       // × (price/EPS)) but price and EPS are already both in local currency, so no FX
       // conversion — and no rounding drift from one — is needed at all.
-      const payoutRatioPct = (h.manualEps > 0 && h.hasPrice) ? divYieldTtmPct * (h.currentPrice / h.manualEps)
-        : (h.autoPayoutRatio != null ? h.autoPayoutRatio : null);
-      const payoutTip = ` <span class="col-info" data-tip="${esc(t("The share of earnings paid out as dividends. Below 60% is generally considered sustainable; over 100% means the company is paying out more than it currently earns."))}">${COL_INFO_ICON_SVG}</span>`;
+      const eps = h.manualEps > 0 ? h.manualEps : h.autoTrailingEps;
+      const payoutRatioPct = (eps > 0 && h.hasPrice) ? divYieldTtmPct * (h.currentPrice / eps) : null;
+      const payoutTip = ` <span class="col-info" data-tip="${esc(t("TTM dividends per share ÷ TTM EPS. Below 60% is generally considered sustainable; over 100% means the company is paying out more than it currently earns."))}">${COL_INFO_ICON_SVG}</span>`;
       const payoutLabel = `<span>${t("Payout Ratio")}${payoutTip}</span><button type="button" class="link" id="setEpsBtn" style="font-size:10.5px;font-weight:650;background:none;border:none;padding:0;cursor:pointer">${h.manualEps != null ? t("Edit") : t("Set EPS")}</button>`;
       return panel("Dividend Summary", `<div class="plain-stat-row">
         ${stat(t("Total Dividends Received"), money(totalDivReceived), "pos")}
@@ -4614,35 +4550,14 @@ function pageHolding() {
     })()}
 
     ${(() => {
-      // Both charts here are "how has this dividend behaved over time" views, so they're
-      // paired side-by-side (same treatment as Cost Basis / Dividend Income below) rather
-      // than each taking the full panel width — a lone full-width chart on a wide screen
-      // renders every element (line, dots, text) proportionally oversized.
-      const showYearBars = divYearSeries.length >= 2;
-      const showYieldHist = yieldHistSeries.length >= 2;
-      if (!showYearBars && !showYieldHist) return "";
+      // Yearly dividend growth — the headline "is this actually growing" view. Needs 2+
+      // distinct years to read as a trend at all; a single bar isn't history yet.
+      if (divYearSeries.length < 2) return "";
       const legend = `<div class="chart-legend">
         <span class="cl-item"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--pos)"></span>${t("Received")}</span>
         ${projThisYear > 0 ? `<span class="cl-item"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--warn);opacity:.55"></span>${t("Projected (this year)")}</span>` : ""}
       </div>`;
-      const yearPanel = panel(t("Dividend History by Year"), `<div class="chart">${barChartSVG(divYearSeries, { ariaLabel: t("Dividend history by year") })}</div>${legend}`);
-      let yieldPanel = "";
-      if (showYieldHist) {
-        const avgYield = yieldHistSeries[0].principal;
-        const curYield = yieldHistSeries[yieldHistSeries.length - 1].value;
-        const vsAvgNote = curYield > avgYield
-          ? t("Currently yielding above its own historical average — more income per dollar invested than usual, one signal (not the only one) that a stock may be relatively cheap right now.")
-          : t("Currently yielding below its own historical average — less income per dollar invested than usual, one signal (not the only one) that a stock may be relatively expensive right now.");
-        yieldPanel = panel(t("Dividend Yield vs. Historical Average"),
-          `<div class="chart" data-chart-mode="yield">${lineChartSVG(yieldHistSeries)}</div>
-           <div class="chart-legend">
-             <span class="cl-item"><span class="cl-nw"></span>${t("Yield")}</span>
-             <span class="cl-item"><span class="cl-p"></span>${t("Average")} (${fmt(avgYield, { maximumFractionDigits: 2 })}%)</span>
-           </div>
-           <p class="muted" style="font-size:11px;margin:6px 0 0">${vsAvgNote}</p>`);
-      }
-      if (showYearBars && showYieldHist) return `<section class="grid-2">${yearPanel}${yieldPanel}</section>`;
-      return showYearBars ? yearPanel : yieldPanel;
+      return panel(t("Dividend History by Year"), `<div class="chart">${barChartSVG(divYearSeries, { ariaLabel: t("Dividend history by year") })}</div>${legend}`);
     })()}
 
     ${(() => {

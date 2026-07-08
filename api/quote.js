@@ -36,8 +36,8 @@ module.exports = async (req, res) => {
   }
   // quoteSummary (unlike the chart endpoint above) requires a session cookie + crumb —
   // Yahoo tightened this a while back. Best-effort only: if either leg fails or Yahoo
-  // blocks the request outright, callers just don't get payoutRatio/trailingEps, same
-  // as the existing sector/country lookup below already silently degrades.
+  // blocks the request outright, callers just don't get trailingEps, same as the
+  // existing sector/country lookup below already silently degrades.
   function extractCookie(r) {
     if (typeof r.headers.getSetCookie === "function") {
       return r.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ");
@@ -83,7 +83,7 @@ module.exports = async (req, res) => {
     if (!sector || !country) {
       try { crumbInfo = await getYahooCrumb(); } catch (e) { /* ignore */ }
     }
-    let payoutRatio = null, trailingEps = null;
+    let trailingEps = null;
     if (crumbInfo) {
       const qsHeaders = { ...headers, Cookie: crumbInfo.cookie };
       try {
@@ -95,12 +95,11 @@ module.exports = async (req, res) => {
         }
       } catch (e) { /* ignore */ }
       try {
-        const k = await fetch(`https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=summaryDetail,defaultKeyStatistics&crumb=${encodeURIComponent(crumbInfo.crumb)}`, { headers: qsHeaders });
+        const k = await fetch(`https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=defaultKeyStatistics&crumb=${encodeURIComponent(crumbInfo.crumb)}`, { headers: qsHeaders });
         if (k.ok) {
           const kd = await k.json();
           const res0 = kd && kd.quoteSummary && kd.quoteSummary.result && kd.quoteSummary.result[0];
-          const sd2 = res0 && res0.summaryDetail, dks = res0 && res0.defaultKeyStatistics;
-          payoutRatio = (sd2 && sd2.payoutRatio && sd2.payoutRatio.raw != null) ? sd2.payoutRatio.raw * 100 : null;
+          const dks = res0 && res0.defaultKeyStatistics;
           trailingEps = (dks && dks.trailingEps && dks.trailingEps.raw != null) ? dks.trailingEps.raw : null;
         }
       } catch (e) { /* ignore */ }
@@ -121,7 +120,6 @@ module.exports = async (req, res) => {
       changePct: prev ? ((price - prev) / prev) * 100 : 0,
       fiftyTwoWeekHigh: m.fiftyTwoWeekHigh != null ? m.fiftyTwoWeekHigh : null,
       fiftyTwoWeekLow: m.fiftyTwoWeekLow != null ? m.fiftyTwoWeekLow : null,
-      payoutRatio,
       trailingEps,
       time: m.regularMarketTime ? new Date(m.regularMarketTime * 1000).toISOString() : null,
       exchange: m.exchangeName || null,
