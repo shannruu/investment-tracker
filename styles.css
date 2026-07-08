@@ -924,6 +924,18 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
  * in the cascade), collapsing this to 2-per-row then 1-per-row same as everywhere else. */
 .pos-metrics { grid-template-columns: repeat(4, 1fr); }
 .pos-metrics .stat { grid-column: span 1; }
+
+/* 52-week range — thin track + a single marker dot at the current price's
+ * position between the low and high bounds. No fill bar (that would imply a
+ * "progress toward" reading, e.g. toward the high, which isn't the intent). */
+.range52 { margin: 12px 0 0; }
+.range52-labels { display: flex; justify-content: space-between; font-size: 11.5px; margin: 0 0 5px; }
+.range52-track { position: relative; height: 4px; border-radius: 999px; background: var(--border); }
+.range52-marker {
+  position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--brand); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--brand);
+  transform: translate(-50%, -50%);
+}
 .stat {
   /* Primary tier: crisper brand-tinted border + a touch more lift than the panels below */
   background: var(--surface);

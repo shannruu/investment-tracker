@@ -112,6 +112,9 @@ const ZH = {
   "All Transactions": "全部交易", "Cash Ledger — Deposits & Withdrawals": "现金账本 — 存款与取款",
   "Broker Cash Reconciliation": "券商现金对账", "Dividend History": "股息历史",
   "Dividend History by Year": "年度股息历史", "Projected (this year)": "预计（今年）",
+  "Dividend Yield vs. Historical Average": "股息率与历史平均对比", "Average": "平均值",
+  "Currently yielding above its own historical average — more income per dollar invested than usual, one signal (not the only one) that a stock may be relatively cheap right now.": "目前股息率高于其自身历史平均水平——每投入一元获得的收益高于平常，这是该股票目前可能相对便宜的其中一项参考信号（并非唯一依据）。",
+  "Currently yielding below its own historical average — less income per dollar invested than usual, one signal (not the only one) that a stock may be relatively expensive right now.": "目前股息率低于其自身历史平均水平——每投入一元获得的收益低于平常，这是该股票目前可能相对昂贵的其中一项参考信号（并非唯一依据）。",
   "Dividend history by year": "年度股息历史图",
   "Dividend Tax Paid by Country": "按国家/地区缴纳的股息税",
   "Profit / Loss by Holding": "按持仓盈亏", "Profit / Loss by Broker": "按券商盈亏",
@@ -313,6 +316,8 @@ const ZH = {
   "Broker account (adds to cash)": "券商账户（计入现金）", "Bank account (income only)": "银行账户（仅计入收入）",
   "Where this broker's dividends land by default — used when auto-logging market dividends.": "此券商股息默认派发的去向——用于自动登记市场股息记录时的判断依据。",
   "Default dividend tax rate": "默认股息预扣税率",
+  "Payout Ratio": "派息比率", "Set EPS": "设置每股盈利",
+  "The share of earnings paid out as dividends. Below 60% is generally considered sustainable; over 100% means the company is paying out more than it currently earns.": "以股息形式派发的盈利比例。一般而言，低于60%属可持续水平；超过100%则代表公司派发的股息已超过其当前盈利。",
   "Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward.": "适用于此券商自动登记的市场股息记录——例如无税务协定的美股填 30，马来西亚股票填 0。之后仍可在个别股息记录上自行修改税额。",
   "Applied to dividends auto-logged from market history at this broker.": "适用于此券商自动登记的市场股息记录。",
   "Broker archived": "券商已归档", "Broker unarchived": "已取消归档", "Enter a broker name.": "请输入券商名称。",
@@ -356,6 +361,9 @@ const ZH = {
   "Set price": "设置价格", "Realized P/L": "已实现盈亏", "Net Dividends": "净股息",
   "Set Price": "设置价格", "Price per share": "每股价格", "Save": "保存",
   "Manually entered prices are always labelled \"Manual price\" and are never mistaken for live market data.": "手动输入的价格始终标记为「手动价格」，绝不会与实时市场数据混淆。",
+  "Set Annual EPS": "设置年度每股盈利", "Trailing annual EPS": "过去12个月每股盈利",
+  "Used to calculate Payout Ratio (dividends paid ÷ earnings). Find this on the company's latest annual report or a finance site.": "用于计算派息比率（已派股息 ÷ 盈利）。可在公司最新年报或财经网站上查到此数值。",
+  "Enter a valid EPS.": "请输入有效的每股盈利。", "EPS updated": "每股盈利已更新",
   "price": "价格", "FX": "汇率", "Manual": "手动",
   "Transactions": "交易记录",
   "No transactions for this holding.": "此持仓暂无交易。",
@@ -394,6 +402,7 @@ const ZH = {
   // Phase 2 — Portfolio Health (F6)
   "Portfolio Health": "投资组合健康度", "Best / Worst": "最优 / 最差",
   "Dividend Yield (TTM)": "股息率（近12个月）", "Cash Allocation": "现金占比",
+  "Dividend Yield": "股息率", "Average Yield": "平均股息率",
   "Yield on Cost": "成本股息率",
   "Based on what you originally paid (your average cost), not today's market value — shows the effective income dividend growth has earned you over time on your original investment.": "以您原始买入成本（平均成本）计算，而非目前市值——反映股息增长为您原始投资带来的实际收益率。",
   "Diversification Score": "分散度评分", "effective holdings": "有效持仓数",
@@ -486,7 +495,7 @@ const ZH = {
   "Days": "距今天数", "Ex-Date": "除息日", "Payment": "付款日", "Expected Net": "预期净额",
   "Holding": "持仓", "Market": "市场", "Net Div": "净股息", "Current Price": "现价",
   "Avg Cost": "平均成本", "Market Value": "市值", "Unrealized P/L": "未实现盈亏",
-  "Price Return": "价格回报",
+  "Price Return": "价格回报", "52-Week Range": "52周区间",
   "No upcoming dividends.": "暂无即将派发的股息。",
   "No activity yet.": "暂无记录。",
   "No holdings yet — add a Buy to get started.": "暂无持仓 — 添加一笔买入即可开始。",
@@ -837,7 +846,11 @@ function computeTotals() {
       currentPriceDate: hasPrice ? cp.date : null,
       priceSource: hasPrice ? (cp.source || "manual") : null,
       priceFetchedAt: hasPrice ? cp.fetchedAt : null,
-      changePct: hasPrice ? cp.changePct : null };
+      changePct: hasPrice ? cp.changePct : null,
+      high52: (cp && cp.high52 != null) ? cp.high52 : null, low52: (cp && cp.low52 != null) ? cp.low52 : null,
+      autoPayoutRatio: (cp && cp.payoutRatio != null) ? cp.payoutRatio : null,
+      autoTrailingEps: (cp && cp.trailingEps != null) ? cp.trailingEps : null,
+      manualEps: MANUAL_EPS[l.ticker] != null ? +MANUAL_EPS[l.ticker] : null };
   });
 
   const portfolioValue = holdings.reduce((s, h) => s + h.marketValue, 0);
@@ -896,7 +909,7 @@ const SCHEMA_VERSION = 4;
 function snapshot() {
   return { version: SCHEMA_VERSION, lastSaved: LAST_SAVED,
     BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS,
-    CURRENT_PRICES, STOCK_META, RECON_CHECKS, SETTINGS, USER, FX, PV_HISTORY };
+    CURRENT_PRICES, MANUAL_EPS, STOCK_META, RECON_CHECKS, SETTINGS, USER, FX, PV_HISTORY };
 }
 /* A restored backup is untrusted JSON — Object.assign(target, parsedJson)
  * would let a crafted "__proto__"/"constructor"/"prototype" key in the file
@@ -920,6 +933,7 @@ function pruneOrphans() {
   ALL_TRANSACTIONS.forEach((x) => { if (x.ticker && x.ticker !== "—") used.add(x.ticker.toUpperCase()); });
   HOLDINGS.forEach((h) => { if (h.ticker) used.add(h.ticker.toUpperCase()); });
   Object.keys(CURRENT_PRICES).forEach((tk) => { if (!used.has(tk.toUpperCase())) delete CURRENT_PRICES[tk]; });
+  Object.keys(MANUAL_EPS).forEach((tk) => { if (!used.has(tk.toUpperCase())) delete MANUAL_EPS[tk]; });
 }
 /* Upsert today's portfolio market value (incl. cash) into PV_HISTORY. One point
  * per day: updates today's point if it already exists, else appends. Capped. */
@@ -1022,7 +1036,7 @@ function applySnapshot(s) {
   replaceArr(BROKERS, s.BROKERS); replaceArr(HOLDINGS, s.HOLDINGS);
   replaceArr(ALL_TRANSACTIONS, s.ALL_TRANSACTIONS); replaceArr(UPCOMING_DIVIDENDS, s.UPCOMING_DIVIDENDS);
   if (s.PV_HISTORY) replaceArr(PV_HISTORY, s.PV_HISTORY.filter((p) => p.value > 0));
-  assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(RECON_CHECKS, s.RECON_CHECKS);
+  assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(MANUAL_EPS, s.MANUAL_EPS); assignObj(RECON_CHECKS, s.RECON_CHECKS);
   assignObj(STOCK_META, s.STOCK_META);
   if (s.SETTINGS) safeAssign(SETTINGS, s.SETTINGS);
   if (s.USER) safeAssign(USER, s.USER);
@@ -1132,19 +1146,24 @@ async function searchSymbols(q) {
 // a confirmed upcoming payment (allUpcomingDivs).
 let AUTO_DIV_CACHE = {};
 let AUTO_DIV_CACHE_FETCHED = false;  // prevent the fetch→render→mount→fetch infinite loop
+// Historical daily closes, same /api/dividend call as AUTO_DIV_CACHE (one round
+// trip covers both). Shape: { [ticker]: [{date, close}] }. Feeds the historical
+// dividend-yield valuation chart. Same non-persisted, same-fetch-cycle lifetime
+// as AUTO_DIV_CACHE — no separate _FETCHED flag needed, they're set together.
+let PRICE_HIST_CACHE = {};
 
-/* Returns { ok, divs } — ok distinguishes "fetched cleanly, ticker just has no
- * dividend history" from "the request itself failed", so callers can surface a
- * real error state instead of the two cases silently looking identical. */
+/* Returns { ok, divs, prices } — ok distinguishes "fetched cleanly, ticker just
+ * has no dividend history" from "the request itself failed", so callers can
+ * surface a real error state instead of the two cases silently looking identical. */
 async function fetchDivHistory(ticker) {
-  if (!LIVE_ENABLED) return { ok: true, divs: null };
+  if (!LIVE_ENABLED) return { ok: true, divs: null, prices: null };
   try {
     const r = await fetch(`/api/dividend?symbol=${encodeURIComponent(ticker)}`);
-    if (!r.ok) return { ok: false, divs: null };
+    if (!r.ok) return { ok: false, divs: null, prices: null };
     const data = await r.json();
-    if (!Array.isArray(data)) return { ok: false, divs: null };
-    return { ok: true, divs: data };
-  } catch (e) { return { ok: false, divs: null }; }
+    if (!data || !Array.isArray(data.dividends)) return { ok: false, divs: null, prices: null };
+    return { ok: true, divs: data.dividends, prices: Array.isArray(data.prices) ? data.prices : null };
+  } catch (e) { return { ok: false, divs: null, prices: null }; }
 }
 
 /* Auto-log dividends you're eligible for (held the stock on/after its ex-date) but haven't
@@ -1209,6 +1228,8 @@ async function fetchAllDivSchedules() {
     if (!res.ok) hadError = true;
     if (res.divs && res.divs.length) AUTO_DIV_CACHE[ticker] = res.divs;
     else delete AUTO_DIV_CACHE[ticker];
+    if (res.prices && res.prices.length) PRICE_HIST_CACHE[ticker] = res.prices;
+    else delete PRICE_HIST_CACHE[ticker];
   }));
   const autoLogged = autoSyncDividends();
   if (autoLogged) {
@@ -1356,6 +1377,10 @@ async function refreshLivePrice(ticker) {
     price: +q.price, currency: q.currency || (CURRENT_PRICES[ticker] && CURRENT_PRICES[ticker].currency) || FX.base,
     date: todayISO(), source: "live",
     fetchedAt: new Date().toISOString(), changePct: q.changePct,
+    high52: q.fiftyTwoWeekHigh != null ? +q.fiftyTwoWeekHigh : null,
+    low52: q.fiftyTwoWeekLow != null ? +q.fiftyTwoWeekLow : null,
+    payoutRatio: q.payoutRatio != null ? +q.payoutRatio : null,
+    trailingEps: q.trailingEps != null ? +q.trailingEps : null,
   };
   return true;
 }
@@ -1559,11 +1584,18 @@ function mountChartTooltips() {
   const show = (el) => {
     const d = el.dataset.date, v = +el.dataset.val, cb = el.dataset.cb;
     const hasCb = cb != null && cb !== "";
-    const chartDiv = document.querySelector(".chart[data-chart-mode]");
-    const valLabel = (chartDiv && chartDiv.dataset.chartMode === "div") ? t("Total Return") : t("Market Value");
+    // Scoped to the specific chart this dot belongs to (closest ancestor), not a
+    // page-wide first-match query — a page can host more than one [data-chart-mode]
+    // line chart at once (e.g. Holding Detail's yield chart alongside its plain
+    // cost/dividend charts), and a global query would mislabel/misformat whichever
+    // chart happened to render first in the DOM.
+    const chartDiv = el.closest(".chart[data-chart-mode]");
+    const mode = chartDiv && chartDiv.dataset.chartMode;
+    const valLabel = mode === "div" ? t("Total Return") : mode === "yield" ? t("Dividend Yield") : t("Market Value");
+    const fmtVal = (n) => mode === "yield" ? `${fmt(n, { maximumFractionDigits: 2 })}%` : money(n);
     const valHtml = hasCb
-      ? `<div class="ct-row"><span class="ct-lbl">${valLabel}</span><span class="ct-val">${money(v)}</span></div><div class="ct-row"><span class="ct-lbl">${t("Cost Basis")}</span><span class="ct-val">${money(+cb)}</span></div>`
-      : `<div class="ct-val">${money(v)}</div>`;
+      ? `<div class="ct-row"><span class="ct-lbl">${valLabel}</span><span class="ct-val">${fmtVal(v)}</span></div><div class="ct-row"><span class="ct-lbl">${mode === "yield" ? t("Average Yield") : t("Cost Basis")}</span><span class="ct-val">${fmtVal(+cb)}</span></div>`
+      : `<div class="ct-val">${fmtVal(v)}</div>`;
     tip.innerHTML = d ? `<div class="ct-date">${fmtDate(d)}</div>${valHtml}` : valHtml;
     const r = el.getBoundingClientRect();
     tip.style.left = (r.left + r.width / 2) + "px";
@@ -3292,6 +3324,40 @@ function dividendByPeriod(received) {
   return { byMonth, byQuarter, byYear };
 }
 
+/* Historical dividend yield (trailing 12 months) at each point in time, from raw
+ * per-share market data (priceHist/divHist — both native currency, same source,
+ * so no FX conversion needed). Feeds the "is this stock cheap or expensive
+ * relative to its OWN history" valuation chart: a current yield above its own
+ * average suggests more income per dollar than usual (historically cheap); below
+ * average suggests the opposite. One point per calendar month (last trading day),
+ * not daily — 5 years of daily closes is far too dense to read as a trend.
+ * The window is deliberately trimmed to only the "true" TTM span: the raw fetch
+ * covers 5 years, and a point in the first 12 months of that window can't see
+ * dividends paid before the fetch started, so its trailing-12-month sum would be
+ * an artifact of the data window, not a real drop in yield — so those months are
+ * dropped entirely rather than shown as a misleading ramp-up from zero. */
+function computeYieldHistory(priceHist, divHist) {
+  if (!priceHist || priceHist.length < 30 || !divHist || !divHist.length) return [];
+  const byMonth = {};
+  priceHist.forEach((p) => { if (p.close > 0) byMonth[p.date.slice(0, 7)] = p; });  // last trading day of each month wins (dates ascending)
+  const months = Object.keys(byMonth).sort();
+  if (months.length < 2) return [];
+  const sortedDivs = divHist.slice().sort((a, b) => (a.date < b.date ? -1 : 1));
+  const earliestData = sortedDivs[0].date < priceHist[0].date ? priceHist[0].date : sortedDivs[0].date;
+  const warmupEnd = (() => { const d = new Date(earliestData + "T00:00:00"); d.setFullYear(d.getFullYear() + 1); return dateToISO(d); })();
+  const points = months
+    .map((mk) => {
+      const p = byMonth[mk];
+      const yearAgo = (() => { const d = new Date(p.date + "T00:00:00"); d.setFullYear(d.getFullYear() - 1); return dateToISO(d); })();
+      const ttmDiv = sortedDivs.filter((d) => d.date > yearAgo && d.date <= p.date).reduce((s, d) => s + (d.amount || 0), 0);
+      return { month: mk.slice(2), date: p.date, value: (ttmDiv / p.close) * 100 };
+    })
+    .filter((pt) => pt.date >= warmupEnd);
+  if (points.length < 2) return [];
+  const avg = points.reduce((s, pt) => s + pt.value, 0) / points.length;
+  return points.map((pt) => ({ ...pt, principal: avg }));
+}
+
 /* Dividend forecast — pattern-based, never a flat TTM ÷ 12 run-rate.
  * METHOD (documented):
  *  1. Confirmed pipeline: any dividend you (or the market-data auto-fetch)
@@ -4007,7 +4073,7 @@ function pageSettings() {
 /* --- Data safety helpers --- */
 function clearAllData() {
   [BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS, PV_HISTORY].forEach((a) => (a.length = 0));
-  assignObj(CURRENT_PRICES, {}); assignObj(RECON_CHECKS, {});
+  assignObj(CURRENT_PRICES, {}); assignObj(MANUAL_EPS, {}); assignObj(RECON_CHECKS, {});
   resetStore(); recompute();
 }
 function exportBackupJSON() {
@@ -4060,6 +4126,7 @@ function loadDemoData() {
       "1155.KL": { price: 10.10, currency: "MYR", date: today },
       "AAPL": { price: 215.40, currency: "USD", date: today },
     },
+    MANUAL_EPS: {},
     RECON_CHECKS: {},
     PV_HISTORY: [],
     SETTINGS: { returnMode: "total", reconTolerance: 1 },
@@ -4315,6 +4382,11 @@ function pageHolding() {
   const tFc = dividendForecast(tReceived, tExpectedForForecast);
   // Raw market dividend history (Yahoo-fetched, per-share, native currency) — the actual data behind the estimates above.
   const marketHist = (AUTO_DIV_CACHE[h.ticker] || []).slice().sort((a, b) => (a.date < b.date ? 1 : -1));
+  // Historical dividend yield vs. its own average — "is this cheap or expensive
+  // relative to its own history", not vs. the market. Uses raw per-share market
+  // data (price + dividend history), independent of your own cost basis or share
+  // count — same data whether you've held it 1 month or 10 years.
+  const yieldHistSeries = computeYieldHistory(PRICE_HIST_CACHE[h.ticker], AUTO_DIV_CACHE[h.ticker]);
   // Dividend income over time (monthly, base ccy)
   const dPer = dividendByPeriod(tReceived).byMonth;
   const divSeries = Object.keys(dPer).sort().map((k) => ({ month: k.slice(2), value: dPer[k] }));
@@ -4355,6 +4427,17 @@ function pageHolding() {
       ${sub ? `<div class="stat-sub ${valCls}">${sub}</div>` : ""}
     </div>`;
   const priceReturnPct = h.costBasis ? (h.priceUnrealized / h.costBasis) * 100 : 0;
+  // 52-week range — only meaningful once we have both bounds and a live current price
+  // in the same currency (fetched together from the same quote call, so they always
+  // agree). Manually-priced holdings never populate high52/low52 — the bar is simply
+  // omitted rather than showing a stale or mismatched range.
+  const range52Html = (h.hasPrice && h.high52 != null && h.low52 != null && h.high52 > h.low52) ? (() => {
+    const pct = Math.max(0, Math.min(100, ((h.currentPrice - h.low52) / (h.high52 - h.low52)) * 100));
+    return `<div class="range52">
+      <div class="range52-labels"><span class="muted">${t("52-Week Range")}</span><span class="muted">${money(h.low52, h.currentPriceCcy)} – ${money(h.high52, h.currentPriceCcy)}</span></div>
+      <div class="range52-track"><div class="range52-marker" style="left:${pct.toFixed(1)}%" title="${money(h.currentPrice, h.currentPriceCcy)}"></div></div>
+    </div>`;
+  })() : "";
   const positionPanel = panel("Position", `
     <div class="metrics pos-metrics">
       ${posStat(t("Market Value"), money(h.marketValue), "", "net")}
@@ -4363,6 +4446,7 @@ function pageHolding() {
       ${posStat(t("Current Price"), priceLbl)}
     </div>
     <p style="font-size:14px;margin:14px 0 0">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} · ${t("Average Cost")} ${money(h.avgCost)} · ${t("Cost Basis")} ${money(h.costBasis)}</p>
+    ${range52Html}
     ${openedRecently ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}
   `);
 
@@ -4401,10 +4485,21 @@ function pageHolding() {
       const multiYear = (tFc.year2 > 0 && yearsDiffer)
         ? `${stat(t("Year 2"), money(tFc.year2))}${stat(t("Year 3"), tFc.year3 > 0 ? money(tFc.year3) : "—")}` : "";
       const yieldOnCostTip = ` <span class="col-info" data-tip="${esc(t("Based on what you originally paid (your average cost), not today's market value — shows the effective income dividend growth has earned you over time on your original investment."))}">${COL_INFO_ICON_SVG}</span>`;
+      const divYieldTtmPct = h.marketValue ? (tFc.ttm / h.marketValue) * 100 : 0;
+      // Payout ratio = dividend per share ÷ EPS. Rather than converting the TTM dividend
+      // (base currency) back into the holding's local currency, this uses
+      // yield × (price ÷ EPS) — algebraically identical (divPerShare/EPS = (divPerShare/price)
+      // × (price/EPS)) but price and EPS are already both in local currency, so no FX
+      // conversion — and no rounding drift from one — is needed at all.
+      const payoutRatioPct = (h.manualEps > 0 && h.hasPrice) ? divYieldTtmPct * (h.currentPrice / h.manualEps)
+        : (h.autoPayoutRatio != null ? h.autoPayoutRatio : null);
+      const payoutTip = ` <span class="col-info" data-tip="${esc(t("The share of earnings paid out as dividends. Below 60% is generally considered sustainable; over 100% means the company is paying out more than it currently earns."))}">${COL_INFO_ICON_SVG}</span>`;
+      const payoutLabel = `<span>${t("Payout Ratio")}${payoutTip}</span><button type="button" class="link" id="setEpsBtn" style="font-size:10.5px;font-weight:650;background:none;border:none;padding:0;cursor:pointer">${h.manualEps != null ? t("Edit") : t("Set EPS")}</button>`;
       return panel("Dividend Summary", `<div class="plain-stat-row">
         ${stat(t("Total Dividends Received"), money(totalDivReceived), "pos")}
-        ${stat(t("Dividend Yield (TTM)"), h.marketValue ? fmt(tFc.ttm / h.marketValue * 100, { maximumFractionDigits: 2 }) + "%" : "—")}
+        ${stat(t("Dividend Yield (TTM)"), h.marketValue ? fmt(divYieldTtmPct, { maximumFractionDigits: 2 }) + "%" : "—")}
         ${stat(`${t("Yield on Cost")}${yieldOnCostTip}`, h.costBasis ? fmt(tFc.ttm / h.costBasis * 100, { maximumFractionDigits: 2 }) + "%" : "—")}
+        ${stat(payoutLabel, payoutRatioPct != null ? fmt(payoutRatioPct, { maximumFractionDigits: 2 }) + "%" : "—")}
         ${stat(t("Next Month"), tFc.nextMonth > 0 ? money(tFc.nextMonth) : "—")}
         ${stat(t("Next Quarter"), tFc.nextQuarter > 0 ? money(tFc.nextQuarter) : "—")}
         ${stat(t("Next Year"), tFc.nextYear > 0 ? money(tFc.nextYear) : "—")}${multiYear}</div>
@@ -4510,6 +4605,25 @@ function pageHolding() {
     })()}
 
     ${(() => {
+      // Valuation vs. its own history — needs real price+dividend history from the
+      // market (computeYieldHistory already enforces its own "2+ full-TTM months"
+      // floor), not just what you personally logged.
+      if (yieldHistSeries.length < 2) return "";
+      const avgYield = yieldHistSeries[0].principal;
+      const curYield = yieldHistSeries[yieldHistSeries.length - 1].value;
+      const vsAvgNote = curYield > avgYield
+        ? t("Currently yielding above its own historical average — more income per dollar invested than usual, one signal (not the only one) that a stock may be relatively cheap right now.")
+        : t("Currently yielding below its own historical average — less income per dollar invested than usual, one signal (not the only one) that a stock may be relatively expensive right now.");
+      return panel(t("Dividend Yield vs. Historical Average"),
+        `<div class="chart" data-chart-mode="yield">${lineChartSVG(yieldHistSeries)}</div>
+         <div class="chart-legend">
+           <span class="cl-item"><span class="cl-nw"></span>${t("Yield")}</span>
+           <span class="cl-item"><span class="cl-p"></span>${t("Average")} (${fmt(avgYield, { maximumFractionDigits: 2 })}%)</span>
+         </div>
+         <p class="muted" style="font-size:11px;margin:6px 0 0">${vsAvgNote}</p>`);
+    })()}
+
+    ${(() => {
       // Each chart is omitted entirely (no box at all) when there isn't enough data to draw
       // it, instead of a full-height panel that just says "not enough data" — a freshly-opened
       // position hits this on every visit until a second trade / first dividend exists.
@@ -4534,6 +4648,8 @@ function pageHolding() {
     mount() {
       const p = $("#dtlPrice");
       if (p) p.addEventListener("click", () => showSetPriceModal(h));
+      const epsBtn = $("#setEpsBtn");
+      if (epsBtn) epsBtn.addEventListener("click", () => showSetEpsModal(h));
       const lv = $("#dtlLive");
       if (lv) lv.addEventListener("click", async () => {
         if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
@@ -4611,6 +4727,38 @@ function showSetPriceModal(h) {
     saveStore(); closeModal(); toast(t("Price updated")); render();
   });
   $("#setPriceCancel").addEventListener("click", closeModal);
+}
+
+/* Manual EPS override — same modal shell/pattern as showSetPriceModal(). EPS
+ * (trailing annual earnings per share) drives Payout Ratio; the auto-fetched
+ * value is best-effort only (Yahoo's fundamentals endpoint isn't reliably
+ * reachable — see api/quote.js), so a manual field is the dependable fallback,
+ * not an edge case. */
+function showSetEpsModal(h) {
+  $("#modalTitle").textContent = `${t("Set Annual EPS")} — ${h.ticker}`;
+  $("#modalBody").innerHTML = `
+    <form id="setEpsForm" class="form">
+      <label>${t("Trailing annual EPS")} (${esc(h.currentPriceCcy)})
+        <input type="number" step="any" name="eps" value="${h.manualEps != null ? esc(h.manualEps) : ""}" placeholder="0.00" required>
+      </label>
+      <p class="muted" style="font-size:12px;margin:10px 0 0">${t("Used to calculate Payout Ratio (dividends paid ÷ earnings). Find this on the company's latest annual report or a finance site.")}</p>
+      <div class="form-actions" style="margin-top:14px">
+        <button class="btn primary" type="submit">${t("Save")}</button>
+        <button class="btn ghost" type="button" id="setEpsCancel">${t("Cancel")}</button>
+      </div>
+    </form>`;
+  $("#modal").hidden = false;
+  const form = $("#setEpsForm");
+  const epsInput = form.querySelector('[name="eps"]');
+  epsInput.focus();
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const eps = parseFloat(epsInput.value);
+    if (!(eps > 0)) { toast(t("Enter a valid EPS.")); return; }
+    MANUAL_EPS[h.ticker] = eps;
+    saveStore(); closeModal(); toast(t("EPS updated")); render();
+  });
+  $("#setEpsCancel").addEventListener("click", closeModal);
 }
 
 /* =============================================================================

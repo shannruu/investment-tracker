@@ -74,6 +74,12 @@ const ALL_TRANSACTIONS = [
  * { price, currency, date } — used only for valuation; clearly labelled "Manual price". */
 const CURRENT_PRICES = {};
 
+/* Manually entered trailing annual EPS overrides, keyed by ticker (plain number,
+ * same currency as the holding's price). Used for Payout Ratio when the
+ * auto-fetched value (best-effort, may be unavailable) is missing or the user
+ * wants to correct it. */
+const MANUAL_EPS = {};
+
 /* Stock metadata cache keyed by Yahoo symbol: { name, exchange, currency, country, sector, industry }.
  * Populated by the stock lookup; used for country/sector grouping. */
 const STOCK_META = {};
