@@ -111,6 +111,8 @@ const ZH = {
   "Holdings by Currency": "按货币分布", "All Holdings": "全部持仓",
   "All Transactions": "全部交易", "Cash Ledger — Deposits & Withdrawals": "现金账本 — 存款与取款",
   "Broker Cash Reconciliation": "券商现金对账", "Dividend History": "股息历史",
+  "Dividend History by Year": "年度股息历史", "Projected (this year)": "预计（今年）",
+  "Dividend history by year": "年度股息历史图",
   "Dividend Tax Paid by Country": "按国家/地区缴纳的股息税",
   "Profit / Loss by Holding": "按持仓盈亏", "Profit / Loss by Broker": "按券商盈亏",
   "Dividend Income by Year": "按年度股息收入", "Fees Paid by Broker": "按券商支付的费用",
@@ -196,7 +198,7 @@ const ZH = {
   "Nothing to show yet.": "暂无数据。",
   "No transactions yet. Add your first deposit or investment to begin.": "暂无交易。添加第一笔存款或投资即可开始。",
   "No holdings yet. Add a buy transaction to create your first holding.": "暂无持仓。添加一笔买入交易即可创建首个持仓。",
-  "No portfolio history yet.": "暂无组合历史。",
+  "No portfolio history yet.": "暂无组合历史。", "Not enough history yet.": "暂无足够的历史数据。",
   "No holdings match these filters.": "没有符合筛选条件的持仓。",
   "Getting started": "开始使用", "Add a broker": "添加券商", "Record your first deposit": "记录第一笔存款",
   "Add your first buy transaction": "添加第一笔买入交易", "Add a current price": "添加当前价格", "Record a dividend": "记录一笔股息",
@@ -310,6 +312,9 @@ const ZH = {
   "Dividends paid to": "股息派发至", "Paid to": "派发至",
   "Broker account (adds to cash)": "券商账户（计入现金）", "Bank account (income only)": "银行账户（仅计入收入）",
   "Where this broker's dividends land by default — used when auto-logging market dividends.": "此券商股息默认派发的去向——用于自动登记市场股息记录时的判断依据。",
+  "Default dividend tax rate": "默认股息预扣税率",
+  "Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward.": "适用于此券商自动登记的市场股息记录——例如无税务协定的美股填 30，马来西亚股票填 0。之后仍可在个别股息记录上自行修改税额。",
+  "Applied to dividends auto-logged from market history at this broker.": "适用于此券商自动登记的市场股息记录。",
   "Broker archived": "券商已归档", "Broker unarchived": "已取消归档", "Enter a broker name.": "请输入券商名称。",
   "No brokers yet. Add your first one below.": "暂无券商。在下方添加第一个。",
   "This broker still has records. Remove it anyway? (Consider Archive instead.)": "该券商仍有记录。仍要删除吗？（建议改为归档。）",
@@ -389,6 +394,8 @@ const ZH = {
   // Phase 2 — Portfolio Health (F6)
   "Portfolio Health": "投资组合健康度", "Best / Worst": "最优 / 最差",
   "Dividend Yield (TTM)": "股息率（近12个月）", "Cash Allocation": "现金占比",
+  "Yield on Cost": "成本股息率",
+  "Based on what you originally paid (your average cost), not today's market value — shows the effective income dividend growth has earned you over time on your original investment.": "以您原始买入成本（平均成本）计算，而非目前市值——反映股息增长为您原始投资带来的实际收益率。",
   "Diversification Score": "分散度评分", "effective holdings": "有效持仓数",
   "none": "无", "of total net value": "占净资产总额",
   "Trailing 12-month net dividends ÷ current portfolio market value.": "近12个月净股息 ÷ 当前持仓市值。",
@@ -479,6 +486,7 @@ const ZH = {
   "Days": "距今天数", "Ex-Date": "除息日", "Payment": "付款日", "Expected Net": "预期净额",
   "Holding": "持仓", "Market": "市场", "Net Div": "净股息", "Current Price": "现价",
   "Avg Cost": "平均成本", "Market Value": "市值", "Unrealized P/L": "未实现盈亏",
+  "Price Return": "价格回报",
   "No upcoming dividends.": "暂无即将派发的股息。",
   "No activity yet.": "暂无记录。",
   "No holdings yet — add a Buy to get started.": "暂无持仓 — 添加一笔买入即可开始。",
@@ -1172,10 +1180,11 @@ function autoSyncDividends() {
       if (loggedDates.some((t) => Math.abs(t - dTime) <= 10 * 86400000)) return;   // already logged
       const fxRate = FX.rates[d.currency] || 1;
       const gross = (d.amount || 0) * h.shares;
+      const tax = gross * ((broker && broker.divTaxRate ? broker.divTaxRate : 0) / 100);
       ALL_TRANSACTIONS.unshift({
         id: uid("t"), date: d.date, brokerId: h.brokerId, type: "Dividend",
         ticker: h.ticker, company: h.company || "", market: h.market || "",
-        currency: d.currency, gross, tax: 0, fxRate, myrEquivalent: gross * fxRate,
+        currency: d.currency, gross, tax, fxRate, myrEquivalent: gross * fxRate,
         status: "Received", paidTo: inferredPaidTo, exDate: d.date, payDate: d.date,
         notes: t("Auto-logged from market dividend history — review the tax withheld and \"Paid to\"."),
       });
@@ -1474,6 +1483,54 @@ function lineChartSVG(series, opts) {
     <path d="${pLine}" class="ln-p"/>
     <path d="${nwLine}" class="ln-nw"/>
     ${dots}${xlabs}
+  </svg>`;
+}
+
+/* Simple stacked vertical bar chart — series: [{label, value, projected}].
+ * `value` (received/confirmed, solid --pos) stacks below `projected` (estimated
+ * remainder, hatched --warn) on the same bar, so a partial current year still
+ * reads as "on track" rather than a misleadingly short bar. */
+function barChartSVG(series, opts) {
+  if (!series || series.length === 0) return emptyState(t("Not enough history yet."));
+  const label = (opts && opts.ariaLabel) || t("Bar chart");
+  const W = 640, H = 240, padL = 52, padR = 16, padT = 16, padB = 28;
+  const totals = series.map((d) => (d.value || 0) + (d.projected || 0));
+  const max = Math.max(...totals, 1e-9) * 1.12;
+  const n = series.length;
+  const slot = (W - padL - padR) / n;
+  const barW = Math.min(56, slot * 0.55);
+  const yFn = (v) => padT + (1 - v / max) * (H - padT - padB);
+  const yBot = H - padB;
+
+  const ylab = (v) => max >= 10000 ? Math.round(v / 1000) + "k" : (max >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v));
+  let grid = "";
+  for (let g = 0; g <= 4; g++) {
+    const v = (max * g) / 4, yy = yFn(v);
+    grid += `<line x1="${padL}" y1="${yy.toFixed(1)}" x2="${W - padR}" y2="${yy.toFixed(1)}" class="grid"/>
+             <text x="${padL - 8}" y="${(yy + 4).toFixed(1)}" class="ylab">${ylab(v)}</text>`;
+  }
+
+  const bars = series.map((d, i) => {
+    const cx = padL + slot * (i + 0.5);
+    const x = (cx - barW / 2).toFixed(1);
+    const received = Math.max(0, d.value || 0), projected = Math.max(0, d.projected || 0);
+    const yRecTop = yFn(received).toFixed(1);
+    const yTotalTop = yFn(received + projected).toFixed(1);
+    const recRect = received > 0 ? `<rect x="${x}" y="${yRecTop}" width="${barW.toFixed(1)}" height="${(yBot - yRecTop).toFixed(1)}" rx="3" class="bar-rec"/>` : "";
+    const projRect = projected > 0 ? `<rect x="${x}" y="${yTotalTop}" width="${barW.toFixed(1)}" height="${(yRecTop - yTotalTop).toFixed(1)}" rx="3" class="bar-proj"/>` : "";
+    const xlab = `<text x="${cx.toFixed(1)}" y="${H - 8}" class="xlab">${esc(d.label)}</text>`;
+    return `${recRect}${projRect}${xlab}`;
+  }).join("");
+
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
+    <style>
+      .grid{stroke:var(--border);stroke-width:1}
+      .ylab,.xlab{fill:var(--muted);font-size:11px;font-family:var(--font)}
+      .ylab{text-anchor:end}.xlab{text-anchor:middle}
+      .bar-rec{fill:var(--pos)}
+      .bar-proj{fill:var(--warn);opacity:.55}
+    </style>
+    ${grid}${bars}
   </svg>`;
 }
 
@@ -3695,6 +3752,7 @@ function brokerCard(b) {
         ${stat(t("Total Withdrawals"), money(withdrawals))}
         ${stat(t("Difference"), hasActual ? signed(diff) : "—", off ? "neg" : "")}
         ${stat(t("Dividends paid to"), b.divPaidTo === "bank" ? t("Bank") : t("Broker"), "", t("Where this broker's dividends land by default — used when auto-logging market dividends."))}
+        ${stat(t("Default dividend tax rate"), `${fmt(b.divTaxRate || 0, { maximumFractionDigits: 2 })}%`, "", t("Applied to dividends auto-logged from market history at this broker."))}
       </div>
       ${b.notes ? `<p class="bc-notes muted">${esc(b.notes)}</p>` : ""}
       ${negWarnings}</article>`;
@@ -3719,7 +3777,9 @@ function pageBrokers() {
         { value: "broker", label: t("Broker account (adds to cash)") },
         { value: "bank", label: t("Bank account (income only)") },
       ], e.divPaidTo || "broker")}</label>
+      <label>${t("Default dividend tax rate")} (%)<input type="number" step="any" min="0" max="100" name="divTaxRate" value="${e.divTaxRate != null ? esc(e.divTaxRate) : ""}" placeholder="0"></label>
     </div>
+    <p class="muted" style="margin:-8px 0 12px;font-size:12px">${t("Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward.")}</p>
     <label class="block">${t("Notes")}<input name="notes" value="${esc(e.notes)}" placeholder="${t("optional")}"></label>
     <div class="form-actions">
       <button class="btn primary" type="submit">${editing ? t("Update Broker") : t("Add Broker")}</button>
@@ -3743,13 +3803,14 @@ function pageBrokers() {
         ev.preventDefault();
         const d = Object.fromEntries(new FormData(ev.target).entries());
         if (!d.name.trim()) { toast(t("Enter a broker name.")); return; }
+        const divTaxRate = Math.max(0, Math.min(100, parseFloat(d.divTaxRate) || 0));
         if (editingBrokerId) {
           const b = BROKERS.find((x) => x.id === editingBrokerId);
-          if (b) { b.name = d.name.trim(); b.country = (d.country || "").trim(); b.currency = d.currency; b.notes = (d.notes || "").trim(); b.divPaidTo = d.divPaidTo || "broker"; }
+          if (b) { b.name = d.name.trim(); b.country = (d.country || "").trim(); b.currency = d.currency; b.notes = (d.notes || "").trim(); b.divPaidTo = d.divPaidTo || "broker"; b.divTaxRate = divTaxRate; }
           editingBrokerId = null;
           saveStore(); toast(t("Broker updated")); render();
         } else {
-          BROKERS.push({ id: uid("b"), name: d.name.trim(), country: (d.country || "").trim(), currency: d.currency, notes: (d.notes || "").trim(), divPaidTo: d.divPaidTo || "broker", archived: false });
+          BROKERS.push({ id: uid("b"), name: d.name.trim(), country: (d.country || "").trim(), currency: d.currency, notes: (d.notes || "").trim(), divPaidTo: d.divPaidTo || "broker", divTaxRate, archived: false });
           saveStore(); toast(t("Broker added")); render();
         }
       });
@@ -4257,6 +4318,17 @@ function pageHolding() {
   // Dividend income over time (monthly, base ccy)
   const dPer = dividendByPeriod(tReceived).byMonth;
   const divSeries = Object.keys(dPer).sort().map((k) => ({ month: k.slice(2), value: dPer[k] }));
+  // Dividend history bar chart — one bar per calendar year, received amount stacked
+  // with the current year's still-projected remainder (so a partial in-progress year
+  // reads as "on track", not as a drop-off vs prior full years).
+  const divByYear = {};
+  tReceived.forEach((d) => { const yr = (d.payDate || d.date || "").slice(0, 4); if (yr) divByYear[yr] = (divByYear[yr] || 0) + divNetMYR(d); });
+  const curYear = todayISO().slice(0, 4);
+  const projThisYear = (tFc.nextPayments || []).filter((p) => p.payDate.slice(0, 4) === curYear).reduce((s, p) => s + p.amtMYR, 0);
+  if (projThisYear > 0 && !divByYear[curYear]) divByYear[curYear] = 0;
+  const divYearSeries = Object.keys(divByYear).sort().map((yr) => ({
+    label: yr, value: divByYear[yr], projected: yr === curYear ? projThisYear : 0,
+  }));
   // Cumulative cost basis over time (proxy for position size — historical market prices aren't stored)
   let cum = 0; const costSeries = [];
   [...txs].sort((a, b) => (a.date < b.date ? -1 : 1)).forEach((x) => {
@@ -4277,14 +4349,17 @@ function pageHolding() {
   // bottom line), Current Price (the live data point) — same Dashboard card system, 3-per-row
   // via its default span. The static/derived facts move to one plain descriptive line below.
   const openedRecently = earliestTxDate && (todayDate() - new Date(earliestTxDate + "T00:00:00")) < 7 * 86400000;
-  const posStat = (label, val, valCls = "", wrapCls = "") => `<div class="stat ${wrapCls}">
+  const posStat = (label, val, valCls = "", wrapCls = "", sub = "") => `<div class="stat ${wrapCls}">
       <div class="stat-head"><span class="stat-label">${label}</span></div>
       <div class="stat-value ${valCls}">${val}</div>
+      ${sub ? `<div class="stat-sub ${valCls}">${sub}</div>` : ""}
     </div>`;
+  const priceReturnPct = h.costBasis ? (h.priceUnrealized / h.costBasis) * 100 : 0;
   const positionPanel = panel("Position", `
-    <div class="metrics">
+    <div class="metrics pos-metrics">
       ${posStat(t("Market Value"), money(h.marketValue), "", "net")}
       ${posStat(t("Total Return"), moneySigned(h.totalReturn), cls(h.totalReturn))}
+      ${posStat(t("Price Return"), moneySigned(h.priceUnrealized), cls(h.priceUnrealized), "", `${signed(priceReturnPct)}%`)}
       ${posStat(t("Current Price"), priceLbl)}
     </div>
     <p style="font-size:14px;margin:14px 0 0">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} · ${t("Average Cost")} ${money(h.avgCost)} · ${t("Cost Basis")} ${money(h.costBasis)}</p>
@@ -4325,9 +4400,11 @@ function pageHolding() {
       const stat = (label, val, valCls = "") => `<div class="plain-stat"><div class="mc-label">${label}</div><div class="mc-value ${valCls}">${val}</div></div>`;
       const multiYear = (tFc.year2 > 0 && yearsDiffer)
         ? `${stat(t("Year 2"), money(tFc.year2))}${stat(t("Year 3"), tFc.year3 > 0 ? money(tFc.year3) : "—")}` : "";
+      const yieldOnCostTip = ` <span class="col-info" data-tip="${esc(t("Based on what you originally paid (your average cost), not today's market value — shows the effective income dividend growth has earned you over time on your original investment."))}">${COL_INFO_ICON_SVG}</span>`;
       return panel("Dividend Summary", `<div class="plain-stat-row">
         ${stat(t("Total Dividends Received"), money(totalDivReceived), "pos")}
         ${stat(t("Dividend Yield (TTM)"), h.marketValue ? fmt(tFc.ttm / h.marketValue * 100, { maximumFractionDigits: 2 }) + "%" : "—")}
+        ${stat(`${t("Yield on Cost")}${yieldOnCostTip}`, h.costBasis ? fmt(tFc.ttm / h.costBasis * 100, { maximumFractionDigits: 2 }) + "%" : "—")}
         ${stat(t("Next Month"), tFc.nextMonth > 0 ? money(tFc.nextMonth) : "—")}
         ${stat(t("Next Quarter"), tFc.nextQuarter > 0 ? money(tFc.nextQuarter) : "—")}
         ${stat(t("Next Year"), tFc.nextYear > 0 ? money(tFc.nextYear) : "—")}${multiYear}</div>
@@ -4419,6 +4496,17 @@ function pageHolding() {
       // inside a scroll container it doesn't need.
       const scrollCls = filtered.length > 5 ? "dcc-table-scroll" : "";
       return panel(`${t("Dividend Calendar")}${titleTip}`, `<div class="${scrollCls}">${table(heads, rows)}</div>`, `<div class="panel-head-actions">${filterSel}</div>`);
+    })()}
+
+    ${(() => {
+      // Yearly dividend growth — the headline "is this actually growing" view. Needs 2+
+      // distinct years to read as a trend at all; a single bar isn't history yet.
+      if (divYearSeries.length < 2) return "";
+      const legend = `<div class="chart-legend">
+        <span class="cl-item"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--pos)"></span>${t("Received")}</span>
+        ${projThisYear > 0 ? `<span class="cl-item"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--warn);opacity:.55"></span>${t("Projected (this year)")}</span>` : ""}
+      </div>`;
+      return panel(t("Dividend History by Year"), `<div class="chart">${barChartSVG(divYearSeries, { ariaLabel: t("Dividend history by year") })}</div>${legend}`);
     })()}
 
     ${(() => {
