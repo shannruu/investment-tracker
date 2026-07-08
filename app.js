@@ -1472,7 +1472,11 @@ function lineChartSVG(series, opts) {
       <path d="${nwTopArea}" fill="rgba(220,38,38,.13)" clip-path="url(#clip-p)"/>`;
   }
 
-  const ylab = (v) => max >= 10000 ? Math.round(v / 1000) + "k" : (max >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v));
+  // Below 20, whole-number rounding is too coarse — a chart whose entire range is a
+  // few percentage points (e.g. dividend yield) would show several gridlines rounding
+  // to the same integer. One decimal place fixes that without affecting money charts,
+  // which are always well above 20 in this app.
+  const ylab = (v) => max >= 10000 ? Math.round(v / 1000) + "k" : (max >= 1000 ? (v / 1000).toFixed(1) + "k" : max >= 20 ? Math.round(v) : v.toFixed(1));
   let grid = "";
   for (let g = 0; g <= 4; g++) {
     const v = min + ((max - min) * g) / 4, yy = yFn(v);
@@ -1527,7 +1531,11 @@ function barChartSVG(series, opts) {
   const yFn = (v) => padT + (1 - v / max) * (H - padT - padB);
   const yBot = H - padB;
 
-  const ylab = (v) => max >= 10000 ? Math.round(v / 1000) + "k" : (max >= 1000 ? (v / 1000).toFixed(1) + "k" : Math.round(v));
+  // Below 20, whole-number rounding is too coarse — a chart whose entire range is a
+  // few percentage points (e.g. dividend yield) would show several gridlines rounding
+  // to the same integer. One decimal place fixes that without affecting money charts,
+  // which are always well above 20 in this app.
+  const ylab = (v) => max >= 10000 ? Math.round(v / 1000) + "k" : (max >= 1000 ? (v / 1000).toFixed(1) + "k" : max >= 20 ? Math.round(v) : v.toFixed(1));
   let grid = "";
   for (let g = 0; g <= 4; g++) {
     const v = (max * g) / 4, yy = yFn(v);
@@ -4594,33 +4602,35 @@ function pageHolding() {
     })()}
 
     ${(() => {
-      // Yearly dividend growth — the headline "is this actually growing" view. Needs 2+
-      // distinct years to read as a trend at all; a single bar isn't history yet.
-      if (divYearSeries.length < 2) return "";
+      // Both charts here are "how has this dividend behaved over time" views, so they're
+      // paired side-by-side (same treatment as Cost Basis / Dividend Income below) rather
+      // than each taking the full panel width — a lone full-width chart on a wide screen
+      // renders every element (line, dots, text) proportionally oversized.
+      const showYearBars = divYearSeries.length >= 2;
+      const showYieldHist = yieldHistSeries.length >= 2;
+      if (!showYearBars && !showYieldHist) return "";
       const legend = `<div class="chart-legend">
         <span class="cl-item"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--pos)"></span>${t("Received")}</span>
         ${projThisYear > 0 ? `<span class="cl-item"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--warn);opacity:.55"></span>${t("Projected (this year)")}</span>` : ""}
       </div>`;
-      return panel(t("Dividend History by Year"), `<div class="chart">${barChartSVG(divYearSeries, { ariaLabel: t("Dividend history by year") })}</div>${legend}`);
-    })()}
-
-    ${(() => {
-      // Valuation vs. its own history — needs real price+dividend history from the
-      // market (computeYieldHistory already enforces its own "2+ full-TTM months"
-      // floor), not just what you personally logged.
-      if (yieldHistSeries.length < 2) return "";
-      const avgYield = yieldHistSeries[0].principal;
-      const curYield = yieldHistSeries[yieldHistSeries.length - 1].value;
-      const vsAvgNote = curYield > avgYield
-        ? t("Currently yielding above its own historical average — more income per dollar invested than usual, one signal (not the only one) that a stock may be relatively cheap right now.")
-        : t("Currently yielding below its own historical average — less income per dollar invested than usual, one signal (not the only one) that a stock may be relatively expensive right now.");
-      return panel(t("Dividend Yield vs. Historical Average"),
-        `<div class="chart" data-chart-mode="yield">${lineChartSVG(yieldHistSeries)}</div>
-         <div class="chart-legend">
-           <span class="cl-item"><span class="cl-nw"></span>${t("Yield")}</span>
-           <span class="cl-item"><span class="cl-p"></span>${t("Average")} (${fmt(avgYield, { maximumFractionDigits: 2 })}%)</span>
-         </div>
-         <p class="muted" style="font-size:11px;margin:6px 0 0">${vsAvgNote}</p>`);
+      const yearPanel = panel(t("Dividend History by Year"), `<div class="chart">${barChartSVG(divYearSeries, { ariaLabel: t("Dividend history by year") })}</div>${legend}`);
+      let yieldPanel = "";
+      if (showYieldHist) {
+        const avgYield = yieldHistSeries[0].principal;
+        const curYield = yieldHistSeries[yieldHistSeries.length - 1].value;
+        const vsAvgNote = curYield > avgYield
+          ? t("Currently yielding above its own historical average — more income per dollar invested than usual, one signal (not the only one) that a stock may be relatively cheap right now.")
+          : t("Currently yielding below its own historical average — less income per dollar invested than usual, one signal (not the only one) that a stock may be relatively expensive right now.");
+        yieldPanel = panel(t("Dividend Yield vs. Historical Average"),
+          `<div class="chart" data-chart-mode="yield">${lineChartSVG(yieldHistSeries)}</div>
+           <div class="chart-legend">
+             <span class="cl-item"><span class="cl-nw"></span>${t("Yield")}</span>
+             <span class="cl-item"><span class="cl-p"></span>${t("Average")} (${fmt(avgYield, { maximumFractionDigits: 2 })}%)</span>
+           </div>
+           <p class="muted" style="font-size:11px;margin:6px 0 0">${vsAvgNote}</p>`);
+      }
+      if (showYearBars && showYieldHist) return `<section class="grid-2">${yearPanel}${yieldPanel}</section>`;
+      return showYearBars ? yearPanel : yieldPanel;
     })()}
 
     ${(() => {
