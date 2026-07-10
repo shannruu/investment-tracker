@@ -337,6 +337,9 @@ const ZH = {
   "Pattern detected": "已侦测到规律", "from market dividend history": "来自市场股息历史",
   "from your logged dividends": "来自您记录的股息", "Record at least 2 dividends for this holding to enable pattern-based estimates.": "请为此持仓至少录入 2 次股息，以启用规律预测。",
   "div.": "股息",
+  "No upcoming dividends yet. Add them manually when recording a dividend, or they'll appear automatically once market data is connected.": "暂无即将派发的股息。记录股息时可手动添加，或在连接市场数据后自动显示。",
+  "No dividends have been officially declared with a future date yet — that's normal, most companies don't announce this far ahead. See the Dividend Forecast above for pattern-based estimates, or add one manually.": "目前尚无官方公布、附带确切未来派息日期的股息——这是正常现象，大部分公司都不会提前公布这么久。可参考上方的「股息预测」查看基于规律的预估，或手动添加一笔。",
+  "No upcoming dividends yet. Add one manually when recording a dividend.": "暂无即将派发的股息。记录股息时可手动添加一笔。",
   "Upcoming confirmed dividends in window": "窗口内已确认的即将派息",
   "Add upcoming dividend for": "添加即将派息：", "Per share": "每股金额",
   "Upcoming dividends will appear here once connected.": "连接后，即将派息将显示于此。",
@@ -3569,7 +3572,18 @@ function pageDividends() {
       ${panel("Upcoming Dividends",
         upcoming.length
           ? table([{label:"Ticker"},{label:"Ex-Date"},{label:"Pay Date"},{label:"Est. Amount",num:1},{label:"Source"},{label:""}], upcomingRows)
-          : `<p class="muted" style="margin:0;font-size:13px">${t("No upcoming dividends yet. Add them manually when recording a dividend, or they'll appear automatically once market data is connected.")}</p>`,
+          // Three distinct empty states, not one generic message — this list only ever
+          // holds dividends with a real DECLARED date (rare; most issuers don't announce
+          // that far ahead), so once live data is working it stays empty far more often
+          // than not. Telling the user "connect market data" when it's already connected
+          // and working (the Forecast panel above proves it) reads as broken, not empty.
+          : `<p class="muted" style="margin:0;font-size:13px">${
+              !LIVE_ENABLED
+                ? t("No upcoming dividends yet. Add them manually when recording a dividend, or they'll appear automatically once market data is connected.")
+                : fc.hasProjections
+                  ? t("No dividends have been officially declared with a future date yet — that's normal, most companies don't announce this far ahead. See the Dividend Forecast above for pattern-based estimates, or add one manually.")
+                  : t("No upcoming dividends yet. Add one manually when recording a dividend.")
+            }</p>`,
         `<small class="muted" id="divFetchStatus"></small>`
       )}
     </div>
