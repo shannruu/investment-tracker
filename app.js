@@ -227,8 +227,6 @@ const ZH = {
   "Set current price": "设置当前价格", "Manual price": "手动价格", "No price set": "未设价格",
   "Current price per share for": "每股当前价格：", "manual, not live": "手动，非实时",
   "Enter a valid price.": "请输入有效价格。", "Price updated": "价格已更新",
-  "Remove this opening holding?": "移除此期初持仓？", "Holding removed": "已移除持仓",
-  "This holding comes from your transactions — delete the related transactions to remove it.": "此持仓来自您的交易 — 请删除相关交易以移除它。",
   "Delete this transaction? Holdings and balances will be recalculated.": "删除此交易？持仓和余额将重新计算。",
   "Transaction removed": "已移除交易", "records": "条记录",
   "holdings without a current price": "个持仓没有当前价格", "no price": "无价格",
@@ -4409,7 +4407,6 @@ function pageHolding() {
       <div class="holding-actions">
         <button class="btn" id="dtlPrice">＄ ${t("Set price")}</button>
         ${LIVE_ENABLED ? `<button class="btn" id="dtlLive">⟳ ${t("Live")}</button>` : ""}
-        <button class="btn ghost" id="dtlDelete">✕ ${t("Delete holding")}</button>
       </div>
     </div>
     ${positionPanel}
@@ -4570,17 +4567,6 @@ function pageHolding() {
         const ok = await refreshLivePrice(h.ticker);
         if (ok) { saveStore(); toast(`${h.ticker} ${t("updated")}`); render(); }
         else { lv.classList.remove("spin"); toast(`${t("Couldn't fetch")} ${h.ticker}`); }
-      });
-      const del = $("#dtlDelete");
-      if (del) del.addEventListener("click", () => {
-        const i = HOLDINGS.findIndex((x) => x.ticker === h.ticker && x.brokerId === h.brokerId);
-        if (i >= 0) {
-          if (!confirm(t("Remove this opening holding?"))) return;
-          HOLDINGS.splice(i, 1);
-          saveStore(); toast(t("Holding removed")); location.hash = "#/portfolio";
-        } else {
-          toast(t("This holding comes from your transactions — delete the related transactions to remove it."));
-        }
       });
       const dcf = $("#divCalFilterSel");
       if (dcf) dcf.addEventListener("change", () => { holdingDivFilter = dcf.value; render(); });
