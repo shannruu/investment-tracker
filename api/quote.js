@@ -34,26 +34,6 @@ module.exports = async (req, res) => {
     }
     return null;
   }
-  // quoteSummary (unlike the chart endpoint above) requires a session cookie + crumb —
-  // Yahoo tightened this a while back. Best-effort only: if either leg fails or Yahoo
-  // blocks the request outright, callers just don't get trailingEps, same as the
-  // existing sector/country lookup below already silently degrades.
-  function extractCookie(r) {
-    if (typeof r.headers.getSetCookie === "function") {
-      return r.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ");
-    }
-    const single = r.headers.get("set-cookie");
-    return single ? single.split(";")[0] : "";
-  }
-  async function getYahooCrumb() {
-    const r1 = await fetch("https://fc.yahoo.com", { headers, redirect: "manual" });
-    const cookie = extractCookie(r1);
-    if (!cookie) return null;
-    const r2 = await fetch("https://query1.finance.yahoo.com/v1/test/getcrumb", { headers: { ...headers, Cookie: cookie } });
-    if (!r2.ok) return null;
-    const crumb = (await r2.text()).trim();
-    return crumb ? { crumb, cookie } : null;
-  }
 
   try {
     const data = await getChart(symbol);
@@ -75,32 +55,14 @@ module.exports = async (req, res) => {
         if (q) { name = name || q.longname || q.shortname || null; sector = q.sector || null; industry = q.industry || null; }
       }
     } catch (e) { /* ignore */ }
-    // quoteSummary (assetProfile, summaryDetail, defaultKeyStatistics) requires a
-    // crumb since Yahoo tightened access — fetch it once, share across both calls
-    // below. Either can fail outright (blocked, rate-limited, endpoint changed)
-    // without affecting the core price response above, which never depends on this.
-    let crumbInfo = null;
+    // assetProfile carries sector/industry/country (may 401 — best-effort)
     if (!sector || !country) {
-      try { crumbInfo = await getYahooCrumb(); } catch (e) { /* ignore */ }
-    }
-    let trailingEps = null;
-    if (crumbInfo) {
-      const qsHeaders = { ...headers, Cookie: crumbInfo.cookie };
       try {
-        const p = await fetch(`https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=assetProfile&crumb=${encodeURIComponent(crumbInfo.crumb)}`, { headers: qsHeaders });
+        const p = await fetch(`https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=assetProfile`, { headers });
         if (p.ok) {
           const pd = await p.json();
           const ap = pd && pd.quoteSummary && pd.quoteSummary.result && pd.quoteSummary.result[0] && pd.quoteSummary.result[0].assetProfile;
           if (ap) { sector = sector || ap.sector || null; industry = industry || ap.industry || null; country = ap.country || null; }
-        }
-      } catch (e) { /* ignore */ }
-      try {
-        const k = await fetch(`https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=defaultKeyStatistics&crumb=${encodeURIComponent(crumbInfo.crumb)}`, { headers: qsHeaders });
-        if (k.ok) {
-          const kd = await k.json();
-          const res0 = kd && kd.quoteSummary && kd.quoteSummary.result && kd.quoteSummary.result[0];
-          const dks = res0 && res0.defaultKeyStatistics;
-          trailingEps = (dks && dks.trailingEps && dks.trailingEps.raw != null) ? dks.trailingEps.raw : null;
         }
       } catch (e) { /* ignore */ }
     }
@@ -120,7 +82,6 @@ module.exports = async (req, res) => {
       changePct: prev ? ((price - prev) / prev) * 100 : 0,
       fiftyTwoWeekHigh: m.fiftyTwoWeekHigh != null ? m.fiftyTwoWeekHigh : null,
       fiftyTwoWeekLow: m.fiftyTwoWeekLow != null ? m.fiftyTwoWeekLow : null,
-      trailingEps,
       time: m.regularMarketTime ? new Date(m.regularMarketTime * 1000).toISOString() : null,
       exchange: m.exchangeName || null,
       source: "Yahoo Finance",

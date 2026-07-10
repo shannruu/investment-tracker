@@ -313,8 +313,6 @@ const ZH = {
   "Broker account (adds to cash)": "券商账户（计入现金）", "Bank account (income only)": "银行账户（仅计入收入）",
   "Where this broker's dividends land by default — used when auto-logging market dividends.": "此券商股息默认派发的去向——用于自动登记市场股息记录时的判断依据。",
   "Default dividend tax rate": "默认股息预扣税率",
-  "Payout Ratio": "派息比率", "Set EPS": "设置每股盈利",
-  "TTM dividends per share ÷ TTM EPS. Below 60% is generally considered sustainable; over 100% means the company is paying out more than it currently earns.": "近12个月每股股息 ÷ 近12个月每股盈利。一般而言，低于60%属可持续水平；超过100%则代表公司派发的股息已超过其当前盈利。",
   "Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward.": "适用于此券商自动登记的市场股息记录——例如无税务协定的美股填 30，马来西亚股票填 0。之后仍可在个别股息记录上自行修改税额。",
   "Applied to dividends auto-logged from market history at this broker.": "适用于此券商自动登记的市场股息记录。",
   "Broker archived": "券商已归档", "Broker unarchived": "已取消归档", "Enter a broker name.": "请输入券商名称。",
@@ -358,9 +356,6 @@ const ZH = {
   "Set price": "设置价格", "Realized P/L": "已实现盈亏", "Net Dividends": "净股息",
   "Set Price": "设置价格", "Price per share": "每股价格", "Save": "保存",
   "Manually entered prices are always labelled \"Manual price\" and are never mistaken for live market data.": "手动输入的价格始终标记为「手动价格」，绝不会与实时市场数据混淆。",
-  "Set Annual EPS": "设置年度每股盈利", "Trailing annual EPS": "过去12个月每股盈利",
-  "Used to calculate Payout Ratio (dividends paid ÷ earnings). Find this on the company's latest annual report or a finance site.": "用于计算派息比率（已派股息 ÷ 盈利）。可在公司最新年报或财经网站上查到此数值。",
-  "Enter a valid EPS.": "请输入有效的每股盈利。", "EPS updated": "每股盈利已更新",
   "price": "价格", "FX": "汇率", "Manual": "手动",
   "Transactions": "交易记录",
   "No transactions for this holding.": "此持仓暂无交易。",
@@ -843,9 +838,7 @@ function computeTotals() {
       priceSource: hasPrice ? (cp.source || "manual") : null,
       priceFetchedAt: hasPrice ? cp.fetchedAt : null,
       changePct: hasPrice ? cp.changePct : null,
-      high52: (cp && cp.high52 != null) ? cp.high52 : null, low52: (cp && cp.low52 != null) ? cp.low52 : null,
-      autoTrailingEps: (cp && cp.trailingEps != null) ? cp.trailingEps : null,
-      manualEps: MANUAL_EPS[l.ticker] != null ? +MANUAL_EPS[l.ticker] : null };
+      high52: (cp && cp.high52 != null) ? cp.high52 : null, low52: (cp && cp.low52 != null) ? cp.low52 : null };
   });
 
   const portfolioValue = holdings.reduce((s, h) => s + h.marketValue, 0);
@@ -904,7 +897,7 @@ const SCHEMA_VERSION = 4;
 function snapshot() {
   return { version: SCHEMA_VERSION, lastSaved: LAST_SAVED,
     BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS,
-    CURRENT_PRICES, MANUAL_EPS, STOCK_META, RECON_CHECKS, SETTINGS, USER, FX, PV_HISTORY };
+    CURRENT_PRICES, STOCK_META, RECON_CHECKS, SETTINGS, USER, FX, PV_HISTORY };
 }
 /* A restored backup is untrusted JSON — Object.assign(target, parsedJson)
  * would let a crafted "__proto__"/"constructor"/"prototype" key in the file
@@ -928,7 +921,6 @@ function pruneOrphans() {
   ALL_TRANSACTIONS.forEach((x) => { if (x.ticker && x.ticker !== "—") used.add(x.ticker.toUpperCase()); });
   HOLDINGS.forEach((h) => { if (h.ticker) used.add(h.ticker.toUpperCase()); });
   Object.keys(CURRENT_PRICES).forEach((tk) => { if (!used.has(tk.toUpperCase())) delete CURRENT_PRICES[tk]; });
-  Object.keys(MANUAL_EPS).forEach((tk) => { if (!used.has(tk.toUpperCase())) delete MANUAL_EPS[tk]; });
 }
 /* Upsert today's portfolio market value (incl. cash) into PV_HISTORY. One point
  * per day: updates today's point if it already exists, else appends. Capped. */
@@ -1031,7 +1023,7 @@ function applySnapshot(s) {
   replaceArr(BROKERS, s.BROKERS); replaceArr(HOLDINGS, s.HOLDINGS);
   replaceArr(ALL_TRANSACTIONS, s.ALL_TRANSACTIONS); replaceArr(UPCOMING_DIVIDENDS, s.UPCOMING_DIVIDENDS);
   if (s.PV_HISTORY) replaceArr(PV_HISTORY, s.PV_HISTORY.filter((p) => p.value > 0));
-  assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(MANUAL_EPS, s.MANUAL_EPS); assignObj(RECON_CHECKS, s.RECON_CHECKS);
+  assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(RECON_CHECKS, s.RECON_CHECKS);
   assignObj(STOCK_META, s.STOCK_META);
   if (s.SETTINGS) safeAssign(SETTINGS, s.SETTINGS);
   if (s.USER) safeAssign(USER, s.USER);
@@ -1367,7 +1359,6 @@ async function refreshLivePrice(ticker) {
     fetchedAt: new Date().toISOString(), changePct: q.changePct,
     high52: q.fiftyTwoWeekHigh != null ? +q.fiftyTwoWeekHigh : null,
     low52: q.fiftyTwoWeekLow != null ? +q.fiftyTwoWeekLow : null,
-    trailingEps: q.trailingEps != null ? +q.trailingEps : null,
   };
   return true;
 }
@@ -4032,7 +4023,7 @@ function pageSettings() {
 /* --- Data safety helpers --- */
 function clearAllData() {
   [BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS, PV_HISTORY].forEach((a) => (a.length = 0));
-  assignObj(CURRENT_PRICES, {}); assignObj(MANUAL_EPS, {}); assignObj(RECON_CHECKS, {});
+  assignObj(CURRENT_PRICES, {}); assignObj(RECON_CHECKS, {});
   resetStore(); recompute();
 }
 function exportBackupJSON() {
@@ -4085,7 +4076,6 @@ function loadDemoData() {
       "1155.KL": { price: 10.10, currency: "MYR", date: today },
       "AAPL": { price: 215.40, currency: "USD", date: today },
     },
-    MANUAL_EPS: {},
     RECON_CHECKS: {},
     PV_HISTORY: [],
     SETTINGS: { returnMode: "total", reconTolerance: 1 },
@@ -4440,22 +4430,10 @@ function pageHolding() {
         ? `${stat(t("Year 2"), money(tFc.year2))}${stat(t("Year 3"), tFc.year3 > 0 ? money(tFc.year3) : "—")}` : "";
       const yieldOnCostTip = ` <span class="col-info" data-tip="${esc(t("Based on what you originally paid (your average cost), not today's market value — shows the effective income dividend growth has earned you over time on your original investment."))}">${COL_INFO_ICON_SVG}</span>`;
       const divYieldTtmPct = h.marketValue ? (tFc.ttm / h.marketValue) * 100 : 0;
-      // Payout Ratio = TTM dividends per share ÷ TTM EPS (DivTracker's own stated
-      // method). EPS prefers your manual entry when set (an explicit correction should
-      // always win), else the auto-fetched trailing EPS. Rather than converting the TTM
-      // dividend (base currency) back into the holding's local currency, this uses
-      // yield × (price ÷ EPS) — algebraically identical (divPerShare/EPS = (divPerShare/price)
-      // × (price/EPS)) but price and EPS are already both in local currency, so no FX
-      // conversion — and no rounding drift from one — is needed at all.
-      const eps = h.manualEps > 0 ? h.manualEps : h.autoTrailingEps;
-      const payoutRatioPct = (eps > 0 && h.hasPrice) ? divYieldTtmPct * (h.currentPrice / eps) : null;
-      const payoutTip = ` <span class="col-info" data-tip="${esc(t("TTM dividends per share ÷ TTM EPS. Below 60% is generally considered sustainable; over 100% means the company is paying out more than it currently earns."))}">${COL_INFO_ICON_SVG}</span>`;
-      const payoutLabel = `<span>${t("Payout Ratio")}${payoutTip}</span><button type="button" class="link" id="setEpsBtn" style="font-size:10.5px;font-weight:650;background:none;border:none;padding:0;cursor:pointer">${h.manualEps != null ? t("Edit") : t("Set EPS")}</button>`;
       return panel("Dividend Summary", `<div class="plain-stat-row">
         ${stat(t("Total Dividends Received"), money(totalDivReceived), "pos")}
         ${stat(t("Dividend Yield (TTM)"), h.marketValue ? fmt(divYieldTtmPct, { maximumFractionDigits: 2 }) + "%" : "—")}
         ${stat(`${t("Yield on Cost")}${yieldOnCostTip}`, h.costBasis ? fmt(tFc.ttm / h.costBasis * 100, { maximumFractionDigits: 2 }) + "%" : "—")}
-        ${stat(payoutLabel, payoutRatioPct != null ? fmt(payoutRatioPct, { maximumFractionDigits: 2 }) + "%" : "—")}
         ${stat(t("Next Month"), tFc.nextMonth > 0 ? money(tFc.nextMonth) : "—")}
         ${stat(t("Next Quarter"), tFc.nextQuarter > 0 ? money(tFc.nextQuarter) : "—")}
         ${stat(t("Next Year"), tFc.nextYear > 0 ? money(tFc.nextYear) : "—")}${multiYear}</div>
@@ -4585,8 +4563,6 @@ function pageHolding() {
     mount() {
       const p = $("#dtlPrice");
       if (p) p.addEventListener("click", () => showSetPriceModal(h));
-      const epsBtn = $("#setEpsBtn");
-      if (epsBtn) epsBtn.addEventListener("click", () => showSetEpsModal(h));
       const lv = $("#dtlLive");
       if (lv) lv.addEventListener("click", async () => {
         if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
@@ -4664,38 +4640,6 @@ function showSetPriceModal(h) {
     saveStore(); closeModal(); toast(t("Price updated")); render();
   });
   $("#setPriceCancel").addEventListener("click", closeModal);
-}
-
-/* Manual EPS override — same modal shell/pattern as showSetPriceModal(). EPS
- * (trailing annual earnings per share) drives Payout Ratio; the auto-fetched
- * value is best-effort only (Yahoo's fundamentals endpoint isn't reliably
- * reachable — see api/quote.js), so a manual field is the dependable fallback,
- * not an edge case. */
-function showSetEpsModal(h) {
-  $("#modalTitle").textContent = `${t("Set Annual EPS")} — ${h.ticker}`;
-  $("#modalBody").innerHTML = `
-    <form id="setEpsForm" class="form">
-      <label>${t("Trailing annual EPS")} (${esc(h.currentPriceCcy)})
-        <input type="number" step="any" name="eps" value="${h.manualEps != null ? esc(h.manualEps) : ""}" placeholder="0.00" required>
-      </label>
-      <p class="muted" style="font-size:12px;margin:10px 0 0">${t("Used to calculate Payout Ratio (dividends paid ÷ earnings). Find this on the company's latest annual report or a finance site.")}</p>
-      <div class="form-actions" style="margin-top:14px">
-        <button class="btn primary" type="submit">${t("Save")}</button>
-        <button class="btn ghost" type="button" id="setEpsCancel">${t("Cancel")}</button>
-      </div>
-    </form>`;
-  $("#modal").hidden = false;
-  const form = $("#setEpsForm");
-  const epsInput = form.querySelector('[name="eps"]');
-  epsInput.focus();
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const eps = parseFloat(epsInput.value);
-    if (!(eps > 0)) { toast(t("Enter a valid EPS.")); return; }
-    MANUAL_EPS[h.ticker] = eps;
-    saveStore(); closeModal(); toast(t("EPS updated")); render();
-  });
-  $("#setEpsCancel").addEventListener("click", closeModal);
 }
 
 /* =============================================================================
