@@ -338,7 +338,6 @@ const ZH = {
   "from your logged dividends": "来自您记录的股息", "Record at least 2 dividends for this holding to enable pattern-based estimates.": "请为此持仓至少录入 2 次股息，以启用规律预测。",
   "div.": "股息",
   "No upcoming dividends yet. Add them manually when recording a dividend, or they'll appear automatically once market data is connected.": "暂无即将派发的股息。记录股息时可手动添加，或在连接市场数据后自动显示。",
-  "No dividends have been officially declared with a future date yet — that's normal, most companies don't announce this far ahead. See the Dividend Forecast above for pattern-based estimates, or add one manually.": "目前尚无官方公布、附带确切未来派息日期的股息——这是正常现象，大部分公司都不会提前公布这么久。可参考上方的「股息预测」查看基于规律的预估，或手动添加一笔。",
   "No upcoming dividends yet. Add one manually when recording a dividend.": "暂无即将派发的股息。记录股息时可手动添加一笔。",
   "Upcoming confirmed dividends in window": "窗口内已确认的即将派息",
   "Add upcoming dividend for": "添加即将派息：", "Per share": "每股金额",
@@ -1845,14 +1844,27 @@ function pageDashboard() {
       <td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
       <td class="dcc-c ${cls(h.totalReturn)}">${signed(h.totalReturn)}${h.costBasis > 0 ? `<div class="fx-note ${cls(h.totalReturn)}">${pctTxt((h.totalReturn / h.costBasis) * 100)}</div>` : ""}</td></tr>`).join("");
 
-  // Upcoming dividends — manual (UPCOMING_DIVIDENDS), auto-fetched (AUTO_DIV_CACHE), and legacy Expected.
+  // Upcoming dividends — manual (UPCOMING_DIVIDENDS), auto-fetched (AUTO_DIV_CACHE), legacy
+  // Expected, AND pattern-based estimates (fc.nextPayments) for tickers with a detected
+  // frequency but no officially declared date — same merge as the Dividends page, so this
+  // widget isn't empty for every holding that only has an estimate, not a confirmed date.
   const upcoming = allUpcomingDivs();
-  const divRows = upcoming.map((d) => {
+  const dashFc = dividendForecast(ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status !== "Expected"), upcoming);
+  const dashOneYearOut = new Date(todayDate()); dashOneYearOut.setFullYear(dashOneYearOut.getFullYear() + 1);
+  const dashOneYearOutStr = dateToISO(dashOneYearOut);
+  const dashEstimated = (dashFc.nextPayments || [])
+    .filter((p) => !p.confirmed && p.payDate <= dashOneYearOutStr)
+    .map((p) => ({ ticker: p.ticker, exDate: null, payDate: p.payDate, amtMYR: p.amtMYR, source: "estimated" }));
+  const dashSourceBadge = (src) => src === "api" ? `<span class="badge info">API</span>`
+    : src === "estimated" ? `<span class="badge warn">${t("Estimated")}</span>` : `<span class="badge subtle">${t("Manual")}</span>`;
+  const dashUpcoming = [...upcoming.map((d) => ({ ...d, amtMYR: d.expectedNetMYR })), ...dashEstimated]
+    .sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
+  const divRows = dashUpcoming.map((d) => {
     const du = daysUntil(d.payDate);
     const dlabel = d.payDate ? (du >= 0 ? `${du} ${t("days")}` : t("overdue")) : "—";
     return `<tr><td class="ticker">${esc(d.ticker)}</td><td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
       <td class="num">${dlabel}</td>
-      <td class="num">${esc(ccyLabel(d.currency))} ${fmt(d.expectedNet)}</td><td>${statusBadge(d.status)}</td></tr>`;
+      <td class="num">${money(d.amtMYR)}</td><td>${dashSourceBadge(d.source || "manual")}</td></tr>`;
   }).join("");
 
   const recentRows = ALL_TRANSACTIONS.slice(0, 6).map((tx) => {
@@ -1975,8 +1987,8 @@ function pageDashboard() {
         return panel("Asset Allocation", `<div id="dashAllocBody" class="panel-body">${donut}</div>`, allocToggle);
       })()}
     </section>
-    <div id="dashDivSection">${listPanel("Upcoming Dividends", upcoming.length,
-      table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net",num:1},{label:"Status"}], divRows),
+    <div id="dashDivSection">${listPanel("Upcoming Dividends", dashUpcoming.length,
+      table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net (RM)",num:1},{label:"Status"}], divRows),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
       table([{label:"Holding",style:"width:28%"},{label:"Shares",style:"width:15%"},{label:"Market Value",style:"width:19%"},{label:"Unrealized P/L",style:"width:19%"},{label:"Total Return",style:"width:19%"}], holdingsRows),
@@ -3470,19 +3482,42 @@ function pageDividends() {
   const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend");
   const received = divs.filter((d) => d.status !== "Expected");
   const upcoming = allUpcomingDivs();
+  const fc = dividendForecast(received, upcoming);
 
   const sourceBadge = (src) => src === "api"
     ? `<span class="badge info">API</span>`
-    : `<span class="badge subtle">Manual</span>`;
+    : src === "estimated"
+      ? `<span class="badge warn">${t("Estimated")}</span>`
+      : `<span class="badge subtle">Manual</span>`;
 
-  const upcomingRows = upcoming.map((d) => {
+  // allUpcomingDivs() only ever holds dividends with a real DECLARED date — pattern-based
+  // estimates (the same ones driving the Dividend Forecast panel above) live separately in
+  // fc.nextPayments and were never surfaced here, so this table stayed empty for most
+  // tickers even with live data working and a detected pattern. Merging them in (capped to
+  // a year out, same "don't show far-future undecided" rule as the Holding Detail calendar)
+  // gives this table real content instead of just a better excuse for being blank.
+  const oneYearOut = new Date(todayDate()); oneYearOut.setFullYear(oneYearOut.getFullYear() + 1);
+  const oneYearOutStr = dateToISO(oneYearOut);
+  const estimatedUpcoming = (fc.nextPayments || [])
+    .filter((p) => !p.confirmed && p.payDate <= oneYearOutStr)
+    .map((p) => {
+      const h = T.holdings.find((x) => x.ticker === p.ticker);
+      return { ticker: p.ticker, brokerId: h ? h.brokerId : null, exDate: null, payDate: p.payDate,
+        amtMYR: p.amtMYR, source: "estimated" };
+    });
+  const combinedUpcoming = [
+    ...upcoming.map((d) => ({ ...d, amtMYR: d.expectedNetMYR })),
+    ...estimatedUpcoming,
+  ].sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
+
+  const upcomingRows = combinedUpcoming.map((d) => {
     const du = daysUntil(d.payDate);
     const daysLabel = d.payDate ? (du >= 0 ? `${du}d` : `<span class="neg">${t("overdue")}</span>`) : "";
     return `<tr>
       <td><span class="ticker">${esc(d.ticker)}</span><div class="sub">${d.brokerId ? esc(brokerName(d.brokerId)) : ""}</div></td>
       <td>${fmtDate(d.exDate)}</td>
       <td>${fmtDate(d.payDate)}${daysLabel ? `<div class="fx-note">${daysLabel}</div>` : ""}</td>
-      <td class="num">${esc(ccyLabel(d.currency))} ${fmt(d.expectedNet)}</td>
+      <td class="num">${money(d.amtMYR)}</td>
       <td>${sourceBadge(d.source || "manual")}</td>
       <td>${d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" aria-label="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : ""}</td></tr>`;
   }).join("");
@@ -3536,7 +3571,6 @@ function pageDividends() {
   const thisY = yearsAsc[yearsAsc.length - 1], lastY = yearsAsc[yearsAsc.length - 2];
   const yoyGrowth = (lastY && periods.byYear[lastY]) ? ((periods.byYear[thisY] - periods.byYear[lastY]) / periods.byYear[lastY]) * 100 : null;
 
-  const fc = dividendForecast(received, upcoming);
   const dash = `<span class="muted" style="font-size:22px;line-height:1">—</span>`;
   const tickerEntries = Object.entries(fc.tickerInfo || {});
   const tickerSummary = tickerEntries.length
@@ -3570,19 +3604,15 @@ function pageDividends() {
 
     <div id="divUpcomingSection">
       ${panel("Upcoming Dividends",
-        upcoming.length
-          ? table([{label:"Ticker"},{label:"Ex-Date"},{label:"Pay Date"},{label:"Est. Amount",num:1},{label:"Source"},{label:""}], upcomingRows)
-          // Three distinct empty states, not one generic message — this list only ever
-          // holds dividends with a real DECLARED date (rare; most issuers don't announce
-          // that far ahead), so once live data is working it stays empty far more often
-          // than not. Telling the user "connect market data" when it's already connected
-          // and working (the Forecast panel above proves it) reads as broken, not empty.
+        combinedUpcoming.length
+          ? table([{label:"Ticker"},{label:"Ex-Date"},{label:"Pay Date"},{label:"Amount (RM)",num:1},{label:"Source"},{label:""}], upcomingRows)
+          // Genuinely empty now only when there's no declared date AND no detectable
+          // pattern anywhere in the portfolio — the common "pattern exists but nothing
+          // declared" case is handled above by merging in estimatedUpcoming.
           : `<p class="muted" style="margin:0;font-size:13px">${
               !LIVE_ENABLED
                 ? t("No upcoming dividends yet. Add them manually when recording a dividend, or they'll appear automatically once market data is connected.")
-                : fc.hasProjections
-                  ? t("No dividends have been officially declared with a future date yet — that's normal, most companies don't announce this far ahead. See the Dividend Forecast above for pattern-based estimates, or add one manually.")
-                  : t("No upcoming dividends yet. Add one manually when recording a dividend.")
+                : t("No upcoming dividends yet. Add one manually when recording a dividend.")
             }</p>`,
         `<small class="muted" id="divFetchStatus"></small>`
       )}
