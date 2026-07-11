@@ -427,6 +427,9 @@ a { color: inherit; text-decoration: none; }
    column's start position evenly spaced regardless of content length; left-alignment then
    reads as a clean, predictable grid instead of clustering unevenly to one side. */
 .dcc-table-scroll { max-height: 300px; overflow-y: auto; }
+/* Keep the header row visible while scrolling a tall table — without this the column
+   labels (Ex-Date, Est. Payment, ...) scroll away with row 1, leaving later rows unlabeled. */
+.dcc-table-scroll thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); }
 .data-table td.dcc-c { text-align: left; font-variant-numeric: tabular-nums; }
 .data-table tr.next-div-row td { background: color-mix(in srgb, var(--brand) 8%, transparent); }
 .data-table tr:last-child td { border-bottom: 0; }
