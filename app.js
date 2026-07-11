@@ -1363,6 +1363,33 @@ async function refreshLivePrice(ticker) {
   return true;
 }
 
+/* Tickers already auto-refreshed this session — NOT a single all-or-nothing flag like
+ * AUTO_DIV_CACHE_FETCHED, because that pattern relies on saveStore() resetting it, and
+ * refreshing prices always has new data to persist (unlike dividends, which only save
+ * when something new was auto-logged) — an unconditional save-then-reset here would
+ * refetch on every single render, forever. A per-ticker set sidesteps that entirely:
+ * once a ticker's been attempted this session it's never retried automatically again
+ * (the user's own "Live" button still works anytime), and a newly added holding's
+ * ticker naturally isn't in the set yet, so it still gets picked up next mount. */
+const LIVE_PRICE_ATTEMPTED = new Set();
+
+/* Auto-refresh prices without the user needing to click "Live" — only for holdings that
+ * are either unpriced yet or already live-sourced; a holding you deliberately set to
+ * "Manual" stays exactly as you left it unless you click Live yourself. Returns
+ * { fetched } so callers know whether to re-render. */
+async function fetchAllLivePrices() {
+  if (!LIVE_ENABLED) return { fetched: false };
+  const tickers = [...new Set(T.holdings
+    .filter((h) => (!h.hasPrice || h.priceSource === "live") && !LIVE_PRICE_ATTEMPTED.has(h.ticker))
+    .map((h) => h.ticker))];
+  if (!tickers.length) return { fetched: false };
+  tickers.forEach((tk) => LIVE_PRICE_ATTEMPTED.add(tk));  // mark before awaiting — guards concurrent calls
+  const results = await Promise.all(tickers.map((ticker) => refreshLivePrice(ticker)));
+  const anyOk = results.some(Boolean);
+  if (anyOk) saveStore();
+  return { fetched: anyOk };
+}
+
 /* =============================================================================
  * SHARED UI BUILDERS (return HTML strings)
  * ========================================================================== */
@@ -2063,6 +2090,9 @@ function pageDashboard() {
         fetchAllDivSchedules().then(({ fetched }) => {
           if (fetched && document.getElementById("dashDivSection")) render();
         });
+        fetchAllLivePrices().then(({ fetched }) => {
+          if (fetched && document.getElementById("dashDivSection")) render();
+        });
       }
     } };
 }
@@ -2548,6 +2578,13 @@ function pagePortfolio() {
         saveStore(); render();
         toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
       });
+      // Auto-refresh prices without waiting for the manual button — same pattern as the
+      // dividend auto-fetch elsewhere; re-render if still on this page once it lands.
+      if (LIVE_ENABLED) {
+        fetchAllLivePrices().then(({ fetched }) => {
+          if (fetched && document.getElementById("pfRefreshBtn")) render();
+        });
+      }
       // Panel drag-to-reorder
       if (colPanel) {
         let _panelDragId = null;
@@ -4621,6 +4658,9 @@ function pageHolding() {
       // underlying holding data was fine. Fetch it here too, same pattern as those pages.
       if (LIVE_ENABLED) {
         fetchAllDivSchedules().then(({ fetched }) => {
+          if (fetched && document.getElementById("dtlPrice")) render();
+        });
+        fetchAllLivePrices().then(({ fetched }) => {
           if (fetched && document.getElementById("dtlPrice")) render();
         });
       }
