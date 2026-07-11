@@ -426,7 +426,15 @@ a { color: inherit; text-decoration: none; }
 /* Dividend Calendar table: 5 equal-width columns, all left-aligned. Equal width keeps every
    column's start position evenly spaced regardless of content length; left-alignment then
    reads as a clean, predictable grid instead of clustering unevenly to one side. */
-.dcc-table-scroll { max-height: 300px; overflow-y: auto; }
+.dcc-table-scroll { max-height: 300px; overflow: auto; }
+/* .table-wrap sets overflow-x: auto, which per spec silently makes its overflow-y
+   compute to auto too — turning it into a second, invisible scroll container sitting
+   between the sticky header and .dcc-table-scroll (the one that actually scrolls).
+   Sticky position resolves against the NEAREST scroll ancestor, so without this override
+   the header sticks to .table-wrap, which never visibly scrolls — net effect: nothing
+   appears to happen. Neutralizing it here makes .dcc-table-scroll the only scroll
+   container in this stack, on both axes, so sticky resolves against the right one. */
+.dcc-table-scroll .table-wrap { overflow: visible; }
 /* Keep the header row visible while scrolling a tall table — without this the column
    labels (Ex-Date, Est. Payment, ...) scroll away with row 1, leaving later rows unlabeled. */
 .dcc-table-scroll thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); }
