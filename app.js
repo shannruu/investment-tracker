@@ -470,7 +470,7 @@ const ZH = {
   "Currency, preferences, import & backup": "货币、偏好、导入与备份",
   "Guides & FAQ": "指南与常见问题",
   "All": "全部", "Buy / Sell": "买入 / 卖出", "Cash": "现金", "FX": "外汇",
-  "records": "条记录", "Account": "账户", "Ticker / Detail": "代码 / 明细", "Amount (RM)": "金额（RM）",
+  "records": "条记录", "Amount (RM)": "金额（RM）",
   "No records in this view yet.": "此视图暂无记录。",
   "No transactions yet. Tap ＋ Add to record your first deposit or investment.": "暂无交易。点击 ＋ 添加，记录您的第一笔存款或投资。",
   "fee": "费用", "Available Cash": "可用现金", "Can invest or withdraw": "可用于投资或提取",
@@ -2832,12 +2832,18 @@ function recordMatchesTab(x, tab) {
 
 function pageRecords() {
   const tabs = [["all", "All"], ["buysell", "Buy / Sell"], ["cash", "Cash"], ["dividends", "Dividends"], ["fx", "FX"]];
-  const nav = `<div class="seg records-tabs" role="tablist">${tabs.map(([k, lbl]) =>
-    `<button class="seg-btn ${recordsTab === k ? "on" : ""}" data-rectab="${k}">${t(lbl)}</button>`).join("")}</div>`;
+  // Same pill-tab-inside-the-panel layout as the Add page (type-selector + add-sep),
+  // rather than a separate segmented control floating above its own panel.
+  const nav = `<div class="type-selector"><div class="type-tabs" role="tablist">${tabs.map(([k, lbl]) =>
+    `<button class="tp-tab ${recordsTab === k ? "on" : ""}" data-rectab="${k}">${t(lbl)}</button>`).join("")}</div></div>`;
   const list = ALL_TRANSACTIONS.filter((x) => recordMatchesTab(x, recordsTab));
   const addBtn = BROKERS.length ? `<a class="btn primary" href="#/add">＋ ${t("Add")}</a>` : "";
-  const html = `${nav}
-    ${panel("Records", `<div id="recBody">${recordsTable(list)}</div>`, `<span class="badge subtle">${list.length} ${t("records")}</span> ${addBtn}`)}
+  const html = `<section class="panel add-panel">
+      ${nav}
+      <div class="add-sep"></div>
+      <div class="panel-head"><h2>${t("Records")}</h2><div class="panel-head-actions"><span class="badge subtle">${list.length} ${t("records")}</span>${addBtn}</div></div>
+      <div id="recBody">${recordsTable(list)}</div>
+    </section>
     ${recordsTab === "cash" ? cashExtrasHTML() : ""}`;
 
   return { title: "Records", subtitle: "All your transactions, cash and dividends in one ledger.", html,
@@ -2866,7 +2872,8 @@ function pageRecords() {
     } };
 }
 
-/* One unified ledger table: base-currency (MYR) primary, original currency noted. */
+/* One unified ledger table: base-currency (MYR) amount, equal-width dcc-c columns
+ * (same style as the Portfolio / Dividends tables). */
 function recordsTable(list) {
   if (!ALL_TRANSACTIONS.length) return emptyState(t("No transactions yet. Tap ＋ Add to record your first deposit or investment."));
   if (!list.length) return emptyState(t("No records in this view yet."));
@@ -2874,26 +2881,24 @@ function recordsTable(list) {
   const rows = sorted.map((tx) => {
     const fxr = tx.fxRate || FX.rates[tx.currency] || 1;
     const myr = tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * fxr;
-    const isTrade = tx.type === "Buy" || tx.type === "Sell";
-    const detail = isTrade && tx.qty != null
-      ? `<div class="sub">${fmt(tx.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} @ ${esc(ccyLabel(tx.currency))} ${fmt(tx.price)}</div>` : "";
-    const orig = tx.type === "Currency Exchange"
-      ? `${esc(ccyLabel(tx.currency))} ${fmt(tx.gross || 0)} → ${esc(ccyLabel(tx.toCurrency)) || ""} ${fmt(tx.toAmount || 0)}`
-      : `${esc(ccyLabel(tx.currency))} ${fmt(tx.gross || 0)}${tx.fee ? ` · ${t("fee")} ${fmt(tx.fee)}` : ""}`;
-    const paidToTag = tx.type === "Dividend"
-      ? `<span class="paid-to-tag${tx.paidTo === "bank" ? " bank" : ""}"> · → ${tx.paidTo === "bank" ? t("Bank") : t("Broker")}</span>`
-      : "";
     return `<tr>
-      <td>${fmtDate(tx.date)}</td>
-      <td>${typeChip(tx.type)}</td>
-      <td class="ticker">${tx.ticker && tx.ticker !== "—" ? esc(tx.ticker) : "—"}${detail}${paidToTag}</td>
-      <td class="num">${money(myr)}<div class="fx-note">${orig}</div></td>
-      <td class="sub">${esc(brokerName(tx.brokerId))}${tx.type === "Transfer between brokers" && tx.toBrokerId ? `<div class="fx-note">→ ${esc(brokerName(tx.toBrokerId))}</div>` : ""}</td>
-      <td class="num"><div class="rec-actions">
+      <td class="dcc-c">${fmtDate(tx.date)}</td>
+      <td class="dcc-c">${typeChip(tx.type)}</td>
+      <td class="dcc-c ticker">${tx.ticker && tx.ticker !== "—" ? esc(tx.ticker) : "—"}</td>
+      <td class="dcc-c">${money(myr)}</td>
+      <td class="dcc-c">${esc(brokerName(tx.brokerId))}${tx.type === "Transfer between brokers" && tx.toBrokerId ? `<div class="fx-note">→ ${esc(brokerName(tx.toBrokerId))}</div>` : ""}</td>
+      <td class="dcc-c"><div class="rec-actions">
         <button class="icon-btn rec-edit" data-edit-tx="${tx.id}" title="${t("Edit")}" aria-label="${t("Edit")}"><svg class="icon"><use href="#i-edit"/></svg></button>
         <button class="icon-btn rec-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></div></td></tr>`;
   }).join("");
-  return table([{label:"Date"},{label:"Type"},{label:"Ticker / Detail"},{label:"Amount (RM)",num:1},{label:"Account"},{label:"",num:1}], rows);
+  return table([
+    { label: "Date", style: "width:18%;text-align:left" },
+    { label: "Type", style: "width:16%;text-align:left" },
+    { label: "Ticker", style: "width:20%;text-align:left" },
+    { label: "Amount (RM)", style: "width:18%;text-align:left" },
+    { label: "Broker", style: "width:18%;text-align:left" },
+    { label: "", style: "width:10%" },
+  ], rows);
 }
 
 /* =============================================================================

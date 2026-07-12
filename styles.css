@@ -989,10 +989,6 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 /* Compact one-line empty state for dashboard list panels */
 .empty-line { padding: 6px 2px 2px; font-size: 13px; }
 
-/* Dividend "Paid to" tag in Records table */
-.paid-to-tag { font-size: 10.5px; color: var(--text-soft); margin-left: 2px; }
-.paid-to-tag.bank { color: var(--brand); font-weight: 600; }
-
 /* Broker card — negative cash balance inline warning */
 .bc-neg { margin: 10px 0 0; border-radius: 6px; }
 
@@ -1055,6 +1051,7 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
   padding: 8px 13px; border: 1px solid var(--border); border-radius: 999px;
   background: var(--surface-2); color: var(--text-soft);
   font-weight: 600; font-size: 13px; cursor: pointer; line-height: 1;
+  font-family: inherit;   /* used on <button> (Records tabs) as well as <a> — buttons don't inherit font by default */
   transition: border-color .12s, background .12s, color .12s;
 }
 .tp-tab:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); color: var(--text); }
@@ -1093,6 +1090,3 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .grid-2.dash-charts { grid-template-columns: 1fr 1fr; align-items: stretch; }
 .dash-charts .chart svg { max-height: 340px; }
 @media (max-width: 920px) { .grid-2.dash-charts { grid-template-columns: 1fr; } }
-
-/* --- Records filter tabs --- */
-.seg.records-tabs { flex-wrap: wrap; margin-bottom: 4px; }
