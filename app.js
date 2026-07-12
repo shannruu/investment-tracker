@@ -2923,13 +2923,20 @@ function typeSelectorHTML(activeType) {
     const icon = ico ? `<span class="tp-tab-ico"><svg class="icon"><use href="#${ico}"/></svg></span>` : "";
     return `<button type="button" class="tp-tab${on ? " on" : ""}" data-drawer-type="${slug}">${icon}<span>${t(lbl)}</span></button>`;
   };
-  const isOther = ADD_OTHER.some(([s]) => ADD_SLUGS[s] === activeType);
-  // "Other" is a pill on the same row as the primary types; clicking it reveals the
-  // secondary types (Fee / Interest / Split / Transfer) in a row below.
-  const otherBtn = `<button type="button" class="tp-tab${isOther ? " on" : ""}" data-drawer-other><span>${t("Other")}</span></button>`;
+  // Rare types (Fee / Interest / Split / Transfer) live behind an "Other" dropdown rather
+  // than a second pill row — compact, doesn't shift the form, matches the app's other
+  // dropdowns. The trigger shows the selected rare type's name when one is active.
+  const activeOther = ADD_OTHER.find(([s]) => ADD_SLUGS[s] === activeType);
+  const otherMenu = ADD_OTHER.map(([slug, lbl]) =>
+    `<button type="button" class="type-other-item${ADD_SLUGS[slug] === activeType ? " on" : ""}" data-drawer-type="${slug}">${t(lbl)}</button>`).join("");
+  const otherDropdown = `<div class="type-other">
+    <button type="button" class="tp-tab${activeOther ? " on" : ""}" data-drawer-other-toggle>
+      <span>${activeOther ? t(activeOther[1]) : t("Other")}</span><span class="tp-caret" aria-hidden="true">▾</span>
+    </button>
+    <div class="type-other-menu" hidden>${otherMenu}</div>
+  </div>`;
   return `<div class="type-selector">
-    <div class="type-tabs">${ADD_PRIMARY.map(pill).join("")}${otherBtn}</div>
-    <div class="type-tabs sm type-other-row"${isOther ? "" : " hidden"}>${ADD_OTHER.map(pill).join("")}</div>
+    <div class="type-tabs">${ADD_PRIMARY.map(pill).join("")}${otherDropdown}</div>
   </div>`;
 }
 
@@ -2983,13 +2990,13 @@ function renderAddDrawerBody(type, editing) {
     try { history.replaceState(null, "", `#/add/${s}`); } catch (e) { /* ignore */ }
     renderAddDrawerBody(ADD_SLUGS[s], null);
   }));
-  // "Other" pill just reveals/hides the secondary types row — it doesn't select a type,
-  // so it only shows as "on" (via the HTML) when one of those types is actually chosen.
-  const otherToggle = body.querySelector("[data-drawer-other]");
+  // "Other" trigger opens/closes its dropdown menu (click-outside-to-close is wired once
+  // in init()). Selecting a menu item is a data-drawer-type button, handled above.
+  const otherToggle = body.querySelector("[data-drawer-other-toggle]");
   if (otherToggle) otherToggle.addEventListener("click", (ev) => {
     ev.preventDefault();
-    const row = body.querySelector(".type-other-row");
-    if (row) row.hidden = !row.hidden;
+    const menu = body.querySelector(".type-other-menu");
+    if (menu) menu.hidden = !menu.hidden;
   });
   translateDOM(body);
 }
@@ -5270,6 +5277,14 @@ function init() {
   if (addDrawerClose) addDrawerClose.addEventListener("click", () => { location.hash = "#/records"; });
   const addDrawerEl = $("#addDrawer");
   if (addDrawerEl) addDrawerEl.addEventListener("click", (e) => { if (e.target.id === "addDrawer") location.hash = "#/records"; });
+  // Close the "Other" type dropdown when clicking anywhere outside it (bound once; queries
+  // live so it works across drawer re-renders).
+  document.addEventListener("click", (e) => {
+    const menu = document.querySelector(".type-other-menu");
+    if (!menu || menu.hidden) return;
+    if (e.target.closest(".type-other")) return;   // click on the trigger or inside the menu
+    menu.hidden = true;
+  });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     // An open broker/currency dropdown inside the drawer takes priority — let its own

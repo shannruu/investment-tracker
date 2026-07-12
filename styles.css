@@ -1086,11 +1086,23 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .tp-tab .icon { width: 16px; height: 16px; }
 .tp-tab.on .icon { stroke: #fff; }
 .type-tabs.sm .tp-tab { padding: 6px 12px; font-size: 12.5px; }
-/* Secondary "Other" types row — revealed by the Other pill. The explicit [hidden] rule
- * is required because .type-tabs sets display:flex, which otherwise beats the UA
- * [hidden]{display:none} on specificity and leaves the row visible. */
-.type-other-row { margin-top: 8px; }
-.type-other-row[hidden] { display: none; }
+/* "Other" rare-types dropdown — trigger is a normal pill; the menu floats below it. */
+.type-other { position: relative; }
+.tp-caret { margin-left: 5px; font-size: 10px; opacity: .7; }
+.type-other-menu {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 60;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: var(--shadow); padding: 6px; min-width: 190px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.type-other-menu[hidden] { display: none; }   /* beats .type-other-menu display:flex */
+.type-other-item {
+  text-align: left; padding: 9px 12px; border-radius: 7px; border: 0;
+  background: transparent; color: var(--text); font-family: inherit; font-size: 13px;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.type-other-item:hover { background: var(--surface-2); }
+.type-other-item.on { color: var(--brand-ink); }
 
 /* Add form: full-width, left-aligned, 2-column rows */
 .add-form { width: 100%; }
