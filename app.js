@@ -378,6 +378,7 @@ const ZH = {
   "Full trade history for this holding": "此持仓的完整交易记录",
   "Dividends you've manually logged for this holding": "您为此持仓手动记录的股息",
   "Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above.": "此股票的真实派息记录（自动从市场数据获取）延续至以上预测所用的已确认／预估派息款项。",
+  "Real dividend payments across your whole portfolio (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above.": "您整个投资组合的真实派息记录（自动从市场数据获取）延续至以上预测所用的已确认／预估派息款项。",
   "This payment as a % of the current share price — a per-payment figure, not the annualized TTM yield shown above. Identical values across rows reflect a flat, no-growth projection, not an error.": "此次派息占目前股价的百分比——为单次派息数值，并非以上显示的年化 TTM 收益率。多行数值相同，是因为预测採用无增长的平稳预估，并非错误。",
   "The date by which you must already own the stock to receive this dividend. Buy on or after this date and you won't get this particular payment.": "您必须在此日期之前已持有该股票才能获得此次股息。若在此日期当天或之后才买入，将无法获得这次派息。",
   // Multi-currency cash + FX split fixes
@@ -3613,6 +3614,7 @@ function pageDividends() {
     { value: "past", label: t("Past") },
     { value: "upcoming", label: t("Upcoming") },
   ], divCalendarFilter, { id: "divCalendarFilterSel" });
+  const calendarTitleTip = `<span class="col-info tip-down" style="margin-left:10px" data-tip="${esc(t("Real dividend payments across your whole portfolio (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${COL_INFO_ICON_SVG}</span>`;
 
   const calendarRows = calendarFiltered.map((d) => {
     const isNext = nextIdx >= 0 && d === allDivEntries[nextIdx];
@@ -3682,7 +3684,7 @@ function pageDividends() {
     ${panel("Dividend Forecast", forecastBody)}
 
     <div id="divUpcomingSection">
-      ${panel(t("Dividend Calendar"),
+      ${panel(`${t("Dividend Calendar")}${calendarTitleTip}`,
         allDivEntries.length
           ? table([
               { label: "Ticker", style: "width:19%;text-align:left" },
