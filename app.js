@@ -1998,7 +1998,7 @@ function pageDashboard() {
         // head, same position as the Asset Allocation toggle right next to it —
         // not left-aligned inside the body like a second, competing header.
         const chartHeadExtra = hasTxn
-          ? `<div style="display:flex;align-items:center;gap:8px;margin-left:auto">${chartToggle}<span class="col-info tip-down panel-hint" data-tip="${t("Shows your portfolio market value versus what you paid — the gap between the two lines is your unrealized gain or loss.")}">${HOW_ICON_SVG}</span></div>`
+          ? `<div style="display:flex;align-items:center;gap:8px;margin-left:auto">${chartToggle}<span class="col-info tip-down" data-tip="${t("Shows your portfolio market value versus what you paid — the gap between the two lines is your unrealized gain or loss.")}">${COL_INFO_ICON_SVG}</span></div>`
           : "";
         const chartBody = hasTxn
           ? `<div id="dashChartBody">${buildDashChartContent()}</div>`
