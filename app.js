@@ -90,7 +90,7 @@ const ZH = {
   "Dashboard": "仪表盘", "Portfolio": "投资组合", "Transactions": "交易记录",
   "Cash Ledger": "现金账本", "Dividends": "股息", "Reports": "报表",
   "Brokers": "券商", "Settings": "设置", "Help": "帮助",
-  "Base currency": "基准货币", "Add": "添加", "More": "更多",
+  "Base currency": "基准货币", "Add": "添加", "Add record": "添加记录", "More": "更多",
   "Export CSV": "导出 CSV", "Add Transaction": "添加交易",
   // Page subtitles (static)
   "Welcome back — here is your portfolio at a glance.": "欢迎回来 — 这是您的投资组合概览。",
@@ -148,7 +148,7 @@ const ZH = {
   // Forms
   "Transaction Type": "交易类型", "Amount (gross)": "金额（总额）", "Quantity": "数量",
   "Price / Share": "每股价格", "Ex-dividend Date": "除息日", "Payment Date": "派息日",
-  "Withholding Tax": "预扣税", "Save Transaction": "保存交易", "Clear": "清空",
+  "Withholding Tax": "预扣税", "Save Transaction": "保存交易",
   "Hide": "隐藏", "Show": "显示", "Reset": "重置",
   "All brokers": "全部券商", "All markets": "全部市场", "All currencies": "全部货币",
   "All P/L": "全部盈亏", "Profit": "盈利", "Loss": "亏损",
@@ -2915,10 +2915,14 @@ const ADD_OTHER = [["fee", "Fee"], ["interest", "Interest"],
 // Shared fields kept across type switches on the Add page (broker/date/currency/notes).
 let addDraft = {};
 
-function typeSelectorHTML(activeType) {
+function typeSelectorHTML(activeType, drawerMode) {
   const pill = ([slug, lbl, ico]) => {
     const on = ADD_SLUGS[slug] === activeType;
     const icon = ico ? `<span class="tp-tab-ico"><svg class="icon"><use href="#${ico}"/></svg></span>` : "";
+    // In the drawer, switching type re-renders the drawer body in place (no page
+    // navigation) — a <button> with data-drawer-type; on the standalone route it's a
+    // hash link so the type is deep-linkable.
+    if (drawerMode) return `<button type="button" class="tp-tab${on ? " on" : ""}" data-drawer-type="${slug}">${icon}<span>${t(lbl)}</span></button>`;
     return `<a class="tp-tab${on ? " on" : ""}" href="#/add/${slug}">${icon}<span>${t(lbl)}</span></a>`;
   };
   const isOther = ADD_OTHER.some(([s]) => ADD_SLUGS[s] === activeType);
@@ -2929,34 +2933,62 @@ function typeSelectorHTML(activeType) {
   </div>`;
 }
 
+/* The #/add route no longer has its own page — it renders the Records list and
+ * opens the add/edit drawer OVER it, so recording a transaction happens in-context
+ * (you see the ledger the moment you save) instead of a separate full-page form.
+ * Every entry point (nav "Add", the Records "Add" button, a row's Edit button)
+ * still just navigates to #/add, so the router stays untouched — only what #/add
+ * shows changed. */
 function pageAdd() {
+  const rec = pageRecords();
+  return { title: rec.title, subtitle: rec.subtitle, html: rec.html,
+    mount() { rec.mount(); openAddDrawer(); } };
+}
+
+/* Open (or refresh) the add/edit drawer. Reads edit target from editingTxId and the
+ * type from the hash slug — both set by whatever navigated to #/add. */
+function openAddDrawer() {
   const editing = editingTxId ? ALL_TRANSACTIONS.find((x) => x.id === editingTxId) : null;
   if (editingTxId && !editing) editingTxId = null;
   const slug = decodeURIComponent((location.hash.split("/")[2] || ""));
-  const type = editing ? editing.type : (ADD_SLUGS[slug] || "Buy");   // default to Buy; selector stays visible
+  const type = editing ? editing.type : (ADD_SLUGS[slug] || "Buy");
+  renderAddDrawerBody(type, editing);
+  const dr = $("#addDrawer");
+  if (dr) dr.hidden = false;
+}
 
-  if (editing) {   // focused edit of one record — no type selector
-    const html = panel(t("Edit") + " · " + t(type), addForm2(type, editing));
-    return { title: "Edit Record", subtitle: t(type), html, mount() { mountAddForm(type, editing); } };
-  }
-
-  // New record needs at least one ACTIVE broker — otherwise the Broker dropdown is empty.
+function renderAddDrawerBody(type, editing) {
+  const titleEl = $("#addDrawerTitle");
+  if (titleEl) titleEl.textContent = editing ? `${t("Edit")} · ${t(type)}` : t("Add record");
   const hasActiveBroker = BROKERS.some((b) => !b.archived);
+  // Editing one record hides the type selector (you can't change a record's type); a
+  // new record shows it so you can pick Buy / Sell / Dividend / … before filling in.
+  const selector = editing ? "" : `${typeSelectorHTML(type, true)}<div class="add-sep"></div>`;
   const formContent = hasActiveBroker
-    ? addForm2(type, null)
+    ? addForm2(type, editing)
     : `<p class="form-note">${BROKERS.length
         ? t("Your only broker is archived. Add (or restore) an active broker to record transactions.")
         : t("You need a broker before you can record transactions — every transaction belongs to a broker.")}</p>
         <div class="form-actions" style="margin-top:14px"><a class="btn primary" href="#/brokers">${t("Add a broker")} →</a></div>`;
+  const body = $("#addDrawerBody");
+  if (!body) return;
+  body.innerHTML = `${selector}${formContent}`;
+  if (hasActiveBroker) mountAddForm(type, editing);
+  // Type switch is drawer-local: re-render the body and reflect the type in the URL via
+  // replaceState (NOT a hash change — that would re-run the router). Keeping the slug in
+  // the URL means a post-save render() reopens the drawer on the same type for rapid entry.
+  body.querySelectorAll("[data-drawer-type]").forEach((b) => b.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    const s = b.dataset.drawerType;
+    try { history.replaceState(null, "", `#/add/${s}`); } catch (e) { /* ignore */ }
+    renderAddDrawerBody(ADD_SLUGS[s], null);
+  }));
+  translateDOM(body);
+}
 
-  const html = `<section class="panel add-panel">
-    ${typeSelectorHTML(type)}
-    <div class="add-sep"></div>
-    <div class="panel-head"><h2>${t(type)}</h2></div>
-    ${formContent}
-  </section>`;
-  return { title: "Add", subtitle: "Pick a type and fill in the details.", html,
-    mount() { mountAddForm(type, null); } };
+function closeAddDrawer() {
+  const dr = $("#addDrawer");
+  if (dr && !dr.hidden) dr.hidden = true;
 }
 
 /* The focused per-type form. Field NAMES match wireTxSubmit so one submit path serves all. */
@@ -3070,7 +3102,7 @@ function addForm2(type, editing) {
     </div>
     <div class="form-actions">
       <button type="submit" class="btn primary">${editing ? t("Update Transaction") : t("Save Transaction")}</button>
-      <button type="button" class="btn secondary" id="addCancel">${editing ? t("Cancel") : t("Clear")}</button>
+      <button type="button" class="btn secondary" id="addCancel">${t("Cancel")}</button>
       ${isTrade ? `<span class="add-total" id="addTotal"></span>` : ""}
     </div>
   </form>`;
@@ -3095,11 +3127,11 @@ function mountAddForm(type, editing) {
     form.addEventListener("change", syncDraft);
     syncDraft();
   }
-  // Cancel → editing: back to Records; new: clear the form (selector stays).
+  // Cancel closes the drawer (navigating to Records re-renders without it).
   const cancelBtn = $("#addCancel");
   if (cancelBtn) cancelBtn.addEventListener("click", () => {
-    if (editing) { editingTxId = null; location.hash = "#/records"; }
-    else { addDraft = {}; render(); }
+    editingTxId = null; addDraft = {};
+    location.hash = "#/records";
   });
   // Notes toggle: collapsed by default, expands on click, collapses on blur-when-empty
   const noteToggle = form.querySelector("#noteToggle"), noteField = form.querySelector("#noteField"),
@@ -5152,7 +5184,7 @@ function currentPageKey() {
 
 function render() {
   const key = currentPageKey();
-  if (key !== "add") { editingTxId = null; addDraft = {}; }  // drop edit mode + draft when leaving Add
+  if (key !== "add") { editingTxId = null; addDraft = {}; closeAddDrawer(); }  // drop edit mode + draft + drawer when leaving Add
   const root = $("#page");
   try {
     const page = PAGES[key]();
@@ -5219,7 +5251,22 @@ function init() {
   if (staleDismiss) staleDismiss.addEventListener("click", hideStaleDataWarning);
   window.addEventListener("storage", (e) => { if (e.key === STORE_KEY) showStaleDataWarning(); });
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeModal(); closeMoreSheet(); } });
+  // Add/edit drawer: close button + backdrop click navigate to Records (which re-renders
+  // without the drawer), so the URL always reflects whether the drawer is open.
+  const addDrawerClose = $("#addDrawerClose");
+  if (addDrawerClose) addDrawerClose.addEventListener("click", () => { location.hash = "#/records"; });
+  const addDrawerEl = $("#addDrawer");
+  if (addDrawerEl) addDrawerEl.addEventListener("click", (e) => { if (e.target.id === "addDrawer") location.hash = "#/records"; });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    // An open broker/currency dropdown inside the drawer takes priority — let its own
+    // Escape handler (initStyledSelects) close just the dropdown, don't nuke the whole
+    // in-progress form. Only close the drawer when nothing smaller is open.
+    if (document.querySelector(".sel.open")) return;
+    const dr = $("#addDrawer");
+    if (dr && !dr.hidden) { location.hash = "#/records"; return; }
+    closeModal(); closeMoreSheet();
+  });
   // "More" overlay — mobile bottom-nav only (desktop shows the items in the sidebar)
   $("#moreBtn").addEventListener("click", (e) => { e.preventDefault(); toggleMoreSheet(); });
   $("#moreClose").addEventListener("click", closeMoreSheet);

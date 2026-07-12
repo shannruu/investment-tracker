@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Investment Ledger</title>
   <meta name="description" content="Track investments across multiple brokers in one place." />
-  <link rel="stylesheet" href="styles.css?v=187" />
+  <link rel="stylesheet" href="styles.css?v=188" />
 </head>
 <body>
 
@@ -101,6 +101,17 @@
     </div>
   </div>
 
+  <!-- ===== Add / edit record drawer ===== -->
+  <div class="drawer-backdrop" id="addDrawer" hidden>
+    <div class="drawer-panel" role="dialog" aria-modal="true" aria-labelledby="addDrawerTitle">
+      <div class="drawer-head">
+        <h2 id="addDrawerTitle">Add record</h2>
+        <button class="icon-btn" id="addDrawerClose" aria-label="Close">✕</button>
+      </div>
+      <div class="drawer-body" id="addDrawerBody"></div>
+    </div>
+  </div>
+
   <!-- ===== Calculation breakdown modal ===== -->
   <div class="modal-backdrop" id="modal" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
@@ -128,7 +139,7 @@
     </div>
   </div>
 
-  <script src="data.js?v=187"></script>
-  <script src="app.js?v=187"></script>
+  <script src="data.js?v=188"></script>
+  <script src="app.js?v=188"></script>
 </body>
 </html>

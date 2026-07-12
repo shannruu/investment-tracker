@@ -502,6 +502,34 @@ a { color: inherit; text-decoration: none; }
 .modal-head h3 { font-size: 15px; }
 .modal-head .icon-btn { margin-left: auto; width: 32px; height: 32px; }
 .modal-body { padding: 20px 24px; font-size: 13.5px; overflow-y: auto; }
+
+/* Add / edit record drawer — right-side panel on desktop, bottom sheet on phones.
+ * Holds the full add form (too many fields per type for a small centered modal). */
+.drawer-backdrop {
+  position: fixed; inset: 0; background: rgba(8,12,20,.55);
+  z-index: 150; display: flex; justify-content: flex-end;
+}
+.drawer-backdrop[hidden] { display: none; }
+.drawer-panel {
+  width: min(540px, 100%); height: 100%; background: var(--surface);
+  border-left: 1px solid var(--border); box-shadow: var(--shadow);
+  display: flex; flex-direction: column; animation: drawer-in .18s ease;
+}
+@keyframes drawer-in { from { transform: translateX(24px); opacity: .5; } to { transform: translateX(0); opacity: 1; } }
+.drawer-head { display: flex; align-items: center; flex: none; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+.drawer-head h2 { font-size: 16px; }
+.drawer-head .icon-btn { margin-left: auto; width: 32px; height: 32px; }
+.drawer-body { padding: 18px; overflow-y: auto; flex: 1; }
+@media (max-width: 640px) {
+  .drawer-backdrop { align-items: flex-end; justify-content: center; }
+  .drawer-panel {
+    width: 100%; height: auto; max-height: 92vh;
+    border-left: 0; border-top: 1px solid var(--border); border-radius: 16px 16px 0 0;
+    animation: drawer-up .2s ease;
+  }
+}
+@keyframes drawer-up { from { transform: translateY(30px); } to { transform: translateY(0); } }
+
 .calc-row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; }
 .calc-row .cr-op { color: var(--muted); display: inline-block; min-width: 16px; margin-right: 4px; }
 .calc-row.total { font-weight: 600; font-size: 14px; border-top: 1px solid var(--border); border-bottom: 0; margin-top: 4px; padding-top: 12px; }
