@@ -3692,7 +3692,6 @@ function pageDividends() {
 
     <div id="divUpcomingSection">
       ${panel("Upcoming Dividends",
-        (upcomingFilterSel ? `<div class="filters">${upcomingFilterSel}</div>` : "") + (
         combinedUpcoming.length
           ? table([
               { label: "Ticker", style: "width:19%;text-align:left" },
@@ -3709,17 +3708,18 @@ function pageDividends() {
               !LIVE_ENABLED
                 ? t("No upcoming dividends yet. Add them manually when recording a dividend, or they'll appear automatically once market data is connected.")
                 : t("No upcoming dividends yet. Add one manually when recording a dividend.")
-            }</p>`),
-        `<small class="muted" id="divFetchStatus"></small>`
+            }</p>`,
+        `<div class="panel-head-actions">${upcomingFilterSel ? `<div style="width:150px">${upcomingFilterSel}</div>` : ""}<small class="muted" id="divFetchStatus"></small></div>`
       )}
     </div>
 
-    ${panel("Dividend Income", `<div class="filters">${incomeFilterSel}</div>` + table([
+    ${panel("Dividend Income", table([
         { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
         { label: "Net (RM)", style: "width:50%;text-align:left" },
-      ], incomeRowsByPeriod[divIncomePeriod] || monthRows))}
+      ], incomeRowsByPeriod[divIncomePeriod] || monthRows),
+      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}
 
-    ${panel("Dividend History", (historyFilterSel ? `<div class="filters">${historyFilterSel}</div>` : "") + table([
+    ${panel("Dividend History", table([
         { label: "Ticker", style: "width:14.3%;text-align:left" },
         { label: "Ex-Date", style: "width:14.3%;text-align:left" },
         { label: "Payment Date", style: "width:14.3%;text-align:left" },
@@ -3727,7 +3727,8 @@ function pageDividends() {
         { label: "Tax", style: "width:14.3%;text-align:left" },
         { label: "Net", style: "width:14.3%;text-align:left" },
         { label: "Status", style: "width:14.2%;text-align:left" },
-      ], histRows))}`;
+      ], histRows),
+      historyFilterSel ? `<div class="panel-head-actions"><div style="width:150px">${historyFilterSel}</div></div>` : "")}`;
 
   return {
     title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
