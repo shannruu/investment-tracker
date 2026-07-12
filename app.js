@@ -116,7 +116,6 @@ const ZH = {
   "Broker Cash Reconciliation": "券商现金对账", "Dividend History": "股息历史",
   "Dividend History by Year": "年度股息历史", "Projected (this year)": "预计（今年）",
   "Dividend history by year": "年度股息历史图",
-  "Dividend Tax Paid by Country": "按国家/地区缴纳的股息税",
   "Profit / Loss by Holding": "按持仓盈亏", "Profit / Loss by Broker": "按券商盈亏",
   "Dividend Income by Year": "按年度股息收入", "Fees Paid by Broker": "按券商支付的费用",
   "Currency Gain / Loss": "汇率盈亏", "Export": "导出", "Add Broker": "添加券商",
@@ -349,10 +348,7 @@ const ZH = {
   "next month": "下月", "next quarter": "下季", "next year": "下年",
   "How is the forecast calculated?": "预测是如何计算的？",
   "Net Dividends (Lifetime)": "净股息（累计）", "Month": "月份", "Quarter": "季度",
-  "Dividend Forecast": "股息预测", "Monthly Dividend Income": "每月股息收入",
-  "Quarterly Dividend Income": "每季股息收入", "Annual Dividend Income": "每年股息收入",
-  "MoM Δ": "环比", "QoQ Δ": "季度环比", "YoY": "同比",
-  "Year-over-year growth": "同比增长", "vs": "对比",
+  "Dividend Forecast": "股息预测",
   // Holding detail
   "Back to Portfolio": "返回投资组合", "Holding detail": "持仓明细",
   "Shares Held": "持有股数", "Average Cost": "平均成本", "share": "股",
@@ -3552,6 +3548,9 @@ function dividendForecast(received, upcoming) {
 /* =============================================================================
  * PAGE: DIVIDENDS
  * ========================================================================== */
+let divUpcomingFilter = "all";   // ticker filter for Upcoming Dividends — "all" or a specific ticker
+let divHistoryFilter = "all";    // ticker filter for Dividend History
+let divIncomePeriod = "monthly"; // monthly | quarterly | annual — which Dividend Income view is shown
 function pageDividends() {
   /* Calculation reference:
    * grossBase        = Σ (d.gross × fxRate) for all received dividends
@@ -3595,67 +3594,70 @@ function pageDividends() {
     ...upcoming.map((d) => ({ ...d, amtMYR: d.expectedNetMYR })),
     ...estimatedUpcoming,
   ].sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
+  const upcomingTickers = [...new Set(combinedUpcoming.map((d) => d.ticker))].sort();
+  const upcomingFilterSel = upcomingTickers.length > 1 ? `<div style="width:150px">${styledSelect("divUpcomingFilter", [
+    { value: "all", label: t("All") },
+    ...upcomingTickers.map((tk) => ({ value: tk, label: tk })),
+  ], divUpcomingFilter, { id: "divUpcomingFilterSel" })}</div>` : "";
+  const upcomingFiltered = divUpcomingFilter === "all" ? combinedUpcoming : combinedUpcoming.filter((d) => d.ticker === divUpcomingFilter);
 
-  const upcomingRows = combinedUpcoming.map((d) => {
+  const upcomingRows = upcomingFiltered.map((d) => {
     const du = daysUntil(d.payDate);
     const daysLabel = d.payDate ? (du >= 0 ? `${du}d` : `<span class="neg">${t("overdue")}</span>`) : "";
     return `<tr>
-      <td><span class="ticker">${esc(d.ticker)}</span><div class="sub">${d.brokerId ? esc(brokerName(d.brokerId)) : ""}</div></td>
-      <td>${fmtDate(d.exDate)}</td>
-      <td>${fmtDate(d.payDate)}${daysLabel ? `<div class="fx-note">${daysLabel}</div>` : ""}</td>
-      <td class="num">${money(d.amtMYR)}</td>
-      <td>${sourceBadge(d.source || "manual")}</td>
-      <td>${d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" aria-label="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : ""}</td></tr>`;
+      <td class="dcc-c"><span class="ticker">${esc(d.ticker)}</span><div class="sub">${d.brokerId ? esc(brokerName(d.brokerId)) : ""}</div></td>
+      <td class="dcc-c">${fmtDate(d.exDate)}</td>
+      <td class="dcc-c">${fmtDate(d.payDate)}${daysLabel ? `<div class="fx-note">${daysLabel}</div>` : ""}</td>
+      <td class="dcc-c">${money(d.amtMYR)}</td>
+      <td class="dcc-c">${sourceBadge(d.source || "manual")}</td>
+      <td class="dcc-c">${d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" aria-label="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : ""}</td></tr>`;
   }).join("");
 
-  const histRows = received.sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1)).map((d) => {
+  const historyTickers = [...new Set(received.map((d) => d.ticker))].sort();
+  const historyFilterSel = historyTickers.length > 1 ? `<div style="width:150px">${styledSelect("divHistoryFilter", [
+    { value: "all", label: t("All") },
+    ...historyTickers.map((tk) => ({ value: tk, label: tk })),
+  ], divHistoryFilter, { id: "divHistoryFilterSel" })}</div>` : "";
+  const historyFiltered = divHistoryFilter === "all" ? received : received.filter((d) => d.ticker === divHistoryFilter);
+
+  const histRows = historyFiltered.sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1)).map((d) => {
     const taxAmt = +d.tax || 0;
     const net = (+d.gross || 0) - taxAmt;
     const fx = d.fxRate || FX.rates[d.currency] || 1;
     const isForeign = d.currency && d.currency !== FX.base;
     const netMyrSub = isForeign ? `<div class="fx-note">${money(net * fx)}</div>` : "";
     return `<tr>
-      <td><span class="ticker">${esc(d.ticker)}</span><div class="sub">${esc(brokerName(d.brokerId))}</div></td>
-      <td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate || d.date)}</td>
-      <td class="num">${esc(ccyLabel(d.currency))} ${fmt(d.gross)}</td>
-      <td class="num ${taxAmt > 0 ? "neg" : ""}">${taxAmt > 0 ? "−" + fmt(taxAmt) : "0.00"}</td>
-      <td class="num">${esc(ccyLabel(d.currency))} ${fmt(net)}${netMyrSub}</td>
-      <td>${statusBadge("Received")}</td></tr>`;
+      <td class="dcc-c"><span class="ticker">${esc(d.ticker)}</span><div class="sub">${esc(brokerName(d.brokerId))}</div></td>
+      <td class="dcc-c">${fmtDate(d.exDate)}</td><td class="dcc-c">${fmtDate(d.payDate || d.date)}</td>
+      <td class="dcc-c">${esc(ccyLabel(d.currency))} ${fmt(d.gross)}</td>
+      <td class="dcc-c${taxAmt > 0 ? " neg" : ""}">${taxAmt > 0 ? "−" + fmt(taxAmt) : "0.00"}</td>
+      <td class="dcc-c">${esc(ccyLabel(d.currency))} ${fmt(net)}${netMyrSub}</td>
+      <td class="dcc-c">${statusBadge("Received")}</td></tr>`;
   }).join("");
 
   const grossBase = received.reduce((s, d) => s + (+d.gross || 0) * (d.fxRate || FX.rates[d.currency] || 1), 0);
   const taxBase = received.reduce((s, d) => s + (+d.tax || 0) * (d.fxRate || FX.rates[d.currency] || 1), 0);
 
-  // Show ALL countries that have at least one dividend — even at WHT=0 (normal for MY stocks)
-  const taxByCountryMap = {};
-  received.forEach((d) => {
-    const country = countryForTicker(d.ticker, (STOCK_META[d.ticker] || {}).country);
-    taxByCountryMap[country] = (taxByCountryMap[country] || 0) + (+d.tax || 0) * (d.fxRate || FX.rates[d.currency] || 1);
-  });
-  const taxRows = Object.entries(taxByCountryMap).sort((a, b) => b[1] - a[1])
-    .map(([country, tax]) => `<tr><td>${country}</td><td class="num ${tax > 0 ? "neg" : ""}">${money(tax)}</td></tr>`).join("");
-
   const periods = dividendByPeriod(received);
-
   const monthsAsc = Object.keys(periods.byMonth).sort();
-  const monthRows = monthsAsc.map((k, i) => ({ k, val: periods.byMonth[k], delta: i > 0 ? periods.byMonth[k] - periods.byMonth[monthsAsc[i - 1]] : null }))
-    .reverse().slice(0, 12).map((r) => `<tr><td>${r.k}</td><td class="num pos">${money(r.val)}</td>
-      <td class="num ${r.delta == null ? "" : cls(r.delta)}">${r.delta == null ? "—" : signed(r.delta)}</td></tr>`).join("");
-
+  const monthRows = monthsAsc.slice(-12).reverse()
+    .map((k) => `<tr><td class="dcc-c">${k}</td><td class="dcc-c pos">${money(periods.byMonth[k])}</td></tr>`).join("");
   const qAsc = Object.keys(periods.byQuarter).sort();
-  const quarterRows = qAsc.map((k, i) => { const prev = i > 0 ? periods.byQuarter[qAsc[i - 1]] : null; const val = periods.byQuarter[k];
-      return { k, val, delta: prev != null ? val - prev : null, pct: prev ? ((val - prev) / prev) * 100 : null }; })
-    .reverse().slice(0, 8).map((r) => `<tr><td>${r.k}</td><td class="num pos">${money(r.val)}</td>
-      <td class="num ${r.delta == null ? "" : cls(r.delta)}">${r.delta == null ? "—" : signed(r.delta)}${r.pct != null ? ` <span class="fx-note ${cls(r.pct)}">${pctTxt(r.pct)}</span>` : ""}</td></tr>`).join("");
-
+  const quarterRows = qAsc.slice(-8).reverse()
+    .map((k) => `<tr><td class="dcc-c">${k}</td><td class="dcc-c pos">${money(periods.byQuarter[k])}</td></tr>`).join("");
   const yearsAsc = Object.keys(periods.byYear).sort();
-  const yearRows = yearsAsc.map((k, i) => { const prev = i > 0 ? periods.byYear[yearsAsc[i - 1]] : null; const val = periods.byYear[k];
-      return { k, val, yoy: prev ? ((val - prev) / prev) * 100 : null }; })
-    .reverse().map((r) => `<tr><td>${r.k}</td><td class="num pos">${money(r.val)}</td>
-      <td class="num ${r.yoy == null ? "" : cls(r.yoy)}">${r.yoy == null ? "—" : pctTxt(r.yoy)}</td></tr>`).join("");
-
-  const thisY = yearsAsc[yearsAsc.length - 1], lastY = yearsAsc[yearsAsc.length - 2];
-  const yoyGrowth = (lastY && periods.byYear[lastY]) ? ((periods.byYear[thisY] - periods.byYear[lastY]) / periods.byYear[lastY]) * 100 : null;
+  const yearRows = yearsAsc.slice().reverse()
+    .map((k) => `<tr><td class="dcc-c">${k}</td><td class="dcc-c pos">${money(periods.byYear[k])}</td></tr>`).join("");
+  // One table with a period filter instead of three separate Monthly/Quarterly/Annual
+  // panels — MoM/QoQ/YoY delta columns dropped too (always "—" until there's more than
+  // one period of history anyway, and the trend is already visible across the rows).
+  const incomeLabels = { monthly: t("Month"), quarterly: t("Quarter"), annual: t("Year") };
+  const incomeRowsByPeriod = { monthly: monthRows, quarterly: quarterRows, annual: yearRows };
+  const incomeFilterSel = `<div style="width:150px">${styledSelect("divIncomePeriod", [
+    { value: "monthly", label: t("Monthly") },
+    { value: "quarterly", label: t("Quarterly") },
+    { value: "annual", label: t("Annual") },
+  ], divIncomePeriod, { id: "divIncomePeriodSel" })}</div>`;
 
   const dash = `<span class="muted" style="font-size:22px;line-height:1">—</span>`;
   const tickerEntries = Object.entries(fc.tickerInfo || {});
@@ -3691,7 +3693,14 @@ function pageDividends() {
     <div id="divUpcomingSection">
       ${panel("Upcoming Dividends",
         combinedUpcoming.length
-          ? table([{label:"Ticker"},{label:"Ex-Date"},{label:"Pay Date"},{label:"Amount (RM)",num:1},{label:"Source"},{label:""}], upcomingRows)
+          ? table([
+              { label: "Ticker", style: "width:19%;text-align:left" },
+              { label: "Ex-Date", style: "width:19%;text-align:left" },
+              { label: "Pay Date", style: "width:19%;text-align:left" },
+              { label: "Amount (RM)", style: "width:19%;text-align:left" },
+              { label: "Source", style: "width:19%;text-align:left" },
+              { label: "" },
+            ], upcomingRows)
           // Genuinely empty now only when there's no declared date AND no detectable
           // pattern anywhere in the portfolio — the common "pattern exists but nothing
           // declared" case is handled above by merging in estimatedUpcoming.
@@ -3700,19 +3709,26 @@ function pageDividends() {
                 ? t("No upcoming dividends yet. Add them manually when recording a dividend, or they'll appear automatically once market data is connected.")
                 : t("No upcoming dividends yet. Add one manually when recording a dividend.")
             }</p>`,
-        `<small class="muted" id="divFetchStatus"></small>`
+        `<div class="panel-head-actions">${upcomingFilterSel}<small class="muted" id="divFetchStatus"></small></div>`
       )}
     </div>
 
-    <section class="grid-2">
-      ${panel("Monthly Dividend Income", table([{label:"Month"},{label:"Net (RM)",num:1},{label:"MoM Δ",num:1}], monthRows))}
-      ${panel("Quarterly Dividend Income", table([{label:"Quarter"},{label:"Net (RM)",num:1},{label:"QoQ Δ",num:1}], quarterRows))}
-    </section>
-    ${panel("Annual Dividend Income", `${yoyGrowth != null ? `<p class="muted" style="margin:-4px 0 12px">${t("Year-over-year growth")}: <strong class="${cls(yoyGrowth)}">${pctTxt(yoyGrowth)}</strong> (${thisY} ${t("vs")} ${lastY})</p>` : ""}
-      ${table([{label:"Year"},{label:"Net (RM)",num:1},{label:"YoY",num:1}], yearRows)}`)}
+    ${panel("Dividend Income", table([
+        { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
+        { label: "Net (RM)", style: "width:50%;text-align:left" },
+      ], incomeRowsByPeriod[divIncomePeriod] || monthRows),
+      `<div class="panel-head-actions">${incomeFilterSel}</div>`)}
 
-    ${panel("Dividend History", table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment Date"},{label:"Gross",num:1},{label:"Tax",num:1},{label:"Net",num:1},{label:"Status"}], histRows))}
-    ${received.length ? panel("Dividend Tax Paid by Country", table([{label:"Country"},{label:"Withholding Tax (RM)",num:1}], taxRows)) : panel("Dividend Tax Paid by Country", `<p class="muted" style="margin:0;font-size:13px">${t("No dividend transactions yet.")}</p>`)}`;
+    ${panel("Dividend History", table([
+        { label: "Ticker", style: "width:14.3%;text-align:left" },
+        { label: "Ex-Date", style: "width:14.3%;text-align:left" },
+        { label: "Payment Date", style: "width:14.3%;text-align:left" },
+        { label: "Gross", style: "width:14.3%;text-align:left" },
+        { label: "Tax", style: "width:14.3%;text-align:left" },
+        { label: "Net", style: "width:14.3%;text-align:left" },
+        { label: "Status", style: "width:14.2%;text-align:left" },
+      ], histRows),
+      `<div class="panel-head-actions">${historyFilterSel}</div>`)}`;
 
   return {
     title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
@@ -3724,6 +3740,12 @@ function pageDividends() {
           if (idx >= 0) { UPCOMING_DIVIDENDS.splice(idx, 1); saveStore(); render(); }
         });
       });
+      const upcomingFilterEl = $("#divUpcomingFilterSel");
+      if (upcomingFilterEl) upcomingFilterEl.addEventListener("change", () => { divUpcomingFilter = upcomingFilterEl.value; render(); });
+      const historyFilterEl = $("#divHistoryFilterSel");
+      if (historyFilterEl) historyFilterEl.addEventListener("change", () => { divHistoryFilter = historyFilterEl.value; render(); });
+      const incomePeriodEl = $("#divIncomePeriodSel");
+      if (incomePeriodEl) incomePeriodEl.addEventListener("change", () => { divIncomePeriod = incomePeriodEl.value; render(); });
       if (LIVE_ENABLED) {
         const statusEl = document.getElementById("divFetchStatus");
         if (statusEl) statusEl.textContent = t("Checking dividend schedules…");
