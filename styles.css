@@ -938,14 +938,12 @@ input[type="date"] { cursor: pointer; }
 /* Make <button> nav items identical to the <a> nav items */
 button.nav-item { width: 100%; font-family: inherit; font-size: 14px; background: transparent; border: 0; cursor: pointer; text-align: left; }
 button.bn-item { font-family: inherit; background: transparent; border: 0; cursor: pointer; }
-.nav-item.add-link { color: var(--brand-ink); font-weight: 650; }
-.nav-item.add-link .ni-ico { color: var(--brand); opacity: 1; }
 
 /* Clean line icons (inline SVG sprite) */
 .icon { width: 18px; height: 18px; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .ni-ico { display: inline-flex; align-items: center; justify-content: center; }
 .nav-item .ni-ico { opacity: .85; }
-.nav-item.active .ni-ico, .nav-item.add-link .ni-ico { opacity: 1; }
+.nav-item.active .ni-ico { opacity: 1; }
 .more-item .ni-ico { opacity: .9; }
 .bn-item .bn-ico { display: inline-flex; }
 .bn-item .icon { width: 23px; height: 23px; }

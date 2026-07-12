@@ -463,7 +463,7 @@ const ZH = {
   "Captured once per day when you use the app.": "每次使用应用时每日记录一次。",
   "Record your first deposit or Buy to start tracking.": "记录第一笔存款或买入以开始追踪。",
   // Refactor — 5-item nav, More sheet, Records, Add flow, dashboard hero
-  "Records": "记录", "More": "更多",
+  "More": "更多",
   "All transactions, cash & dividends": "所有交易、现金与股息",
   "Portfolio, dividend, cash-flow, performance": "投资组合、股息、现金流、业绩",
   "Accounts & reconciliation": "账户与对账",
@@ -2841,12 +2841,12 @@ function pageRecords() {
   const html = `<section class="panel add-panel">
       ${nav}
       <div class="add-sep"></div>
-      <div class="panel-head"><h2>${t("Records")}</h2><div class="panel-head-actions"><span class="badge subtle">${list.length} ${t("records")}</span>${addBtn}</div></div>
+      <div class="panel-head"><h2>${t("Transactions")}</h2><div class="panel-head-actions"><span class="badge subtle">${list.length} ${t("records")}</span>${addBtn}</div></div>
       <div id="recBody">${recordsTable(list)}</div>
     </section>
     ${recordsTab === "cash" ? cashExtrasHTML() : ""}`;
 
-  return { title: "Records", subtitle: "All your transactions, cash and dividends in one ledger.", html,
+  return { title: "Transactions", subtitle: "All your transactions, cash and dividends in one ledger.", html,
     mount() {
       $$("[data-rectab]").forEach((b) => b.addEventListener("click", () => { recordsTab = b.dataset.rectab; render(); }));
       $("#recBody").addEventListener("click", (e) => {
@@ -5204,9 +5204,14 @@ function render() {
       <span class="muted">If you just updated the files, do a hard refresh (Ctrl+Shift+R) to clear the cache.</span></div></div>`;
   }
 
-  // active nav state — sidebar items highlight directly; mobile "More" highlights on secondary pages
+  // active nav state — sidebar items highlight directly; mobile "More" highlights on secondary pages.
+  // The add drawer renders over Transactions (key "add" → route #/records), so with it open
+  // both the Transactions item and the mobile quick-add "+" read as active.
   const secondary = ["records", "reports", "brokers", "settings", "help"];
-  $$("[data-page]").forEach((el) => el.classList.toggle("active", el.dataset.page === key));
+  $$("[data-page]").forEach((el) => {
+    const p = el.dataset.page;
+    el.classList.toggle("active", p === key || (key === "add" && (p === "records" || p === "add")));
+  });
   const mb = $("#moreBtn"); if (mb) mb.classList.toggle("active", secondary.includes(key));
   closeMoreSheet();
 }
