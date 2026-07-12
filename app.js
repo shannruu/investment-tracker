@@ -3584,7 +3584,10 @@ function pageDividends() {
     .filter((p) => !p.confirmed && p.payDate <= oneYearOutStr)
     .map((p) => {
       const h = T.holdings.find((x) => x.ticker === p.ticker);
-      return { ticker: p.ticker, brokerId: h ? h.brokerId : null, exDate: null, payDate: p.payDate,
+      // No separate ex-date exists for a pattern-projected payment — the projected date
+      // itself is the only date we have, so it's used for both rather than leaving
+      // Ex-Date blank (which read as broken/missing data, not "not applicable").
+      return { ticker: p.ticker, brokerId: h ? h.brokerId : null, exDate: p.payDate, payDate: p.payDate,
         amtMYR: p.amtMYR, source: "estimated" };
     });
   const combinedUpcoming = [
@@ -3592,16 +3595,31 @@ function pageDividends() {
     ...estimatedUpcoming,
   ].sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
 
+  // Per-share amount and per-payment yield use each ticker's CURRENT share count/price —
+  // the real historical share count at the time of a past dividend isn't stored anywhere,
+  // so this is the same approximation the Holding Detail page's own calendar already makes
+  // for its projected rows, just applied uniformly here across past and future alike.
+  const perShareFor = (ticker, amtMYR) => {
+    const h = T.holdings.find((x) => x.ticker === ticker);
+    return (h && h.shares) ? amtMYR / h.shares : null;
+  };
+  const yieldFor = (ticker, perShareAmt) => {
+    const h = T.holdings.find((x) => x.ticker === ticker);
+    return (h && h.hasPrice && h.currentPrice > 0 && perShareAmt != null) ? (perShareAmt / h.currentPrice) * 100 : null;
+  };
   const today = todayISO();
-  const historyEntries = received.map((d) => ({
-    ticker: d.ticker, brokerId: d.brokerId, exDate: d.exDate, payDate: d.payDate || d.date,
-    amtMYR: ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1),
-    status: "Received",
-  }));
-  const upcomingEntries = combinedUpcoming.map((d) => ({
-    ticker: d.ticker, brokerId: d.brokerId, exDate: d.exDate, payDate: d.payDate,
-    amtMYR: d.amtMYR, status: d.source === "estimated" ? "Estimated" : "Confirmed", _id: d._id,
-  }));
+  const historyEntries = received.map((d) => {
+    const amtMYR = ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1);
+    const perShareAmt = perShareFor(d.ticker, amtMYR);
+    return { ticker: d.ticker, brokerId: d.brokerId, exDate: d.exDate || d.payDate || d.date, payDate: d.payDate || d.date,
+      amtMYR, perShareAmt, yieldPct: yieldFor(d.ticker, perShareAmt), status: "Received" };
+  });
+  const upcomingEntries = combinedUpcoming.map((d) => {
+    const perShareAmt = perShareFor(d.ticker, d.amtMYR);
+    return { ticker: d.ticker, brokerId: d.brokerId, exDate: d.exDate || d.payDate, payDate: d.payDate,
+      amtMYR: d.amtMYR, perShareAmt, yieldPct: yieldFor(d.ticker, perShareAmt),
+      status: d.source === "estimated" ? "Estimated" : "Confirmed", _id: d._id };
+  });
   const allDivEntries = [...historyEntries, ...upcomingEntries]
     .filter((d) => d.payDate)
     .sort((a, b) => (a.payDate < b.payDate ? -1 : 1));
@@ -3623,7 +3641,9 @@ function pageDividends() {
       <td class="dcc-c"><span class="ticker">${esc(d.ticker)}</span><div class="sub">${d.brokerId ? esc(brokerName(d.brokerId)) : ""}</div></td>
       <td class="dcc-c">${fmtDate(d.exDate)}</td>
       <td class="dcc-c">${fmtDate(d.payDate)}</td>
+      <td class="dcc-c">${d.perShareAmt != null ? fmt(d.perShareAmt, { maximumFractionDigits: 2 }) : "—"}</td>
       <td class="dcc-c">${money(d.amtMYR)}</td>
+      <td class="dcc-c">${d.yieldPct != null ? fmt(d.yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td>
       <td class="dcc-c">${statusCell}</td>
       <td class="dcc-c">${d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" aria-label="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : ""}</td></tr>`;
   }).join("");
@@ -3687,11 +3707,13 @@ function pageDividends() {
       ${panel(`${t("Dividend Calendar")}${calendarTitleTip}`,
         allDivEntries.length
           ? table([
-              { label: "Ticker", style: "width:19%;text-align:left" },
-              { label: "Ex-Date", style: "width:19%;text-align:left" },
-              { label: "Payment Date", style: "width:19%;text-align:left" },
-              { label: "Amount (RM)", style: "width:19%;text-align:left" },
-              { label: "Status", style: "width:19%;text-align:left" },
+              { label: "Ticker", style: "width:14%;text-align:left" },
+              { label: "Ex-Date", style: "width:14%;text-align:left" },
+              { label: "Payment Date", style: "width:14%;text-align:left" },
+              { label: "Per Share (RM)", style: "width:14%;text-align:left" },
+              { label: "Amount (RM)", style: "width:14%;text-align:left" },
+              { label: "Yield", style: "width:14%;text-align:left" },
+              { label: "Status", style: "width:14%;text-align:left" },
               { label: "" },
             ], calendarRows)
           // Genuinely empty now only when there's no logged history AND no declared date
