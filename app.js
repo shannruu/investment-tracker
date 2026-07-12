@@ -365,6 +365,8 @@ const ZH = {
   "Your Recorded Dividends": "您记录的股息", "Dividend Calendar": "股息日历", "Amount (your shares)": "金额（您的持股）",
   "Market record": "市场记录",
   "Past": "过去", "Upcoming": "即将到来", "Yield": "收益率", "Next payment": "下一次派息",
+  "No dividends yet. Record one, or they'll appear automatically once market data is connected.": "暂无股息记录。可手动添加，或在连接市场数据后自动显示。",
+  "No dividends yet. Record one to get started.": "暂无股息记录。添加一笔即可开始。",
   "Buy before this date to qualify for this dividend — buy on or after it and you'll miss this specific payment. This is the ex-dividend date; market data sources don't report a separate payment date.": "您必须在此日期之前买入才能符合领取此次股息的资格——若在此日期当天或之后才买入，将无法领取这次派息。这是除息日；市场数据来源并未提供另外的派息（入账）日期。",
   "A rough estimate (Ex-Date + 14 days) of when the money would actually land in your account — not real data, since market sources don't report an actual payment date.": "这是款项实际入账时间的粗略估计（除息日 + 14 天）——并非真实数据，因为市场数据来源并未提供实际派息（入账）日期。",
   "Est. Payment": "预估派息日",
@@ -3548,8 +3550,7 @@ function dividendForecast(received, upcoming) {
 /* =============================================================================
  * PAGE: DIVIDENDS
  * ========================================================================== */
-let divUpcomingFilter = "all";   // ticker filter for Upcoming Dividends — "all" or a specific ticker
-let divHistoryFilter = "all";    // ticker filter for Dividend History
+let divCalendarFilter = "all";   // all | past | upcoming — filters the combined dividend calendar
 let divIncomePeriod = "monthly"; // monthly | quarterly | annual — which Dividend Income view is shown
 function pageDividends() {
   /* Calculation reference:
@@ -3569,18 +3570,13 @@ function pageDividends() {
   const upcoming = allUpcomingDivs();
   const fc = dividendForecast(received, upcoming);
 
-  const sourceBadge = (src) => src === "api"
-    ? `<span class="badge info">API</span>`
-    : src === "estimated"
-      ? `<span class="badge warn">${t("Estimated")}</span>`
-      : `<span class="badge subtle">Manual</span>`;
-
-  // allUpcomingDivs() only ever holds dividends with a real DECLARED date — pattern-based
-  // estimates (the same ones driving the Dividend Forecast panel above) live separately in
-  // fc.nextPayments and were never surfaced here, so this table stayed empty for most
-  // tickers even with live data working and a detected pattern. Merging them in (capped to
-  // a year out, same "don't show far-future undecided" rule as the Holding Detail calendar)
-  // gives this table real content instead of just a better excuse for being blank.
+  // One continuous history-to-forecast timeline across the whole portfolio — same
+  // treatment as the Holding Detail page's own Dividend Calendar (past "Received"
+  // rows flowing straight into future "Confirmed"/"Estimated" ones) instead of two
+  // separate tables the user has to mentally stitch together, filterable by
+  // All/Past/Upcoming. Past events feed off `received` (your logged dividends);
+  // future ones off `combinedUpcoming`, which already merges real declared dates
+  // with pattern-based estimates (capped to a year out — see below).
   const oneYearOut = new Date(todayDate()); oneYearOut.setFullYear(oneYearOut.getFullYear() + 1);
   const oneYearOutStr = dateToISO(oneYearOut);
   const estimatedUpcoming = (fc.nextPayments || [])
@@ -3594,45 +3590,40 @@ function pageDividends() {
     ...upcoming.map((d) => ({ ...d, amtMYR: d.expectedNetMYR })),
     ...estimatedUpcoming,
   ].sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
-  const upcomingTickers = [...new Set(combinedUpcoming.map((d) => d.ticker))].sort();
-  const upcomingFilterSel = upcomingTickers.length > 1 ? styledSelect("divUpcomingFilter", [
-    { value: "all", label: t("All") },
-    ...upcomingTickers.map((tk) => ({ value: tk, label: tk })),
-  ], divUpcomingFilter, { id: "divUpcomingFilterSel" }) : "";
-  const upcomingFiltered = divUpcomingFilter === "all" ? combinedUpcoming : combinedUpcoming.filter((d) => d.ticker === divUpcomingFilter);
 
-  const upcomingRows = upcomingFiltered.map((d) => {
-    const du = daysUntil(d.payDate);
-    const daysLabel = d.payDate ? (du >= 0 ? `${du}d` : `<span class="neg">${t("overdue")}</span>`) : "";
-    return `<tr>
+  const today = todayISO();
+  const historyEntries = received.map((d) => ({
+    ticker: d.ticker, brokerId: d.brokerId, exDate: d.exDate, payDate: d.payDate || d.date,
+    amtMYR: ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1),
+    status: "Received",
+  }));
+  const upcomingEntries = combinedUpcoming.map((d) => ({
+    ticker: d.ticker, brokerId: d.brokerId, exDate: d.exDate, payDate: d.payDate,
+    amtMYR: d.amtMYR, status: d.source === "estimated" ? "Estimated" : "Confirmed", _id: d._id,
+  }));
+  const allDivEntries = [...historyEntries, ...upcomingEntries]
+    .filter((d) => d.payDate)
+    .sort((a, b) => (a.payDate < b.payDate ? -1 : 1));
+  const nextIdx = allDivEntries.findIndex((d) => d.payDate >= today);
+  const calendarFiltered = divCalendarFilter === "past" ? allDivEntries.filter((d) => d.payDate < today)
+    : divCalendarFilter === "upcoming" ? allDivEntries.filter((d) => d.payDate >= today)
+    : allDivEntries;
+  const calendarFilterSel = styledSelect("divCalendarFilter", [
+    { value: "all", label: t("All") },
+    { value: "past", label: t("Past") },
+    { value: "upcoming", label: t("Upcoming") },
+  ], divCalendarFilter, { id: "divCalendarFilterSel" });
+
+  const calendarRows = calendarFiltered.map((d) => {
+    const isNext = nextIdx >= 0 && d === allDivEntries[nextIdx];
+    const statusCell = isNext ? `<span class="badge confirmed">${t("Next payment")}</span>` : statusBadge(d.status);
+    return `<tr${isNext ? ` class="next-div-row"` : ""}>
       <td class="dcc-c"><span class="ticker">${esc(d.ticker)}</span><div class="sub">${d.brokerId ? esc(brokerName(d.brokerId)) : ""}</div></td>
       <td class="dcc-c">${fmtDate(d.exDate)}</td>
-      <td class="dcc-c">${fmtDate(d.payDate)}${daysLabel ? `<div class="fx-note">${daysLabel}</div>` : ""}</td>
+      <td class="dcc-c">${fmtDate(d.payDate)}</td>
       <td class="dcc-c">${money(d.amtMYR)}</td>
-      <td class="dcc-c">${sourceBadge(d.source || "manual")}</td>
+      <td class="dcc-c">${statusCell}</td>
       <td class="dcc-c">${d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" aria-label="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : ""}</td></tr>`;
-  }).join("");
-
-  const historyTickers = [...new Set(received.map((d) => d.ticker))].sort();
-  const historyFilterSel = historyTickers.length > 1 ? styledSelect("divHistoryFilter", [
-    { value: "all", label: t("All") },
-    ...historyTickers.map((tk) => ({ value: tk, label: tk })),
-  ], divHistoryFilter, { id: "divHistoryFilterSel" }) : "";
-  const historyFiltered = divHistoryFilter === "all" ? received : received.filter((d) => d.ticker === divHistoryFilter);
-
-  const histRows = historyFiltered.sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1)).map((d) => {
-    const taxAmt = +d.tax || 0;
-    const net = (+d.gross || 0) - taxAmt;
-    const fx = d.fxRate || FX.rates[d.currency] || 1;
-    const isForeign = d.currency && d.currency !== FX.base;
-    const netMyrSub = isForeign ? `<div class="fx-note">${money(net * fx)}</div>` : "";
-    return `<tr>
-      <td class="dcc-c"><span class="ticker">${esc(d.ticker)}</span><div class="sub">${esc(brokerName(d.brokerId))}</div></td>
-      <td class="dcc-c">${fmtDate(d.exDate)}</td><td class="dcc-c">${fmtDate(d.payDate || d.date)}</td>
-      <td class="dcc-c">${esc(ccyLabel(d.currency))} ${fmt(d.gross)}</td>
-      <td class="dcc-c${taxAmt > 0 ? " neg" : ""}">${taxAmt > 0 ? "−" + fmt(taxAmt) : "0.00"}</td>
-      <td class="dcc-c">${esc(ccyLabel(d.currency))} ${fmt(net)}${netMyrSub}</td>
-      <td class="dcc-c">${statusBadge("Received")}</td></tr>`;
   }).join("");
 
   const grossBase = received.reduce((s, d) => s + (+d.gross || 0) * (d.fxRate || FX.rates[d.currency] || 1), 0);
@@ -3691,25 +3682,24 @@ function pageDividends() {
     ${panel("Dividend Forecast", forecastBody)}
 
     <div id="divUpcomingSection">
-      ${panel("Upcoming Dividends",
-        combinedUpcoming.length
+      ${panel(t("Dividend Calendar"),
+        allDivEntries.length
           ? table([
               { label: "Ticker", style: "width:19%;text-align:left" },
               { label: "Ex-Date", style: "width:19%;text-align:left" },
-              { label: "Pay Date", style: "width:19%;text-align:left" },
+              { label: "Payment Date", style: "width:19%;text-align:left" },
               { label: "Amount (RM)", style: "width:19%;text-align:left" },
-              { label: "Source", style: "width:19%;text-align:left" },
+              { label: "Status", style: "width:19%;text-align:left" },
               { label: "" },
-            ], upcomingRows)
-          // Genuinely empty now only when there's no declared date AND no detectable
-          // pattern anywhere in the portfolio — the common "pattern exists but nothing
-          // declared" case is handled above by merging in estimatedUpcoming.
+            ], calendarRows)
+          // Genuinely empty now only when there's no logged history AND no declared date
+          // AND no detectable pattern anywhere in the portfolio.
           : `<p class="muted" style="margin:0;font-size:13px">${
               !LIVE_ENABLED
-                ? t("No upcoming dividends yet. Add them manually when recording a dividend, or they'll appear automatically once market data is connected.")
-                : t("No upcoming dividends yet. Add one manually when recording a dividend.")
+                ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.")
+                : t("No dividends yet. Record one to get started.")
             }</p>`,
-        `<div class="panel-head-actions">${upcomingFilterSel ? `<div style="width:150px">${upcomingFilterSel}</div>` : ""}<small class="muted" id="divFetchStatus"></small></div>`
+        `<div class="panel-head-actions"><div style="width:150px">${calendarFilterSel}</div><small class="muted" id="divFetchStatus"></small></div>`
       )}
     </div>
 
@@ -3717,18 +3707,7 @@ function pageDividends() {
         { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
         { label: "Net (RM)", style: "width:50%;text-align:left" },
       ], incomeRowsByPeriod[divIncomePeriod] || monthRows),
-      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}
-
-    ${panel("Dividend History", table([
-        { label: "Ticker", style: "width:14.3%;text-align:left" },
-        { label: "Ex-Date", style: "width:14.3%;text-align:left" },
-        { label: "Payment Date", style: "width:14.3%;text-align:left" },
-        { label: "Gross", style: "width:14.3%;text-align:left" },
-        { label: "Tax", style: "width:14.3%;text-align:left" },
-        { label: "Net", style: "width:14.3%;text-align:left" },
-        { label: "Status", style: "width:14.2%;text-align:left" },
-      ], histRows),
-      historyFilterSel ? `<div class="panel-head-actions"><div style="width:150px">${historyFilterSel}</div></div>` : "")}`;
+      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}`;
 
   return {
     title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
@@ -3740,10 +3719,8 @@ function pageDividends() {
           if (idx >= 0) { UPCOMING_DIVIDENDS.splice(idx, 1); saveStore(); render(); }
         });
       });
-      const upcomingFilterEl = $("#divUpcomingFilterSel");
-      if (upcomingFilterEl) upcomingFilterEl.addEventListener("change", () => { divUpcomingFilter = upcomingFilterEl.value; render(); });
-      const historyFilterEl = $("#divHistoryFilterSel");
-      if (historyFilterEl) historyFilterEl.addEventListener("change", () => { divHistoryFilter = historyFilterEl.value; render(); });
+      const calendarFilterEl = $("#divCalendarFilterSel");
+      if (calendarFilterEl) calendarFilterEl.addEventListener("change", () => { divCalendarFilter = calendarFilterEl.value; render(); });
       const incomePeriodEl = $("#divIncomePeriodSel");
       if (incomePeriodEl) incomePeriodEl.addEventListener("change", () => { divIncomePeriod = incomePeriodEl.value; render(); });
       if (LIVE_ENABLED) {
