@@ -3703,12 +3703,6 @@ function pageDividends() {
 
     ${panel("Dividend Forecast", forecastBody)}
 
-    ${panel("Dividend Income", table([
-        { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
-        { label: "Net (RM)", style: "width:50%;text-align:left" },
-      ], incomeRowsByPeriod[divIncomePeriod] || monthRows),
-      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}
-
     <div id="divUpcomingSection">
       ${panel(`${t("Dividend Calendar")}${calendarTitleTip}`,
         allDivEntries.length
@@ -3731,7 +3725,13 @@ function pageDividends() {
             }</p>`,
         `<div class="panel-head-actions"><div style="width:150px">${calendarFilterSel}</div><small class="muted" id="divFetchStatus"></small></div>`
       )}
-    </div>`;
+    </div>
+
+    ${panel("Dividend Income", table([
+        { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
+        { label: "Net (RM)", style: "width:50%;text-align:left" },
+      ], incomeRowsByPeriod[divIncomePeriod] || monthRows),
+      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}`;
 
   return {
     title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
