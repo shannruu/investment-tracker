@@ -4608,7 +4608,7 @@ function pageHolding() {
         { label: `${t("Yield")}${yieldTip}`, style: "width:16.6%;text-align:left" },
         { label: "Status", style: "width:16.6%;text-align:left" },
       ];
-      const titleTip = `<span class="col-info tip-down panel-hint" style="margin-left:10px" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${HOW_ICON_SVG}</span>`;
+      const titleTip = `<span class="col-info tip-down" style="margin-left:10px" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${COL_INFO_ICON_SVG}</span>`;
       // Only scroll once there's more than 5 rows to show — a short list shouldn't sit
       // inside a scroll container it doesn't need.
       const scrollCls = filtered.length > 5 ? "dcc-table-scroll" : "";
