@@ -474,7 +474,7 @@ const ZH = {
   "No records in this view yet.": "此视图暂无记录。",
   "No transactions yet. Tap ＋ Add to record your first deposit or investment.": "暂无交易。点击 ＋ 添加，记录您的第一笔存款或投资。",
   "fee": "费用", "Available Cash": "可用现金", "Can invest or withdraw": "可用于投资或提取",
-  "What do you want to record?": "您想记录什么？", "Other record types": "其他记录类型",
+  "What do you want to record?": "您想记录什么？", "Other": "其他",
   "Pick a type, then fill only what's needed.": "先选择类型，然后只填写所需字段。",
   "Pick what to record": "选择要记录的内容", "Change type": "更改类型", "Withdraw": "取款",
   "Fees, taxes & details": "费用、税费与明细", "Go to Brokers": "前往券商",
@@ -2915,21 +2915,21 @@ const ADD_OTHER = [["fee", "Fee"], ["interest", "Interest"],
 // Shared fields kept across type switches on the Add page (broker/date/currency/notes).
 let addDraft = {};
 
-function typeSelectorHTML(activeType, drawerMode) {
+function typeSelectorHTML(activeType) {
+  // Switching type re-renders the drawer body in place (no page navigation) — each pill
+  // is a <button data-drawer-type>, wired in renderAddDrawerBody.
   const pill = ([slug, lbl, ico]) => {
     const on = ADD_SLUGS[slug] === activeType;
     const icon = ico ? `<span class="tp-tab-ico"><svg class="icon"><use href="#${ico}"/></svg></span>` : "";
-    // In the drawer, switching type re-renders the drawer body in place (no page
-    // navigation) — a <button> with data-drawer-type; on the standalone route it's a
-    // hash link so the type is deep-linkable.
-    if (drawerMode) return `<button type="button" class="tp-tab${on ? " on" : ""}" data-drawer-type="${slug}">${icon}<span>${t(lbl)}</span></button>`;
-    return `<a class="tp-tab${on ? " on" : ""}" href="#/add/${slug}">${icon}<span>${t(lbl)}</span></a>`;
+    return `<button type="button" class="tp-tab${on ? " on" : ""}" data-drawer-type="${slug}">${icon}<span>${t(lbl)}</span></button>`;
   };
   const isOther = ADD_OTHER.some(([s]) => ADD_SLUGS[s] === activeType);
+  // "Other" is a pill on the same row as the primary types; clicking it reveals the
+  // secondary types (Fee / Interest / Split / Transfer) in a row below.
+  const otherBtn = `<button type="button" class="tp-tab${isOther ? " on" : ""}" data-drawer-other><span>${t("Other")}</span></button>`;
   return `<div class="type-selector">
-    <div class="type-tabs">${ADD_PRIMARY.map(pill).join("")}</div>
-    <details class="type-more"${isOther ? " open" : ""}><summary>${t("Other record types")}</summary>
-      <div class="type-tabs sm">${ADD_OTHER.map(pill).join("")}</div></details>
+    <div class="type-tabs">${ADD_PRIMARY.map(pill).join("")}${otherBtn}</div>
+    <div class="type-tabs sm type-other-row"${isOther ? "" : " hidden"}>${ADD_OTHER.map(pill).join("")}</div>
   </div>`;
 }
 
@@ -2963,7 +2963,7 @@ function renderAddDrawerBody(type, editing) {
   const hasActiveBroker = BROKERS.some((b) => !b.archived);
   // Editing one record hides the type selector (you can't change a record's type); a
   // new record shows it so you can pick Buy / Sell / Dividend / … before filling in.
-  const selector = editing ? "" : `${typeSelectorHTML(type, true)}<div class="add-sep"></div>`;
+  const selector = editing ? "" : `${typeSelectorHTML(type)}<div class="add-sep"></div>`;
   const formContent = hasActiveBroker
     ? addForm2(type, editing)
     : `<p class="form-note">${BROKERS.length
@@ -2983,6 +2983,14 @@ function renderAddDrawerBody(type, editing) {
     try { history.replaceState(null, "", `#/add/${s}`); } catch (e) { /* ignore */ }
     renderAddDrawerBody(ADD_SLUGS[s], null);
   }));
+  // "Other" pill just reveals/hides the secondary types row — it doesn't select a type,
+  // so it only shows as "on" (via the HTML) when one of those types is actually chosen.
+  const otherToggle = body.querySelector("[data-drawer-other]");
+  if (otherToggle) otherToggle.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    const row = body.querySelector(".type-other-row");
+    if (row) row.hidden = !row.hidden;
+  });
   translateDOM(body);
 }
 
