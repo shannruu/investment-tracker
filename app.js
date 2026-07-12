@@ -487,6 +487,7 @@ const ZH = {
   "Holding": "持仓", "Market": "市场", "Net Div": "净股息", "Current Price": "现价",
   "Avg Cost": "平均成本", "Market Value": "市值", "Unrealized P/L": "未实现盈亏",
   "Price Return": "价格回报", "52-Week Range": "52周区间",
+  "Current": "当前", "Low": "最低", "High": "最高",
   "No upcoming dividends.": "暂无即将派发的股息。",
   "No activity yet.": "暂无记录。",
   "No holdings yet — add a Buy to get started.": "暂无持仓 — 添加一笔买入即可开始。",
@@ -4456,9 +4457,18 @@ function pageHolding() {
   // omitted rather than showing a stale or mismatched range.
   const range52Html = (h.hasPrice && h.high52 != null && h.low52 != null && h.high52 > h.low52) ? (() => {
     const pct = Math.max(0, Math.min(100, ((h.currentPrice - h.low52) / (h.high52 - h.low52)) * 100));
+    // Low/High are labelled directly under each end of the track (not just implied by
+    // left/right position), and the current price is shown as plain text next to the
+    // marker's own position rather than hidden behind a hover-only title — a value that
+    // only reveals itself on hover isn't self-explanatory, especially on touch devices
+    // where hover doesn't really exist.
     return `<div class="range52">
-      <div class="range52-labels"><span class="muted">${t("52-Week Range")}</span><span class="muted">${money(h.low52, h.currentPriceCcy)} – ${money(h.high52, h.currentPriceCcy)}</span></div>
-      <div class="range52-track"><div class="range52-marker" style="left:${pct.toFixed(1)}%" title="${money(h.currentPrice, h.currentPriceCcy)}"></div></div>
+      <div class="range52-labels"><span class="muted">${t("52-Week Range")}</span><span>${t("Current")}: <strong>${money(h.currentPrice, h.currentPriceCcy)}</strong></span></div>
+      <div class="range52-track"><div class="range52-marker" style="left:${pct.toFixed(1)}%"></div></div>
+      <div class="range52-labels" style="margin-top:5px">
+        <span class="muted">${t("Low")} ${money(h.low52, h.currentPriceCcy)}</span>
+        <span class="muted">${t("High")} ${money(h.high52, h.currentPriceCcy)}</span>
+      </div>
     </div>`;
   })() : "";
   const positionPanel = panel("Position", `
