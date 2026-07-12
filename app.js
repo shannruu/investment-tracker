@@ -42,10 +42,13 @@ const countryForTicker = (ticker, stored) => stored || marketInfo(ticker).countr
 /* Info icon for "how was this calculated" affordances — an SVG, not the ⓘ
  * Unicode glyph, so its size is pixel-exact everywhere instead of drifting
  * with whatever font a browser/OS substitutes for that character. */
+// Solely a decorative marker in the insights/warning list (not a tooltip trigger) —
+// every actual tooltip icon in the app, clickable or hover-only, uses COL_INFO_ICON_SVG
+// now, so they render identically everywhere instead of two differently-weighted icons.
 const HOW_ICON_SVG = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
-/* Same info icon, smaller, for the inline .col-info tooltip triggers (column
- * header hints, calc-row hints) — a different visual weight than the .calc-hint
- * button, but the same SVG-not-glyph fix for consistent sizing. */
+/* The one info icon used everywhere: column header hints, calc-row hints, and the
+ * clickable "how was this calculated" triggers alike — an SVG (not a text glyph) so
+ * sizing is consistent across every font/OS. */
 const COL_INFO_ICON_SVG = `<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
 /* Shared small-status-line pattern ("Prices as of…", "Last saved…") — one
  * template (icon + muted text via .meta-note) instead of each spot inventing
@@ -1729,7 +1732,7 @@ function ttmDividends() {
  * tint alone, no competing borders. */
 function insightsHTML() {
   const hp = portfolioHealth();
-  const howHint = `<span class="calc-hint" data-tip="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${HOW_ICON_SVG}</span>`;
+  const howHint = `<span class="col-info" data-tip="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${COL_INFO_ICON_SVG}</span>`;
   const stat = (id, label, val, sub) => `<div class="ph-stat" id="${id}">
     <div class="ph-stat-head"><span class="stat-label">${label}</span>${howHint}</div>
     <div class="ph-stat-value">${val}</div>
@@ -1950,7 +1953,7 @@ function pageDashboard() {
   };
 
   const statHead = (label, right) => `<div class="stat-head"><span class="stat-label">${label}</span>${right || ""}</div>`;
-  const howHint = `<span class="calc-hint" data-tip="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${HOW_ICON_SVG}</span>`;
+  const howHint = `<span class="col-info" data-tip="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${COL_INFO_ICON_SVG}</span>`;
   const metrics = `<section class="metrics">
     <article class="stat net" data-card="nw" tabindex="0" role="button" aria-label="${t("Net Worth")}, show calculation">
       ${statHead(t("Net Worth"), howHint)}
@@ -2053,7 +2056,7 @@ function pageDashboard() {
         }
       }));
       // Smart tooltip direction: if trigger is in top 40% of viewport, open below to avoid clipping
-      $$(".col-info, .calc-hint").forEach((el) => {
+      $$(".col-info").forEach((el) => {
         const rect = el.getBoundingClientRect();
         if (rect.top < window.innerHeight * 0.4) el.classList.add("tip-down");
       });
