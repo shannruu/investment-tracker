@@ -1585,6 +1585,20 @@ function mountColInfoTaps() {
     $$(".col-info.tip-open").forEach((el) => { if (el !== hit) el.classList.remove("tip-open"); });
     if (hit) { e.stopPropagation(); hit.classList.toggle("tip-open"); }
   });
+  // The tooltip is centered on the icon by default (right:50%; transform:translateX(50%)) —
+  // fine in open space, but an icon near the left or right edge of the viewport (e.g. the
+  // leftmost "Ex-Date" column header) pushes half the tooltip off-screen, clipping its text
+  // and, since it's still part of the scrollable table's content box, can visibly widen/shift
+  // that container. Clamp the tooltip to the icon's near edge instead of centering whenever
+  // there isn't roughly enough room (~half a tooltip's max-width) on that side.
+  document.addEventListener("mouseover", (e) => {
+    const hit = e.target.closest(".col-info");
+    if (!hit) return;
+    const rect = hit.getBoundingClientRect();
+    const margin = 140;
+    hit.classList.toggle("tip-clamp-start", rect.left < margin);
+    hit.classList.toggle("tip-clamp-end", rect.left >= margin && (window.innerWidth - rect.right) < margin);
+  });
 }
 
 /* Wire hover/tap tooltips for all .dot-hit elements on the current page. */
