@@ -3595,10 +3595,10 @@ function pageDividends() {
     ...estimatedUpcoming,
   ].sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
   const upcomingTickers = [...new Set(combinedUpcoming.map((d) => d.ticker))].sort();
-  const upcomingFilterSel = upcomingTickers.length > 1 ? `<div style="width:150px">${styledSelect("divUpcomingFilter", [
+  const upcomingFilterSel = upcomingTickers.length > 1 ? styledSelect("divUpcomingFilter", [
     { value: "all", label: t("All") },
     ...upcomingTickers.map((tk) => ({ value: tk, label: tk })),
-  ], divUpcomingFilter, { id: "divUpcomingFilterSel" })}</div>` : "";
+  ], divUpcomingFilter, { id: "divUpcomingFilterSel" }) : "";
   const upcomingFiltered = divUpcomingFilter === "all" ? combinedUpcoming : combinedUpcoming.filter((d) => d.ticker === divUpcomingFilter);
 
   const upcomingRows = upcomingFiltered.map((d) => {
@@ -3614,10 +3614,10 @@ function pageDividends() {
   }).join("");
 
   const historyTickers = [...new Set(received.map((d) => d.ticker))].sort();
-  const historyFilterSel = historyTickers.length > 1 ? `<div style="width:150px">${styledSelect("divHistoryFilter", [
+  const historyFilterSel = historyTickers.length > 1 ? styledSelect("divHistoryFilter", [
     { value: "all", label: t("All") },
     ...historyTickers.map((tk) => ({ value: tk, label: tk })),
-  ], divHistoryFilter, { id: "divHistoryFilterSel" })}</div>` : "";
+  ], divHistoryFilter, { id: "divHistoryFilterSel" }) : "";
   const historyFiltered = divHistoryFilter === "all" ? received : received.filter((d) => d.ticker === divHistoryFilter);
 
   const histRows = historyFiltered.sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1)).map((d) => {
@@ -3653,11 +3653,11 @@ function pageDividends() {
   // one period of history anyway, and the trend is already visible across the rows).
   const incomeLabels = { monthly: t("Month"), quarterly: t("Quarter"), annual: t("Year") };
   const incomeRowsByPeriod = { monthly: monthRows, quarterly: quarterRows, annual: yearRows };
-  const incomeFilterSel = `<div style="width:150px">${styledSelect("divIncomePeriod", [
+  const incomeFilterSel = styledSelect("divIncomePeriod", [
     { value: "monthly", label: t("Monthly") },
     { value: "quarterly", label: t("Quarterly") },
     { value: "annual", label: t("Annual") },
-  ], divIncomePeriod, { id: "divIncomePeriodSel" })}</div>`;
+  ], divIncomePeriod, { id: "divIncomePeriodSel" });
 
   const dash = `<span class="muted" style="font-size:22px;line-height:1">—</span>`;
   const tickerEntries = Object.entries(fc.tickerInfo || {});
@@ -3692,6 +3692,7 @@ function pageDividends() {
 
     <div id="divUpcomingSection">
       ${panel("Upcoming Dividends",
+        (upcomingFilterSel ? `<div class="filters">${upcomingFilterSel}</div>` : "") + (
         combinedUpcoming.length
           ? table([
               { label: "Ticker", style: "width:19%;text-align:left" },
@@ -3708,18 +3709,17 @@ function pageDividends() {
               !LIVE_ENABLED
                 ? t("No upcoming dividends yet. Add them manually when recording a dividend, or they'll appear automatically once market data is connected.")
                 : t("No upcoming dividends yet. Add one manually when recording a dividend.")
-            }</p>`,
-        `<div class="panel-head-actions">${upcomingFilterSel}<small class="muted" id="divFetchStatus"></small></div>`
+            }</p>`),
+        `<small class="muted" id="divFetchStatus"></small>`
       )}
     </div>
 
-    ${panel("Dividend Income", table([
+    ${panel("Dividend Income", `<div class="filters">${incomeFilterSel}</div>` + table([
         { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
         { label: "Net (RM)", style: "width:50%;text-align:left" },
-      ], incomeRowsByPeriod[divIncomePeriod] || monthRows),
-      `<div class="panel-head-actions">${incomeFilterSel}</div>`)}
+      ], incomeRowsByPeriod[divIncomePeriod] || monthRows))}
 
-    ${panel("Dividend History", table([
+    ${panel("Dividend History", (historyFilterSel ? `<div class="filters">${historyFilterSel}</div>` : "") + table([
         { label: "Ticker", style: "width:14.3%;text-align:left" },
         { label: "Ex-Date", style: "width:14.3%;text-align:left" },
         { label: "Payment Date", style: "width:14.3%;text-align:left" },
@@ -3727,8 +3727,7 @@ function pageDividends() {
         { label: "Tax", style: "width:14.3%;text-align:left" },
         { label: "Net", style: "width:14.3%;text-align:left" },
         { label: "Status", style: "width:14.2%;text-align:left" },
-      ], histRows),
-      `<div class="panel-head-actions">${historyFilterSel}</div>`)}`;
+      ], histRows))}`;
 
   return {
     title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
