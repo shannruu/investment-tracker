@@ -618,24 +618,23 @@ a { color: inherit; text-decoration: none; }
 .btn-reset.active { color: var(--neg, #dc2626); font-weight: 600; }
 .filters-col-panel { margin-left: auto; flex-shrink: 0; }
 /* Column header info tooltip. Hover works with a mouse; touch has no hover
- * state at all, so a tap toggles the same tooltip via the .tip-open class
- * (wired in mountColInfoTaps()) — otherwise this content is unreachable on
- * a phone. */
-.col-info { display: inline-flex; color: var(--muted); cursor: help; vertical-align: middle; position: relative; }
+ * state at all, so a tap toggles the same tooltip (wired in mountColInfoTaps())
+ * — otherwise this content is unreachable on a phone. */
+.col-info { display: inline-flex; color: var(--muted); cursor: help; vertical-align: middle; }
 .col-info svg { display: block; }
-.col-info:hover::after, .col-info.tip-open::after {
-  content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); right: 50%;
-  transform: translateX(50%); background: var(--surface); border: 1px solid var(--border);
+/* The tooltip itself is a single position:fixed div appended to <body> by
+ * mountColInfoTaps() (NOT a ::after anchored inside the icon) — fixed positioning is
+ * relative to the viewport, so it can never be counted as part of any scrollable
+ * ancestor's content box. An icon-anchored tooltip inside e.g. the Dividend Calendar's
+ * overflow:auto table would otherwise make that container detect new overflow the
+ * instant the tooltip popped out past its edge, growing/shifting its scrollbar on
+ * every hover. Position/edge-clamping is computed in JS against the real rendered box. */
+.col-info-tip {
+  position: fixed; background: var(--surface); border: 1px solid var(--border);
   color: var(--text); font-size: 11px; font-weight: 400; font-family: var(--font);
-  padding: 5px 9px; border-radius: 5px; width: max-content; max-width: 260px; z-index: 50; line-height: 1.5;
+  padding: 5px 9px; border-radius: 5px; width: max-content; max-width: 260px; z-index: 9999; line-height: 1.5;
   box-shadow: 0 2px 8px rgba(0,0,0,.14); pointer-events: none; white-space: normal; text-align: left;
 }
-.col-info.tip-down:hover::after, .col-info.tip-down.tip-open::after { bottom: auto; top: calc(100% + 6px); }
-/* Icon too close to the viewport's left/right edge for the default centered tooltip to fit —
- * anchor it to the icon's near edge instead (extends only toward the open side) so it never
- * clips off-screen or pushes a scrollable ancestor wider. Set by mountColInfoTaps() on hover. */
-.col-info.tip-clamp-start:hover::after, .col-info.tip-clamp-start.tip-open::after { right: auto; left: 0; transform: none; }
-.col-info.tip-clamp-end:hover::after, .col-info.tip-clamp-end.tip-open::after { right: 0; transform: none; }
 .pv-clock-note { display: flex; align-items: center; font-size: 11px; margin-top: 6px; gap: 0; }
 th[data-col-id="shares"] { min-width: 80px; }
 .filters select, .form select, .form input {

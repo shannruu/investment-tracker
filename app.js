@@ -1576,29 +1576,65 @@ function barChartSVG(series, opts) {
   </svg>`;
 }
 
-/* Tap-to-reveal fallback for .col-info tooltips, delegated on document once at
- * bootstrap so it keeps working after every render() rebuilds the page. Touch
- * devices have no :hover state, so without this the ⓘ content is unreachable. */
+/* .col-info tooltips, delegated on document once at bootstrap so it keeps working
+ * after every render() rebuilds the page. Renders into a single position:fixed div
+ * appended to <body> — NOT a ::after pseudo-element anchored inside the icon — so it
+ * can never be counted as part of a scrollable ancestor's content box. A tooltip that
+ * lives inside a table wrapped in overflow:auto (e.g. the Dividend Calendar) would
+ * otherwise make that container detect new overflow the instant the tooltip pops out
+ * past its edge, growing/shifting the scrollbar right as you hover. position:fixed
+ * escapes that entirely, the same way mountChartTooltips() already does for charts.
+ * Touch devices have no :hover state, so the click toggle is what makes this reachable
+ * there — not just a hover nicety. */
 function mountColInfoTaps() {
-  document.addEventListener("click", (e) => {
-    const hit = e.target.closest(".col-info");
-    $$(".col-info.tip-open").forEach((el) => { if (el !== hit) el.classList.remove("tip-open"); });
-    if (hit) { e.stopPropagation(); hit.classList.toggle("tip-open"); }
-  });
-  // The tooltip is centered on the icon by default (right:50%; transform:translateX(50%)) —
-  // fine in open space, but an icon near the left or right edge of the viewport (e.g. the
-  // leftmost "Ex-Date" column header) pushes half the tooltip off-screen, clipping its text
-  // and, since it's still part of the scrollable table's content box, can visibly widen/shift
-  // that container. Clamp the tooltip to the icon's near edge instead of centering whenever
-  // there isn't roughly enough room (~half a tooltip's max-width) on that side.
+  const tip = document.createElement("div");
+  tip.className = "col-info-tip";
+  tip.hidden = true;
+  document.body.appendChild(tip);
+  let shownFor = null;
+
+  const show = (el) => {
+    const text = el.getAttribute("data-tip");
+    if (!text) return;
+    tip.textContent = text;
+    tip.hidden = false;
+    shownFor = el;
+    const r = el.getBoundingClientRect();
+    // Default: centered above the icon. Measure the actual rendered box afterward and
+    // nudge it back on-screen (or flip below) if that pushes it past a viewport edge —
+    // same two-pass measure-then-clamp approach as mountChartTooltips().
+    tip.style.left = (r.left + r.width / 2) + "px";
+    tip.style.top = (r.top - 6) + "px";
+    tip.style.transform = "translate(-50%, -100%)";
+    const margin = 8;
+    const tr = tip.getBoundingClientRect();
+    let dx = 0;
+    if (tr.left < margin) dx = margin - tr.left;
+    else if (tr.right > window.innerWidth - margin) dx = (window.innerWidth - margin) - tr.right;
+    if (tr.top < margin) {
+      tip.style.top = (r.bottom + 6) + "px";
+      tip.style.transform = `translate(calc(-50% + ${dx}px), 0)`;
+    } else if (dx) {
+      tip.style.transform = `translate(calc(-50% + ${dx}px), -100%)`;
+    }
+  };
+  const hide = () => { tip.hidden = true; shownFor = null; };
+
   document.addEventListener("mouseover", (e) => {
     const hit = e.target.closest(".col-info");
-    if (!hit) return;
-    const rect = hit.getBoundingClientRect();
-    const margin = 140;
-    hit.classList.toggle("tip-clamp-start", rect.left < margin);
-    hit.classList.toggle("tip-clamp-end", rect.left >= margin && (window.innerWidth - rect.right) < margin);
+    if (hit) show(hit);
   });
+  document.addEventListener("mouseout", (e) => {
+    const hit = e.target.closest(".col-info");
+    const to = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".col-info");
+    if (hit && hit !== to) hide();
+  });
+  document.addEventListener("click", (e) => {
+    const hit = e.target.closest(".col-info");
+    if (hit) { e.stopPropagation(); if (shownFor === hit && !tip.hidden) hide(); else show(hit); }
+    else hide();
+  });
+  window.addEventListener("scroll", hide, true);   // capture phase: catches scroll on any nested container too
 }
 
 /* Wire hover/tap tooltips for all .dot-hit elements on the current page. */
@@ -2069,11 +2105,6 @@ function pageDashboard() {
           allocBody.innerHTML = newDonut;
         }
       }));
-      // Smart tooltip direction: if trigger is in top 40% of viewport, open below to avoid clipping
-      $$(".col-info").forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.top < window.innerHeight * 0.4) el.classList.add("tip-down");
-      });
       [
         ["phDivYield", t("Dividend Yield (TTM)"), t("Trailing 12-month net dividends ÷ current portfolio market value.")],
         ["phCashAlloc", t("Cash Allocation"), t("Cash as a percentage of total net value (market value + available cash).")],
