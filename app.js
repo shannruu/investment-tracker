@@ -126,6 +126,9 @@ const ZH = {
   "Avg Cost": "平均成本", "Price": "价格", "Cost Basis": "成本", "Market Value": "市值",
   "Unrealized P/L": "未实现盈亏", "Net Div": "净股息", "Ticker": "代码", "Stock code": "股票代号",
   "Ex-Date": "除息日", "Payment": "派息日", "Expected Net": "预计净额", "Status": "状态",
+  "(est.)": "（预估）",
+  "The ex-dividend date — buy before it to qualify for the payment. This is what market data sources report; they don't give a separate payment date.": "除息日——须在此日期之前买入才符合领取资格。这是市场数据来源提供的日期；它们并未另外提供派息日期。",
+  "When the money actually lands. Rows marked (est.) are a rough estimate of Ex-Date + 14 days, since market data only reports the ex-date — a manually entered payment date is shown as-is.": "资金实际到账的日期。标示（预估）的行是除息日 + 14 天的粗略估算，因为市场数据只提供除息日——手动输入的派息日期则按原样显示。",
   "Date": "日期", "Type": "类型", "Qty": "数量", "Gross": "总额", "Fee": "费用",
   "Tax": "税", "Net (RM)": "净额 (RM)", "Net": "净额", "Amount": "金额",
   "Currency": "货币", "FX Rate": "汇率", "In RM": "折合 RM",
@@ -3607,16 +3610,33 @@ function pageDividends() {
     const h = T.holdings.find((x) => x.ticker === ticker);
     return (h && h.hasPrice && h.currentPrice > 0 && perShareAmt != null) ? (perShareAmt / h.currentPrice) * 100 : null;
   };
+  // Market data (Yahoo) only reports the EX-dividend date, never the actual payment date —
+  // so for any auto-fetched/projected dividend the two are stored identical, making the
+  // "Payment Date" column just repeat the Ex-Date (misleading — a real dividend pays out
+  // ~2-4 weeks AFTER its ex-date). Same honest handling as the Holding Detail calendar:
+  // when we have a genuinely distinct real payment date (manually entered), show it; when
+  // we only have the ex-date, show a clearly-flagged estimate of ex-date + 14 days.
+  const estPayDate = (ds) => { const dd = new Date(ds + "T00:00:00"); dd.setDate(dd.getDate() + 14); return dateToISO(dd); };
+  const resolvePay = (exDate, payDate) => {
+    const realDistinct = payDate && exDate && payDate !== exDate;   // user typed a real, different payment date
+    if (realDistinct) return { display: payDate, estimated: false };
+    if (exDate) return { display: estPayDate(exDate), estimated: true };
+    return { display: payDate || null, estimated: false };
+  };
   const today = todayISO();
   const historyEntries = received.map((d) => {
     const amtMYR = ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1);
     const perShareAmt = perShareFor(d.ticker, amtMYR);
-    return { ticker: d.ticker, brokerId: d.brokerId, exDate: d.exDate || d.payDate || d.date, payDate: d.payDate || d.date,
+    const exDate = d.exDate || d.payDate || d.date, payDate = d.payDate || d.date;
+    const pay = resolvePay(exDate, payDate);
+    return { ticker: d.ticker, brokerId: d.brokerId, exDate, payDate, payDisplay: pay.display, payEstimated: pay.estimated,
       amtMYR, perShareAmt, yieldPct: yieldFor(d.ticker, perShareAmt), status: "Received" };
   });
   const upcomingEntries = combinedUpcoming.map((d) => {
     const perShareAmt = perShareFor(d.ticker, d.amtMYR);
-    return { ticker: d.ticker, brokerId: d.brokerId, exDate: d.exDate || d.payDate, payDate: d.payDate,
+    const exDate = d.exDate || d.payDate, payDate = d.payDate;
+    const pay = resolvePay(exDate, payDate);
+    return { ticker: d.ticker, brokerId: d.brokerId, exDate, payDate, payDisplay: pay.display, payEstimated: pay.estimated,
       amtMYR: d.amtMYR, perShareAmt, yieldPct: yieldFor(d.ticker, perShareAmt),
       status: d.source === "estimated" ? "Estimated" : "Confirmed", _id: d._id };
   });
@@ -3633,6 +3653,8 @@ function pageDividends() {
     { value: "upcoming", label: t("Upcoming") },
   ], divCalendarFilter, { id: "divCalendarFilterSel" });
   const calendarTitleTip = `<span class="col-info tip-down" style="margin-left:10px" data-tip="${esc(t("Real dividend payments across your whole portfolio (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${COL_INFO_ICON_SVG}</span>`;
+  const exDateTip = ` <span class="col-info tip-down" data-tip="${esc(t("The ex-dividend date — buy before it to qualify for the payment. This is what market data sources report; they don't give a separate payment date."))}">${COL_INFO_ICON_SVG}</span>`;
+  const payDateTip = ` <span class="col-info tip-down" data-tip="${esc(t("When the money actually lands. Rows marked (est.) are a rough estimate of Ex-Date + 14 days, since market data only reports the ex-date — a manually entered payment date is shown as-is."))}">${COL_INFO_ICON_SVG}</span>`;
 
   const calendarRows = calendarFiltered.map((d) => {
     const isNext = nextIdx >= 0 && d === allDivEntries[nextIdx];
@@ -3640,7 +3662,7 @@ function pageDividends() {
     return `<tr${isNext ? ` class="next-div-row"` : ""}>
       <td class="dcc-c"><span class="ticker">${esc(d.ticker)}</span><div class="sub">${d.brokerId ? esc(brokerName(d.brokerId)) : ""}</div></td>
       <td class="dcc-c">${fmtDate(d.exDate)}</td>
-      <td class="dcc-c">${fmtDate(d.payDate)}</td>
+      <td class="dcc-c">${d.payDisplay ? fmtDate(d.payDisplay) : "—"}${d.payEstimated && d.payDisplay ? ` <span class="fx-note">${t("(est.)")}</span>` : ""}</td>
       <td class="dcc-c">${d.perShareAmt != null ? fmt(d.perShareAmt, { maximumFractionDigits: 2 }) : "—"}</td>
       <td class="dcc-c">${money(d.amtMYR)}</td>
       <td class="dcc-c">${d.yieldPct != null ? fmt(d.yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td>
@@ -3703,13 +3725,19 @@ function pageDividends() {
 
     ${panel("Dividend Forecast", forecastBody)}
 
+    ${panel("Dividend Income", table([
+        { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
+        { label: "Net (RM)", style: "width:50%;text-align:left" },
+      ], incomeRowsByPeriod[divIncomePeriod] || monthRows),
+      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}
+
     <div id="divUpcomingSection">
       ${panel(`${t("Dividend Calendar")}${calendarTitleTip}`,
         allDivEntries.length
           ? table([
               { label: "Ticker", style: "width:14%;text-align:left" },
-              { label: "Ex-Date", style: "width:14%;text-align:left" },
-              { label: "Payment Date", style: "width:14%;text-align:left" },
+              { label: `${t("Ex-Date")}${exDateTip}`, style: "width:14%;text-align:left" },
+              { label: `${t("Payment Date")}${payDateTip}`, style: "width:14%;text-align:left" },
               { label: "Per Share (RM)", style: "width:14%;text-align:left" },
               { label: "Amount (RM)", style: "width:14%;text-align:left" },
               { label: "Yield", style: "width:14%;text-align:left" },
@@ -3725,13 +3753,7 @@ function pageDividends() {
             }</p>`,
         `<div class="panel-head-actions"><div style="width:150px">${calendarFilterSel}</div><small class="muted" id="divFetchStatus"></small></div>`
       )}
-    </div>
-
-    ${panel("Dividend Income", table([
-        { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
-        { label: "Net (RM)", style: "width:50%;text-align:left" },
-      ], incomeRowsByPeriod[divIncomePeriod] || monthRows),
-      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}`;
+    </div>`;
 
   return {
     title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
