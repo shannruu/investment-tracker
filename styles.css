@@ -507,6 +507,7 @@ a { color: inherit; text-decoration: none; }
  * Holds the full add form (too many fields per type for a small centered modal). */
 .drawer-backdrop {
   position: fixed; inset: 0; background: rgba(8,12,20,.55);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   z-index: 150; display: flex; justify-content: flex-end;
 }
 .drawer-backdrop[hidden] { display: none; }
