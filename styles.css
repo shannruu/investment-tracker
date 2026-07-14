@@ -509,14 +509,20 @@ a { color: inherit; text-decoration: none; }
   position: fixed; inset: 0; background: rgba(8,12,20,.55);
   backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
   z-index: 150; display: flex; justify-content: flex-end;
+  animation: backdrop-in .28s cubic-bezier(.16,1,.3,1);
 }
 .drawer-backdrop[hidden] { display: none; }
+.drawer-backdrop.closing { animation: backdrop-out .22s cubic-bezier(.4,0,1,1) forwards; }
+@keyframes backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes backdrop-out { from { opacity: 1; } to { opacity: 0; } }
 .drawer-panel {
   width: min(720px, 100%); height: 100%; background: var(--surface);
   border-left: 1px solid var(--border); box-shadow: var(--shadow);
-  display: flex; flex-direction: column; animation: drawer-in .18s ease;
+  display: flex; flex-direction: column; animation: drawer-in .28s cubic-bezier(.16,1,.3,1);
 }
-@keyframes drawer-in { from { transform: translateX(24px); opacity: .5; } to { transform: translateX(0); opacity: 1; } }
+@keyframes drawer-in { from { transform: translateX(32px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.drawer-backdrop.closing .drawer-panel { animation: drawer-out .22s cubic-bezier(.4,0,1,1) forwards; }
+@keyframes drawer-out { from { transform: translateX(0); opacity: 1; } to { transform: translateX(32px); opacity: 0; } }
 .drawer-head { display: flex; align-items: center; flex: none; padding: 16px 18px; border-bottom: 1px solid var(--border); }
 .drawer-head h2 { font-size: 16px; }
 .drawer-head .icon-btn { margin-left: auto; width: 32px; height: 32px; }
@@ -526,10 +532,12 @@ a { color: inherit; text-decoration: none; }
   .drawer-panel {
     width: 100%; height: auto; max-height: 92vh;
     border-left: 0; border-top: 1px solid var(--border); border-radius: 16px 16px 0 0;
-    animation: drawer-up .2s ease;
+    animation: drawer-up .28s cubic-bezier(.16,1,.3,1);
   }
+  @keyframes drawer-up { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .drawer-backdrop.closing .drawer-panel { animation: drawer-down .22s cubic-bezier(.4,0,1,1) forwards; }
+  @keyframes drawer-down { from { transform: translateY(0); opacity: 1; } to { transform: translateY(40px); opacity: 0; } }
 }
-@keyframes drawer-up { from { transform: translateY(30px); } to { transform: translateY(0); } }
 
 .calc-row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; }
 .calc-row .cr-op { color: var(--muted); display: inline-block; min-width: 16px; margin-right: 4px; }

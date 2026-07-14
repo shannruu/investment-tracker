@@ -2868,7 +2868,6 @@ function pageRecords() {
         pruneOrphans();
         saveStore(); toast(t("Transaction removed")); render();
       });
-      if (recordsTab === "cash") mountCashExtras();
     } };
 }
 
@@ -2961,7 +2960,7 @@ function openAddDrawer() {
   const type = editing ? editing.type : (ADD_SLUGS[slug] || "Buy");
   renderAddDrawerBody(type, editing);
   const dr = $("#addDrawer");
-  if (dr) dr.hidden = false;
+  if (dr) { dr.classList.remove("closing"); dr.hidden = false; }
 }
 
 function renderAddDrawerBody(type, editing) {
@@ -3003,7 +3002,16 @@ function renderAddDrawerBody(type, editing) {
 
 function closeAddDrawer() {
   const dr = $("#addDrawer");
-  if (dr && !dr.hidden) dr.hidden = true;
+  if (!dr || dr.hidden || dr.classList.contains("closing")) return;
+  dr.classList.add("closing");
+  const finish = () => {
+    if (!dr.classList.contains("closing")) return; // reopened before the close animation finished
+    dr.hidden = true;
+    dr.classList.remove("closing");
+  };
+  const panel = dr.querySelector(".drawer-panel");
+  if (panel) panel.addEventListener("animationend", finish, { once: true });
+  setTimeout(finish, 260); // fallback in case animationend doesn't fire
 }
 
 /* The focused per-type form. Field NAMES match wireTxSubmit so one submit path serves all. */
@@ -3381,14 +3389,17 @@ function sharesHeldExcluding(brokerId, ticker, excludeId) {
   return shares;
 }
 
-/* Cash-tab extras on Records: balances summary, per-currency balances, reconciliation. */
+/* Cash-tab summary on Records: deposits/withdrawals/net/available mini-cards. */
 function cashExtrasHTML() {
-  const summary = `<div class="mini-cards">
+  return `<div class="mini-cards">
     ${miniCard(t("Total Deposits"), money(T.totalDeposits))}
     ${miniCard(t("Total Withdrawals"), money(T.totalWithdrawals))}
     ${miniCard(t("Net Cash Added"), money(T.netCapitalInvested), cls(T.netCapitalInvested))}
     ${miniCard(t("Available Cash"), money(T.totalCash || 0))}</div>`;
+}
 
+/* Broker-page extras: per-currency cash balances, reconciliation against actual balances. */
+function brokerCashPanelsHTML() {
   const recRows = BROKERS.map((b) => {
     const calc = T.brokerCash[b.id] || 0;
     const chk = RECON_CHECKS[b.id];
@@ -3413,15 +3424,14 @@ function cashExtrasHTML() {
       `<tr><td>${esc(b.name)}</td><td>${esc(c)}</td><td class="num ${byc[c] < 0 ? "neg" : ""}">${fmt(byc[c])}</td><td class="num">${money(byc[c] * (FX.rates[c] || 1))}</td></tr>`).join("");
   }).join("");
 
-  return `${summary}
-    ${panel("Cash Balances by Currency", table(
+  return `${panel("Cash Balances by Currency", table(
       [{label:"Broker"},{label:"Currency"},{label:"Balance",num:1},{label:"In RM",num:1}], ccyRows))}
     ${panel("Broker Cash Reconciliation", table(
       [{label:"Broker"},{label:"Calculated Balance",num:1},{label:"Actual Balance",num:1},{label:"Difference",num:1},{label:"Status"},{label:"",num:1}], recRows),
       `<span class="badge subtle">${t("Calculated from every recorded cash movement: deposits, withdrawals, buys, sells, dividends, fees, transfers and currency exchanges.")}</span>`)}`;
 }
 
-function mountCashExtras() {
+function mountBrokerCashPanels() {
   $$("[data-recon-broker]").forEach((btn) => btn.addEventListener("click", () => {
     const id = btn.dataset.reconBroker;
     const chk = RECON_CHECKS[id] || {};
@@ -4032,6 +4042,7 @@ function pageBrokers() {
   const html = `${cards ? `<div class="broker-grid">${cards}</div>` : emptyState(t("No brokers yet. Add your first one below."))}
     ${archToggle}
     ${showArchivedBrokers && archivedCards ? `<div class="broker-grid" style="margin-top:14px">${archivedCards}</div>` : ""}
+    ${BROKERS.length ? brokerCashPanelsHTML() : ""}
     ${panel(editing ? "Edit Broker" : "Add Broker", brokerForm)}`;
 
   return { title: "Brokers", subtitle: LANG === "zh"
@@ -4075,6 +4086,7 @@ function pageBrokers() {
         if (editingBrokerId === id) editingBrokerId = null;
         saveStore(); toast(t("Broker removed")); render();
       }));
+      mountBrokerCashPanels();
     } };
 }
 
