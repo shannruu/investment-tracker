@@ -1119,12 +1119,14 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .add-sep { height: 1px; background: var(--border); margin: 14px -18px 16px; }
 
 /* --- Collapsible secondary fields (fees / taxes / details) --- */
-.more-fields { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 14px; background: var(--surface-2); }
-.more-fields > summary { cursor: pointer; font-weight: 650; font-size: 13px; color: var(--text-soft); padding: 12px 0; list-style: none; }
+.more-fields { border-radius: var(--radius-sm); }
+.more-fields > summary { cursor: pointer; font-weight: 650; font-size: 13px; color: var(--text-soft); padding: 2px 0; list-style: none; }
 .more-fields > summary::-webkit-details-marker { display: none; }
 .more-fields > summary::before { content: "＋"; color: var(--brand); margin-right: 8px; font-weight: 700; }
 .more-fields[open] > summary::before { content: "−"; }
-.more-fields .form-grid { padding-bottom: 14px; }
+.more-fields[open] { border: 1px solid var(--border); background: var(--surface-2); padding: 12px 14px 14px; }
+.more-fields[open] > summary { padding: 0 0 10px; }
+.more-fields .form-grid { padding-bottom: 0; }
 
 /* --- Dashboard charts row: equal columns, equal height --- */
 .grid-2.dash-charts { grid-template-columns: 1fr 1fr; align-items: stretch; }
