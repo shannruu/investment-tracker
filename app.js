@@ -2826,9 +2826,9 @@ function pageRecords() {
       ${nav}
       <div class="add-sep"></div>
       <div class="panel-head"><h2>${t("Transactions")}</h2><div class="panel-head-actions">${cashFilterSel}<span class="badge subtle">${list.length} ${t("records")}</span>${addBtn}</div></div>
+      ${recordsTab === "cash" ? cashExtrasHTML(list) : ""}
       <div id="recBody">${recordsTable(list)}</div>
-    </section>
-    ${recordsTab === "cash" ? cashExtrasHTML(list) : ""}`;
+    </section>`;
 
   return { title: "Transactions", subtitle: "All your transactions, cash and dividends in one ledger.", html,
     mount() {
