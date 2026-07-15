@@ -3469,6 +3469,17 @@ function miniCard(label, value, valCls = "") {
   return `<div class="mini-card"><div class="mc-label">${label}</div><div class="mc-value ${valCls}">${value}</div></div>`;
 }
 
+/* Same "hero stat" card as the Dashboard metrics row (.stat/.stat.net) — used on
+ * Reports so its summary cards match the rest of the app instead of the flat
+ * .mini-card boxes. Non-interactive (Reports numbers aren't click-to-see-how). */
+function statCard(label, value, opts = {}) {
+  return `<article class="stat${opts.net ? " net" : ""}${opts.wide ? " wide" : ""}">
+    <div class="stat-head"><span class="stat-label">${label}</span></div>
+    <div class="stat-value${opts.valCls ? ` ${opts.valCls}` : ""}">${value}</div>
+    ${opts.sub ? `<div class="stat-sub muted">${opts.sub}</div>` : ""}
+  </article>`;
+}
+
 /* Net dividend of one record, in base currency (gross − tax, at historical FX). */
 function divNetMYR(d) { return ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1); }
 
@@ -3892,7 +3903,10 @@ function reportDividend() {
   const lifetime = Object.values(periods.byYear).reduce((s, v) => s + v, 0);
   const rows = (obj) => Object.keys(obj).sort().reverse().map((k) => `<tr><td>${k}</td><td class="num pos">${money(obj[k])}</td></tr>`).join("");
   return `
-    <div class="mini-cards">${miniCard(t("Lifetime Net Dividends"), money(lifetime), "pos")}${miniCard(t("Dividend Yield (TTM)"), (T.portfolioValue ? fmt(ttmDividends() / T.portfolioValue * 100, { maximumFractionDigits: 2 }) + "%" : "—"))}</div>
+    <section class="metrics">
+      ${statCard(t("Lifetime Net Dividends"), money(lifetime), { net: true, wide: true, valCls: "pos" })}
+      ${statCard(t("Dividend Yield (TTM)"), T.portfolioValue ? fmt(ttmDividends() / T.portfolioValue * 100, { maximumFractionDigits: 2 }) + "%" : "—", { wide: true })}
+    </section>
     <section class="grid-2">
       ${panel("Monthly", table([{label:"Month"},{label:"Net (RM)",num:1}], rows(periods.byMonth)))}
       ${panel("Quarterly", table([{label:"Quarter"},{label:"Net (RM)",num:1}], rows(periods.byQuarter)))}
@@ -3926,7 +3940,11 @@ function reportCashflow() {
     .join("");
 
   return `
-    <div class="mini-cards">${miniCard(t("Total Deposits"), money(sum(types.Deposit)))}${miniCard(t("Total Withdrawals"), money(sum(types.Withdrawal)))}${miniCard(t("Net Cash Added"), money(sum(types.Deposit) - sum(types.Withdrawal)), cls(sum(types.Deposit) - sum(types.Withdrawal)))}</div>
+    <section class="metrics">
+      ${statCard(t("Total Deposits"), money(sum(types.Deposit)))}
+      ${statCard(t("Total Withdrawals"), money(sum(types.Withdrawal)))}
+      ${statCard(t("Net Cash Added"), money(sum(types.Deposit) - sum(types.Withdrawal)), { net: true, valCls: cls(sum(types.Deposit) - sum(types.Withdrawal)) })}
+    </section>
     ${panel("Deposits & Withdrawals by Broker", table([{label:"Broker"},{label:"Deposits",num:1},{label:"Withdrawals",num:1},{label:"Net",num:1}], byBrokerRows))}
     ${panel("Deposits", table(hdr, rows(types.Deposit)))}
     ${panel("Withdrawals", table(hdr, rows(types.Withdrawal)))}
@@ -3935,15 +3953,14 @@ function reportCashflow() {
 
 function reportPerformance() {
   const fxGain = T.fxUnrealizedPL || 0, priceOnly = T.priceUnrealizedPL || 0;
-  const stat = (label, val, cl, note) => `<div class="mini-card"><div class="mc-label">${label}</div><div class="mc-value ${cl}">${val}</div>${note ? `<div class="mc-sub muted">${note}</div>` : ""}</div>`;
   return `
-    <div class="mini-cards">
-      ${stat(t("Realized Return"), signed(T.realizedPL), cls(T.realizedPL))}
-      ${stat(t("Unrealized Return"), signed(T.unrealizedPL), cls(T.unrealizedPL), `${t("price")} ${signed(priceOnly)} · ${t("FX")} ${signed(fxGain)}`)}
-      ${stat(t("Net Dividends"), money(T.netDividends), "pos")}
-      ${stat(t("Total Return"), money(T.totalReturn), cls(T.totalReturn), pctTxt(T.totalReturnPct) + " " + t("on net capital"))}
-      ${stat("XIRR", T.xirr == null ? "—" : pctTxt(T.xirr), T.xirr == null ? "" : cls(T.xirr), t("money-weighted"))}
-    </div>
+    <section class="metrics">
+      ${statCard(t("Realized Return"), signed(T.realizedPL), { valCls: cls(T.realizedPL) })}
+      ${statCard(t("Unrealized Return"), signed(T.unrealizedPL), { valCls: cls(T.unrealizedPL), sub: `${t("price")} ${signed(priceOnly)} · ${t("FX")} ${signed(fxGain)}` })}
+      ${statCard(t("Net Dividends"), money(T.netDividends), { valCls: "pos" })}
+      ${statCard(t("Total Return"), money(T.totalReturn), { net: true, wide: true, valCls: cls(T.totalReturn), sub: pctTxt(T.totalReturnPct) + " " + t("on net capital") })}
+      ${statCard("XIRR", T.xirr == null ? "—" : pctTxt(T.xirr), { wide: true, valCls: T.xirr == null ? "" : cls(T.xirr), sub: t("money-weighted") })}
+    </section>
     ${panel("Profit / Loss by Broker", table([{label:"Broker"},{label:"Total Return",num:1}],
       groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.totalReturn).map((b) => `<tr><td>${esc(b.label)}</td><td class="num ${cls(b.value)}">${signed(b.value)}</td></tr>`).join("")))}
     ${panel("Fees Paid by Broker", table([{label:"Broker"},{label:"Fees",num:1}],
@@ -3951,9 +3968,10 @@ function reportPerformance() {
 }
 
 function pageReports() {
+  // Same pill-tab style as the Transactions page's tabs, not the older segmented control.
   const tabs = [["portfolio", "Portfolio"], ["dividend", "Dividend"], ["cashflow", "Cash Flow"], ["performance", "Performance"]];
-  const nav = `<div class="seg report-tabs" role="tablist">${tabs.map(([k, lbl]) =>
-    `<button class="seg-btn ${reportTab === k ? "on" : ""}" data-rtab="${k}">${t(lbl)}</button>`).join("")}</div>`;
+  const nav = `<div class="type-selector" style="margin-bottom:16px"><div class="type-tabs" role="tablist">${tabs.map(([k, lbl]) =>
+    `<button class="tp-tab ${reportTab === k ? "on" : ""}" data-rtab="${k}">${t(lbl)}</button>`).join("")}</div></div>`;
   const body = reportTab === "dividend" ? reportDividend()
     : reportTab === "cashflow" ? reportCashflow()
     : reportTab === "performance" ? reportPerformance() : reportPortfolio();

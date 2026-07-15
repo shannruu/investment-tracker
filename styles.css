@@ -837,10 +837,9 @@ input[type="date"] { cursor: pointer; }
 .div-fc-empty { display: flex; align-items: flex-start; gap: 12px; padding: 4px 0 2px; }
 .div-fc-empty > span { font-size: 22px; line-height: 1.2; flex: none; }
 
-/* ---- Reports: section headings + tab bar ---- */
+/* ---- Reports: section headings ---- */
 .report-h { font-size: 14px; font-weight: 700; margin: 22px 0 10px; color: var(--text); }
 .report-h:first-child { margin-top: 4px; }
-.seg.report-tabs { flex-wrap: wrap; margin-bottom: 16px; }
 
 /* ---- CSV import preview ---- */
 .import-preview { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 14px; }
