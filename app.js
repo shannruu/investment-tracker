@@ -2854,15 +2854,16 @@ function pageRecords() {
   // rather than a separate segmented control floating above its own panel.
   const nav = `<div class="type-selector"><div class="type-tabs" role="tablist">${tabs.map(([k, lbl]) =>
     `<button class="tp-tab ${recordsTab === k ? "on" : ""}" data-rectab="${k}">${t(lbl)}</button>`).join("")}</div></div>`;
-  const cashSubNav = recordsTab === "cash" ? `<div class="type-selector" style="margin-top:10px"><div class="type-tabs sm">${CASH_SUBFILTERS.map(([k, lbl]) =>
-    `<button class="tp-tab ${cashSubFilter === k ? "on" : ""}" data-cashsub="${k}">${t(lbl)}</button>`).join("")}</div></div>` : "";
+  // Cash-tab type filter: same corner dropdown used by the Dividend Calendar / Dividend
+  // Income filters (styledSelect inside panel-head-actions), not a second pill row.
+  const cashFilterSel = recordsTab === "cash" ? `<div style="width:150px">${styledSelect("cashSubFilter",
+    CASH_SUBFILTERS.map(([k, lbl]) => ({ value: k, label: t(lbl) })), cashSubFilter, { id: "cashSubFilterSel" })}</div>` : "";
   const list = ALL_TRANSACTIONS.filter((x) => recordMatchesTab(x, recordsTab) && matchesCashSubFilter(x));
   const addBtn = BROKERS.length ? `<a class="btn primary" href="#/add">＋ ${t("Add")}</a>` : "";
   const html = `<section class="panel add-panel">
       ${nav}
-      ${cashSubNav}
       <div class="add-sep"></div>
-      <div class="panel-head"><h2>${t("Transactions")}</h2><div class="panel-head-actions"><span class="badge subtle">${list.length} ${t("records")}</span>${addBtn}</div></div>
+      <div class="panel-head"><h2>${t("Transactions")}</h2><div class="panel-head-actions">${cashFilterSel}<span class="badge subtle">${list.length} ${t("records")}</span>${addBtn}</div></div>
       <div id="recBody">${recordsTable(list)}</div>
     </section>
     ${recordsTab === "cash" ? cashExtrasHTML(list) : ""}`;
@@ -2870,7 +2871,8 @@ function pageRecords() {
   return { title: "Transactions", subtitle: "All your transactions, cash and dividends in one ledger.", html,
     mount() {
       $$("[data-rectab]").forEach((b) => b.addEventListener("click", () => { recordsTab = b.dataset.rectab; cashSubFilter = "all"; render(); }));
-      $$("[data-cashsub]").forEach((b) => b.addEventListener("click", () => { cashSubFilter = b.dataset.cashsub; render(); }));
+      const cashFilterEl = $("#cashSubFilterSel");
+      if (cashFilterEl) cashFilterEl.addEventListener("change", () => { cashSubFilter = cashFilterEl.value; render(); });
       $("#recBody").addEventListener("click", (e) => {
         const ed = e.target.closest("[data-edit-tx]");
         if (ed) { editingTxId = ed.dataset.editTx; location.hash = "#/add"; return; }
