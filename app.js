@@ -1897,20 +1897,6 @@ function pageDashboard() {
     .filter((x) => x.type === "Dividend" && x.status !== "Expected" && (x.payDate || x.date || "").slice(0, 4) === yr)
     .reduce((s, d) => s + divNetMYR(d), 0);
 
-  // Cash flow components in MYR (at each transaction's FX) — for the "Available Cash" breakdown.
-  const txFx = (x) => (x.fxRate || FX.rates[x.currency] || 1);
-  const flowSum = (pred, amt) => ALL_TRANSACTIONS.filter(pred).reduce((s, x) => s + amt(x) * txFx(x), 0);
-  const cashFlow = {
-    deposits: flowSum((x) => x.type === "Deposit", (x) => +x.gross || 0),
-    withdrawals: flowSum((x) => x.type === "Withdrawal", (x) => +x.gross || 0),
-    buys: flowSum((x) => x.type === "Buy", (x) => (+x.gross || 0) + (+x.fee || 0) + (+x.tax || 0)),
-    sells: flowSum((x) => x.type === "Sell", (x) => (+x.gross || 0) - (+x.fee || 0) - (+x.tax || 0)),
-    divs: flowSum((x) => x.type === "Dividend" && x.status !== "Expected", (x) => (+x.gross || 0) - (+x.tax || 0)),
-    interest: flowSum((x) => x.type === "Interest / cash yield" || x.type === "Interest", (x) => +x.gross || 0),
-    fees: flowSum((x) => x.type === "Fee", (x) => +x.gross || 0),
-    taxes: flowSum((x) => x.type === "Tax withholding", (x) => +x.gross || 0),
-  };
-
   // Latest "prices as of" — ISO datetime from live fetch if available, else manual date.
   const priceDates = T.holdings.filter((h) => h.hasPrice && h.currentPriceDate).map((h) => h.currentPriceDate).sort();
   const latestLiveFetch = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();
@@ -1976,32 +1962,8 @@ function pageDashboard() {
       ...(returnIsTotal ? [{ op: "+", label: "Net Dividends", val: signed(T.netDividends) }] : []),
       ...(returnIsTotal && T.totalInterest ? [{ op: "+", label: "Interest Received", val: signed(T.totalInterest) }] : []),
       { op: "−", label: "Total Fees", val: fmt(T.totalFees) }], total: shownReturn },
-    cash: (() => {
-      const cf = cashFlow;
-      const flow = cf.deposits - cf.withdrawals - cf.buys + cf.sells + cf.divs + cf.interest - cf.fees - cf.taxes;
-      const fxAdj = (T.totalCash || 0) - flow;
-      const mfmt = (n) => `${ccyLabel(FX.base)} ${fmt(n)}`;
-      let rows = [
-        { on: cf.deposits, op: "+", label: "Deposits", val: mfmt(cf.deposits) },
-        { on: cf.withdrawals, op: "−", label: "Withdrawals", val: mfmt(cf.withdrawals) },
-        { on: cf.buys, op: "−", label: "Buys (incl. fees & tax)", val: mfmt(cf.buys) },
-        { on: cf.sells, op: "+", label: "Sells (net of fees)", val: mfmt(cf.sells) },
-        { on: cf.divs, op: "+", label: "Net dividends received", val: mfmt(cf.divs) },
-        { on: cf.interest, op: "+", label: "Interest / cash yield", val: mfmt(cf.interest) },
-        { on: cf.fees, op: "−", label: "Standalone fees", val: mfmt(cf.fees) },
-        { on: cf.taxes, op: "−", label: "Tax withholding", val: mfmt(cf.taxes) },
-        { on: Math.abs(fxAdj) > 0.005, op: fxAdj >= 0 ? "+" : "−", label: "FX gain/loss on cash", hint: "Your foreign cash balance is worth more or less in RM depending on the exchange rate stored when you deposited vs. today's rate.", val: mfmt(Math.abs(fxAdj)) },
-      ].filter((r) => r.on).map(({ op, label, val }) => ({ op, label, val }));
-      // Fallback so the breakdown is never blank: only brokers that actually hold cash, else a plain note.
-      if (!rows.length) rows = BROKERS
-        .filter((b) => Math.abs(T.brokerCash[b.id] || 0) > 0.005)
-        .map((b) => ({ op: "+", label: b.name, val: mfmt(T.brokerCash[b.id] || 0) }));
-      if (!rows.length) rows = [{ op: "+", label: "No cash movements recorded yet", val: mfmt(0) }];
-      return { title: "Available Cash", rows, total: T.totalCash || 0 };
-    })(),
-    principal: { title: "Principal Invested", rows: [
-      { op: "+", label: "Total Deposits", val: fmt(T.totalDeposits) },
-      { op: "−", label: "Total Withdrawals", val: fmt(T.totalWithdrawals) }], total: T.netCapitalInvested },
+    cash: availableCashCalc(),
+    principal: netCashAddedCalc("Principal Invested"),
   };
 
   const statHead = (label, right) => `<div class="stat-head"><span class="stat-label">${label}</span>${right || ""}</div>`;
@@ -2892,6 +2854,11 @@ function pageRecords() {
         pruneOrphans();
         saveStore(); toast(t("Transaction removed")); render();
       });
+      $$("[data-cashcard]").forEach((el) => {
+        const open = () => showCalc(cashCardCalc(el.dataset.cashcard, list));
+        el.addEventListener("click", open);
+        el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+      });
     } };
 }
 
@@ -3422,17 +3389,20 @@ function sharesHeldExcluding(brokerId, ticker, excludeId) {
  * matters most — Available Cash, or the focused sum once a type is picked — gets
  * the brand-tinted emphasis treatment rather than four identical flat boxes. */
 function cashExtrasHTML(list) {
-  const stat = (label, value, opts = {}) => `<article class="stat${opts.net ? " net" : ""}${opts.wide ? " wide" : ""}">
-    <div class="stat-head"><span class="stat-label">${label}</span></div>
+  // Same "click a stat to see how" pattern as the Dashboard's Net Worth/Cash/Principal
+  // cards — data-cashcard is wired in pageRecords()'s mount to open the calc modal.
+  const howHint = `<span class="col-info" data-tip="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${COL_INFO_ICON_SVG}</span>`;
+  const stat = (label, value, card, opts = {}) => `<article class="stat${opts.net ? " net" : ""}${opts.wide ? " wide" : ""}" data-cashcard="${card}" tabindex="0" role="button" aria-label="${label}, show calculation">
+    <div class="stat-head"><span class="stat-label">${label}</span>${howHint}</div>
     <div class="stat-value${opts.valCls ? ` ${opts.valCls}` : ""}">${value}</div>
     ${opts.sub ? `<div class="stat-sub muted">${opts.sub}</div>` : ""}
   </article>`;
   if (cashSubFilter === "all") {
     return `<section class="metrics pos-metrics">
-      ${stat(t("Total Deposits"), money(T.totalDeposits))}
-      ${stat(t("Total Withdrawals"), money(T.totalWithdrawals))}
-      ${stat(t("Net Cash Added"), money(T.netCapitalInvested), { valCls: cls(T.netCapitalInvested), sub: t("Deposits − Withdrawals") })}
-      ${stat(t("Available Cash"), money(T.totalCash || 0), { net: true, sub: t("Across all brokers") })}
+      ${stat(t("Total Deposits"), money(T.totalDeposits), "deposits")}
+      ${stat(t("Total Withdrawals"), money(T.totalWithdrawals), "withdrawals")}
+      ${stat(t("Net Cash Added"), money(T.netCapitalInvested), "netcash", { valCls: cls(T.netCapitalInvested), sub: t("Deposits − Withdrawals") })}
+      ${stat(t("Available Cash"), money(T.totalCash || 0), "available", { net: true, sub: t("Across all brokers") })}
     </section>`;
   }
   const sum = list.reduce((s, tx) => {
@@ -3440,7 +3410,17 @@ function cashExtrasHTML(list) {
     return s + (tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * fxr);
   }, 0);
   const labels = { deposit: "Total Deposits", withdrawal: "Total Withdrawals", fee: "Total Fees", interest: "Total Interest", transfer: "Total Transferred" };
-  return `<section class="metrics">${stat(t(labels[cashSubFilter] || "Total"), money(sum), { net: true, wide: true })}</section>`;
+  return `<section class="metrics">${stat(t(labels[cashSubFilter] || "Total"), money(sum), "focused", { net: true, wide: true })}</section>`;
+}
+
+/* Cash tab: build the calc breakdown for whichever stat card was clicked. */
+function cashCardCalc(card, list) {
+  if (card === "deposits") return brokerBreakdownCalc(t("Total Deposits"), ALL_TRANSACTIONS.filter((x) => x.type === "Deposit"));
+  if (card === "withdrawals") return brokerBreakdownCalc(t("Total Withdrawals"), ALL_TRANSACTIONS.filter((x) => x.type === "Withdrawal"));
+  if (card === "netcash") return netCashAddedCalc();
+  if (card === "available") return availableCashCalc();
+  const labels = { deposit: "Total Deposits", withdrawal: "Total Withdrawals", fee: "Total Fees", interest: "Total Interest", transfer: "Total Transferred" };
+  return brokerBreakdownCalc(t(labels[cashSubFilter] || "Total"), list);
 }
 
 /* Broker-page extras: per-currency cash balances, reconciliation against actual balances. */
@@ -4902,6 +4882,65 @@ function pageHolding() {
 /* =============================================================================
  * CALC MODAL
  * ========================================================================== */
+/* Available Cash breakdown — shared by the Dashboard's Available Cash stat and
+ * the Transactions page's Cash tab, so "how was this calculated" is one function. */
+function availableCashCalc() {
+  const txFx = (x) => (x.fxRate || FX.rates[x.currency] || 1);
+  const flowSum = (pred, amt) => ALL_TRANSACTIONS.filter(pred).reduce((s, x) => s + amt(x) * txFx(x), 0);
+  const cf = {
+    deposits: flowSum((x) => x.type === "Deposit", (x) => +x.gross || 0),
+    withdrawals: flowSum((x) => x.type === "Withdrawal", (x) => +x.gross || 0),
+    buys: flowSum((x) => x.type === "Buy", (x) => (+x.gross || 0) + (+x.fee || 0) + (+x.tax || 0)),
+    sells: flowSum((x) => x.type === "Sell", (x) => (+x.gross || 0) - (+x.fee || 0) - (+x.tax || 0)),
+    divs: flowSum((x) => x.type === "Dividend" && x.status !== "Expected", (x) => (+x.gross || 0) - (+x.tax || 0)),
+    interest: flowSum((x) => x.type === "Interest / cash yield" || x.type === "Interest", (x) => +x.gross || 0),
+    fees: flowSum((x) => x.type === "Fee", (x) => +x.gross || 0),
+    taxes: flowSum((x) => x.type === "Tax withholding", (x) => +x.gross || 0),
+  };
+  const flow = cf.deposits - cf.withdrawals - cf.buys + cf.sells + cf.divs + cf.interest - cf.fees - cf.taxes;
+  const fxAdj = (T.totalCash || 0) - flow;
+  const mfmt = (n) => `${ccyLabel(FX.base)} ${fmt(n)}`;
+  let rows = [
+    { on: cf.deposits, op: "+", label: "Deposits", val: mfmt(cf.deposits) },
+    { on: cf.withdrawals, op: "−", label: "Withdrawals", val: mfmt(cf.withdrawals) },
+    { on: cf.buys, op: "−", label: "Buys (incl. fees & tax)", val: mfmt(cf.buys) },
+    { on: cf.sells, op: "+", label: "Sells (net of fees)", val: mfmt(cf.sells) },
+    { on: cf.divs, op: "+", label: "Net dividends received", val: mfmt(cf.divs) },
+    { on: cf.interest, op: "+", label: "Interest / cash yield", val: mfmt(cf.interest) },
+    { on: cf.fees, op: "−", label: "Standalone fees", val: mfmt(cf.fees) },
+    { on: cf.taxes, op: "−", label: "Tax withholding", val: mfmt(cf.taxes) },
+    { on: Math.abs(fxAdj) > 0.005, op: fxAdj >= 0 ? "+" : "−", label: "FX gain/loss on cash", hint: "Your foreign cash balance is worth more or less in RM depending on the exchange rate stored when you deposited vs. today's rate.", val: mfmt(Math.abs(fxAdj)) },
+  ].filter((r) => r.on).map(({ op, label, val }) => ({ op, label, val }));
+  // Fallback so the breakdown is never blank: only brokers that actually hold cash, else a plain note.
+  if (!rows.length) rows = BROKERS
+    .filter((b) => Math.abs(T.brokerCash[b.id] || 0) > 0.005)
+    .map((b) => ({ op: "+", label: b.name, val: mfmt(T.brokerCash[b.id] || 0) }));
+  if (!rows.length) rows = [{ op: "+", label: "No cash movements recorded yet", val: mfmt(0) }];
+  return { title: "Available Cash", rows, total: T.totalCash || 0 };
+}
+
+/* Deposits − Withdrawals breakdown — shared by Dashboard's "Principal Invested" and
+ * the Cash tab's "Net Cash Added" (same number, different label per context). */
+function netCashAddedCalc(title = "Net Cash Added") {
+  return { title, rows: [
+    { op: "+", label: "Total Deposits", val: fmt(T.totalDeposits) },
+    { op: "−", label: "Total Withdrawals", val: fmt(T.totalWithdrawals) }], total: T.netCapitalInvested };
+}
+
+/* Per-broker breakdown of a set of transactions — Total Deposits/Withdrawals and the
+ * Cash tab's single-type filter sums (Fee/Interest/Transfer/etc). */
+function brokerBreakdownCalc(title, txList) {
+  const byBroker = {};
+  txList.forEach((tx) => {
+    const fxr = tx.fxRate || FX.rates[tx.currency] || 1;
+    const myr = tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * fxr;
+    byBroker[tx.brokerId] = (byBroker[tx.brokerId] || 0) + myr;
+  });
+  const rows = Object.keys(byBroker).map((id) => ({ op: "+", label: brokerName(id), val: money(byBroker[id]) }));
+  const total = Object.values(byBroker).reduce((s, v) => s + v, 0);
+  return { title, rows: rows.length ? rows : [{ op: "+", label: "No transactions", val: money(0) }], total };
+}
+
 function showCalc(calc) {
   $("#modalTitle").textContent = t(calc.title);
   const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span> ${t(r.label)}${r.hint ? ` <span class="col-info tip-down" data-tip="${r.hint}">${COL_INFO_ICON_SVG}</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`).join("");
