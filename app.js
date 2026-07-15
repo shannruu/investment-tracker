@@ -294,7 +294,7 @@ const ZH = {
   "Live lookup only works on your deployed website, not when you open the file locally. Commit, push, and try it on your Vercel URL.": "实时查询仅在您已部署的网站上可用，本地打开文件时无法使用。请提交、推送后在您的 Vercel 网址上尝试。",
   "check the code, or that /api is deployed on Vercel.": "请检查代码，或确认 /api 已部署到 Vercel。",
   // P0 — edit / validation / currency exchange / negative cash
-  "Edit Transaction": "编辑交易", "Cancel edit": "取消编辑", "Edit": "编辑",
+  "Edit Transaction": "编辑交易", "Edit": "编辑",
   "Update Transaction": "更新交易", "Transaction updated": "交易已更新",
   "From amount": "兑出金额", "Exchange rate (To ÷ From)": "汇率（兑入 ÷ 兑出）",
   "To currency": "兑入货币", "To amount": "兑入金额",
@@ -410,6 +410,7 @@ const ZH = {
   "Lifetime Net Dividends": "累计净股息", "Realized Return": "已实现收益",
   "Unrealized Return": "未实现收益", "Total Return": "总收益",
   "Total Deposits": "存款总额", "Total Withdrawals": "取款总额", "Net Cash Added": "净投入现金",
+  "Total Fees": "费用总额", "Total Interest": "利息总额", "Total Transferred": "转账总额", "Transfer": "转账",
   "Deposits & Withdrawals by Broker": "各券商存取款", "Deposits": "存款", "Withdrawals": "取款", "Net": "净额",
   "Monthly": "按月", "Quarterly": "按季", "Annual": "按年",
   // Phase 2 — Holding Detail extras (F1)
@@ -2830,25 +2831,46 @@ function recordMatchesTab(x, tab) {
   return (RECORD_GROUPS[tab] || []).includes(x.type);
 }
 
+// Cash tab only: narrow further to one cash movement type, so the summary below
+// can total up just that type instead of the fixed Deposits/Withdrawals/Net/Available set.
+let cashSubFilter = "all";   // all | deposit | withdrawal | fee | interest | transfer
+const CASH_SUBFILTERS = [
+  ["all", "All", null],
+  ["deposit", "Deposit", ["Deposit"]],
+  ["withdrawal", "Withdrawal", ["Withdrawal"]],
+  ["fee", "Fee", ["Fee", "Tax withholding"]],
+  ["interest", "Interest", ["Interest", "Interest / cash yield"]],
+  ["transfer", "Transfer", ["Transfer between brokers"]],
+];
+function matchesCashSubFilter(x) {
+  if (recordsTab !== "cash" || cashSubFilter === "all") return true;
+  const sf = CASH_SUBFILTERS.find(([k]) => k === cashSubFilter);
+  return !!sf && sf[2].includes(x.type);
+}
+
 function pageRecords() {
   const tabs = [["all", "All"], ["buysell", "Buy / Sell"], ["cash", "Cash"], ["dividends", "Dividends"], ["fx", "FX"]];
   // Same pill-tab-inside-the-panel layout as the Add page (type-selector + add-sep),
   // rather than a separate segmented control floating above its own panel.
   const nav = `<div class="type-selector"><div class="type-tabs" role="tablist">${tabs.map(([k, lbl]) =>
     `<button class="tp-tab ${recordsTab === k ? "on" : ""}" data-rectab="${k}">${t(lbl)}</button>`).join("")}</div></div>`;
-  const list = ALL_TRANSACTIONS.filter((x) => recordMatchesTab(x, recordsTab));
+  const cashSubNav = recordsTab === "cash" ? `<div class="type-selector" style="margin-top:10px"><div class="type-tabs sm">${CASH_SUBFILTERS.map(([k, lbl]) =>
+    `<button class="tp-tab ${cashSubFilter === k ? "on" : ""}" data-cashsub="${k}">${t(lbl)}</button>`).join("")}</div></div>` : "";
+  const list = ALL_TRANSACTIONS.filter((x) => recordMatchesTab(x, recordsTab) && matchesCashSubFilter(x));
   const addBtn = BROKERS.length ? `<a class="btn primary" href="#/add">＋ ${t("Add")}</a>` : "";
   const html = `<section class="panel add-panel">
       ${nav}
+      ${cashSubNav}
       <div class="add-sep"></div>
       <div class="panel-head"><h2>${t("Transactions")}</h2><div class="panel-head-actions"><span class="badge subtle">${list.length} ${t("records")}</span>${addBtn}</div></div>
       <div id="recBody">${recordsTable(list)}</div>
     </section>
-    ${recordsTab === "cash" ? cashExtrasHTML() : ""}`;
+    ${recordsTab === "cash" ? cashExtrasHTML(list) : ""}`;
 
   return { title: "Transactions", subtitle: "All your transactions, cash and dividends in one ledger.", html,
     mount() {
-      $$("[data-rectab]").forEach((b) => b.addEventListener("click", () => { recordsTab = b.dataset.rectab; render(); }));
+      $$("[data-rectab]").forEach((b) => b.addEventListener("click", () => { recordsTab = b.dataset.rectab; cashSubFilter = "all"; render(); }));
+      $$("[data-cashsub]").forEach((b) => b.addEventListener("click", () => { cashSubFilter = b.dataset.cashsub; render(); }));
       $("#recBody").addEventListener("click", (e) => {
         const ed = e.target.closest("[data-edit-tx]");
         if (ed) { editingTxId = ed.dataset.editTx; location.hash = "#/add"; return; }
@@ -3000,8 +3022,10 @@ function renderAddDrawerBody(type, editing) {
   translateDOM(body);
 }
 
-function closeAddDrawer() {
-  const dr = $("#addDrawer");
+/* Shared close animation for any .drawer-backdrop: adds .closing (which swaps the
+ * open keyframes for the reverse ones via CSS), then waits for that animation to
+ * finish — via animationend, with a timeout fallback — before actually hiding it. */
+function closeDrawer(dr) {
   if (!dr || dr.hidden || dr.classList.contains("closing")) return;
   dr.classList.add("closing");
   const finish = () => {
@@ -3013,6 +3037,8 @@ function closeAddDrawer() {
   if (panel) panel.addEventListener("animationend", finish, { once: true });
   setTimeout(finish, 260); // fallback in case animationend doesn't fire
 }
+
+function closeAddDrawer() { closeDrawer($("#addDrawer")); }
 
 /* The focused per-type form. Field NAMES match wireTxSubmit so one submit path serves all. */
 function addForm2(type, editing) {
@@ -3389,13 +3415,22 @@ function sharesHeldExcluding(brokerId, ticker, excludeId) {
   return shares;
 }
 
-/* Cash-tab summary on Records: deposits/withdrawals/net/available mini-cards. */
-function cashExtrasHTML() {
-  return `<div class="mini-cards">
-    ${miniCard(t("Total Deposits"), money(T.totalDeposits))}
-    ${miniCard(t("Total Withdrawals"), money(T.totalWithdrawals))}
-    ${miniCard(t("Net Cash Added"), money(T.netCapitalInvested), cls(T.netCapitalInvested))}
-    ${miniCard(t("Available Cash"), money(T.totalCash || 0))}</div>`;
+/* Cash-tab summary on Records: overview mini-cards for "All", or one focused sum
+ * once a specific cash movement type is picked via the sub-filter above the table. */
+function cashExtrasHTML(list) {
+  if (cashSubFilter === "all") {
+    return `<div class="mini-cards">
+      ${miniCard(t("Total Deposits"), money(T.totalDeposits))}
+      ${miniCard(t("Total Withdrawals"), money(T.totalWithdrawals))}
+      ${miniCard(t("Net Cash Added"), money(T.netCapitalInvested), cls(T.netCapitalInvested))}
+      ${miniCard(t("Available Cash"), money(T.totalCash || 0))}</div>`;
+  }
+  const sum = list.reduce((s, tx) => {
+    const fxr = tx.fxRate || FX.rates[tx.currency] || 1;
+    return s + (tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * fxr);
+  }, 0);
+  const labels = { deposit: "Total Deposits", withdrawal: "Total Withdrawals", fee: "Total Fees", interest: "Total Interest", transfer: "Total Transferred" };
+  return `<div class="mini-cards">${miniCard(t(labels[cashSubFilter] || "Total"), money(sum))}</div>`;
 }
 
 /* Broker-page extras: per-currency cash balances, reconciliation against actual balances. */
@@ -4008,71 +4043,30 @@ function brokerCard(b) {
 }
 
 function pageBrokers() {
-  const editing = editingBrokerId ? BROKERS.find((b) => b.id === editingBrokerId) : null;
-  if (editingBrokerId && !editing) editingBrokerId = null;
   const active = BROKERS.filter((b) => !b.archived);
   const archived = BROKERS.filter((b) => b.archived);
   const cards = active.map(brokerCard).join("");
   const archivedCards = (showArchivedBrokers ? archived : []).map(brokerCard).join("");
 
-  const e = editing || {};
-  const sel = (val, cur) => (val === cur ? " selected" : "");
-  const brokerForm = `<form id="brokerForm" class="form" autocomplete="off">
-    <div class="form-grid">
-      <label>${t("Broker name")}<input name="name" value="${esc(e.name)}" placeholder="e.g. Rakuten Trade" required></label>
-      <label>${t("Country")}<input name="country" value="${esc(e.country)}" placeholder="e.g. Malaysia"></label>
-      <label>${t("Default currency")}${styledSelect("currency", currencyItems(), e.currency || FX.base, { more: "currency" })}</label>
-      <label>${t("Dividends paid to")}${styledSelect("divPaidTo", [
-        { value: "broker", label: t("Broker account (adds to cash)") },
-        { value: "bank", label: t("Bank account (income only)") },
-      ], e.divPaidTo || "broker")}</label>
-      <label>${t("Default dividend tax rate")} (%)<input type="number" step="any" min="0" max="100" name="divTaxRate" value="${e.divTaxRate != null ? esc(e.divTaxRate) : ""}" placeholder="0"></label>
-    </div>
-    <p class="muted" style="margin:-8px 0 12px;font-size:12px">${t("Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward.")}</p>
-    <label class="block">${t("Notes")}<input name="notes" value="${esc(e.notes)}" placeholder="${t("optional")}"></label>
-    <div class="form-actions">
-      <button class="btn primary" type="submit">${editing ? t("Update Broker") : t("Add Broker")}</button>
-      ${editing ? `<button class="btn ghost" type="button" id="cancelBrokerEdit">${t("Cancel edit")}</button>` : ""}
-    </div>
-  </form>`;
-
   const archToggle = archived.length
     ? `<button class="btn ghost" id="toggleArchived">${showArchivedBrokers ? t("Hide archived") : `${t("Show archived")} (${archived.length})`}</button>` : "";
+  const addBtn = `<button type="button" class="btn primary" id="openBrokerDrawer">＋ ${t("Add Broker")}</button>`;
 
-  const html = `${cards ? `<div class="broker-grid">${cards}</div>` : emptyState(t("No brokers yet. Add your first one below."))}
-    ${archToggle}
+  const html = `<div class="panel-head" style="margin-bottom:14px"><div class="panel-head-actions">${archToggle}${addBtn}</div></div>
+    ${cards ? `<div class="broker-grid">${cards}</div>` : emptyState(t("No brokers yet. Add your first one below."))}
     ${showArchivedBrokers && archivedCards ? `<div class="broker-grid" style="margin-top:14px">${archivedCards}</div>` : ""}
-    ${BROKERS.length ? brokerCashPanelsHTML() : ""}
-    ${panel(editing ? "Edit Broker" : "Add Broker", brokerForm)}`;
+    ${BROKERS.length ? brokerCashPanelsHTML() : ""}`;
 
   return { title: "Brokers", subtitle: LANG === "zh"
       ? `已连接 ${active.length} 个投资平台。`
       : `${active.length} investment apps connected.`, html,
     mount() {
-      $("#brokerForm").addEventListener("submit", (ev) => {
-        ev.preventDefault();
-        const d = Object.fromEntries(new FormData(ev.target).entries());
-        if (!d.name.trim()) { toast(t("Enter a broker name.")); return; }
-        const divTaxRate = Math.max(0, Math.min(100, parseFloat(d.divTaxRate) || 0));
-        if (editingBrokerId) {
-          const b = BROKERS.find((x) => x.id === editingBrokerId);
-          if (b) { b.name = d.name.trim(); b.country = (d.country || "").trim(); b.currency = d.currency; b.notes = (d.notes || "").trim(); b.divPaidTo = d.divPaidTo || "broker"; b.divTaxRate = divTaxRate; }
-          editingBrokerId = null;
-          saveStore(); toast(t("Broker updated")); render();
-        } else {
-          BROKERS.push({ id: uid("b"), name: d.name.trim(), country: (d.country || "").trim(), currency: d.currency, notes: (d.notes || "").trim(), divPaidTo: d.divPaidTo || "broker", divTaxRate, archived: false });
-          saveStore(); toast(t("Broker added")); render();
-        }
-      });
-      const cancelB = $("#cancelBrokerEdit");
-      if (cancelB) cancelB.addEventListener("click", () => { editingBrokerId = null; render(); });
+      const openBtn = $("#openBrokerDrawer");
+      if (openBtn) openBtn.addEventListener("click", () => openBrokerDrawer());
       const tog = $("#toggleArchived");
       if (tog) tog.addEventListener("click", () => { showArchivedBrokers = !showArchivedBrokers; render(); });
 
-      $$("[data-edit-broker]").forEach((btn) => btn.addEventListener("click", () => {
-        editingBrokerId = btn.dataset.editBroker; render();
-        const p = $("#brokerForm"); if (p) p.scrollIntoView({ behavior: "smooth", block: "center" });
-      }));
+      $$("[data-edit-broker]").forEach((btn) => btn.addEventListener("click", () => openBrokerDrawer(btn.dataset.editBroker)));
       $$("[data-archive-broker]").forEach((btn) => btn.addEventListener("click", () => {
         const b = BROKERS.find((x) => x.id === btn.dataset.archiveBroker);
         if (b) { b.archived = !b.archived; saveStore(); toast(b.archived ? t("Broker archived") : t("Broker unarchived")); render(); }
@@ -4088,6 +4082,69 @@ function pageBrokers() {
       }));
       mountBrokerCashPanels();
     } };
+}
+
+/* Add/edit broker drawer — same overlay pattern as the transaction drawer (openAddDrawer). */
+function brokerFormHTML(editing) {
+  const e = editing || {};
+  return `<form id="brokerForm" class="form" autocomplete="off">
+    <div class="form-grid">
+      <label>${t("Broker name")}<input name="name" value="${esc(e.name)}" placeholder="e.g. Rakuten Trade" required></label>
+      <label>${t("Country")}<input name="country" value="${esc(e.country)}" placeholder="e.g. Malaysia"></label>
+      <label>${t("Default currency")}${styledSelect("currency", currencyItems(), e.currency || FX.base, { more: "currency" })}</label>
+      <label>${t("Dividends paid to")}${styledSelect("divPaidTo", [
+        { value: "broker", label: t("Broker account (adds to cash)") },
+        { value: "bank", label: t("Bank account (income only)") },
+      ], e.divPaidTo || "broker")}</label>
+      <label>${t("Default dividend tax rate")} (%)<input type="number" step="any" min="0" max="100" name="divTaxRate" value="${e.divTaxRate != null ? esc(e.divTaxRate) : ""}" placeholder="0"></label>
+    </div>
+    <p class="muted" style="margin:-8px 0 12px;font-size:12px">${t("Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward.")}</p>
+    <label class="block">${t("Notes")}<input name="notes" value="${esc(e.notes)}" placeholder="${t("optional")}"></label>
+    <div class="form-actions">
+      <button class="btn primary" type="submit">${editing ? t("Update Broker") : t("Add Broker")}</button>
+      <button type="button" class="btn secondary" id="brokerCancel">${t("Cancel")}</button>
+    </div>
+  </form>`;
+}
+
+function openBrokerDrawer(id) {
+  editingBrokerId = id || null;
+  renderBrokerDrawerBody();
+  const dr = $("#brokerDrawer");
+  if (dr) { dr.classList.remove("closing"); dr.hidden = false; }
+}
+
+function renderBrokerDrawerBody() {
+  const editing = editingBrokerId ? BROKERS.find((b) => b.id === editingBrokerId) : null;
+  if (editingBrokerId && !editing) editingBrokerId = null;
+  const titleEl = $("#brokerDrawerTitle");
+  if (titleEl) titleEl.textContent = editing ? t("Edit Broker") : t("Add Broker");
+  const body = $("#brokerDrawerBody");
+  if (!body) return;
+  body.innerHTML = brokerFormHTML(editing);
+  body.querySelector("#brokerForm").addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const d = Object.fromEntries(new FormData(ev.target).entries());
+    if (!d.name.trim()) { toast(t("Enter a broker name.")); return; }
+    const divTaxRate = Math.max(0, Math.min(100, parseFloat(d.divTaxRate) || 0));
+    if (editingBrokerId) {
+      const b = BROKERS.find((x) => x.id === editingBrokerId);
+      if (b) { b.name = d.name.trim(); b.country = (d.country || "").trim(); b.currency = d.currency; b.notes = (d.notes || "").trim(); b.divPaidTo = d.divPaidTo || "broker"; b.divTaxRate = divTaxRate; }
+      editingBrokerId = null;
+      saveStore(); toast(t("Broker updated")); closeBrokerDrawer(); render();
+    } else {
+      BROKERS.push({ id: uid("b"), name: d.name.trim(), country: (d.country || "").trim(), currency: d.currency, notes: (d.notes || "").trim(), divPaidTo: d.divPaidTo || "broker", divTaxRate, archived: false });
+      saveStore(); toast(t("Broker added")); render();
+      renderBrokerDrawerBody(); // stay open on a blank form for rapid entry, same as Add Transaction
+    }
+  });
+  body.querySelector("#brokerCancel").addEventListener("click", () => closeBrokerDrawer());
+  translateDOM(body);
+}
+
+function closeBrokerDrawer() {
+  closeDrawer($("#brokerDrawer"));
+  editingBrokerId = null;
 }
 
 /* =============================================================================
@@ -5212,6 +5269,7 @@ function currentPageKey() {
 function render() {
   const key = currentPageKey();
   if (key !== "add") { editingTxId = null; addDraft = {}; closeAddDrawer(); }  // drop edit mode + draft + drawer when leaving Add
+  if (key !== "brokers") closeBrokerDrawer();  // drop the broker drawer when leaving Brokers
   const root = $("#page");
   try {
     const page = PAGES[key]();
@@ -5289,6 +5347,12 @@ function init() {
   if (addDrawerClose) addDrawerClose.addEventListener("click", () => { location.hash = "#/records"; });
   const addDrawerEl = $("#addDrawer");
   if (addDrawerEl) addDrawerEl.addEventListener("click", (e) => { if (e.target.id === "addDrawer") location.hash = "#/records"; });
+  // Broker drawer: no route change involved (Add/Edit Broker always lived on #/brokers),
+  // so close/backdrop just hide it directly instead of navigating.
+  const brokerDrawerClose = $("#brokerDrawerClose");
+  if (brokerDrawerClose) brokerDrawerClose.addEventListener("click", () => closeBrokerDrawer());
+  const brokerDrawerEl = $("#brokerDrawer");
+  if (brokerDrawerEl) brokerDrawerEl.addEventListener("click", (e) => { if (e.target.id === "brokerDrawer") closeBrokerDrawer(); });
   // Close the "Other" type dropdown when clicking anywhere outside it (bound once; queries
   // live so it works across drawer re-renders).
   document.addEventListener("click", (e) => {
@@ -5305,6 +5369,8 @@ function init() {
     if (document.querySelector(".sel.open")) return;
     const dr = $("#addDrawer");
     if (dr && !dr.hidden) { location.hash = "#/records"; return; }
+    const bdr = $("#brokerDrawer");
+    if (bdr && !bdr.hidden) { closeBrokerDrawer(); return; }
     closeModal(); closeMoreSheet();
   });
   // "More" overlay — mobile bottom-nav only (desktop shows the items in the sidebar)
