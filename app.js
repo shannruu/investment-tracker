@@ -3384,33 +3384,28 @@ function sharesHeldExcluding(brokerId, ticker, excludeId) {
   return shares;
 }
 
-/* Cash-tab summary on Records: same "hero stat" cards as the Dashboard metrics row
- * (.stat / .stat.net) instead of the plain mini-cards, so the one number that
- * matters most — Available Cash, or the focused sum once a type is picked — gets
- * the brand-tinted emphasis treatment rather than four identical flat boxes. */
+/* Cash-tab summary on Records: one inline ledger strip (.cash-strip/.cash-item)
+ * instead of a grid of cards — chosen over three boxed alternatives. Each item is
+ * still clickable to see "how" (data-cashcard → the same calc modal the Dashboard
+ * stats use), just without a border/shadow around every number. */
 function cashExtrasHTML(list) {
-  // Same "click a stat to see how" pattern as the Dashboard's Net Worth/Cash/Principal
-  // cards — data-cashcard is wired in pageRecords()'s mount to open the calc modal.
-  const howHint = `<span class="col-info" data-tip="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${COL_INFO_ICON_SVG}</span>`;
-  const stat = (label, value, card, opts = {}) => `<article class="stat${opts.net ? " net" : ""}${opts.wide ? " wide" : ""}" data-cashcard="${card}" tabindex="0" role="button" aria-label="${label}, show calculation">
-    <div class="stat-head"><span class="stat-label">${label}</span>${howHint}</div>
-    <div class="stat-value${opts.valCls ? ` ${opts.valCls}` : ""}">${value}</div>
-    ${opts.sub ? `<div class="stat-sub muted">${opts.sub}</div>` : ""}
-  </article>`;
+  const item = (label, value, card, valCls = "") => `<div class="cash-item" data-cashcard="${card}" tabindex="0" role="button" aria-label="${label}, show calculation">
+    <span class="cash-k">${label}</span><span class="cash-v${valCls ? ` ${valCls}` : ""}">${value}</span>
+  </div>`;
   if (cashSubFilter === "all") {
-    return `<section class="metrics pos-metrics">
-      ${stat(t("Total Deposits"), money(T.totalDeposits), "deposits")}
-      ${stat(t("Total Withdrawals"), money(T.totalWithdrawals), "withdrawals")}
-      ${stat(t("Net Cash Added"), money(T.netCapitalInvested), "netcash", { valCls: cls(T.netCapitalInvested), sub: t("Deposits − Withdrawals") })}
-      ${stat(t("Available Cash"), money(T.totalCash || 0), "available", { net: true, sub: t("Across all brokers") })}
-    </section>`;
+    return `<div class="cash-strip">
+      ${item(t("Total Deposits"), money(T.totalDeposits), "deposits")}
+      ${item(t("Total Withdrawals"), money(T.totalWithdrawals), "withdrawals")}
+      ${item(t("Net Cash Added"), money(T.netCapitalInvested), "netcash", cls(T.netCapitalInvested))}
+      ${item(t("Available Cash"), money(T.totalCash || 0), "available")}
+    </div>`;
   }
   const sum = list.reduce((s, tx) => {
     const fxr = tx.fxRate || FX.rates[tx.currency] || 1;
     return s + (tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * fxr);
   }, 0);
   const labels = { deposit: "Total Deposits", withdrawal: "Total Withdrawals", fee: "Total Fees", interest: "Total Interest", transfer: "Total Transferred" };
-  return `<section class="metrics">${stat(t(labels[cashSubFilter] || "Total"), money(sum), "focused", { net: true, wide: true })}</section>`;
+  return `<div class="cash-strip">${item(t(labels[cashSubFilter] || "Total"), money(sum), "focused")}</div>`;
 }
 
 /* Cash tab: build the calc breakdown for whichever stat card was clicked. */

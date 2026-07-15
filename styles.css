@@ -792,6 +792,30 @@ input[type="date"] { cursor: pointer; }
 .mc-label .col-info { flex: none; }
 .mc-value { font-size: 21px; font-weight: 720; margin-top: 6px; letter-spacing: -.02em; }
 .mc-sub { font-size: 11.5px; margin-top: 4px; line-height: 1.35; }
+/* Cash tab summary — one inline ledger strip instead of a grid of cards. Each item
+ * still opens the calc-breakdown modal on click (data-cashcard), same as the
+ * Dashboard's stat cards, just without a box around every number. */
+.cash-strip {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 8px; box-shadow: var(--shadow);
+  display: flex; align-items: center; flex-wrap: wrap;
+}
+.cash-item {
+  display: flex; align-items: baseline; gap: 7px; padding: 10px 18px;
+  position: relative; cursor: pointer; border-radius: 8px; transition: background-color .12s;
+}
+.cash-item:hover, .cash-item:focus-visible { background: var(--surface-2); }
+.cash-item:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.cash-item + .cash-item::before {
+  content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 1px; background: var(--border);
+}
+.cash-k { color: var(--muted); font-weight: 600; font-size: 12.5px; }
+.cash-v { font-weight: 750; font-size: 15px; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) {
+  .cash-strip { flex-direction: column; align-items: stretch; }
+  .cash-item + .cash-item::before { display: none; }
+  .cash-item + .cash-item { border-top: 1px solid var(--border); border-radius: 0; }
+}
 /* Portfolio Health stats — plain columns inside one panel, not individually
  * bordered/shadowed cards. Gap and a hover tint separate them; no competing
  * borders fighting the panel's own border for attention. */
