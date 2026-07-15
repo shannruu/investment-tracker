@@ -3417,22 +3417,30 @@ function sharesHeldExcluding(brokerId, ticker, excludeId) {
   return shares;
 }
 
-/* Cash-tab summary on Records: overview mini-cards for "All", or one focused sum
- * once a specific cash movement type is picked via the sub-filter above the table. */
+/* Cash-tab summary on Records: same "hero stat" cards as the Dashboard metrics row
+ * (.stat / .stat.net) instead of the plain mini-cards, so the one number that
+ * matters most — Available Cash, or the focused sum once a type is picked — gets
+ * the brand-tinted emphasis treatment rather than four identical flat boxes. */
 function cashExtrasHTML(list) {
+  const stat = (label, value, opts = {}) => `<article class="stat${opts.net ? " net" : ""}${opts.wide ? " wide" : ""}">
+    <div class="stat-head"><span class="stat-label">${label}</span></div>
+    <div class="stat-value${opts.valCls ? ` ${opts.valCls}` : ""}">${value}</div>
+    ${opts.sub ? `<div class="stat-sub muted">${opts.sub}</div>` : ""}
+  </article>`;
   if (cashSubFilter === "all") {
-    return `<div class="mini-cards">
-      ${miniCard(t("Total Deposits"), money(T.totalDeposits))}
-      ${miniCard(t("Total Withdrawals"), money(T.totalWithdrawals))}
-      ${miniCard(t("Net Cash Added"), money(T.netCapitalInvested), cls(T.netCapitalInvested))}
-      ${miniCard(t("Available Cash"), money(T.totalCash || 0))}</div>`;
+    return `<section class="metrics pos-metrics">
+      ${stat(t("Total Deposits"), money(T.totalDeposits))}
+      ${stat(t("Total Withdrawals"), money(T.totalWithdrawals))}
+      ${stat(t("Net Cash Added"), money(T.netCapitalInvested), { valCls: cls(T.netCapitalInvested), sub: t("Deposits − Withdrawals") })}
+      ${stat(t("Available Cash"), money(T.totalCash || 0), { net: true, sub: t("Across all brokers") })}
+    </section>`;
   }
   const sum = list.reduce((s, tx) => {
     const fxr = tx.fxRate || FX.rates[tx.currency] || 1;
     return s + (tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * fxr);
   }, 0);
   const labels = { deposit: "Total Deposits", withdrawal: "Total Withdrawals", fee: "Total Fees", interest: "Total Interest", transfer: "Total Transferred" };
-  return `<div class="mini-cards">${miniCard(t(labels[cashSubFilter] || "Total"), money(sum))}</div>`;
+  return `<section class="metrics">${stat(t(labels[cashSubFilter] || "Total"), money(sum), { net: true, wide: true })}</section>`;
 }
 
 /* Broker-page extras: per-currency cash balances, reconciliation against actual balances. */
