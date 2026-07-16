@@ -3937,14 +3937,17 @@ function reportCashflow() {
 
   // One date-sorted ledger instead of three separate Deposit/Withdrawal/FX tables —
   // same rows, just merged with a Type column so an empty category doesn't get its
-  // own near-blank panel.
+  // own near-blank panel. Single Amount (RM) column, not a separate original-currency
+  // column that would just repeat the same figure for every MYR-native movement —
+  // the original amount only shows as a sub-line when it's actually a foreign currency.
   const movements = [...types.Deposit, ...types.Withdrawal, ...types["Currency Exchange"]].sort((a, b) => (a.date < b.date ? 1 : -1));
   const movementRows = movements.map((x) => {
+    const myr = (+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1);
+    const origNote = x.currency !== FX.base ? `<div class="fx-note">${esc(ccyLabel(x.currency))} ${fmt(x.gross)}</div>` : "";
     const fxDetail = x.type === "Currency Exchange"
       ? `<div class="fx-note">→ ${esc(ccyLabel(x.toCurrency))} ${fmt(x.toAmount)}${x.fee ? ` · ${t("fee")} ${esc(ccyLabel(x.currency))} ${fmt(x.fee)}` : ""}</div>` : "";
     return `<tr><td>${fmtDate(x.date)}</td><td>${typeChip(x.type)}</td><td class="sub">${esc(brokerName(x.brokerId))}</td>
-      <td class="num">${esc(ccyLabel(x.currency))} ${fmt(x.gross)}</td>
-      <td class="num">${money((+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1))}${fxDetail}</td></tr>`;
+      <td class="num">${money(myr)}${origNote}${fxDetail}</td></tr>`;
   }).join("");
 
   return `
@@ -3954,7 +3957,7 @@ function reportCashflow() {
       ${statCard(t("Net Cash Added"), money(sum(types.Deposit) - sum(types.Withdrawal)), { net: true, valCls: cls(sum(types.Deposit) - sum(types.Withdrawal)) })}
     </section>
     ${panel("Deposits & Withdrawals by Broker", table([{label:"Broker"},{label:"Deposits",num:1},{label:"Withdrawals",num:1},{label:"Net",num:1}], byBrokerRows))}
-    ${panel("Cash Movements", table([{label:"Date"},{label:"Type"},{label:"Broker"},{label:"Amount",num:1},{label:"In RM",num:1}], movementRows))}`;
+    ${panel("Cash Movements", table([{label:"Date"},{label:"Type"},{label:"Broker"},{label:"Amount (RM)",num:1}], movementRows))}`;
 }
 
 function reportPerformance() {
