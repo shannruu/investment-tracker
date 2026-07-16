@@ -3886,11 +3886,11 @@ function reportPortfolio() {
   const a = allocationData();
   return `
     <h3 class="report-h">${t("Allocation")}</h3>
-    <section class="grid-2">
+    <section class="grid-2 report-alloc">
       ${allocationPanel(t("By Country"), a.byCountry, a.total)}
       ${allocationPanel(t("By Sector"), a.bySector, a.total)}
     </section>
-    <section class="grid-2">
+    <section class="grid-2 report-alloc">
       ${allocationPanel(t("By Currency"), a.byCurrency, a.total)}
       ${allocationPanel(t("By Brokerage"), a.byBroker, a.total)}
     </section>
