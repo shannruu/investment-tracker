@@ -3918,10 +3918,6 @@ function reportCashflow() {
   const types = { Deposit: [], Withdrawal: [], "Currency Exchange": [] };
   ALL_TRANSACTIONS.forEach((x) => { if (types[x.type]) types[x.type].push(x); });
   const sum = (arr) => arr.reduce((s, x) => s + (+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1), 0);
-  const rows = (arr) => arr.sort((a, b) => (a.date < b.date ? 1 : -1)).map((x) => `<tr><td>${fmtDate(x.date)}</td><td class="sub">${esc(brokerName(x.brokerId))}</td>
-    <td class="num">${esc(ccyLabel(x.currency))} ${fmt(x.gross)}</td><td class="num">${money((+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1))}</td>
-    ${x.type === "Currency Exchange" ? `<td class="sub">→ ${esc(ccyLabel(x.toCurrency))} ${fmt(x.toAmount)}${x.fee ? ` · ${t("fee")} ${esc(ccyLabel(x.currency))} ${fmt(x.fee)}` : ""}</td>` : "<td></td>"}</tr>`).join("");
-  const hdr = [{label:"Date"},{label:"Broker"},{label:"Amount",num:1},{label:"In RM",num:1},{label:""}];
 
   // How much has gone INTO vs OUT OF each broker specifically — the global
   // Total Deposits/Withdrawals mini-cards above don't answer "how much have
@@ -3939,6 +3935,18 @@ function reportCashflow() {
     .map((r) => `<tr><td>${esc(r.name)}</td><td class="num">${money(r.dep)}</td><td class="num">${money(r.wdr)}</td><td class="num ${cls(r.net)}">${signed(r.net)}</td></tr>`)
     .join("");
 
+  // One date-sorted ledger instead of three separate Deposit/Withdrawal/FX tables —
+  // same rows, just merged with a Type column so an empty category doesn't get its
+  // own near-blank panel.
+  const movements = [...types.Deposit, ...types.Withdrawal, ...types["Currency Exchange"]].sort((a, b) => (a.date < b.date ? 1 : -1));
+  const movementRows = movements.map((x) => {
+    const fxDetail = x.type === "Currency Exchange"
+      ? `<div class="fx-note">→ ${esc(ccyLabel(x.toCurrency))} ${fmt(x.toAmount)}${x.fee ? ` · ${t("fee")} ${esc(ccyLabel(x.currency))} ${fmt(x.fee)}` : ""}</div>` : "";
+    return `<tr><td>${fmtDate(x.date)}</td><td>${typeChip(x.type)}</td><td class="sub">${esc(brokerName(x.brokerId))}</td>
+      <td class="num">${esc(ccyLabel(x.currency))} ${fmt(x.gross)}</td>
+      <td class="num">${money((+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1))}${fxDetail}</td></tr>`;
+  }).join("");
+
   return `
     <section class="metrics">
       ${statCard(t("Total Deposits"), money(sum(types.Deposit)))}
@@ -3946,9 +3954,7 @@ function reportCashflow() {
       ${statCard(t("Net Cash Added"), money(sum(types.Deposit) - sum(types.Withdrawal)), { net: true, valCls: cls(sum(types.Deposit) - sum(types.Withdrawal)) })}
     </section>
     ${panel("Deposits & Withdrawals by Broker", table([{label:"Broker"},{label:"Deposits",num:1},{label:"Withdrawals",num:1},{label:"Net",num:1}], byBrokerRows))}
-    ${panel("Deposits", table(hdr, rows(types.Deposit)))}
-    ${panel("Withdrawals", table(hdr, rows(types.Withdrawal)))}
-    ${panel("Currency Exchanges", table(hdr, rows(types["Currency Exchange"])))}`;
+    ${panel("Cash Movements", table([{label:"Date"},{label:"Type"},{label:"Broker"},{label:"Amount",num:1},{label:"In RM",num:1}], movementRows))}`;
 }
 
 function reportPerformance() {
