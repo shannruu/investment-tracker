@@ -3907,7 +3907,7 @@ function reportDividend() {
       ${statCard(t("Lifetime Net Dividends"), money(lifetime), { net: true, wide: true, valCls: "pos" })}
       ${statCard(t("Dividend Yield (TTM)"), T.portfolioValue ? fmt(ttmDividends() / T.portfolioValue * 100, { maximumFractionDigits: 2 }) + "%" : "—", { wide: true })}
     </section>
-    <section class="grid-2">
+    <section class="grid-2 grid-2-even">
       ${panel("Monthly", table([{label:"Month"},{label:"Net (RM)",num:1}], rows(periods.byMonth)))}
       ${panel("Quarterly", table([{label:"Quarter"},{label:"Net (RM)",num:1}], rows(periods.byQuarter)))}
     </section>
