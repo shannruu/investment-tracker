@@ -3907,14 +3907,26 @@ function reportDividend() {
   const periods = dividendByPeriod(received);
   const lifetime = Object.values(periods.byYear).reduce((s, v) => s + v, 0);
   const rows = (obj) => Object.keys(obj).sort().reverse().map((k) => `<tr><td>${k}</td><td class="num pos">${money(obj[k])}</td></tr>`).join("");
+  // One table with a period filter instead of three separate Monthly/Quarterly/Annual
+  // panels — same pattern (and the same divIncomePeriod preference) as the Dividend
+  // Income panel on the main Dividends page.
+  const incomeLabels = { monthly: t("Month"), quarterly: t("Quarter"), annual: t("Year") };
+  const incomeRowsByPeriod = { monthly: rows(periods.byMonth), quarterly: rows(periods.byQuarter), annual: rows(periods.byYear) };
+  const incomeFilterSel = styledSelect("reportDivPeriod", [
+    { value: "monthly", label: t("Monthly") },
+    { value: "quarterly", label: t("Quarterly") },
+    { value: "annual", label: t("Annual") },
+  ], divIncomePeriod, { id: "reportDivPeriodSel" });
   return `
     <section class="metrics">
       ${statCard(t("Lifetime Net Dividends"), money(lifetime), { net: true, wide: true, valCls: "pos" })}
       ${statCard(t("Dividend Yield (TTM)"), T.portfolioValue ? fmt(ttmDividends() / T.portfolioValue * 100, { maximumFractionDigits: 2 }) + "%" : "—", { wide: true })}
     </section>
-    ${panel("Monthly", table([{label:"Month"},{label:"Net (RM)",num:1}], rows(periods.byMonth)))}
-    ${panel("Quarterly", table([{label:"Quarter"},{label:"Net (RM)",num:1}], rows(periods.byQuarter)))}
-    ${panel("Annual", table([{label:"Year"},{label:"Net (RM)",num:1}], rows(periods.byYear)))}`;
+    ${panel("Dividend Income", table([
+        { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
+        { label: "Net (RM)", style: "width:50%;text-align:left" },
+      ], incomeRowsByPeriod[divIncomePeriod] || incomeRowsByPeriod.monthly),
+      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}`;
 }
 
 function reportCashflow() {
@@ -3997,6 +4009,8 @@ function pageReports() {
   return { title: "Reports", subtitle: "Portfolio, dividend, cash-flow and performance reports.", html,
     mount() {
       $$("[data-rtab]").forEach((b) => b.addEventListener("click", () => { reportTab = b.dataset.rtab; render(); }));
+      const reportDivPeriodEl = $("#reportDivPeriodSel");
+      if (reportDivPeriodEl) reportDivPeriodEl.addEventListener("change", () => { divIncomePeriod = reportDivPeriodEl.value; render(); });
       $("#expCash").addEventListener("click", exportCashCSV);
       $("#expTx").addEventListener("click", exportTxCSV);
       $("#expDiv").addEventListener("click", exportDivCSV);
