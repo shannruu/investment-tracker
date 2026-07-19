@@ -238,6 +238,7 @@ const ZH = {
   // Cash / reconciliation
   "Holdings": "持仓", "Market Value": "市值", "Cash (calc)": "计算现金", "Difference": "差额",
   "Not checked": "未核对", "Matched": "已匹配", "Small difference": "小幅差异", "Needs review": "需复核",
+  "Reconciliation": "现金核对", "More actions": "更多操作", "More details": "更多详情",
   "Update": "更新", "Actual cash balance for": "实际现金余额：", "Note (optional)": "备注（可选）",
   "Reconciliation saved": "对账已保存", "Enter a valid number.": "请输入有效数字。",
   "Calculated from every recorded cash movement: deposits, withdrawals, buys, sells, dividends, fees, transfers and currency exchanges.": "计算值来自所有已记录的现金变动：存款、取款、买入、卖出、股息、费用、转账与货币兑换。",
@@ -3886,18 +3887,32 @@ function pageDividends() {
 let editingBrokerId = null;          // P1.5
 let showArchivedBrokers = false;     // P1.6
 
+let _brokerMenuCloseHandler = null;
+
 function brokerCard(b) {
   const holdings = T.holdings.filter((h) => h.brokerId === b.id);
   const value = holdings.reduce((s, h) => s + h.marketValue, 0);
+  const costBasis = holdings.reduce((s, h) => s + h.costBasis, 0);
   const calc = T.brokerCash[b.id] || 0;
   const chk = RECON_CHECKS[b.id];
   const hasActual = chk && chk.actual != null;
   const diff = hasActual ? calc - (+chk.actual) : null;
-  const off = hasActual && Math.abs(diff) > (SETTINGS.reconTolerance || 0);
+  let reconStatus = t("Not checked"), reconCls = "subtle";
+  if (hasActual) {
+    if (Math.abs(diff) < 0.005) { reconStatus = t("Matched"); reconCls = "pos"; }
+    else if (Math.abs(diff) <= (SETTINGS.reconTolerance || 0)) { reconStatus = t("Small difference"); reconCls = "warn"; }
+    else { reconStatus = t("Needs review"); reconCls = "neg"; }
+  }
+
+  // Negative currency balances: a small tappable pill next to Available Cash (reusing the
+  // app's .col-info tooltip mechanism) instead of a full-width banner per currency —
+  // the detail is still one tap/hover away, it just doesn't dominate the card at rest.
   const negBalances = (T.negativeCash || []).filter((n) => n.brokerId === b.id);
-  const negWarnings = negBalances.map((n) =>
-    `<div class="warn-card crit bc-neg"><span class="w-ico">⚠</span><div class="w-body"><strong>${esc(ccyLabel(n.currency))} ${t("balance is negative")} (${esc(ccyLabel(n.currency))}&nbsp;${fmt(Math.abs(n.amount))})</strong> — ${t("a buy, fee, or withdrawal has no matching")} ${esc(ccyLabel(n.currency))} ${t("deposit. Record one to balance this.")}</div></div>`
-  ).join("");
+  const negTip = negBalances.map((n) =>
+    `${ccyLabel(n.currency)} ${t("balance is negative")} (${ccyLabel(n.currency)} ${fmt(Math.abs(n.amount))}) — ${t("a buy, fee, or withdrawal has no matching")} ${ccyLabel(n.currency)} ${t("deposit. Record one to balance this.")}`
+  ).join(" ");
+  const negLabel = LANG === "zh" ? `⚠ ${negBalances.length}个问题` : `⚠ ${negBalances.length} ${negBalances.length === 1 ? "issue" : "issues"}`;
+  const negPill = negBalances.length ? ` <span class="col-info warn-pill" data-tip="${esc(negTip)}">${negLabel}</span>` : "";
 
   // How this broker has performed, not just where it stands right now:
   // money in/out, current value, gain/loss, income — the full story per broker.
@@ -3905,33 +3920,48 @@ function brokerCard(b) {
   const withdrawals = T.withdrawalsByBroker[b.id] || 0;
   const unrealized = T.unrealizedByBroker[b.id] || 0;
   const totalReturn = T.totalReturnByBroker[b.id] || 0;
+  const totalReturnPct = costBasis ? (totalReturn / costBasis) * 100 : 0;
   const dividends = T.dividendsByBroker[b.id] || 0;
-  const stat = (label, val, cls2 = "", tip = "") => `<div><span class="sub">${label}${tip ? ` <span class="col-info" data-tip="${tip}">${COL_INFO_ICON_SVG}</span>` : ""}</span><strong class="${cls2}">${val}</strong></div>`;
 
   return `<article class="broker-card ${b.archived ? "archived" : ""}">
       <div class="bc-head"><span class="brand-mark sm">${esc(b.name.slice(0,2).toUpperCase())}</span>
         <div><div class="bc-name">${esc(b.name)} ${b.archived ? `<span class="badge subtle">${t("Archived")}</span>` : ""}</div>
           <div class="sub">${esc(b.country) || "—"} · ${esc(ccyLabel(b.currency))}</div></div>
-        <div class="bc-actions">
-          <button class="icon-btn row-edit" data-edit-broker="${b.id}" title="${t("Edit")}" aria-label="${t("Edit")}">✎</button>
-          <button class="icon-btn" data-archive-broker="${b.id}" title="${b.archived ? t("Unarchive") : t("Archive")}" aria-label="${b.archived ? t("Unarchive") : t("Archive")}">${b.archived ? "↩" : "🗄"}</button>
-          <button class="icon-btn bc-del" data-del-broker="${b.id}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button>
+        <div class="bc-menu">
+          <button type="button" class="icon-btn" data-broker-menu aria-haspopup="true" aria-expanded="false" title="${t("More actions")}" aria-label="${t("More actions")}">⋯</button>
+          <div class="bc-menu-pop" hidden>
+            <button type="button" data-edit-broker="${b.id}">${t("Edit")}</button>
+            <button type="button" data-archive-broker="${b.id}">${b.archived ? t("Unarchive") : t("Archive")}</button>
+            <button type="button" class="danger" data-del-broker="${b.id}">${t("Remove")}</button>
+          </div>
         </div></div>
-      <div class="bc-stats">
-        ${stat(t("Holdings"), holdings.length)}
-        ${stat(t("Market Value"), money(value))}
-        ${stat(t("Available Cash"), money(calc), "", t("Can invest or withdraw"))}
-        ${stat(t("Unrealized P/L"), moneySigned(unrealized), cls(unrealized))}
-        ${stat(t("Total Return"), moneySigned(totalReturn), cls(totalReturn))}
-        ${stat(t("Net Dividends"), money(dividends), dividends > 0 ? "pos" : "")}
-        ${stat(t("Total Deposits"), money(deposits))}
-        ${stat(t("Total Withdrawals"), money(withdrawals))}
-        ${stat(t("Difference"), hasActual ? moneySigned(diff) : "—", off ? "neg" : "")}
-        ${stat(t("Dividends paid to"), b.divPaidTo === "bank" ? t("Bank") : t("Broker"), "", t("Where this broker's dividends land by default — used when auto-logging market dividends."))}
-        ${stat(t("Default dividend tax rate"), `${fmt(b.divTaxRate || 0, { maximumFractionDigits: 2 })}%`, "", t("Applied to dividends auto-logged from market history at this broker."))}
+
+      <div class="bc-hero">
+        <div><span class="bc-hero-label">${t("Market Value")}</span><span class="bc-hero-value">${money(value)}</span></div>
+        <div class="bc-hero-return ${cls(totalReturn)}">
+          <span class="bc-hero-return-amt">${moneySigned(totalReturn)}</span>
+          <span class="bc-hero-return-pct">${costBasis ? `${pctTxt(totalReturnPct)} ` : ""}${t("Total Return")}</span>
+        </div>
       </div>
-      ${b.notes ? `<p class="bc-notes muted">${esc(b.notes)}</p>` : ""}
-      ${negWarnings}</article>`;
+
+      <dl class="bc-list">
+        <div><dt>${t("Available Cash")}${negPill}</dt><dd>${money(calc)}</dd></div>
+        <div><dt>${t("Holdings")}</dt><dd>${holdings.length}</dd></div>
+        <div><dt>${t("Net Dividends")}</dt><dd class="${dividends > 0 ? "pos" : ""}">${money(dividends)}</dd></div>
+      </dl>
+
+      <details class="bc-more">
+        <summary>${t("More details")}</summary>
+        <dl class="bc-list">
+          <div><dt>${t("Unrealized P/L")}</dt><dd class="${cls(unrealized)}">${moneySigned(unrealized)}</dd></div>
+          <div><dt>${t("Total Deposits")}</dt><dd>${money(deposits)}</dd></div>
+          <div><dt>${t("Total Withdrawals")}</dt><dd>${money(withdrawals)}</dd></div>
+          <div><dt>${t("Reconciliation")}</dt><dd><span class="badge ${reconCls}">${reconStatus}</span></dd></div>
+          <div><dt>${t("Dividends paid to")}</dt><dd>${b.divPaidTo === "bank" ? t("Bank") : t("Broker")}</dd></div>
+          <div><dt>${t("Default dividend tax rate")}</dt><dd>${fmt(b.divTaxRate || 0, { maximumFractionDigits: 2 })}%</dd></div>
+        </dl>
+      </details>
+      ${b.notes ? `<p class="bc-notes muted">${esc(b.notes)}</p>` : ""}</article>`;
 }
 
 function pageBrokers() {
@@ -3957,6 +3987,18 @@ function pageBrokers() {
       if (openBtn) openBtn.addEventListener("click", () => openBrokerDrawer());
       const tog = $("#toggleArchived");
       if (tog) tog.addEventListener("click", () => { showArchivedBrokers = !showArchivedBrokers; render(); });
+
+      // Per-card "⋯" menu (Edit/Archive/Remove) — same open/toggle + outside-click-close
+      // pattern as the Portfolio page's Edit Columns panel, just generalized to N cards.
+      $$("[data-broker-menu]").forEach((btn) => btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const pop = btn.nextElementSibling;
+        $$(".bc-menu-pop").forEach((p) => { if (p !== pop) p.hidden = true; });
+        pop.hidden = !pop.hidden;
+      }));
+      if (_brokerMenuCloseHandler) document.removeEventListener("click", _brokerMenuCloseHandler);
+      _brokerMenuCloseHandler = () => { $$(".bc-menu-pop").forEach((p) => (p.hidden = true)); };
+      document.addEventListener("click", _brokerMenuCloseHandler);
 
       $$("[data-edit-broker]").forEach((btn) => btn.addEventListener("click", () => openBrokerDrawer(btn.dataset.editBroker)));
       $$("[data-archive-broker]").forEach((btn) => btn.addEventListener("click", () => {
