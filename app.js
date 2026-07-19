@@ -246,7 +246,6 @@ const ZH = {
   "A sell exceeds shares held for": "卖出超过持有股数：", "Use the oversell override if intentional.": "如有意为之，请使用超卖覆盖。",
   "holding(s) have no current price set — portfolio value uses cost as a placeholder.": "个持仓未设当前价格 — 组合价值暂用成本代替。",
   "Exchange rates were last updated": "汇率最后更新于", "days ago — refresh them in Settings.": "天前 — 请在设置中刷新。",
-  "days": "天", "overdue": "已过期",
   // Settings — data safety
   "Tolerance": "容差", "Differences within this amount are treated as a small difference rather than needing review.": "此金额内的差异视为小幅差异，而非需复核。",
   "Tolerance saved": "容差已保存",
@@ -613,13 +612,6 @@ function todayISO() { const p = todayParts(); const z = (n) => String(n).padStar
 function dateToISO(d) {
   const z = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`;
-}
-
-function daysUntil(iso) {
-  if (!iso) return NaN;
-  const today = todayDate(); today.setHours(0, 0, 0, 0);
-  const target = new Date(iso + "T00:00:00");
-  return Math.round((target - today) / 86400000);
 }
 function daysSince(iso) {
   if (!iso) return Infinity;
@@ -1933,10 +1925,7 @@ function pageDashboard() {
   const dashUpcoming = [...upcoming.map((d) => ({ ...d, amtMYR: d.expectedNetMYR })), ...dashEstimated]
     .sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
   const divRows = dashUpcoming.map((d) => {
-    const du = daysUntil(d.payDate);
-    const dlabel = d.payDate ? (du >= 0 ? `${du} ${t("days")}` : t("overdue")) : "—";
     return `<tr><td class="ticker">${esc(d.ticker)}</td><td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
-      <td class="num">${dlabel}</td>
       <td class="num">${money(d.amtMYR)}</td><td>${dashSourceBadge(d.source || "manual")}</td></tr>`;
   }).join("");
 
@@ -2037,7 +2026,7 @@ function pageDashboard() {
       })()}
     </section>
     <div id="dashDivSection">${listPanel("Upcoming Dividends", dashUpcoming.length,
-      table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Days"},{label:"Expected Net (RM)",num:1},{label:"Status"}], divRows),
+      table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Expected Net (RM)",num:1},{label:"Status"}], divRows),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
       table([{label:"Holding",style:"width:28%"},{label:"Shares",style:"width:15%"},{label:"Market Value",style:"width:19%"},{label:"Unrealized P/L",style:"width:19%"},{label:"Total Return",style:"width:19%"}], holdingsRows),
