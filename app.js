@@ -2404,6 +2404,7 @@ function mountOpeningHoldingForm() {
  * PAGE: PORTFOLIO  (with working filters + grouped allocations)
  * ========================================================================== */
 const portfolioFilters = { broker: "", market: "", currency: "", sort: "" };
+let portfolioTab = "holdings";   // holdings | allocation
 const EXCHANGE_NAMES = { NMS:"NASDAQ", NGM:"NASDAQ", NCM:"NASDAQ", NYQ:"NYSE", PCX:"NYSE Arca", KLS:"Bursa Malaysia", KLSE:"Bursa Malaysia", LSE:"London SE", HKG:"Hong Kong SE", ASX:"ASX", TSX:"TSX" };
 function exchangeName(code) { return code ? (EXCHANGE_NAMES[code] || code) : ""; }
 function marketRegion(m) { return (m === "KLS" || m === "KLSE") ? "malaysia" : (m ? "global" : ""); }
@@ -2543,17 +2544,24 @@ function pagePortfolio() {
   const latestFetch = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();
   const priceStampHtml = `<span id="pfPriceStamp">${latestFetch ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${fmtDateTime(latestFetch)}`) : ""}</span>`;
   const refreshBtn = `<button class="icon-btn pf-refresh" id="pfRefreshBtn" title="${t("Refresh live prices")}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>`;
+  // Holdings table vs. allocation breakdowns — same tp-tab pills as the Records page,
+  // so switching doesn't feel like a different component elsewhere in the app.
+  const pfTabs = [["holdings", "Holdings"], ["allocation", "Allocation"]];
+  const pfNav = `<div class="type-tabs" role="tablist" style="margin-bottom:16px">${pfTabs.map(([k, lbl]) =>
+    `<button class="tp-tab ${portfolioTab === k ? "on" : ""}" data-pftab="${k}">${t(lbl)}</button>`).join("")}</div>`;
   const html = has
     ? `<div id="pfSummary">${portfolioSummaryHTML()}</div>
-       ${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
-          `<div class="panel-head-actions">${priceStampHtml}${refreshBtn}</div>`)}
-       ${breakdowns}`
+       ${pfNav}
+       ${portfolioTab === "allocation" ? breakdowns
+          : panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
+              `<div class="panel-head-actions">${priceStampHtml}${refreshBtn}</div>`)}`
     : panel("Holdings", emptyContent);
 
   return { title: "Portfolio", subtitle: LANG === "zh"
       ? `${T.holdings.length} 个持仓，${BROKERS.length} 个券商 · ${money(T.portfolioValue)}`
       : `${plural(T.holdings.length, "holding", "holdings")} across ${plural(BROKERS.length, "broker", "brokers")} · ${money(T.portfolioValue)}`, html,
     mount() {
+      $$("[data-pftab]").forEach((b) => b.addEventListener("click", () => { portfolioTab = b.dataset.pftab; render(); }));
       const apply = () => {
         const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioTable();
         const sm = $("#pfSummary"); if (sm) sm.innerHTML = portfolioSummaryHTML();
