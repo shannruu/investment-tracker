@@ -1758,14 +1758,7 @@ function allocationData() {
 function allocationPanel(title, rows, total) {
   const sorted = [...rows].filter((r) => r.value > 0).sort((a, b) => b.value - a.value);
   if (!sorted.length) return panel(title, emptyState(t("No priced holdings yet.")));
-  const barRows = sorted.map((r, i) => {
-    const pct = total ? (r.value / total) * 100 : 0;
-    return `<span class="bar-lbl">${esc(r.label)}</span>
-      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${PALETTE[i % PALETTE.length]}"></div></div>
-      <span class="bar-val">${money(r.value)}</span>
-      <span class="bar-pct">${fmt(pct, { maximumFractionDigits: 1 })}%</span>`;
-  }).join("");
-  return panel(title, `<div class="barlist">${barRows}</div>`);
+  return panel(title, donutHTML(sorted, t("Total"), money(total)));
 }
 
 /* Trailing-12-month NET dividends in base currency (reused for yield + forecast). */
@@ -1910,8 +1903,8 @@ function pageDashboard() {
       </td>
       <td class="dcc-c">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>
       <td class="dcc-c">${money(h.marketValue)}</td>
-      <td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
-      <td class="dcc-c ${cls(h.totalReturn)}">${signed(h.totalReturn)}${h.costBasis > 0 ? `<div class="fx-note ${cls(h.totalReturn)}">${pctTxt((h.totalReturn / h.costBasis) * 100)}</div>` : ""}</td></tr>`).join("");
+      <td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? moneySigned(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
+      <td class="dcc-c ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}${h.costBasis > 0 ? `<div class="fx-note ${cls(h.totalReturn)}">${pctTxt((h.totalReturn / h.costBasis) * 100)}</div>` : ""}</td></tr>`).join("");
 
   // Upcoming dividends — manual (UPCOMING_DIVIDENDS), auto-fetched (AUTO_DIV_CACHE), legacy
   // Expected, AND pattern-based estimates (fc.nextPayments) for tickers with a detected
@@ -1960,10 +1953,10 @@ function pageDashboard() {
       { op: "+", label: "Current Portfolio Value", val: fmt(T.portfolioValue) },
       { op: "+", label: "Available cash (all brokers)", val: fmt(T.totalCash || 0) }], total: netWorth },
     pl: { title: returnIsTotal ? "Total Return" : "Unrealized P/L", rows: [
-      { op: "+", label: "Unrealized P/L", val: signed(T.unrealizedPL) },
-      { op: "+", label: "Realized P/L", val: signed(T.realizedPL) },
-      ...(returnIsTotal ? [{ op: "+", label: "Net Dividends", val: signed(T.netDividends) }] : []),
-      ...(returnIsTotal && T.totalInterest ? [{ op: "+", label: "Interest Received", val: signed(T.totalInterest) }] : []),
+      { op: "+", label: "Unrealized P/L", val: moneySigned(T.unrealizedPL) },
+      { op: "+", label: "Realized P/L", val: moneySigned(T.realizedPL) },
+      ...(returnIsTotal ? [{ op: "+", label: "Net Dividends", val: moneySigned(T.netDividends) }] : []),
+      ...(returnIsTotal && T.totalInterest ? [{ op: "+", label: "Interest Received", val: moneySigned(T.totalInterest) }] : []),
       { op: "−", label: "Total Fees", val: fmt(T.totalFees) }], total: shownReturn },
     cash: availableCashCalc(),
     principal: netCashAddedCalc("Principal Invested"),
@@ -1979,7 +1972,7 @@ function pageDashboard() {
     </article>
     <article class="stat pl ${up ? "is-up" : dn ? "is-down" : ""}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total Return") : t("Unrealized P/L")}, show calculation">
       ${statHead(returnIsTotal ? t("Total Return") : t("Unrealized P/L"), `<div class="stat-head-group">${toggle}${howHint}</div>`)}
-      <div class="stat-value ${up ? "pos" : dn ? "neg" : ""}">${up ? "▲ " : dn ? "▼ " : ""}${signed(shownReturn)}</div>
+      <div class="stat-value ${up ? "pos" : dn ? "neg" : ""}">${up ? "▲ " : dn ? "▼ " : ""}${moneySigned(shownReturn)}</div>
       <div class="stat-sub" style="display:flex;align-items:baseline;gap:6px">
         <span class="${up ? "pos" : dn ? "neg" : "muted"}">${up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%"}</span>
         <span class="muted" style="font-size:11px">${t("on net capital")}</span>
@@ -2522,14 +2515,14 @@ function pagePortfolio() {
 
   // Allocation breakdowns — moved here from the old Reports page (which was mostly a
   // mirror of other pages); this is genuinely-not-shown-elsewhere info, so it belongs
-  // on the page it's actually about. Ranked bar lists, not donuts — see allocationPanel.
+  // on the page it's actually about. See allocationPanel.
   const distinctBrokers = new Set(T.holdings.map((h) => h.brokerId)).size;
   const allocA = allocationData();
-  const breakdowns = has ? `
+  const breakdowns = has ? `<div class="pf-breakdowns">
       ${allocationPanel(t("By Country"), allocA.byCountry, allocA.total)}
       ${allocationPanel(t("By Sector"), allocA.bySector, allocA.total)}
       ${allocationPanel(t("By Currency"), allocA.byCurrency, allocA.total)}
-      ${distinctBrokers >= 2 ? allocationPanel(t("By Brokerage"), allocA.byBroker, allocA.total) : ""}` : "";
+      ${distinctBrokers >= 2 ? allocationPanel(t("By Brokerage"), allocA.byBroker, allocA.total) : ""}</div>` : "";
 
   const emptyContent = BROKERS.length
     ? `<div class="portfolio-empty">
@@ -2721,8 +2714,8 @@ function portfolioSummaryHTML() {
   const totalReturnPct = costBasis ? (totalReturn / costBasis) * 100 : 0;
   return `<div class="mini-cards" style="margin-bottom:16px">
     <div class="mini-card"><div class="mc-label">${t("Market Value")}</div><div class="mc-value">${money(mv)}</div></div>
-    <div class="mini-card"><div class="mc-label">${t("Unrealized P/L")}</div><div class="mc-value ${cls(unrealized)}">${signed(unrealized)}</div><div class="mc-sub ${cls(unrealizedPct)}">${pctTxt(unrealizedPct)}</div></div>
-    <div class="mini-card"><div class="mc-label">${t("Total Return")}</div><div class="mc-value ${cls(totalReturn)}">${signed(totalReturn)}</div><div class="mc-sub ${cls(totalReturnPct)}">${pctTxt(totalReturnPct)}</div></div>
+    <div class="mini-card"><div class="mc-label">${t("Unrealized P/L")}</div><div class="mc-value ${cls(unrealized)}">${moneySigned(unrealized)}</div><div class="mc-sub ${cls(unrealizedPct)}">${pctTxt(unrealizedPct)}</div></div>
+    <div class="mini-card"><div class="mc-label">${t("Total Return")}</div><div class="mc-value ${cls(totalReturn)}">${moneySigned(totalReturn)}</div><div class="mc-sub ${cls(totalReturnPct)}">${pctTxt(totalReturnPct)}</div></div>
   </div>`;
 }
 
@@ -2761,9 +2754,9 @@ function portfolioTable() {
       avgCost:        `<td class="dcc-c">${money(h.avgCost)}</td>`,
       price:          `<td class="dcc-c">${h.hasPrice ? `${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}` : `<span class="muted">—</span>`}</td>`,
       priceMyr:       `<td class="dcc-c">${(h.hasPrice && h.currency !== FX.base) ? `${ccyLabel(FX.base)} ${fmt(h.currentPrice * (FX.rates[h.currency] || 1))}` : `<span class="muted">—</span>`}</td>`,
-      unrealizedAmt:  `<td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? signed(h.unrealized) : `<span class="muted">—</span>`}</td>`,
+      unrealizedAmt:  `<td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? moneySigned(h.unrealized) : `<span class="muted">—</span>`}</td>`,
       unrealizedPct:  `<td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? pctTxt(h.unrealizedPct) : `<span class="muted">—</span>`}</td>`,
-      totalReturnAmt: `<td class="dcc-c ${cls(h.totalReturn)}">${signed(h.totalReturn)}</td>`,
+      totalReturnAmt: `<td class="dcc-c ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</td>`,
       totalReturnPct: `<td class="dcc-c ${cls(h.totalReturn)}">${pctTxt(totalReturnPct)}</td>`,
       marketValue:    `<td class="dcc-c">${h.hasPrice ? money(h.marketValue) : `<span class="muted">—</span>`}</td>`,
       netDiv:         `<td class="dcc-c">${h.netDividends ? money(h.netDividends) : `<span class="muted">—</span>`}</td>`,
@@ -3453,7 +3446,7 @@ function brokerCashPanelsHTML() {
     }
     return `<tr><td>${esc(b.name)}</td><td class="num">${money(calc)}</td>
       <td class="num">${hasActual ? money(+chk.actual) : "—"}${hasActual && chk.date ? `<div class="fx-note">${fmtDate(chk.date)}</div>` : ""}</td>
-      <td class="num ${hasActual && Math.abs(diff) > (SETTINGS.reconTolerance || 0) ? "neg" : ""}">${hasActual ? signed(diff) : "—"}</td>
+      <td class="num ${hasActual && Math.abs(diff) > (SETTINGS.reconTolerance || 0) ? "neg" : ""}">${hasActual ? moneySigned(diff) : "—"}</td>
       <td><span class="badge ${scls}">${status}</span></td>
       <td class="num"><button class="btn ghost" data-recon-broker="${b.id}">${t("Update")}</button></td></tr>`;
   }).join("");
@@ -3928,12 +3921,12 @@ function brokerCard(b) {
         ${stat(t("Holdings"), holdings.length)}
         ${stat(t("Market Value"), money(value))}
         ${stat(t("Available Cash"), money(calc), "", t("Can invest or withdraw"))}
-        ${stat(t("Unrealized P/L"), signed(unrealized), cls(unrealized))}
-        ${stat(t("Total Return"), signed(totalReturn), cls(totalReturn))}
+        ${stat(t("Unrealized P/L"), moneySigned(unrealized), cls(unrealized))}
+        ${stat(t("Total Return"), moneySigned(totalReturn), cls(totalReturn))}
         ${stat(t("Net Dividends"), money(dividends), dividends > 0 ? "pos" : "")}
         ${stat(t("Total Deposits"), money(deposits))}
         ${stat(t("Total Withdrawals"), money(withdrawals))}
-        ${stat(t("Difference"), hasActual ? signed(diff) : "—", off ? "neg" : "")}
+        ${stat(t("Difference"), hasActual ? moneySigned(diff) : "—", off ? "neg" : "")}
         ${stat(t("Dividends paid to"), b.divPaidTo === "bank" ? t("Bank") : t("Broker"), "", t("Where this broker's dividends land by default — used when auto-logging market dividends."))}
         ${stat(t("Default dividend tax rate"), `${fmt(b.divTaxRate || 0, { maximumFractionDigits: 2 })}%`, "", t("Applied to dividends auto-logged from market history at this broker."))}
       </div>

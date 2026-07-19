@@ -412,17 +412,12 @@ a { color: inherit; text-decoration: none; }
 .legend-dot { width: 11px; height: 11px; border-radius: 3px; flex: 0 0 auto; }
 .legend-row .lr-pct { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
 
-/* Reports > Portfolio allocation breakdowns: a ranked bar list instead of a donut —
- * scales to any category count (a pie stops being readable past 4-5 slices), and one
- * grid container (not per-row grids) keeps the label/bar/value/% columns aligned
- * down the whole list. */
-.barlist { display: grid; grid-template-columns: minmax(70px, 150px) 1fr auto auto; align-items: center; column-gap: 12px; row-gap: 10px; }
-.bar-lbl { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.bar-track { height: 7px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
-.bar-fill { height: 100%; border-radius: 999px; }
-.bar-val { font-size: 12.5px; color: var(--text-soft); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.bar-pct { font-size: 11.5px; color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
-@media (max-width: 480px) { .barlist { grid-template-columns: minmax(60px, 100px) 1fr auto auto; column-gap: 8px; } }
+/* Portfolio > Allocation tab: donut + legend per breakdown, 2-up grid on wide screens.
+ * .chart svg is width:100% globally, so without a size cap here the donut would stretch
+ * to fill each grid cell — same fix as the Dashboard's own .dash-charts allocation chart. */
+.pf-breakdowns { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.pf-breakdowns .chart.alloc svg { width: 160px !important; height: 160px !important; flex: none; }
+@media (max-width: 900px) { .pf-breakdowns { grid-template-columns: 1fr; } }
 
 /* ===================== Tables ===================== */
 .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
