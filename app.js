@@ -2039,7 +2039,7 @@ function pageDashboard() {
       table([{label:"Ticker",style:"width:15%"},{label:"Ex-Date",style:"width:20%"},{label:"Payment",style:"width:20%"},{label:"Expected Net (RM)",style:"width:25%"},{label:"Status",style:"width:20%"}], divRows, { fixed: true }),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
-      table([{label:"Holding",style:"width:20%"},{label:"Shares",style:"width:13%"},{label:"Market Value",style:"width:22%"},{label:"Unrealized P/L",style:"width:22%"},{label:"Total Return",style:"width:23%"}], holdingsRows, { fixed: true }),
+      table([{label:"Holding",style:"width:20%"},{label:"Shares",style:"width:20%"},{label:"Market Value",style:"width:20%"},{label:"Unrealized P/L",style:"width:20%"},{label:"Total Return",style:"width:20%"}], holdingsRows, { fixed: true }),
       t("No holdings yet — add a Buy to get started."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${pricesAsOfFmt}`) : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
