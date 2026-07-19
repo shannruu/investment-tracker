@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Investment Ledger</title>
   <meta name="description" content="Track investments across multiple brokers in one place." />
-  <link rel="stylesheet" href="styles.css?v=213" />
+  <link rel="stylesheet" href="styles.css?v=214" />
 </head>
 <body>
 
@@ -17,7 +17,6 @@
     <symbol id="i-dividends" viewBox="0 0 24 24"><line x1="12" y1="2.5" x2="12" y2="21.5"/><path d="M16.5 6H9.5a3 3 0 0 0 0 6h5a3 3 0 0 1 0 6H6.5"/></symbol>
     <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
     <symbol id="i-records" viewBox="0 0 24 24"><line x1="8" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="20" y2="12"/><line x1="8" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/></symbol>
-    <symbol id="i-reports" viewBox="0 0 24 24"><line x1="3" y1="20.5" x2="21" y2="20.5"/><line x1="6" y1="20" x2="6" y2="13"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="9"/></symbol>
     <symbol id="i-brokers" viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21V8l7-4 7 4v13"/><path d="M9.5 21v-5h5v5"/></symbol>
     <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
     <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.2 9.2a3 3 0 0 1 5.6 1c0 2-2.8 2.3-2.8 4"/><line x1="12" y1="17.4" x2="12.01" y2="17.4"/></symbol>
@@ -47,7 +46,6 @@
         <div class="nav-sep"></div>
 
         <a class="nav-item" href="#/records" data-page="records"><span class="ni-ico"><svg class="icon"><use href="#i-records"/></svg></span><span data-i18n="Transactions">Transactions</span></a>
-        <a class="nav-item" href="#/reports" data-page="reports"><span class="ni-ico"><svg class="icon"><use href="#i-reports"/></svg></span><span data-i18n="Reports">Reports</span></a>
         <a class="nav-item" href="#/brokers" data-page="brokers"><span class="ni-ico"><svg class="icon"><use href="#i-brokers"/></svg></span><span data-i18n="Brokers">Brokers</span></a>
         <a class="nav-item" href="#/settings" data-page="settings"><span class="ni-ico"><svg class="icon"><use href="#i-settings"/></svg></span><span data-i18n="Settings">Settings</span></a>
         <a class="nav-item" href="#/help" data-page="help"><span class="ni-ico"><svg class="icon"><use href="#i-help"/></svg></span><span data-i18n="Help">Help</span></a>
@@ -93,7 +91,6 @@
     <div class="more-sheet" role="dialog" aria-modal="true" aria-label="More">
       <div class="more-head"><strong data-i18n="More">More</strong><button class="icon-btn" id="moreClose" aria-label="Close">✕</button></div>
       <a class="more-item" href="#/records" data-page="records"><span class="ni-ico"><svg class="icon"><use href="#i-records"/></svg></span><span data-i18n="Transactions">Transactions</span><span class="more-sub" data-i18n="All transactions, cash & dividends">All transactions, cash &amp; dividends</span></a>
-      <a class="more-item" href="#/reports" data-page="reports"><span class="ni-ico"><svg class="icon"><use href="#i-reports"/></svg></span><span data-i18n="Reports">Reports</span><span class="more-sub" data-i18n="Portfolio, dividend, cash-flow, performance">Portfolio, dividend, cash-flow, performance</span></a>
       <a class="more-item" href="#/brokers" data-page="brokers"><span class="ni-ico"><svg class="icon"><use href="#i-brokers"/></svg></span><span data-i18n="Brokers">Brokers</span><span class="more-sub" data-i18n="Accounts & reconciliation">Accounts &amp; reconciliation</span></a>
       <a class="more-item" href="#/settings" data-page="settings"><span class="ni-ico"><svg class="icon"><use href="#i-settings"/></svg></span><span data-i18n="Settings">Settings</span><span class="more-sub" data-i18n="Currency, preferences, import & backup">Currency, preferences, import &amp; backup</span></a>
       <a class="more-item" href="#/help" data-page="help"><span class="ni-ico"><svg class="icon"><use href="#i-help"/></svg></span><span data-i18n="Help">Help</span><span class="more-sub" data-i18n="Guides & FAQ">Guides &amp; FAQ</span></a>
@@ -149,7 +146,7 @@
     </div>
   </div>
 
-  <script src="data.js?v=213"></script>
-  <script src="app.js?v=213"></script>
+  <script src="data.js?v=214"></script>
+  <script src="app.js?v=214"></script>
 </body>
 </html>

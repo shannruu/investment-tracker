@@ -650,16 +650,6 @@ a { color: inherit; text-decoration: none; }
 .portfolio-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 32px 24px 28px; gap: 16px; }
 .portfolio-empty .pe-msg { margin: 0; color: var(--text-soft); font-size: 14px; line-height: 1.65; max-width: 360px; }
 
-/* Portfolio breakdowns: small, supporting donuts below the holdings table */
-.portfolio-breakdowns { display: flex; flex-wrap: wrap; gap: 20px; }
-.portfolio-breakdowns > .panel { flex: 1 1 300px; max-width: 420px; }
-.portfolio-breakdowns:has(> .panel:only-child) > .panel { flex: 0 0 100%; max-width: 480px; margin: 0 auto; }
-.portfolio-breakdowns .panel-head { margin-bottom: 8px; }
-.portfolio-breakdowns .chart.alloc { gap: 14px; align-items: center; }
-.portfolio-breakdowns .chart.alloc svg { width: 84px; height: 84px; flex: none; }
-.portfolio-breakdowns .legend-row { font-size: 11.5px; }
-@media (max-width: 560px) { .portfolio-breakdowns > .panel { max-width: none; } }
-
 /* ---- Filters bar ---- */
 .filters { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border); align-items: center; }
 #holdingsBody { padding-top: 2px; }
@@ -848,10 +838,6 @@ input[type="date"] { cursor: pointer; }
 
 .div-fc-empty { display: flex; align-items: flex-start; gap: 12px; padding: 4px 0 2px; }
 .div-fc-empty > span { font-size: 22px; line-height: 1.2; flex: none; }
-
-/* ---- Reports: section headings ---- */
-.report-h { font-size: 14px; font-weight: 700; margin: 22px 0 10px; color: var(--text); }
-.report-h:first-child { margin-top: 4px; }
 
 /* ---- CSV import preview ---- */
 .import-preview { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 14px; }

@@ -88,7 +88,7 @@ let LANG = (function () { try { return localStorage.getItem("il-lang") || "en"; 
 const ZH = {
   // Nav / chrome
   "Dashboard": "仪表盘", "Portfolio": "投资组合", "Transactions": "交易记录",
-  "Cash Ledger": "现金账本", "Dividends": "股息", "Reports": "报表",
+  "Cash Ledger": "现金账本", "Dividends": "股息",
   "Brokers": "券商", "Settings": "设置", "Help": "帮助",
   "Base currency": "基准货币", "Add": "添加", "Add record": "添加记录", "More": "更多",
   "Export CSV": "导出 CSV", "Add Transaction": "添加交易",
@@ -252,7 +252,7 @@ const ZH = {
   "Tolerance saved": "容差已保存",
   "Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.": "您的投资数据仅保存在本设备的此浏览器中。清除浏览器数据可能会将其删除。请定期导出 JSON 备份。",
   "Export full backup (JSON)": "导出完整备份 (JSON)", "Import backup (JSON)": "导入备份 (JSON)",
-  "Export Transactions CSV": "导出交易 CSV", "Export Cash CSV": "导出现金 CSV",
+  "Export Transactions CSV": "导出交易 CSV", "Export Cash CSV": "导出现金 CSV", "Export Dividends CSV": "导出股息 CSV",
   "Load demo data": "加载演示数据", "Demo data loaded": "已加载演示数据",
   "This will replace your current data with demo data. Continue?": "这将用演示数据替换您当前的数据。是否继续？",
   "This replaces your current data with this backup file. Export your current data first if you want to keep it. Continue?": "此操作将用该备份文件替换您当前的数据。如需保留当前数据，请先导出备份。是否继续？",
@@ -405,8 +405,7 @@ const ZH = {
   "Trailing 12-month net dividends ÷ current portfolio market value.": "近12个月净股息 ÷ 当前持仓市值。",
   "Cash as a percentage of total net value (market value + available cash).": "现金占总净值百分比（市值 + 可用现金）。",
   "Effective N score based on portfolio weights. Higher = more diversified.": "基于投资组合权重的有效N值。越高，越分散。",
-  // Phase 2 — Reports (F3)
-  "Holdings": "持仓", "Cash Flow": "现金流", "Performance": "业绩表现",
+  "Holdings": "持仓",
   "Lifetime Net Dividends": "累计净股息", "Realized Return": "已实现收益",
   "Unrealized Return": "未实现收益", "Total Return": "总收益",
   "Total Deposits": "存款总额", "Total Withdrawals": "取款总额", "Net Cash Added": "净投入现金",
@@ -466,7 +465,6 @@ const ZH = {
   // Refactor — 5-item nav, More sheet, Records, Add flow, dashboard hero
   "More": "更多",
   "All transactions, cash & dividends": "所有交易、现金与股息",
-  "Portfolio, dividend, cash-flow, performance": "投资组合、股息、现金流、业绩",
   "Accounts & reconciliation": "账户与对账",
   "Currency, preferences, import & backup": "货币、偏好、导入与备份",
   "Guides & FAQ": "指南与常见问题",
@@ -1746,7 +1744,7 @@ function groupSum(items, keyFn, valFn) {
 }
 
 /* =============================================================================
- * SHARED ANALYTICS — allocation, portfolio health (reused by Reports & Dashboard)
+ * SHARED ANALYTICS — allocation, portfolio health (reused by Portfolio & Dashboard)
  * ========================================================================== */
 function allocationData() {
   const hs = T.holdings;
@@ -2522,10 +2520,16 @@ function pagePortfolio() {
     <button class="btn ghost btn-reset${filtersActive ? " active" : ""}" id="fReset">${t("Reset")}</button>
     ${colPanelHtml}</div>`;
 
+  // Allocation breakdowns — moved here from the old Reports page (which was mostly a
+  // mirror of other pages); this is genuinely-not-shown-elsewhere info, so it belongs
+  // on the page it's actually about. Ranked bar lists, not donuts — see allocationPanel.
   const distinctBrokers = new Set(T.holdings.map((h) => h.brokerId)).size;
-  const breakdowns = distinctBrokers >= 2
-    ? panel("Holdings by Broker", donutHTML(groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.marketValue), "", ""))
-    : "";
+  const allocA = allocationData();
+  const breakdowns = has ? `
+      ${allocationPanel(t("By Country"), allocA.byCountry, allocA.total)}
+      ${allocationPanel(t("By Sector"), allocA.bySector, allocA.total)}
+      ${allocationPanel(t("By Currency"), allocA.byCurrency, allocA.total)}
+      ${distinctBrokers >= 2 ? allocationPanel(t("By Brokerage"), allocA.byBroker, allocA.total) : ""}` : "";
 
   const emptyContent = BROKERS.length
     ? `<div class="portfolio-empty">
@@ -2544,7 +2548,7 @@ function pagePortfolio() {
     ? `<div id="pfSummary">${portfolioSummaryHTML()}</div>
        ${panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
           `<div class="panel-head-actions">${priceStampHtml}${refreshBtn}</div>`)}
-       ${breakdowns ? `<section class="portfolio-breakdowns">${breakdowns}</section>` : ""}`
+       ${breakdowns}`
     : panel("Holdings", emptyContent);
 
   return { title: "Portfolio", subtitle: LANG === "zh"
@@ -3424,7 +3428,10 @@ function cashCardCalc(card, list) {
   return brokerBreakdownCalc(t(labels[cashSubFilter] || "Total"), list);
 }
 
-/* Broker-page extras: per-currency cash balances, reconciliation against actual balances. */
+/* Broker-page extras: per-currency cash balances, reconciliation against actual
+ * balances, fees paid — moved here from the old Reports page since it's genuinely
+ * broker-specific info that isn't shown anywhere else, unlike the rest of what used
+ * to be there. */
 function brokerCashPanelsHTML() {
   const recRows = BROKERS.map((b) => {
     const calc = T.brokerCash[b.id] || 0;
@@ -3450,11 +3457,16 @@ function brokerCashPanelsHTML() {
       `<tr><td>${esc(b.name)}</td><td>${esc(c)}</td><td class="num ${byc[c] < 0 ? "neg" : ""}">${fmt(byc[c])}</td><td class="num">${money(byc[c] * (FX.rates[c] || 1))}</td></tr>`).join("");
   }).join("");
 
+  const feesRows = groupSum(ALL_TRANSACTIONS.filter((x) => x.fee), (x) => brokerName(x.brokerId), (x) => (+x.fee || 0) * (x.fxRate || FX.rates[x.currency] || 1))
+    .sort((a, b) => b.value - a.value)
+    .map((r) => `<tr><td>${esc(r.label)}</td><td class="num neg">${money(r.value)}</td></tr>`).join("");
+
   return `${panel("Cash Balances by Currency", table(
       [{label:"Broker"},{label:"Currency"},{label:"Balance",num:1},{label:"In RM",num:1}], ccyRows))}
     ${panel("Broker Cash Reconciliation", table(
       [{label:"Broker"},{label:"Calculated Balance",num:1},{label:"Actual Balance",num:1},{label:"Difference",num:1},{label:"Status"},{label:"",num:1}], recRows),
-      `<span class="badge subtle">${t("Calculated from every recorded cash movement: deposits, withdrawals, buys, sells, dividends, fees, transfers and currency exchanges.")}</span>`)}`;
+      `<span class="badge subtle">${t("Calculated from every recorded cash movement: deposits, withdrawals, buys, sells, dividends, fees, transfers and currency exchanges.")}</span>`)}
+    ${panel("Fees Paid by Broker", table([{label:"Broker"},{label:"Fees",num:1}], feesRows))}`;
 }
 
 function mountBrokerCashPanels() {
@@ -3473,17 +3485,6 @@ function mountBrokerCashPanels() {
 
 function miniCard(label, value, valCls = "") {
   return `<div class="mini-card"><div class="mc-label">${label}</div><div class="mc-value ${valCls}">${value}</div></div>`;
-}
-
-/* Same "hero stat" card as the Dashboard metrics row (.stat/.stat.net) — used on
- * Reports so its summary cards match the rest of the app instead of the flat
- * .mini-card boxes. Non-interactive (Reports numbers aren't click-to-see-how). */
-function statCard(label, value, opts = {}) {
-  return `<article class="stat${opts.net ? " net" : ""}${opts.wide ? " wide" : ""}">
-    <div class="stat-head"><span class="stat-label">${label}</span></div>
-    <div class="stat-value${opts.valCls ? ` ${opts.valCls}` : ""}">${value}</div>
-    ${opts.sub ? `<div class="stat-sub muted">${opts.sub}</div>` : ""}
-  </article>`;
 }
 
 /* Net dividend of one record, in base currency (gross − tax, at historical FX). */
@@ -3880,144 +3881,6 @@ function pageDividends() {
 }
 
 /* =============================================================================
- * PAGE: REPORTS
- * ========================================================================== */
-let reportTab = "portfolio";   // F3: portfolio | dividend | cashflow | performance
-
-/* The full sortable/filterable/customizable holdings table already lives on
- * the Portfolio page (pagePortfolio → portfolioTable) — this report only adds
- * the allocation breakdowns that aren't shown anywhere else, rather than a
- * second, strictly weaker copy of the same holdings list. */
-function reportPortfolio() {
-  const a = allocationData();
-  // Full-width, one per row — same reasoning as Monthly/Quarterly/Annual on the
-  // Dividend tab: side-by-side pairing means one panel's row count (e.g. many
-  // countries) can dwarf its neighbor's (few sectors), leaving them visibly
-  // mismatched in height. Stacking removes that risk entirely without capping data.
-  return `
-    <div class="panel-head"><h3 class="report-h" style="margin:0">${t("Allocation")}</h3><a class="link" href="#/portfolio">${t("View the full holdings table")} →</a></div>
-    ${allocationPanel(t("By Country"), a.byCountry, a.total)}
-    ${allocationPanel(t("By Sector"), a.bySector, a.total)}
-    ${allocationPanel(t("By Currency"), a.byCurrency, a.total)}
-    ${allocationPanel(t("By Brokerage"), a.byBroker, a.total)}`;
-}
-
-function reportDividend() {
-  const received = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status !== "Expected");
-  const periods = dividendByPeriod(received);
-  const lifetime = Object.values(periods.byYear).reduce((s, v) => s + v, 0);
-  const rows = (obj) => Object.keys(obj).sort().reverse().map((k) => `<tr><td>${k}</td><td class="num pos">${money(obj[k])}</td></tr>`).join("");
-  // One table with a period filter instead of three separate Monthly/Quarterly/Annual
-  // panels — same pattern (and the same divIncomePeriod preference) as the Dividend
-  // Income panel on the main Dividends page.
-  const incomeLabels = { monthly: t("Month"), quarterly: t("Quarter"), annual: t("Year") };
-  const incomeRowsByPeriod = { monthly: rows(periods.byMonth), quarterly: rows(periods.byQuarter), annual: rows(periods.byYear) };
-  const incomeFilterSel = styledSelect("reportDivPeriod", [
-    { value: "monthly", label: t("Monthly") },
-    { value: "quarterly", label: t("Quarterly") },
-    { value: "annual", label: t("Annual") },
-  ], divIncomePeriod, { id: "reportDivPeriodSel" });
-  return `
-    <section class="metrics">
-      ${statCard(t("Lifetime Net Dividends"), money(lifetime), { net: true, wide: true, valCls: "pos" })}
-      ${statCard(t("Dividend Yield (TTM)"), T.portfolioValue ? fmt(ttmDividends() / T.portfolioValue * 100, { maximumFractionDigits: 2 }) + "%" : "—", { wide: true })}
-    </section>
-    ${panel("Dividend Income", table([
-        { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
-        { label: "Net (RM)", style: "width:50%;text-align:left" },
-      ], incomeRowsByPeriod[divIncomePeriod] || incomeRowsByPeriod.monthly),
-      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}`;
-}
-
-function reportCashflow() {
-  const types = { Deposit: [], Withdrawal: [], "Currency Exchange": [] };
-  ALL_TRANSACTIONS.forEach((x) => { if (types[x.type]) types[x.type].push(x); });
-  const sum = (arr) => arr.reduce((s, x) => s + (+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1), 0);
-
-  // How much has gone INTO vs OUT OF each broker specifically — the global
-  // Total Deposits/Withdrawals mini-cards above don't answer "how much have
-  // I put into Broker A vs Broker B" on their own.
-  const depByBroker = groupSum(types.Deposit, (x) => brokerName(x.brokerId), (x) => (+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1));
-  const wdrByBroker = groupSum(types.Withdrawal, (x) => brokerName(x.brokerId), (x) => (+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1));
-  const brokerNames = [...new Set([...depByBroker.map((d) => d.label), ...wdrByBroker.map((d) => d.label)])];
-  const byBrokerRows = brokerNames
-    .map((name) => {
-      const dep = (depByBroker.find((d) => d.label === name) || { value: 0 }).value;
-      const wdr = (wdrByBroker.find((d) => d.label === name) || { value: 0 }).value;
-      return { name, dep, wdr, net: dep - wdr };
-    })
-    .sort((a, b) => b.dep - a.dep)
-    .map((r) => `<tr><td>${esc(r.name)}</td><td class="num">${money(r.dep)}</td><td class="num">${money(r.wdr)}</td><td class="num ${cls(r.net)}">${signed(r.net)}</td></tr>`)
-    .join("");
-
-  // One date-sorted ledger instead of three separate Deposit/Withdrawal/FX tables —
-  // same rows, just merged with a Type column so an empty category doesn't get its
-  // own near-blank panel. Single Amount (RM) column, not a separate original-currency
-  // column that would just repeat the same figure for every MYR-native movement —
-  // the original amount only shows as a sub-line when it's actually a foreign currency.
-  const movements = [...types.Deposit, ...types.Withdrawal, ...types["Currency Exchange"]].sort((a, b) => (a.date < b.date ? 1 : -1));
-  const movementRows = movements.map((x) => {
-    const myr = (+x.gross || 0) * (x.fxRate || FX.rates[x.currency] || 1);
-    const origNote = x.currency !== FX.base ? `<div class="fx-note">${esc(ccyLabel(x.currency))} ${fmt(x.gross)}</div>` : "";
-    const fxDetail = x.type === "Currency Exchange"
-      ? `<div class="fx-note">→ ${esc(ccyLabel(x.toCurrency))} ${fmt(x.toAmount)}${x.fee ? ` · ${t("fee")} ${esc(ccyLabel(x.currency))} ${fmt(x.fee)}` : ""}</div>` : "";
-    return `<tr><td>${fmtDate(x.date)}</td><td>${typeChip(x.type)}</td><td class="sub">${esc(brokerName(x.brokerId))}</td>
-      <td class="num">${money(myr)}${origNote}${fxDetail}</td></tr>`;
-  }).join("");
-
-  return `
-    <section class="metrics">
-      ${statCard(t("Total Deposits"), money(sum(types.Deposit)))}
-      ${statCard(t("Total Withdrawals"), money(sum(types.Withdrawal)))}
-      ${statCard(t("Net Cash Added"), money(sum(types.Deposit) - sum(types.Withdrawal)), { net: true, valCls: cls(sum(types.Deposit) - sum(types.Withdrawal)) })}
-    </section>
-    ${panel("Deposits & Withdrawals by Broker", table([{label:"Broker"},{label:"Deposits",num:1},{label:"Withdrawals",num:1},{label:"Net",num:1}], byBrokerRows))}
-    ${panel("Cash Movements", table([{label:"Date"},{label:"Type"},{label:"Broker"},{label:"Amount (RM)",num:1}], movementRows))}`;
-}
-
-function reportPerformance() {
-  const fxGain = T.fxUnrealizedPL || 0, priceOnly = T.priceUnrealizedPL || 0;
-  return `
-    <section class="metrics">
-      ${statCard(t("Realized Return"), signed(T.realizedPL), { valCls: cls(T.realizedPL) })}
-      ${statCard(t("Unrealized Return"), signed(T.unrealizedPL), { valCls: cls(T.unrealizedPL), sub: `${t("price")} ${signed(priceOnly)} · ${t("FX")} ${signed(fxGain)}` })}
-      ${statCard(t("Net Dividends"), money(T.netDividends), { valCls: "pos" })}
-      ${statCard(t("Total Return"), money(T.totalReturn), { net: true, wide: true, valCls: cls(T.totalReturn), sub: pctTxt(T.totalReturnPct) + " " + t("on net capital") })}
-      ${statCard("XIRR", T.xirr == null ? "—" : pctTxt(T.xirr), { wide: true, valCls: T.xirr == null ? "" : cls(T.xirr), sub: t("money-weighted") })}
-    </section>
-    ${panel("Profit / Loss by Broker", table([{label:"Broker"},{label:"Total Return",num:1}],
-      groupSum(T.holdings, (h) => brokerName(h.brokerId), (h) => h.totalReturn).map((b) => `<tr><td>${esc(b.label)}</td><td class="num ${cls(b.value)}">${signed(b.value)}</td></tr>`).join("")))}
-    ${panel("Fees Paid by Broker", table([{label:"Broker"},{label:"Fees",num:1}],
-      groupSum(ALL_TRANSACTIONS.filter((x) => x.fee), (x) => brokerName(x.brokerId), (x) => (+x.fee || 0) * (x.fxRate || FX.rates[x.currency] || 1)).map((b) => `<tr><td>${esc(b.label)}</td><td class="num neg">${money(b.value)}</td></tr>`).join("")))}`;
-}
-
-function pageReports() {
-  // Same pill-tab style as the Transactions page's tabs, not the older segmented control.
-  const tabs = [["portfolio", "Portfolio"], ["dividend", "Dividend"], ["cashflow", "Cash Flow"], ["performance", "Performance"]];
-  const nav = `<div class="type-selector" style="margin-bottom:16px"><div class="type-tabs" role="tablist">${tabs.map(([k, lbl]) =>
-    `<button class="tp-tab ${reportTab === k ? "on" : ""}" data-rtab="${k}">${t(lbl)}</button>`).join("")}</div></div>`;
-  const body = reportTab === "dividend" ? reportDividend()
-    : reportTab === "cashflow" ? reportCashflow()
-    : reportTab === "performance" ? reportPerformance() : reportPortfolio();
-  const html = `${nav}${body}
-    <section class="panel"><div class="panel-head"><h2>Export</h2></div>
-      <div class="form-actions">
-        <button class="btn" id="expCash">⭳ Cash Ledger CSV</button>
-        <button class="btn" id="expTx">⭳ Transactions CSV</button>
-        <button class="btn" id="expDiv">⭳ Dividends CSV</button>
-      </div></section>`;
-  return { title: "Reports", subtitle: "Portfolio, dividend, cash-flow and performance reports.", html,
-    mount() {
-      $$("[data-rtab]").forEach((b) => b.addEventListener("click", () => { reportTab = b.dataset.rtab; render(); }));
-      const reportDivPeriodEl = $("#reportDivPeriodSel");
-      if (reportDivPeriodEl) reportDivPeriodEl.addEventListener("change", () => { divIncomePeriod = reportDivPeriodEl.value; render(); });
-      $("#expCash").addEventListener("click", exportCashCSV);
-      $("#expTx").addEventListener("click", exportTxCSV);
-      $("#expDiv").addEventListener("click", exportDivCSV);
-    } };
-}
-
-/* =============================================================================
  * PAGE: BROKERS
  * ========================================================================== */
 let editingBrokerId = null;          // P1.5
@@ -4244,6 +4107,7 @@ function pageSettings() {
         <input type="file" id="impJsonFile" accept="application/json,.json" hidden>
         <button class="btn" id="setExpTx">⭳ ${t("Export Transactions CSV")}</button>
         <button class="btn" id="setExpCash">⭳ ${t("Export Cash CSV")}</button>
+        <button class="btn" id="setExpDiv">⭳ ${t("Export Dividends CSV")}</button>
         <button class="btn ghost" id="loadDemo">${t("Load demo data")}</button>
         <button class="btn ghost" id="clearPvHistory">${t("Clear chart history")}</button>
       </div>`)}
@@ -4316,6 +4180,7 @@ function pageSettings() {
       // CSV + JSON backup
       $("#setExpCash").addEventListener("click", exportCashCSV);
       $("#setExpTx").addEventListener("click", exportTxCSV);
+      $("#setExpDiv").addEventListener("click", exportDivCSV);
       $("#expJson").addEventListener("click", exportBackupJSON);
       $("#impJsonBtn").addEventListener("click", () => $("#impJsonFile").click());
       $("#impJsonFile").addEventListener("change", (e) => importBackupJSON(e.target.files[0]));
@@ -4903,10 +4768,10 @@ function pageHolding() {
       const dcf = $("#divCalFilterSel");
       if (dcf) dcf.addEventListener("change", () => { holdingDivFilter = dcf.value; render(); });
       // AUTO_DIV_CACHE is in-memory only (not persisted) and was previously only ever
-      // populated by the Dashboard's or Reports page's mount() — landing here directly
-      // (bookmark, back-button, or a hard refresh while already on this page) left it
-      // empty with nothing to re-fetch it, hiding the Dividend Calendar even though the
-      // underlying holding data was fine. Fetch it here too, same pattern as those pages.
+      // populated by the Dashboard's mount() — landing here directly (bookmark,
+      // back-button, or a hard refresh while already on this page) left it empty with
+      // nothing to re-fetch it, hiding the Dividend Calendar even though the underlying
+      // holding data was fine. Fetch it here too, same pattern as that page.
       if (LIVE_ENABLED) {
         fetchAllDivSchedules().then(({ fetched }) => {
           if (fetched && document.getElementById("dtlPrice")) render();
@@ -5333,7 +5198,7 @@ function toast(msg) {
 }
 
 /* =============================================================================
- * "MORE" SHEET — secondary navigation (Records, Reports, Brokers, Settings, Help)
+ * "MORE" SHEET — secondary navigation (Records, Brokers, Settings, Help)
  * ========================================================================== */
 function closeMoreSheet() { const s = $("#moreSheet"); if (s) s.hidden = true; }
 function toggleMoreSheet() { const s = $("#moreSheet"); if (s) s.hidden = !s.hidden; }
@@ -5343,7 +5208,7 @@ function toggleMoreSheet() { const s = $("#moreSheet"); if (s) s.hidden = !s.hid
  * ========================================================================== */
 const PAGES = {
   dashboard: pageDashboard, portfolio: pagePortfolio, records: pageRecords, add: pageAdd,
-  dividends: pageDividends, reports: pageReports,
+  dividends: pageDividends,
   brokers: pageBrokers, settings: pageSettings, help: pageHelp, holding: pageHolding,
 };
 
@@ -5380,7 +5245,7 @@ function render() {
   // active nav state — sidebar items highlight directly; mobile "More" highlights on secondary pages.
   // The add drawer renders over Transactions (key "add" → route #/records), so with it open
   // both the Transactions item and the mobile quick-add "+" read as active.
-  const secondary = ["records", "reports", "brokers", "settings", "help"];
+  const secondary = ["records", "brokers", "settings", "help"];
   $$("[data-page]").forEach((el) => {
     const p = el.dataset.page;
     el.classList.toggle("active", p === key || (key === "add" && (p === "records" || p === "add")));
