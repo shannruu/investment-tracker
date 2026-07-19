@@ -1924,9 +1924,15 @@ function pageDashboard() {
     : src === "estimated" ? `<span class="badge warn">${t("Estimated")}</span>` : `<span class="badge subtle">${t("Manual")}</span>`;
   const dashUpcoming = [...upcoming.map((d) => ({ ...d, amtMYR: d.expectedNetMYR })), ...dashEstimated]
     .sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
+  // Pattern-projected rows (source: "estimated") only ever get a payDate from the detected
+  // frequency, never a real declared ex-date — mirror the app's own ex-date+14d payment
+  // estimate in reverse so the column isn't blank on every single projected row. The row's
+  // own "Estimated" status badge already flags the whole row as a projection.
+  const estExDate = (payDs) => { const dd = new Date(payDs + "T00:00:00"); dd.setDate(dd.getDate() - 14); return dateToISO(dd); };
   const divRows = dashUpcoming.map((d) => {
-    return `<tr><td class="ticker">${esc(d.ticker)}</td><td>${fmtDate(d.exDate)}</td><td>${fmtDate(d.payDate)}</td>
-      <td class="num">${money(d.amtMYR)}</td><td>${dashSourceBadge(d.source || "manual")}</td></tr>`;
+    const exDate = d.exDate || (d.payDate ? estExDate(d.payDate) : null);
+    return `<tr><td class="dcc-c ticker">${esc(d.ticker)}</td><td class="dcc-c">${fmtDate(exDate)}</td><td class="dcc-c">${fmtDate(d.payDate)}</td>
+      <td class="dcc-c">${money(d.amtMYR)}</td><td class="dcc-c">${dashSourceBadge(d.source || "manual")}</td></tr>`;
   }).join("");
 
   const recentRows = ALL_TRANSACTIONS.slice(0, 6).map((tx) => {
@@ -2026,7 +2032,7 @@ function pageDashboard() {
       })()}
     </section>
     <div id="dashDivSection">${listPanel("Upcoming Dividends", dashUpcoming.length,
-      table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Expected Net (RM)",num:1},{label:"Status"}], divRows),
+      table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Expected Net (RM)"},{label:"Status"}], divRows),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
       table([{label:"Holding",style:"width:28%"},{label:"Shares",style:"width:15%"},{label:"Market Value",style:"width:19%"},{label:"Unrealized P/L",style:"width:19%"},{label:"Total Return",style:"width:19%"}], holdingsRows),
