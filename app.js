@@ -3891,7 +3891,7 @@ let reportTab = "portfolio";   // F3: portfolio | dividend | cashflow | performa
 function reportPortfolio() {
   const a = allocationData();
   return `
-    <h3 class="report-h">${t("Allocation")}</h3>
+    <div class="panel-head"><h3 class="report-h" style="margin:0">${t("Allocation")}</h3><a class="link" href="#/portfolio">${t("View the full holdings table")} →</a></div>
     <section class="grid-2 grid-2-even">
       ${allocationPanel(t("By Country"), a.byCountry, a.total)}
       ${allocationPanel(t("By Sector"), a.bySector, a.total)}
@@ -3899,8 +3899,7 @@ function reportPortfolio() {
     <section class="grid-2 grid-2-even">
       ${allocationPanel(t("By Currency"), a.byCurrency, a.total)}
       ${allocationPanel(t("By Brokerage"), a.byBroker, a.total)}
-    </section>
-    <p class="muted" style="font-size:12px;margin:10px 2px 0"><a class="link" href="#/portfolio">${t("View the full holdings table")} →</a></p>`;
+    </section>`;
 }
 
 function reportDividend() {
