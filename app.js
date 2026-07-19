@@ -1397,14 +1397,18 @@ function emptyState(msg) {
   return `<div class="empty" style="padding:40px 12px">${msg}</div>`;
 }
 
-function table(headers, rows) {
+function table(headers, rows, opts = {}) {
   const thead = `<thead><tr>${headers.map((h) =>
     `<th class="${h.num ? "num" : ""}"${h.style ? ` style="${h.style}"` : ""}>${h.label}</th>`).join("")}</tr></thead>`;
   // Show a friendly placeholder row when there are no records yet.
   const body = (rows && rows.trim())
     ? rows
     : `<tr><td colspan="${headers.length}" class="empty" style="padding:28px 12px">${t("Nothing to show yet.")}</td></tr>`;
-  return `<div class="table-wrap"><table class="data-table">${thead}<tbody>${body}</tbody></table></div>`;
+  // opts.fixed: force each column to its declared width instead of shrinking to fit
+  // content — table-layout:auto (the default) lets a table with few/short rows sit
+  // narrower than its 100% container, leaving a visible gap on the right. Opt-in only,
+  // since it requires every column to have a sane width already declared.
+  return `<div class="table-wrap"><table class="data-table${opts.fixed ? " data-table-fixed" : ""}">${thead}<tbody>${body}</tbody></table></div>`;
 }
 
 function statusBadge(s) {
@@ -2032,14 +2036,14 @@ function pageDashboard() {
       })()}
     </section>
     <div id="dashDivSection">${listPanel("Upcoming Dividends", dashUpcoming.length,
-      table([{label:"Ticker"},{label:"Ex-Date"},{label:"Payment"},{label:"Expected Net (RM)"},{label:"Status"}], divRows),
+      table([{label:"Ticker",style:"width:15%"},{label:"Ex-Date",style:"width:20%"},{label:"Payment",style:"width:20%"},{label:"Expected Net (RM)",style:"width:25%"},{label:"Status",style:"width:20%"}], divRows, { fixed: true }),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
-      table([{label:"Holding",style:"width:28%"},{label:"Shares",style:"width:15%"},{label:"Market Value",style:"width:19%"},{label:"Unrealized P/L",style:"width:19%"},{label:"Total Return",style:"width:19%"}], holdingsRows),
+      table([{label:"Holding",style:"width:28%"},{label:"Shares",style:"width:15%"},{label:"Market Value",style:"width:19%"},{label:"Unrealized P/L",style:"width:19%"},{label:"Total Return",style:"width:19%"}], holdingsRows, { fixed: true }),
       t("No holdings yet — add a Buy to get started."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${pricesAsOfFmt}`) : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
-      table([{label:"Date",style:"width:20%"},{label:"Type",style:"width:20%"},{label:"Ticker",style:"width:20%"},{label:"Broker",style:"width:20%"},{label:"Amount",style:"width:20%"}], recentRows),
+      table([{label:"Date",style:"width:20%"},{label:"Type",style:"width:20%"},{label:"Ticker",style:"width:20%"},{label:"Broker",style:"width:20%"},{label:"Amount",style:"width:20%"}], recentRows, { fixed: true }),
       t("No activity yet."), `<a class="link" href="#/records">${t("All")} →</a>`)}
     <p class="dash-footnote">${metaNote(SAVED_ICON_SVG, LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet"))}</p>`;
 
