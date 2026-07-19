@@ -1758,14 +1758,20 @@ function allocationData() {
     byBroker: groupSum(hs, (h) => brokerName(h.brokerId), (h) => h.marketValue),
   };
 }
-/* Donut + percentage table for one allocation breakdown. */
+/* Ranked bar list for one allocation breakdown — replaced the donut+legend+table
+ * combo (three representations of the same numbers, and a pie stops being readable
+ * past 4-5 slices) with rows that scale cleanly to any category count. */
 function allocationPanel(title, rows, total) {
   const sorted = [...rows].filter((r) => r.value > 0).sort((a, b) => b.value - a.value);
   if (!sorted.length) return panel(title, emptyState(t("No priced holdings yet.")));
-  const tableRows = sorted.map((r) => `<tr><td>${esc(r.label)}</td><td class="num">${money(r.value)}</td>
-    <td class="num">${total ? fmt((r.value / total) * 100, { maximumFractionDigits: 1 }) : "0"}%</td></tr>`).join("");
-  return panel(title, `${donutHTML(sorted.map((r) => ({ label: r.label, value: r.value })), title.replace(/^.* /, ""), "")}
-    ${table([{label:"Group"},{label:"Value",num:1},{label:"%",num:1}], tableRows)}`);
+  const barRows = sorted.map((r, i) => {
+    const pct = total ? (r.value / total) * 100 : 0;
+    return `<span class="bar-lbl">${esc(r.label)}</span>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${PALETTE[i % PALETTE.length]}"></div></div>
+      <span class="bar-val">${money(r.value)}</span>
+      <span class="bar-pct">${fmt(pct, { maximumFractionDigits: 1 })}%</span>`;
+  }).join("");
+  return panel(title, `<div class="barlist">${barRows}</div>`);
 }
 
 /* Trailing-12-month NET dividends in base currency (reused for yield + forecast). */
@@ -3886,11 +3892,11 @@ function reportPortfolio() {
   const a = allocationData();
   return `
     <h3 class="report-h">${t("Allocation")}</h3>
-    <section class="grid-2 report-alloc">
+    <section class="grid-2 grid-2-even">
       ${allocationPanel(t("By Country"), a.byCountry, a.total)}
       ${allocationPanel(t("By Sector"), a.bySector, a.total)}
     </section>
-    <section class="grid-2 report-alloc">
+    <section class="grid-2 grid-2-even">
       ${allocationPanel(t("By Currency"), a.byCurrency, a.total)}
       ${allocationPanel(t("By Brokerage"), a.byBroker, a.total)}
     </section>
