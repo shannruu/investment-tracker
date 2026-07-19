@@ -3890,16 +3890,16 @@ let reportTab = "portfolio";   // F3: portfolio | dividend | cashflow | performa
  * second, strictly weaker copy of the same holdings list. */
 function reportPortfolio() {
   const a = allocationData();
+  // Full-width, one per row — same reasoning as Monthly/Quarterly/Annual on the
+  // Dividend tab: side-by-side pairing means one panel's row count (e.g. many
+  // countries) can dwarf its neighbor's (few sectors), leaving them visibly
+  // mismatched in height. Stacking removes that risk entirely without capping data.
   return `
     <div class="panel-head"><h3 class="report-h" style="margin:0">${t("Allocation")}</h3><a class="link" href="#/portfolio">${t("View the full holdings table")} →</a></div>
-    <section class="grid-2 grid-2-even">
-      ${allocationPanel(t("By Country"), a.byCountry, a.total)}
-      ${allocationPanel(t("By Sector"), a.bySector, a.total)}
-    </section>
-    <section class="grid-2 grid-2-even">
-      ${allocationPanel(t("By Currency"), a.byCurrency, a.total)}
-      ${allocationPanel(t("By Brokerage"), a.byBroker, a.total)}
-    </section>`;
+    ${allocationPanel(t("By Country"), a.byCountry, a.total)}
+    ${allocationPanel(t("By Sector"), a.bySector, a.total)}
+    ${allocationPanel(t("By Currency"), a.byCurrency, a.total)}
+    ${allocationPanel(t("By Brokerage"), a.byBroker, a.total)}`;
 }
 
 function reportDividend() {
