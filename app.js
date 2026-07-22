@@ -130,7 +130,7 @@ const ZH = {
   "A rough estimate of Ex-Date + 14 days (when the money would actually land), since market data reports only the ex-date, not a real payment date. A manually entered payment date is shown exactly as you typed it.": "除息日 + 14 天的粗略估算（资金大约到账的日期），因为市场数据只提供除息日，而非真实的派息日期。手动输入的派息日期则完全按您输入的显示。",
   "Date": "日期", "Type": "类型", "Qty": "数量", "Gross": "总额", "Fee": "费用",
   "Tax": "税", "Net (RM)": "净额 (RM)", "Net": "净额", "Amount": "金额",
-  "Currency": "货币", "FX Rate": "汇率", "In": "折合",
+  "Currency": "货币", "FX Rate": "汇率",
   "Calculated Balance": "计算余额", "Actual Balance": "实际余额", "Difference": "差额",
   "Country": "国家/地区", "Withholding Tax (RM)": "预扣税 (RM)",
   "Year": "年份", "Net Dividends": "净股息",
@@ -3435,6 +3435,8 @@ function cashCardCalc(card, list) {
  * broker-specific info that isn't shown anywhere else, unlike the rest of what used
  * to be there. */
 function brokerCashPanelsHTML() {
+  // dcc-c left-alignment + fixed, evenly-spaced columns to match every other table in the
+  // app (Holdings, Recent Activity, ...) instead of the old right-aligned .num convention.
   const recRows = BROKERS.map((b) => {
     const calc = T.brokerCash[b.id] || 0;
     const chk = RECON_CHECKS[b.id];
@@ -3446,32 +3448,44 @@ function brokerCashPanelsHTML() {
       else if (Math.abs(diff) <= (SETTINGS.reconTolerance || 0)) { status = t("Small difference"); scls = "warn"; }
       else { status = t("Needs review"); scls = "neg"; }
     }
-    return `<tr><td>${esc(b.name)}</td><td class="num">${money(calc)}</td>
-      <td class="num">${hasActual ? money(+chk.actual) : "—"}${hasActual && chk.date ? `<div class="fx-note">${fmtDate(chk.date)}</div>` : ""}</td>
-      <td class="num ${hasActual && Math.abs(diff) > (SETTINGS.reconTolerance || 0) ? "neg" : ""}">${hasActual ? moneySigned(diff) : "—"}</td>
-      <td><span class="badge ${scls}">${status}</span></td>
-      <td class="num"><button class="btn ghost" data-recon-broker="${b.id}">${t("Update")}</button></td></tr>`;
+    return `<tr><td class="dcc-c">${esc(b.name)}</td><td class="dcc-c">${money(calc)}</td>
+      <td class="dcc-c">${hasActual ? money(+chk.actual) : "—"}${hasActual && chk.date ? `<div class="fx-note">${fmtDate(chk.date)}</div>` : ""}</td>
+      <td class="dcc-c ${hasActual && Math.abs(diff) > (SETTINGS.reconTolerance || 0) ? "neg" : ""}">${hasActual ? moneySigned(diff) : "—"}</td>
+      <td class="dcc-c"><span class="badge ${scls}">${status}</span></td>
+      <td class="dcc-c"><button class="btn ghost" data-recon-broker="${b.id}">${t("Update")}</button></td></tr>`;
   }).join("");
 
   // One combined "Balance" column (currency + amount together, same convention as the
   // Dashboard's Recent Activity amounts) instead of splitting Currency/Balance across two
-  // columns, and dcc-c left-alignment to match every other table in the app.
+  // columns, and dcc-c left-alignment to match every other table in the app. A Total row
+  // (in base currency, the only unit that can be summed across different currencies) so
+  // the panel isn't just 1-2 sparse rows with nothing to add up to.
   const ccyRows = BROKERS.map((b) => {
     const byc = T.brokerCashByCcy[b.id] || {};
     return Object.keys(byc).filter((c) => Math.abs(byc[c]) > 0.005).map((c) =>
       `<tr><td class="dcc-c">${esc(b.name)}</td><td class="dcc-c ${byc[c] < 0 ? "neg" : ""}">${esc(ccyLabel(c))} ${fmt(byc[c])}</td><td class="dcc-c">${money(byc[c] * (FX.rates[c] || 1))}</td></tr>`).join("");
   }).join("");
+  const ccyTotal = BROKERS.reduce((s, b) => {
+    const byc = T.brokerCashByCcy[b.id] || {};
+    return s + Object.keys(byc).reduce((s2, c) => s2 + byc[c] * (FX.rates[c] || 1), 0);
+  }, 0);
+  const ccyTotalRow = ccyRows
+    ? `<tr><td class="dcc-c"><strong>${t("Total")}</strong></td><td class="dcc-c">—</td><td class="dcc-c ${cls(ccyTotal)}"><strong>${money(ccyTotal)}</strong></td></tr>` : "";
+
+  // Long explanatory sentences belong in a hover/tap tooltip (the app's standard col-info
+  // "i" icon), not a big badge sitting in the panel header competing with the title.
+  const reconTip = `<span class="col-info tip-down" style="margin-left:10px" data-tip="${esc(t("Calculated from every recorded cash movement: deposits, withdrawals, buys, sells, dividends, fees, transfers and currency exchanges."))}">${COL_INFO_ICON_SVG}</span>`;
 
   // Reconciliation is an advanced/occasional check, not something every user wants to see
   // by default — opt in from Settings (SETTINGS.showReconciliation).
   const reconPanel = SETTINGS.showReconciliation
-    ? panel("Broker Cash Reconciliation", table(
-        [{label:"Broker"},{label:"Calculated Balance",num:1},{label:"Actual Balance",num:1},{label:"Difference",num:1},{label:"Status"},{label:"",num:1}], recRows),
-        `<span class="badge subtle">${t("Calculated from every recorded cash movement: deposits, withdrawals, buys, sells, dividends, fees, transfers and currency exchanges.")}</span>`)
+    ? panel(`${t("Broker Cash Reconciliation")}${reconTip}`, table(
+        [{label:"Broker",style:"width:20%"},{label:"Calculated Balance",style:"width:19%"},{label:"Actual Balance",style:"width:19%"},
+         {label:"Difference",style:"width:15%"},{label:"Status",style:"width:14%"},{label:"",style:"width:13%"}], recRows, { fixed: true }))
     : "";
 
-  return `${panel("Cash Balances by Currency", table(
-      [{label:"Broker"},{label:"Balance"},{label:`${t("In")} ${ccyLabel(FX.base)}`}], ccyRows))}
+  return `${panel(`${t("Cash Balances by Currency")}`, table(
+      [{label:"Broker"},{label:"Balance"},{label:`≈ ${ccyLabel(FX.base)}`}], ccyRows + ccyTotalRow))}
     ${reconPanel}`;
 }
 

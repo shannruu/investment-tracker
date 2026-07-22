@@ -931,8 +931,8 @@ input[type="date"] { cursor: pointer; }
   width: calc((100% - 20px) / 3); margin-left: auto;
 }
 .bc-more summary::-webkit-details-marker { display: none; }
-.bc-more summary::before { content: "▸"; font-size: 10px; transition: transform .15s; }
-.bc-more[open] summary::before { transform: rotate(90deg); }
+.bc-more summary::after { content: "▸"; font-size: 10px; transition: transform .15s; }
+.bc-more[open] summary::after { transform: rotate(90deg); }
 .bc-more .bc-list { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
 @media (max-width: 480px) {
   .bc-more summary { width: calc((100% - 10px) / 2); }
