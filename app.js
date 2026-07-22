@@ -2792,7 +2792,7 @@ function portfolioTable() {
     const tip = colTooltips[id] ? ` <span class="col-info tip-down" data-tip="${colTooltips[id]}">${COL_INFO_ICON_SVG}</span>` : "";
     return `<th style="width:${colPct}%;min-width:${colMinWidths[id] || 100}px;text-align:left" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
   }).join("");
-  const thead = `<thead><tr><th style="width:${colPct}%;min-width:200px">${t("Holding")}</th>${thCols}</tr></thead>`;
+  const thead = `<thead><tr><th style="width:${colPct}%;min-width:140px">${t("Holding")}</th>${thCols}</tr></thead>`;
 
   return `<div class="table-wrap"><table class="data-table">${thead}<tbody>${body}</tbody></table></div>`;
 }

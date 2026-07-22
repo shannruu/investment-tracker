@@ -1059,7 +1059,7 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .stat-value { font-size: 30px; font-weight: 780; letter-spacing: -.03em; margin-top: 8px; line-height: 1.05; }
 .stat.net .stat-value { font-size: 33px; }
 .stat-sub { font-size: 12px; margin-top: 6px; }
-.td-holding { width: 220px; max-width: 220px; overflow: hidden; }
+.td-holding { max-width: 220px; overflow: hidden; }
 .td-holding .ticker-link { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .td-holding .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
