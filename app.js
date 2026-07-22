@@ -125,6 +125,7 @@ const ZH = {
   "Holding": "持仓", "Broker": "券商", "Bank": "银行", "Market": "市场", "Shares": "股数",
   "Avg Cost": "平均成本", "Price": "价格", "Cost Basis": "成本", "Market Value": "市值",
   "Unrealized P/L": "未实现盈亏", "Net Div": "净股息", "Ticker": "代码", "Stock code": "股票代号",
+  "P/L %": "盈亏 %", "Return %": "回报 %",
   "Ex-Date": "除息日", "Payment": "派息日", "Expected Net": "预计净额", "Status": "状态",
   "The ex-dividend date — buy before it to qualify for the payment. This is what market data sources report; they don't give a separate payment date.": "除息日——须在此日期之前买入才符合领取资格。这是市场数据来源提供的日期；它们并未另外提供派息日期。",
   "A rough estimate of Ex-Date + 14 days (when the money would actually land), since market data reports only the ex-date, not a real payment date. A manually entered payment date is shown exactly as you typed it.": "除息日 + 14 天的粗略估算（资金大约到账的日期），因为市场数据只提供除息日，而非真实的派息日期。手动输入的派息日期则完全按您输入的显示。",
@@ -2739,8 +2740,8 @@ function portfolioTable() {
   const colLabels = {
     broker: t("Broker"), shares: t("Shares"), avgCost: t("Avg Cost"),
     price: t("Price"), priceMyr: `≈ ${ccyLabel(FX.base)}`,
-    unrealizedAmt: t("Unrealized P/L"), unrealizedPct: "P/L %",
-    totalReturnAmt: t("Total Return"), totalReturnPct: "Return %",
+    unrealizedAmt: t("Unrealized P/L"), unrealizedPct: t("P/L %"),
+    totalReturnAmt: t("Total Return"), totalReturnPct: t("Return %"),
     marketValue: t("Market Value"), netDiv: t("Net Dividends"),
   };
 
