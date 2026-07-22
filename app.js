@@ -118,7 +118,7 @@ const ZH = {
   "Dividend history by year": "年度股息历史图",
   "Profit / Loss by Holding": "按持仓盈亏", "Profit / Loss by Broker": "按券商盈亏",
   "Dividend Income by Year": "按年度股息收入",
-  "Currency Gain / Loss": "汇率盈亏", "Export": "导出", "Add Broker": "添加券商",
+  "Currency Gain / Loss": "汇率盈亏", "Export": "导出", "Add Broker": "添加券商", "Your Brokers": "您的券商",
   "Profile": "个人资料", "Appearance": "外观", "Base Currency": "基准货币",
   "Exchange Rates": "汇率", "Data Import / Export": "数据导入 / 导出", "Danger Zone": "危险操作",
   // Table headers
@@ -4009,7 +4009,7 @@ function pageBrokers() {
     ? `<button class="btn ghost" id="toggleArchived">${showArchivedBrokers ? t("Hide archived") : `${t("Show archived")} (${archived.length})`}</button>` : "";
   const addBtn = `<button type="button" class="btn primary" id="openBrokerDrawer">＋ ${t("Add Broker")}</button>`;
 
-  const html = `${summary}<div class="panel-head" style="margin-bottom:14px"><div class="panel-head-actions">${archToggle}${addBtn}</div></div>
+  const html = `${summary}<div class="panel-head" style="margin-bottom:14px"><h2>${t("Your Brokers")}</h2><div class="panel-head-actions">${archToggle}${addBtn}</div></div>
     ${cards ? `<div class="broker-grid">${cards}</div>` : emptyState(t("No brokers yet. Add your first one below."))}
     ${showArchivedBrokers && archivedCards ? `<div class="broker-grid" style="margin-top:14px">${archivedCards}</div>` : ""}
     ${BROKERS.length ? brokerCashPanelsHTML() : ""}`;
