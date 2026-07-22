@@ -117,7 +117,7 @@ const ZH = {
   "Dividend History by Year": "年度股息历史", "Projected (this year)": "预计（今年）",
   "Dividend history by year": "年度股息历史图",
   "Profit / Loss by Holding": "按持仓盈亏", "Profit / Loss by Broker": "按券商盈亏",
-  "Dividend Income by Year": "按年度股息收入", "Fees Paid by Broker": "按券商支付的费用",
+  "Dividend Income by Year": "按年度股息收入",
   "Currency Gain / Loss": "汇率盈亏", "Export": "导出", "Add Broker": "添加券商",
   "Profile": "个人资料", "Appearance": "外观", "Base Currency": "基准货币",
   "Exchange Rates": "汇率", "Data Import / Export": "数据导入 / 导出", "Danger Zone": "危险操作",
@@ -130,9 +130,9 @@ const ZH = {
   "A rough estimate of Ex-Date + 14 days (when the money would actually land), since market data reports only the ex-date, not a real payment date. A manually entered payment date is shown exactly as you typed it.": "除息日 + 14 天的粗略估算（资金大约到账的日期），因为市场数据只提供除息日，而非真实的派息日期。手动输入的派息日期则完全按您输入的显示。",
   "Date": "日期", "Type": "类型", "Qty": "数量", "Gross": "总额", "Fee": "费用",
   "Tax": "税", "Net (RM)": "净额 (RM)", "Net": "净额", "Amount": "金额",
-  "Currency": "货币", "FX Rate": "汇率", "In RM": "折合 RM",
+  "Currency": "货币", "FX Rate": "汇率", "In": "折合",
   "Calculated Balance": "计算余额", "Actual Balance": "实际余额", "Difference": "差额",
-  "Fees": "费用", "Country": "国家/地区", "Withholding Tax (RM)": "预扣税 (RM)",
+  "Country": "国家/地区", "Withholding Tax (RM)": "预扣税 (RM)",
   "Year": "年份", "Net Dividends": "净股息",
   // Links
   "View all →": "查看全部 →", "Calendar →": "日历 →", "All →": "全部 →",
@@ -239,6 +239,7 @@ const ZH = {
   "Holdings": "持仓", "Market Value": "市值", "Cash (calc)": "计算现金", "Difference": "差额",
   "Not checked": "未核对", "Matched": "已匹配", "Small difference": "小幅差异", "Needs review": "需复核",
   "Reconciliation": "现金核对", "More actions": "更多操作", "More details": "更多详情",
+  "Show on Brokers page": "在券商页面显示",
   "Update": "更新", "Actual cash balance for": "实际现金余额：", "Note (optional)": "备注（可选）",
   "Reconciliation saved": "对账已保存", "Enter a valid number.": "请输入有效数字。",
   "Calculated from every recorded cash movement: deposits, withdrawals, buys, sells, dividends, fees, transfers and currency exchanges.": "计算值来自所有已记录的现金变动：存款、取款、买入、卖出、股息、费用、转账与货币兑换。",
@@ -454,7 +455,7 @@ const ZH = {
   // Report panel titles + table headers (translateDOM text-node matches)
   "Export": "导出", "Cash Ledger CSV": "现金账本 CSV", "Transactions CSV": "交易 CSV", "Dividends CSV": "股息 CSV",
   "Deposits": "存款", "Withdrawals": "取款", "Currency Exchanges": "货币兑换",
-  "Profit / Loss by Broker": "按券商盈亏", "Fees Paid by Broker": "按券商已付费用",
+  "Profit / Loss by Broker": "按券商盈亏",
   "Month": "月份", "Quarter": "季度", "Year": "年份",
   "Shares": "股数", "Avg Cost": "平均成本", "Market Value": "市值", "Unrealized": "未实现",
   "Date": "日期", "Type": "类型", "Ticker": "代码", "Broker": "券商",
@@ -3452,22 +3453,26 @@ function brokerCashPanelsHTML() {
       <td class="num"><button class="btn ghost" data-recon-broker="${b.id}">${t("Update")}</button></td></tr>`;
   }).join("");
 
+  // One combined "Balance" column (currency + amount together, same convention as the
+  // Dashboard's Recent Activity amounts) instead of splitting Currency/Balance across two
+  // columns, and dcc-c left-alignment to match every other table in the app.
   const ccyRows = BROKERS.map((b) => {
     const byc = T.brokerCashByCcy[b.id] || {};
     return Object.keys(byc).filter((c) => Math.abs(byc[c]) > 0.005).map((c) =>
-      `<tr><td>${esc(b.name)}</td><td>${esc(c)}</td><td class="num ${byc[c] < 0 ? "neg" : ""}">${fmt(byc[c])}</td><td class="num">${money(byc[c] * (FX.rates[c] || 1))}</td></tr>`).join("");
+      `<tr><td class="dcc-c">${esc(b.name)}</td><td class="dcc-c ${byc[c] < 0 ? "neg" : ""}">${esc(ccyLabel(c))} ${fmt(byc[c])}</td><td class="dcc-c">${money(byc[c] * (FX.rates[c] || 1))}</td></tr>`).join("");
   }).join("");
 
-  const feesRows = groupSum(ALL_TRANSACTIONS.filter((x) => x.fee), (x) => brokerName(x.brokerId), (x) => (+x.fee || 0) * (x.fxRate || FX.rates[x.currency] || 1))
-    .sort((a, b) => b.value - a.value)
-    .map((r) => `<tr><td>${esc(r.label)}</td><td class="num neg">${money(r.value)}</td></tr>`).join("");
+  // Reconciliation is an advanced/occasional check, not something every user wants to see
+  // by default — opt in from Settings (SETTINGS.showReconciliation).
+  const reconPanel = SETTINGS.showReconciliation
+    ? panel("Broker Cash Reconciliation", table(
+        [{label:"Broker"},{label:"Calculated Balance",num:1},{label:"Actual Balance",num:1},{label:"Difference",num:1},{label:"Status"},{label:"",num:1}], recRows),
+        `<span class="badge subtle">${t("Calculated from every recorded cash movement: deposits, withdrawals, buys, sells, dividends, fees, transfers and currency exchanges.")}</span>`)
+    : "";
 
   return `${panel("Cash Balances by Currency", table(
-      [{label:"Broker"},{label:"Currency"},{label:"Balance",num:1},{label:"In RM",num:1}], ccyRows))}
-    ${panel("Broker Cash Reconciliation", table(
-      [{label:"Broker"},{label:"Calculated Balance",num:1},{label:"Actual Balance",num:1},{label:"Difference",num:1},{label:"Status"},{label:"",num:1}], recRows),
-      `<span class="badge subtle">${t("Calculated from every recorded cash movement: deposits, withdrawals, buys, sells, dividends, fees, transfers and currency exchanges.")}</span>`)}
-    ${panel("Fees Paid by Broker", table([{label:"Broker"},{label:"Fees",num:1}], feesRows))}`;
+      [{label:"Broker"},{label:"Balance"},{label:`${t("In")} ${ccyLabel(FX.base)}`}], ccyRows))}
+    ${reconPanel}`;
 }
 
 function mountBrokerCashPanels() {
@@ -3956,7 +3961,7 @@ function brokerCard(b) {
           <div><dt>${t("Unrealized P/L")}</dt><dd class="${cls(unrealized)}">${moneySigned(unrealized)}</dd></div>
           <div><dt>${t("Total Deposits")}</dt><dd>${money(deposits)}</dd></div>
           <div><dt>${t("Total Withdrawals")}</dt><dd>${money(withdrawals)}</dd></div>
-          <div><dt>${t("Reconciliation")}</dt><dd><span class="badge ${reconCls}">${reconStatus}</span></dd></div>
+          ${SETTINGS.showReconciliation ? `<div><dt>${t("Reconciliation")}</dt><dd><span class="badge ${reconCls}">${reconStatus}</span></dd></div>` : ""}
           <div><dt>${t("Dividends paid to")}</dt><dd>${b.divPaidTo === "bank" ? t("Bank") : t("Broker")}</dd></div>
           <div><dt>${t("Default dividend tax rate")}</dt><dd>${fmt(b.divTaxRate || 0, { maximumFractionDigits: 2 })}%</dd></div>
         </dl>
@@ -4138,6 +4143,7 @@ function pageSettings() {
       <p class="muted" style="margin:6px 0 0">${t("Average Cost is the active method for all gain/loss figures. FIFO is planned and currently disabled.")}</p></div>`)}
 
     ${panel("Reconciliation", `<div class="setting-rows">
+      ${settingRow(t("Show on Brokers page"), `<input type="checkbox" id="showRecon" ${SETTINGS.showReconciliation ? "checked" : ""}>`)}
       ${settingRow(t("Tolerance") + " (" + FX.base + ")", `<input type="number" step="any" id="reconTol" value="${SETTINGS.reconTolerance}" style="width:120px">`)}
       <p class="muted" style="margin:6px 0 0">${t("Differences within this amount are treated as a small difference rather than needing review.")}</p></div>`)}
 
@@ -4201,7 +4207,11 @@ function pageSettings() {
         Object.keys(FX.rates).forEach((c) => { FX.rates[c] = +(FX.rates[c] / div).toFixed(6); });
         FX.base = nb; saveStore(); toast(`${t("Base currency set to")} ${nb}`); render();
       });
-      // Reconciliation tolerance
+      // Reconciliation: visibility toggle + tolerance
+      $("#showRecon").addEventListener("change", (e) => {
+        SETTINGS.showReconciliation = e.target.checked;
+        saveStore(); toast(t("Preferences saved"));
+      });
       $("#reconTol").addEventListener("change", (e) => {
         const v = parseFloat(e.target.value);
         SETTINGS.reconTolerance = isNaN(v) ? 0 : Math.abs(v);

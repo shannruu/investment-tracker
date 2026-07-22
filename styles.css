@@ -918,16 +918,25 @@ input[type="date"] { cursor: pointer; }
 }
 
 /* Config-y, rarely-checked stats (deposits/withdrawals, reconciliation, tax rate) live
- * behind a disclosure instead of competing with the everyday numbers above. */
+ * behind a disclosure instead of competing with the everyday numbers above. The summary's
+ * width is pinned to match one .bc-list column (same column-gap math) and pushed flush
+ * right, so "More details" sits directly under Net Dividends instead of floating at the
+ * card's far edge with nothing above it. (Making <details> itself the grid — so the
+ * summary could just use grid-column — breaks the expanded content's own 3-col layout,
+ * so the width-matching happens on the summary alone instead.) */
 .bc-more { margin-top: 14px; }
 .bc-more summary {
   list-style: none; cursor: pointer; font-size: 12.5px; font-weight: 650; color: var(--brand-ink);
   display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 2px 0;
+  width: calc((100% - 20px) / 3); margin-left: auto;
 }
 .bc-more summary::-webkit-details-marker { display: none; }
 .bc-more summary::before { content: "▸"; font-size: 10px; transition: transform .15s; }
 .bc-more[open] summary::before { transform: rotate(90deg); }
 .bc-more .bc-list { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+@media (max-width: 480px) {
+  .bc-more summary { width: calc((100% - 10px) / 2); }
+}
 
 /* Negative-balance flag: a small tappable pill (reuses the .col-info tooltip mechanism)
  * next to Available Cash instead of a full-width alarm banner. */
