@@ -3989,11 +3989,27 @@ function pageBrokers() {
   const cards = active.map(brokerCard).join("");
   const archivedCards = (showArchivedBrokers ? archived : []).map(brokerCard).join("");
 
+  // Page-level total across active brokers — each card shows its own numbers, but nothing
+  // previously summed Market Value + Cash + Return across all of them in one place here
+  // (same mini-cards pattern as the Portfolio page's own summary strip).
+  const activeIds = new Set(active.map((b) => b.id));
+  const activeHoldings = T.holdings.filter((h) => activeIds.has(h.brokerId));
+  const totalValue = activeHoldings.reduce((s, h) => s + h.marketValue, 0);
+  const totalCostBasis = activeHoldings.reduce((s, h) => s + h.costBasis, 0);
+  const totalCash = active.reduce((s, b) => s + (T.brokerCash[b.id] || 0), 0);
+  const totalReturn = active.reduce((s, b) => s + (T.totalReturnByBroker[b.id] || 0), 0);
+  const totalReturnPct = totalCostBasis ? (totalReturn / totalCostBasis) * 100 : 0;
+  const summary = active.length ? `<div class="mini-cards" style="margin-bottom:16px">
+      <div class="mini-card"><div class="mc-label">${t("Market Value")}</div><div class="mc-value">${money(totalValue)}</div></div>
+      <div class="mini-card"><div class="mc-label">${t("Available Cash")}</div><div class="mc-value">${money(totalCash)}</div></div>
+      <div class="mini-card"><div class="mc-label">${t("Total Return")}</div><div class="mc-value ${cls(totalReturn)}">${moneySigned(totalReturn)}</div><div class="mc-sub ${cls(totalReturnPct)}">${pctTxt(totalReturnPct)}</div></div>
+    </div>` : "";
+
   const archToggle = archived.length
     ? `<button class="btn ghost" id="toggleArchived">${showArchivedBrokers ? t("Hide archived") : `${t("Show archived")} (${archived.length})`}</button>` : "";
   const addBtn = `<button type="button" class="btn primary" id="openBrokerDrawer">＋ ${t("Add Broker")}</button>`;
 
-  const html = `<div class="panel-head" style="margin-bottom:14px"><div class="panel-head-actions">${archToggle}${addBtn}</div></div>
+  const html = `${summary}<div class="panel-head" style="margin-bottom:14px"><div class="panel-head-actions">${archToggle}${addBtn}</div></div>
     ${cards ? `<div class="broker-grid">${cards}</div>` : emptyState(t("No brokers yet. Add your first one below."))}
     ${showArchivedBrokers && archivedCards ? `<div class="broker-grid" style="margin-top:14px">${archivedCards}</div>` : ""}
     ${BROKERS.length ? brokerCashPanelsHTML() : ""}`;
