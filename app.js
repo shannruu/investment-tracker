@@ -2747,8 +2747,19 @@ function portfolioTable() {
 
   // Equal-width, left-aligned columns (same convention as the Dashboard/Holding Detail
   // tables) — computed dynamically since the column set here is user-configurable via
-  // "Edit columns", so a fixed percentage split wouldn't fit every combination.
+  // "Edit columns", so a fixed percentage split wouldn't fit every combination. Percentage
+  // widths alone are only a hint under table-layout:auto, so narrow-content columns (e.g.
+  // Broker, Price) render narrower than intended — but switching to table-layout:fixed
+  // instead makes columns overflow into each other once many columns are enabled (each
+  // one's share of 100% gets too small for its own content). A per-column min-width fixes
+  // the narrow-column case while staying on auto layout, so a too-many-columns table grows
+  // past 100% and scrolls horizontally (via .table-wrap) instead of overlapping.
   const colPct = (100 / (orderedColIds.length + 1)).toFixed(2);
+  const colMinWidths = {
+    broker: 130, shares: 90, avgCost: 100, price: 110, priceMyr: 100,
+    unrealizedAmt: 110, unrealizedPct: 90, totalReturnAmt: 110, totalReturnPct: 90,
+    marketValue: 110, netDiv: 110,
+  };
   const body = rows.map((h) => {
     const totalReturnPct = h.costBasis > 0 ? (h.totalReturn / h.costBasis) * 100 : 0;
     const cellMap = {
@@ -2779,9 +2790,9 @@ function portfolioTable() {
   };
   const thCols = orderedColIds.map((id) => {
     const tip = colTooltips[id] ? ` <span class="col-info tip-down" data-tip="${colTooltips[id]}">${COL_INFO_ICON_SVG}</span>` : "";
-    return `<th style="width:${colPct}%;text-align:left" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
+    return `<th style="width:${colPct}%;min-width:${colMinWidths[id] || 100}px;text-align:left" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
   }).join("");
-  const thead = `<thead><tr><th style="width:${colPct}%">${t("Holding")}</th>${thCols}</tr></thead>`;
+  const thead = `<thead><tr><th style="width:${colPct}%;min-width:200px">${t("Holding")}</th>${thCols}</tr></thead>`;
 
   return `<div class="table-wrap"><table class="data-table">${thead}<tbody>${body}</tbody></table></div>`;
 }
