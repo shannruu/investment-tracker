@@ -3941,11 +3941,12 @@ function brokerCard(b) {
   const totalReturn = T.totalReturnByBroker[b.id] || 0;
   const totalReturnPct = costBasis ? (totalReturn / costBasis) * 100 : 0;
   const dividends = T.dividendsByBroker[b.id] || 0;
+  const holdingsLabel = LANG === "zh" ? `${holdings.length} 个持仓` : plural(holdings.length, "holding", "holdings");
 
   return `<article class="broker-card ${b.archived ? "archived" : ""}">
       <div class="bc-head"><span class="brand-mark sm">${esc(b.name.slice(0,2).toUpperCase())}</span>
         <div><div class="bc-name">${esc(b.name)} ${b.archived ? `<span class="badge subtle">${t("Archived")}</span>` : ""}</div>
-          <div class="sub">${esc(b.country) || "—"} · ${esc(ccyLabel(b.currency))}</div></div>
+          <div class="sub">${esc(b.country) || "—"} · ${esc(ccyLabel(b.currency))} · ${holdingsLabel}</div></div>
         <div class="bc-menu">
           <button type="button" class="icon-btn" data-broker-menu aria-haspopup="true" aria-expanded="false" title="${t("More actions")}" aria-label="${t("More actions")}">⋯</button>
           <div class="bc-menu-pop" hidden>
@@ -3963,9 +3964,8 @@ function brokerCard(b) {
         </div>
       </div>
 
-      <dl class="bc-list">
+      <dl class="bc-list bc-list-2col">
         <div><dt>${t("Available Cash")}${negPill}</dt><dd>${money(calc)}</dd></div>
-        <div><dt>${t("Holdings")}</dt><dd>${holdings.length}</dd></div>
         <div><dt>${t("Net Dividends")}</dt><dd class="${dividends > 0 ? "pos" : ""}">${money(dividends)}</dd></div>
       </dl>
 
