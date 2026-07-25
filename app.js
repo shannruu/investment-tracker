@@ -121,6 +121,11 @@ const ZH = {
   "Currency Gain / Loss": "汇率盈亏", "Export": "导出", "Add Broker": "添加券商", "Your Brokers": "您的券商",
   "Profile": "个人资料", "Appearance": "外观", "Base Currency": "基准货币",
   "Exchange Rates": "汇率", "Data Import / Export": "数据导入 / 导出", "Danger Zone": "危险操作",
+  "Data Safety & Backup": "数据安全与备份",
+  "Choose your theme. Dark mode uses a true-black background; light mode is the default design.": "选择您的主题。深色模式使用纯黑背景；浅色模式为默认设计。",
+  "All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.": "所有交易均保留其原始货币；基准货币金额由已存储的汇率换算得出，绝不会覆盖原始数值。",
+  "Language": "语言", "Guided Tour": "引导教程", "Replay guided tour": "重新播放引导教程",
+  "Replay the step-by-step walkthrough of adding a broker, recording a deposit, and setting a price.": "重新播放添加券商、记录存款和设置价格的分步教程。",
   // Table headers
   "Holding": "持仓", "Broker": "券商", "Bank": "银行", "Market": "市场", "Shares": "股数",
   "Avg Cost": "平均成本", "Price": "价格", "Cost Basis": "成本", "Market Value": "市值",
@@ -4133,7 +4138,13 @@ function closeBrokerDrawer() {
  * ========================================================================== */
 function pageSettings() {
   const html = `
-    ${panel("Profile", `<form id="profileForm" class="form" autocomplete="off">
+    <div class="mini-cards" style="margin-bottom:16px">
+      <div class="mini-card"><div class="mc-label">${t("Brokers")}</div><div class="mc-value">${BROKERS.length}</div></div>
+      <div class="mini-card"><div class="mc-label">${t("Holdings")}</div><div class="mc-value">${T.holdings.length}</div></div>
+      <div class="mini-card"><div class="mc-label">${t("Transactions")}</div><div class="mc-value">${ALL_TRANSACTIONS.length}</div></div>
+    </div>
+
+    ${panel(t("Profile"), `<form id="profileForm" class="form" autocomplete="off">
       <div class="form-grid">
         <label>${t("Name")}<input name="name" value="${esc(USER.name)}" placeholder="${t("Your name")}"></label>
         <label>${t("Email")}<input name="email" type="email" value="${esc(USER.email)}" placeholder="you@example.com"></label>
@@ -4141,24 +4152,31 @@ function pageSettings() {
       <div class="form-actions"><button class="btn primary" type="submit">${t("Save profile")}</button></div>
     </form>`)}
 
-    ${panel("Appearance", `
-      <p class="muted" style="margin:-4px 0 14px">Choose your theme. Dark mode uses a true-black background; light mode is the default design.</p>
+    ${panel(t("Appearance"), `
+      <p class="muted" style="margin:-4px 0 14px">${t("Choose your theme. Dark mode uses a true-black background; light mode is the default design.")}</p>
       <div class="theme-options" id="themeOptions">
         <button class="theme-card" data-theme-choice="light">
           <span class="tc-swatch light"><span></span><span></span><span></span></span>
-          <span class="tc-label">Light <span class="tc-check">✓</span></span>
-          <span class="sub">Default design</span></button>
+          <span class="tc-label">${t("Light")} <span class="tc-check">✓</span></span>
+          <span class="sub">${t("Default design")}</span></button>
         <button class="theme-card" data-theme-choice="dark">
           <span class="tc-swatch dark"><span></span><span></span><span></span></span>
-          <span class="tc-label">Dark <span class="tc-check">✓</span></span>
-          <span class="sub">True black</span></button>
+          <span class="tc-label">${t("Dark")} <span class="tc-check">✓</span></span>
+          <span class="sub">${t("True black")}</span></button>
       </div>`)}
 
-    ${panel("Base Currency", `<div class="setting-rows">
-      ${settingRow("Base currency", `<select id="baseCcy">${Object.keys(FX.rates).map((c) => `<option value="${c}" ${c === FX.base ? "selected" : ""}>${ccyLabel(c)}</option>`).join("")}</select>`)}
-      <p class="muted" style="margin:6px 0 0">All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.</p></div>`)}
+    ${panel(t("Language"), `<div class="setting-rows">
+      ${settingRow(t("Language"), `<select id="langSel"><option value="en" ${LANG === "en" ? "selected" : ""}>English</option><option value="zh" ${LANG === "zh" ? "selected" : ""}>中文</option></select>`)}</div>`)}
 
-    ${panel("Exchange Rates", `
+    ${panel(t("Guided Tour"), `
+      <p class="muted" style="margin:-2px 0 12px">${t("Replay the step-by-step walkthrough of adding a broker, recording a deposit, and setting a price.")}</p>
+      <div class="form-actions"><button class="btn ghost" id="replayTour">▶ ${t("Replay guided tour")}</button></div>`)}
+
+    ${panel(t("Base Currency"), `<div class="setting-rows">
+      ${settingRow(t("Base currency"), `<select id="baseCcy">${Object.keys(FX.rates).map((c) => `<option value="${c}" ${c === FX.base ? "selected" : ""}>${ccyLabel(c)}</option>`).join("")}</select>`)}
+      <p class="muted" style="margin:6px 0 0">${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")}</p></div>`)}
+
+    ${panel(t("Exchange Rates"), `
       <p class="muted" style="margin:-4px 0 12px">${t("Rates convert each currency to your base.")} ${t("Pull today's market rate or type your own.")}</p>
       <div id="fxRows">${fxRows()}</div>
       <div class="fx-add">
@@ -4172,24 +4190,24 @@ function pageSettings() {
         <span class="muted fx-status" id="fxStatus">${FX_STATUS}</span>
       </div>`)}
 
-    ${panel("Preferences", `<div class="setting-rows">
+    ${panel(t("Preferences"), `<div class="setting-rows">
       ${settingRow(t("Date format"), `<select id="dateFmt">${DATE_FORMATS.map((f) => `<option value="${f.k}" ${SETTINGS.dateFormat === f.k ? "selected" : ""}>${f.label}</option>`).join("")}</select>`)}
       ${settingRow(t("Time zone"), `<select id="tzSel"><option value="">${t("Device local")}</option>${TIME_ZONES.map((z) => `<option value="${z}" ${SETTINGS.timeZone === z ? "selected" : ""}>${z}</option>`).join("")}</select>`)}
       <p class="muted" style="margin:6px 0 0">${t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered.")}</p></div>`)}
 
-    ${panel("Cost Basis Method", `<div class="setting-rows">
+    ${panel(t("Cost Basis Method"), `<div class="setting-rows">
       ${settingRow(t("Method"), `<select id="costBasis">
         <option value="average" ${SETTINGS.costBasis === "average" ? "selected" : ""}>${t("Average Cost")}</option>
         <option value="fifo" disabled>${t("FIFO — not yet implemented")}</option>
       </select>`)}
       <p class="muted" style="margin:6px 0 0">${t("Average Cost is the active method for all gain/loss figures. FIFO is planned and currently disabled.")}</p></div>`)}
 
-    ${panel("Reconciliation", `<div class="setting-rows">
+    ${panel(t("Reconciliation"), `<div class="setting-rows">
       ${settingRow(t("Show on Brokers page"), `<input type="checkbox" id="showRecon" ${SETTINGS.showReconciliation ? "checked" : ""}>`)}
       ${settingRow(t("Tolerance") + " (" + FX.base + ")", `<input type="number" step="any" id="reconTol" value="${SETTINGS.reconTolerance}" style="width:120px">`)}
       <p class="muted" style="margin:6px 0 0">${t("Differences within this amount are treated as a small difference rather than needing review.")}</p></div>`)}
 
-    ${panel("Data Safety & Backup", `
+    ${panel(t("Data Safety & Backup"), `
       <p class="muted info-card" style="display:flex;gap:10px;margin:-2px 0 14px"><span class="w-ico">🔒</span><span>${t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.")}</span></p>
       <div class="form-actions">
         <button class="btn primary" id="expJson">⭳ ${t("Export full backup (JSON)")}</button>
@@ -4202,7 +4220,7 @@ function pageSettings() {
         <button class="btn ghost" id="clearPvHistory">${t("Clear chart history")}</button>
       </div>`)}
 
-    ${panel("Import from CSV", `
+    ${panel(t("Import from CSV"), `
       <p class="muted" style="margin:-2px 0 12px">${t("Bulk-add transactions (deposits, withdrawals, buys, sells, dividends) from a spreadsheet. Download the template, fill it in, then upload to preview before anything is saved.")}</p>
       <div class="form-actions">
         <button class="btn" id="dlTemplate">⭳ ${t("Download CSV template")}</button>
@@ -4215,7 +4233,7 @@ function pageSettings() {
       <summary><span class="addhold-head"><span class="addhold-title">${t("Import existing holdings")}</span><span class="addhold-sub">${t("Positions you held before tracking — click to open")}</span></span></summary>
       <div class="addhold-body">${openingHoldingFormHTML()}</div></details>
 
-    ${panel("Danger Zone", `
+    ${panel(t("Danger Zone"), `
       <p class="muted" style="margin:-2px 0 12px">${t("Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.")}</p>
       <div class="fx-add">
         <input type="text" id="clearConfirm" class="fx-input" placeholder="${t("Type DELETE to confirm")}" autocomplete="off" style="width:220px">
@@ -4241,6 +4259,16 @@ function pageSettings() {
         USER.name = d.name; USER.email = d.email;
         saveStore(); toast(t("Profile saved"));
       });
+      // Language — same setLang + applyStaticI18n + updateLangBtn + render sequence as the
+      // topbar's quick-toggle button, just as an explicit dropdown here (same duplication
+      // pattern as Appearance/theme, which also has both a topbar toggle and a Settings panel).
+      $("#langSel").addEventListener("change", (e) => {
+        setLang(e.target.value); applyStaticI18n(); updateLangBtn(); render();
+      });
+      // Guided tour: only auto-shown once on the Dashboard for new users, so this is the only
+      // way to replay it afterward. startTour() navigates to its first step's route itself.
+      const replayBtn = $("#replayTour");
+      if (replayBtn) replayBtn.addEventListener("click", () => startTour());
       // Change base currency — re-base every stored rate so values stay correct
       $("#baseCcy").addEventListener("change", (e) => {
         const nb = e.target.value;
