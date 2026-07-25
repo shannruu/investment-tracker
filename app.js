@@ -125,6 +125,7 @@ const ZH = {
   "Choose your theme. Dark mode uses a true-black background; light mode is the default design.": "选择您的主题。深色模式使用纯黑背景；浅色模式为默认设计。",
   "All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.": "所有交易均保留其原始货币；基准货币金额由已存储的汇率换算得出，绝不会覆盖原始数值。",
   "Language": "语言", "Guided Tour": "引导教程", "Replay guided tour": "重新播放引导教程",
+  "Investing since": "投资起始日", "Default return view": "默认回报视图",
   "Replay the step-by-step walkthrough of adding a broker, recording a deposit, and setting a price.": "重新播放添加券商、记录存款和设置价格的分步教程。",
   // Table headers
   "Holding": "持仓", "Broker": "券商", "Bank": "银行", "Market": "市场", "Shares": "股数",
@@ -4148,6 +4149,7 @@ function pageSettings() {
       <div class="form-grid">
         <label>${t("Name")}<input name="name" value="${esc(USER.name)}" placeholder="${t("Your name")}"></label>
         <label>${t("Email")}<input name="email" type="email" value="${esc(USER.email)}" placeholder="you@example.com"></label>
+        <label>${t("Investing since")}<input name="joined" type="date" value="${esc(USER.joined)}"></label>
       </div>
       <div class="form-actions"><button class="btn primary" type="submit">${t("Save profile")}</button></div>
     </form>`)}
@@ -4193,6 +4195,10 @@ function pageSettings() {
     ${panel(t("Preferences"), `<div class="setting-rows">
       ${settingRow(t("Date format"), `<select id="dateFmt">${DATE_FORMATS.map((f) => `<option value="${f.k}" ${SETTINGS.dateFormat === f.k ? "selected" : ""}>${f.label}</option>`).join("")}</select>`)}
       ${settingRow(t("Time zone"), `<select id="tzSel"><option value="">${t("Device local")}</option>${TIME_ZONES.map((z) => `<option value="${z}" ${SETTINGS.timeZone === z ? "selected" : ""}>${z}</option>`).join("")}</select>`)}
+      ${settingRow(t("Default return view"), `<select id="returnModeSel">
+        <option value="total" ${SETTINGS.returnMode !== "price" ? "selected" : ""}>${t("Total Return")}</option>
+        <option value="price" ${SETTINGS.returnMode === "price" ? "selected" : ""}>${t("Unrealized")}</option>
+      </select>`)}
       <p class="muted" style="margin:6px 0 0">${t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered.")}</p></div>`)}
 
     ${panel(t("Cost Basis Method"), `<div class="setting-rows">
@@ -4256,7 +4262,7 @@ function pageSettings() {
       $("#profileForm").addEventListener("submit", (e) => {
         e.preventDefault();
         const d = Object.fromEntries(new FormData(e.target).entries());
-        USER.name = d.name; USER.email = d.email;
+        USER.name = d.name; USER.email = d.email; USER.joined = d.joined;
         saveStore(); toast(t("Profile saved"));
       });
       // Language — same setLang + applyStaticI18n + updateLangBtn + render sequence as the
@@ -4287,9 +4293,10 @@ function pageSettings() {
         SETTINGS.reconTolerance = isNaN(v) ? 0 : Math.abs(v);
         saveStore(); toast(t("Tolerance saved"));
       });
-      // Preferences (date format / time zone / cost basis)
+      // Preferences (date format / time zone / return view / cost basis)
       $("#dateFmt").addEventListener("change", (e) => { SETTINGS.dateFormat = e.target.value; saveStore(); toast(t("Preferences saved")); render(); });
       $("#tzSel").addEventListener("change", (e) => { SETTINGS.timeZone = e.target.value; saveStore(); toast(t("Preferences saved")); });
+      $("#returnModeSel").addEventListener("change", (e) => { SETTINGS.returnMode = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#costBasis").addEventListener("change", (e) => {
         if (e.target.value !== "average") { e.target.value = "average"; toast(t("FIFO is not implemented yet.")); return; }
         SETTINGS.costBasis = "average"; saveStore();
