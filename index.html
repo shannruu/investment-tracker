@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Investment Ledger</title>
   <meta name="description" content="Track investments across multiple brokers in one place." />
-  <link rel="stylesheet" href="styles.css?v=234" />
+  <link rel="stylesheet" href="styles.css?v=235" />
 </head>
 <body>
 
@@ -144,9 +144,17 @@
       <button type="button" class="btn small" id="staleDataReload">Reload</button>
       <button type="button" class="icon-btn" id="staleDataDismiss" aria-label="Dismiss">✕</button>
     </div>
+    <div class="alert-banner info" id="cloudStaleBanner" role="alert" hidden>
+      <span class="w-ico">⟳</span>
+      <span id="cloudStaleMsg"></span>
+      <button type="button" class="btn small" id="cloudStalePull">Pull latest</button>
+      <button type="button" class="icon-btn" id="cloudStaleDismiss" aria-label="Dismiss">✕</button>
+    </div>
   </div>
 
-  <script src="data.js?v=234"></script>
-  <script src="app.js?v=234"></script>
+  <script type="module" src="supabase-client.js?v=235"></script>
+  <script src="data.js?v=235"></script>
+  <script src="app.js?v=235"></script>
+  <script src="sync.js?v=235"></script>
 </body>
 </html>

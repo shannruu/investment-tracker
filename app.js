@@ -539,6 +539,30 @@ const ZH = {
   "Choose a type first — then only the fields that type needs appear. Buy and Sell create and update your holdings automatically.": "先选择类型 — 然后只显示该类型所需的字段。买入和卖出会自动创建并更新您的持仓。",
   // Misc
   "Portfolio": "投资组合",
+  // Cloud Sync
+  "Account & Cloud Sync": "账户与云同步",
+  "Cloud sync isn't set up for this deployment yet.": "此部署尚未配置云同步。",
+  "Signed in as": "登录身份",
+  "Last synced to cloud": "上次同步到云端",
+  "Not yet synced": "尚未同步",
+  "Sync now": "立即同步",
+  "Sign out": "退出登录",
+  "Send magic link": "发送登录链接",
+  "Check": "请查收", "for a sign-in link.": "邮箱中的登录链接。",
+  "Couldn't send the link — try again.": "链接发送失败 — 请重试。",
+  "Synced.": "已同步。",
+  "Signed out.": "已退出登录。",
+  "Synced from your account.": "已从您的账户同步。",
+  "Your data was uploaded to your account.": "您的数据已上传到账户。",
+  "Finish choosing which data to keep": "请完成数据保留选择",
+  "Choose which data to keep": "选择要保留的数据",
+  "Both this device and your account already have data. Pick one to continue — the other side will be replaced.": "此设备和您的账户都已有数据。请选择其中一方继续 — 另一方的数据将被替换。",
+  "This device": "此设备", "Your account": "您的账户",
+  "Keep this device, upload it": "保留此设备的数据并上传",
+  "Use my account's data": "使用账户中的数据",
+  "Your data was updated from another device. Pull the latest before making more changes here, or you'll overwrite it.": "您的数据已在其他设备上更新。请先拉取最新数据，否则继续编辑将覆盖它。",
+  "Cloud Sync is on — your data syncs to your account and is available on any device you sign into.": "云同步已开启 — 您的数据会同步到账户，并可在您登录的任何设备上使用。",
+  "Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.": "登录状态下您的数据也会同步到账户，因此清除浏览器数据不会丢失它 — 但仍建议定期导出 JSON 备份。",
 };
 
 const I18N = { zh: ZH };
@@ -984,6 +1008,7 @@ function saveStore() {
     localStorage.setItem(STORE_KEY, JSON.stringify(snapshot()));
     LAST_SAVED = new Date().toISOString();
     hideSaveError();
+    if (typeof onDataSaved === "function") onDataSaved();
     return true;
   } catch (e) {
     showSaveError();
@@ -2124,9 +2149,13 @@ function onboardingHTML() {
     ALL_TRANSACTIONS.some((x) => x.type === "Dividend"),
   ];
   const done = steps.filter(Boolean).length;
+  const cloudOn = typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER;
+  const privacyNote = cloudOn
+    ? `<span class="w-ico">☁</span><span class="w-body">${t("Cloud Sync is on — your data syncs to your account and is available on any device you sign into.")}</span>`
+    : `<span class="w-ico">💻</span><span class="w-body">${t("Your data stays on this device and this browser only — nothing is shared or synced. If you're trying this out from a shared link, your entries are private to you and won't affect anyone else's. Opening the app on a different device starts a separate, empty ledger there too.")}</span>`;
   return panel("Welcome to Investment Ledger", `
     <p class="muted" style="margin:-2px 0 14px">${t("Take a 1-minute guided tour — we'll point to exactly where to click.")}</p>
-    <p class="info-card" style="margin:0 0 14px"><span class="w-ico">💻</span><span class="w-body">${t("Your data stays on this device and this browser only — nothing is shared or synced. If you're trying this out from a shared link, your entries are private to you and won't affect anyone else's. Opening the app on a different device starts a separate, empty ledger there too.")}</span></p>
+    <p class="info-card" style="margin:0 0 14px">${privacyNote}</p>
     <div class="form-actions">
       <button class="btn primary" id="startTour">▶ ${t("Start the guided tour")}</button>
       <span class="muted" style="align-self:center">${done} / ${steps.length} ${t("steps done")}</span>
@@ -4213,8 +4242,14 @@ function pageSettings() {
       ${settingRow(t("Tolerance") + " (" + FX.base + ")", `<input type="number" step="any" id="reconTol" value="${SETTINGS.reconTolerance}" style="width:120px">`)}
       <p class="muted" style="margin:6px 0 0">${t("Differences within this amount are treated as a small difference rather than needing review.")}</p></div>`)}
 
+    ${typeof accountSyncPanelHTML === "function" ? accountSyncPanelHTML() : ""}
+
     ${panel(t("Data Safety & Backup"), `
-      <p class="muted info-card" style="display:flex;gap:10px;margin:-2px 0 14px"><span class="w-ico">🔒</span><span>${t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.")}</span></p>
+      <p class="muted info-card" style="display:flex;gap:10px;margin:-2px 0 14px"><span class="w-ico">🔒</span><span>${
+        (typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER)
+          ? t("Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.")
+          : t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.")
+      }</span></p>
       <div class="form-actions">
         <button class="btn primary" id="expJson">⭳ ${t("Export full backup (JSON)")}</button>
         <button class="btn" id="impJsonBtn">⭱ ${t("Import backup (JSON)")}</button>
@@ -4332,6 +4367,7 @@ function pageSettings() {
         clearAllData(); toast(t("All data cleared")); render();
       });
       mountFxControls();
+      if (typeof mountAccountSyncPanel === "function") mountAccountSyncPanel();
     } };
 }
 
@@ -4340,6 +4376,7 @@ function clearAllData() {
   [BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS, PV_HISTORY].forEach((a) => (a.length = 0));
   assignObj(CURRENT_PRICES, {}); assignObj(RECON_CHECKS, {});
   resetStore(); recompute();
+  saveStore();   // also push the now-empty state to the cloud for signed-in users
 }
 function exportBackupJSON() {
   const blob = new Blob([JSON.stringify(snapshot(), null, 2)], { type: "application/json" });
@@ -5466,5 +5503,7 @@ function init() {
   window.addEventListener("hashchange", render);
   if (!location.hash) location.hash = "#/dashboard";
   render();
+
+  if (typeof initSync === "function") initSync();   // fire-and-forget, never blocks first paint
 }
 document.addEventListener("DOMContentLoaded", init);

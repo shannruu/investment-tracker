@@ -1,8 +1,10 @@
 # Investment Ledger
 
 A privacy-first personal investment tracker. Transactions are the single source of
-truth; holdings, P/L, dividends and cash are derived. Data is stored only in your
-browser (localStorage) — export JSON backups from Settings.
+truth; holdings, P/L, dividends and cash are derived. Data is stored in your browser
+(localStorage) by default — export JSON backups from Settings. Optional **Cloud Sync**
+(see [DEPLOY.md](DEPLOY.md#optional-cloud-sync-setup)) lets you opt in to syncing your
+own data across devices via a Supabase project you control.
 
 ## Live stock prices (optional)
 
@@ -58,6 +60,8 @@ Start-Process .\index.html
 - **CSV export** of the cash ledger
 - **Click any summary card** → modal showing exactly how the number was calculated
   (honors the brief's "do not hide calculations" principle)
+- **Cloud Sync** (optional, opt-in) — sign in with an email magic link to sync your data
+  to your own Supabase project and pick it up on another device
 
 ## How the numbers are computed
 
@@ -82,6 +86,8 @@ base-currency values are computed (`amount × rate`) and never overwrite the ori
 | `styles.css` | Theme tokens, light/dark, cards, tables, charts |
 | `data.js`    | Sample brokers, holdings, cash ledger, dividends |
 | `app.js`     | Calculations, chart rendering, tables, interactions |
+| `supabase-client.js` | Optional: creates the Supabase client (Cloud Sync) |
+| `sync.js`    | Optional: Cloud Sync auth, push/pull, Account panel |
 
 ## Porting to Next.js
 
