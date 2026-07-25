@@ -432,10 +432,9 @@ const ZH = {
   // Phase 2 — Settings (F4)
   "Preferences": "偏好设置", "Date format": "日期格式", "Time zone": "时区",
   "Device local": "设备本地", "Cost Basis Method": "成本计算方法", "Method": "方法",
-  "Average Cost": "平均成本法", "FIFO — not yet implemented": "先进先出 — 尚未实现",
-  "FIFO is not implemented yet.": "先进先出法尚未实现。",
+  "Average Cost": "平均成本法",
   "Time zone is used as a display reference for dates; stored dates are never altered.": "时区仅用作日期的显示参考；存储的日期不会被更改。",
-  "Average Cost is the active method for all gain/loss figures. FIFO is planned and currently disabled.": "所有盈亏数字均采用平均成本法。先进先出法在计划中，目前已禁用。",
+  "Average Cost is the active method for all gain/loss figures. More methods, including FIFO, are planned for a future update.": "所有盈亏数字均采用平均成本法。更多方法（包括先进先出法）将在未来版本中推出。",
   "Preferences saved": "偏好已保存",
   // Phase 2 — CSV Import (F5)
   "Import from CSV": "从 CSV 导入", "Download CSV template": "下载 CSV 模板", "Upload CSV": "上传 CSV",
@@ -4232,14 +4231,13 @@ function pageSettings() {
 
     ${panel(t("Cost Basis Method"), `<div class="setting-rows">
       ${settingRow(t("Method"), `<select id="costBasis">
-        <option value="average" ${SETTINGS.costBasis === "average" ? "selected" : ""}>${t("Average Cost")}</option>
-        <option value="fifo" disabled>${t("FIFO — not yet implemented")}</option>
+        <option value="average" selected>${t("Average Cost")}</option>
       </select>`)}
-      <p class="muted" style="margin:6px 0 0">${t("Average Cost is the active method for all gain/loss figures. FIFO is planned and currently disabled.")}</p></div>`)}
+      <p class="muted" style="margin:6px 0 0">${t("Average Cost is the active method for all gain/loss figures. More methods, including FIFO, are planned for a future update.")}</p></div>`)}
 
     ${panel(t("Reconciliation"), `<div class="setting-rows">
-      ${settingRow(t("Show on Brokers page"), `<input type="checkbox" id="showRecon" ${SETTINGS.showReconciliation ? "checked" : ""}>`)}
-      ${settingRow(t("Tolerance") + " (" + FX.base + ")", `<input type="number" step="any" id="reconTol" value="${SETTINGS.reconTolerance}" style="width:120px">`)}
+      ${settingRow(t("Show on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
+      ${settingRow(t("Tolerance"), `<div class="input-prefix"><span class="input-prefix-tag">${esc(FX.base)}</span><input type="number" step="any" id="reconTol" value="${SETTINGS.reconTolerance}"></div>`)}
       <p class="muted" style="margin:6px 0 0">${t("Differences within this amount are treated as a small difference rather than needing review.")}</p></div>`)}
 
     ${typeof accountSyncPanelHTML === "function" ? accountSyncPanelHTML() : ""}
@@ -4332,10 +4330,7 @@ function pageSettings() {
       $("#dateFmt").addEventListener("change", (e) => { SETTINGS.dateFormat = e.target.value; saveStore(); toast(t("Preferences saved")); render(); });
       $("#tzSel").addEventListener("change", (e) => { SETTINGS.timeZone = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#returnModeSel").addEventListener("change", (e) => { SETTINGS.returnMode = e.target.value; saveStore(); toast(t("Preferences saved")); });
-      $("#costBasis").addEventListener("change", (e) => {
-        if (e.target.value !== "average") { e.target.value = "average"; toast(t("FIFO is not implemented yet.")); return; }
-        SETTINGS.costBasis = "average"; saveStore();
-      });
+      $("#costBasis").addEventListener("change", () => { SETTINGS.costBasis = "average"; saveStore(); });
       // CSV import
       $("#dlTemplate").addEventListener("click", downloadImportTemplate);
       $("#impCsvBtn").addEventListener("click", () => $("#impCsvFile").click());
