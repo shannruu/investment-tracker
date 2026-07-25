@@ -3844,7 +3844,7 @@ function pageDividends() {
         ${miniCard(t("Next Year"), fc.nextYear > 0 ? money(fc.nextYear) : dash)}${multiYearCards}</div>
       ${patternLine}
       <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`
-    : `<div class="div-fc-empty"><span>📅</span><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}</div></div>
+    : `<div class="div-fc-empty"><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}</div></div>
       <p class="muted" style="margin:10px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
 
   const html = `

@@ -835,8 +835,7 @@ input[type="date"] { cursor: pointer; }
 .plain-stat { padding: 10px 20px; border-left: 1px solid var(--border); }
 .plain-stat:first-child { border-left: 0; padding-left: 12px; }
 
-.div-fc-empty { display: flex; align-items: flex-start; gap: 12px; padding: 4px 0 2px; }
-.div-fc-empty > span { font-size: 22px; line-height: 1.2; flex: none; }
+.div-fc-empty { display: flex; align-items: flex-start; padding: 4px 0 2px; }
 
 /* ---- CSV import preview ---- */
 .import-preview { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 14px; }
