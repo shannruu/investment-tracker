@@ -496,6 +496,9 @@ const ZH = {
   "No transactions yet. Tap ＋ Add to record your first deposit or investment.": "暂无交易。点击 ＋ 添加，记录您的第一笔存款或投资。",
   "fee": "费用", "Available Cash": "可用现金", "Can invest or withdraw": "可用于投资或提取",
   "What do you want to record?": "您想记录什么？", "Other": "其他",
+  "Asset type": "资产类型", "Stock": "股票", "ETF": "ETF", "REIT": "房地产投资信托（REIT）",
+  "Bond": "债券", "Unit Trust": "单位信托基金", "By type": "按类型",
+  "Asset type saved": "资产类型已保存",
   "Pick a type, then fill only what's needed.": "先选择类型，然后只填写所需字段。",
   "Pick what to record": "选择要记录的内容", "Change type": "更改类型", "Withdraw": "取款",
   "Fees, taxes & details": "费用、税费与明细", "Go to Brokers": "前往券商",
@@ -944,7 +947,7 @@ const SCHEMA_VERSION = 4;
 function snapshot() {
   return { version: SCHEMA_VERSION, lastSaved: LAST_SAVED,
     BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS,
-    CURRENT_PRICES, STOCK_META, RECON_CHECKS, SETTINGS, USER, FX, PV_HISTORY };
+    CURRENT_PRICES, STOCK_META, HOLDING_TYPES, RECON_CHECKS, SETTINGS, USER, FX, PV_HISTORY };
 }
 /* A restored backup is untrusted JSON — Object.assign(target, parsedJson)
  * would let a crafted "__proto__"/"constructor"/"prototype" key in the file
@@ -960,6 +963,14 @@ function assignObj(target, next) {
   if (!next || typeof next !== "object") return;
   Object.keys(target).forEach((k) => delete target[k]);
   safeAssign(target, next);
+}
+const ASSET_TYPES = ["Stock", "ETF", "REIT", "Bond", "Unit Trust", "Other"];
+function holdingType(ticker) { return HOLDING_TYPES[(ticker || "").toUpperCase()] || "Stock"; }
+function setHoldingType(ticker, type) {
+  if (!ticker) return;
+  const tk = ticker.toUpperCase();
+  if (!type || type === "Stock") delete HOLDING_TYPES[tk];   // "Stock" is the default — no need to store it
+  else HOLDING_TYPES[tk] = type;
 }
 /* F3: drop manual/live prices for tickers no longer referenced by any transaction
  * or opening holding (keeps STOCK_META metadata cache, which is harmless). */
@@ -1075,7 +1086,7 @@ function applySnapshot(s) {
   replaceArr(ALL_TRANSACTIONS, s.ALL_TRANSACTIONS); replaceArr(UPCOMING_DIVIDENDS, s.UPCOMING_DIVIDENDS);
   if (Array.isArray(s.PV_HISTORY)) replaceArr(PV_HISTORY, s.PV_HISTORY.filter((p) => p && p.value > 0));
   assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(RECON_CHECKS, s.RECON_CHECKS);
-  assignObj(STOCK_META, s.STOCK_META);
+  assignObj(STOCK_META, s.STOCK_META); assignObj(HOLDING_TYPES, s.HOLDING_TYPES);
   if (s.SETTINGS) safeAssign(SETTINGS, s.SETTINGS);
   if (s.USER) safeAssign(USER, s.USER);
   if (s.lastSaved) LAST_SAVED = s.lastSaved;
@@ -1876,8 +1887,24 @@ function portfolioHealth() {
 /* =============================================================================
  * PAGE: DASHBOARD
  * ========================================================================== */
-let dashAllocMode = "currency"; // "currency" | "stock"
+let dashAllocMode = "currency"; // "currency" | "stock" | "type"
 let dashChartMode = (() => { try { return localStorage.getItem("il-chart-mode") || "mv"; } catch(e) { return "mv"; } })(); // "mv" | "div"
+
+/* Builds the Asset Allocation donut for the current dashAllocMode — shared by the
+ * initial Dashboard render and the toggle's click handler so the 3-way branch only
+ * lives in one place. */
+function dashAllocDonutHTML() {
+  const totalStr = money(T.portfolioValue).replace(".00", "");
+  if (dashAllocMode === "stock") {
+    return donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), t("Portfolio"), totalStr, T.holdings.map((h) => ccyColor(h.currency || "Other")));
+  }
+  if (dashAllocMode === "type") {
+    const typeSlices = groupSum(T.holdings, (h) => t(holdingType(h.ticker)), (h) => h.marketValue).filter((s) => s.value > 0);
+    return donutHTML(typeSlices, t("Portfolio"), totalStr, typeSlices.map((s) => ccyColor(s.label)));
+  }
+  const ccySlices = groupSum(T.holdings, (h) => h.currency || "Other", (h) => h.marketValue).filter((s) => s.value > 0);
+  return donutHTML(ccySlices, t("Portfolio"), totalStr, ccySlices.map((s) => ccyColor(s.label)));
+}
 
 /* Builds the chart body HTML for the Investment Return panel.
  * Called on initial render and again in-place when the mode toggle fires. */
@@ -2087,13 +2114,12 @@ function pageDashboard() {
         return panel(t("Investment Return Over Time"), chartBody, chartHeadExtra);
       })()}
       ${(() => {
-        const allocToggle = `<div class="seg seg-sm" id="dashAllocSeg"><button class="seg-btn ${dashAllocMode === "currency" ? "on" : ""}" data-alloc="currency">${t("By currency")}</button><button class="seg-btn ${dashAllocMode === "stock" ? "on" : ""}" data-alloc="stock">${t("By holding")}</button></div>`;
-        const totalStr = money(T.portfolioValue).replace(".00","");
-        const ccySlices = groupSum(T.holdings, (h) => h.currency || "Other", (h) => h.marketValue).filter((s) => s.value > 0);
-        const donut = dashAllocMode === "stock"
-          ? donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), t("Portfolio"), totalStr, T.holdings.map((h) => ccyColor(h.currency || "Other")))
-          : donutHTML(ccySlices, t("Portfolio"), totalStr, ccySlices.map((s) => ccyColor(s.label)));
-        return panel("Asset Allocation", `<div id="dashAllocBody" class="panel-body">${donut}</div>`, allocToggle);
+        const allocToggle = `<div class="seg seg-sm" id="dashAllocSeg">
+          <button class="seg-btn ${dashAllocMode === "currency" ? "on" : ""}" data-alloc="currency">${t("By currency")}</button>
+          <button class="seg-btn ${dashAllocMode === "stock" ? "on" : ""}" data-alloc="stock">${t("By holding")}</button>
+          <button class="seg-btn ${dashAllocMode === "type" ? "on" : ""}" data-alloc="type">${t("By type")}</button>
+        </div>`;
+        return panel("Asset Allocation", `<div id="dashAllocBody" class="panel-body">${dashAllocDonutHTML()}</div>`, allocToggle);
       })()}
     </section>
     <div id="dashDivSection">${listPanel("Upcoming Dividends", dashUpcoming.length,
@@ -2125,12 +2151,7 @@ function pageDashboard() {
         $$("[data-alloc]").forEach((btn) => btn.classList.toggle("on", btn.dataset.alloc === dashAllocMode));
         const allocBody = $("#dashAllocBody");
         if (allocBody) {
-          const totalStr = money(T.portfolioValue).replace(".00","");
-          const ccySlices = groupSum(T.holdings, (h) => h.currency || "Other", (h) => h.marketValue).filter((s) => s.value > 0);
-          const newDonut = dashAllocMode === "stock"
-            ? donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), t("Portfolio"), totalStr, T.holdings.map((h) => ccyColor(h.currency || "Other")))
-            : donutHTML(ccySlices, t("Portfolio"), totalStr, ccySlices.map((s) => ccyColor(s.label)));
-          allocBody.innerHTML = newDonut;
+          allocBody.innerHTML = dashAllocDonutHTML();
         }
       }));
       [
@@ -2393,6 +2414,7 @@ function openingHoldingFormHTML() {
             <label>${t("Ticker")}<input name="ticker" placeholder="AAPL" required></label>
             <label>${t("Company Name")}<input name="company" placeholder="Apple Inc."></label>
             <label>${t("Market")}<input name="market" placeholder="NASDAQ"></label>
+            <label>${t("Asset type")}${styledSelect("assetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), "Stock", { id: "ohAssetType" })}</label>
           </div>
           <div class="lookup-status muted" id="holdingLookup"></div>
         </div>
@@ -2469,6 +2491,7 @@ function mountOpeningHoldingForm() {
       shares, avgCost, openingFxRate,
       asOfDate: d.asOfDate || todayISO(), netDividends: 0,
     });
+    setHoldingType(ticker, d.assetType);
     const cp = parseFloat(d.currentPrice);
     if (cp > 0) CURRENT_PRICES[ticker] = { price: cp, currency: d.currency, date: todayISO(), source: "manual" };
     saveStore(); toast(t("Opening holding added")); render();
@@ -3140,10 +3163,16 @@ function addForm2(type, editing) {
   let core = "", extra = "";
   if (isTrade) {
     // Company/Market are auto-filled from the ticker lookup → kept as hidden fields.
+    // Asset type is only offered on Buy — a Sell operates on an existing position, so
+    // there's nothing new to classify (the ticker's type, if already set, still applies).
+    const assetTypeField = type === "Buy"
+      ? `<label>${t("Asset type")}${styledSelect("assetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), tickerVal ? holdingType(tickerVal) : "Stock", { id: "afAssetType" })}</label>`
+      : "";
     core = `
       <label style="grid-column:1/-1">${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
       <label>${t("Quantity / Shares")}<input type="number" step="any" name="qty" value="${v(e.qty)}" placeholder="0"></label>
       <label class="amt-label">${t("Price / Share")}${amtCombo("price", v(e.price), "0.00")}</label>
+      ${assetTypeField}
       <input type="hidden" name="company" value="${v(e.company)}">
       <input type="hidden" name="market" value="${v(e.market)}">`;
     extra = `
@@ -3438,6 +3467,8 @@ function wireTxSubmit(form) {
       exDate: d.exDate || undefined, payDate: d.payDate || undefined,
       toBrokerId: type === "Transfer between brokers" ? d.toBroker : undefined,
       override: !!d.override, notes: (d.notes || "").trim() || undefined, ...extra };
+
+    if (type === "Buy" && ticker) setHoldingType(ticker, d.assetType);
 
     const wasEditing = !!editingTxId;
     if (wasEditing) {
@@ -4910,6 +4941,10 @@ function pageHolding() {
       ${posStat(t("Current Price"), priceLbl)}
     </div>
     <p style="font-size:14px;margin:14px 0 0">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} · ${t("Average Cost")} ${money(h.avgCost)} · ${t("Cost Basis")} ${money(h.costBasis)}</p>
+    <div class="setting-row" style="padding:11px 0 0;border-bottom:0">
+      <span class="sr-label">${t("Asset type")}</span>
+      <span class="sr-value"><div style="width:160px">${styledSelect("holdingAssetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), holdingType(h.ticker), { id: "holdingAssetType" })}</div></span>
+    </div>
     ${range52Html}
     ${openedRecently ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}
   `);
@@ -5092,6 +5127,10 @@ function pageHolding() {
       });
       const dcf = $("#divCalFilterSel");
       if (dcf) dcf.addEventListener("change", () => { holdingDivFilter = dcf.value; render(); });
+      const atSel = $("#holdingAssetType");
+      if (atSel) atSel.addEventListener("change", (e) => {
+        setHoldingType(h.ticker, e.target.value); saveStore(); toast(t("Asset type saved"));
+      });
       // AUTO_DIV_CACHE is in-memory only (not persisted) and was previously only ever
       // populated by the Dashboard's mount() — landing here directly (bookmark,
       // back-button, or a hard refresh while already on this page) left it empty with

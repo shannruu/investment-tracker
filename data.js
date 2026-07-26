@@ -78,6 +78,13 @@ const CURRENT_PRICES = {};
  * Populated by the stock lookup; used for country/sector grouping. */
 const STOCK_META = {};
 
+/* User-set asset type per ticker (Stock | ETF | REIT | Bond | Unit Trust | Other) — keyed
+ * by ticker, not broker, since the same security is the same type everywhere it's held.
+ * A ticker with no entry here defaults to "Stock" (see holdingType() in app.js). Kept
+ * separate from STOCK_META, which is auto-fetched and wholesale-overwritten on every
+ * lookup — mixing a user-set field in there would get silently wiped on the next lookup. */
+const HOLDING_TYPES = {};
+
 /* Reconciliation checks the user records, keyed by brokerId:
  * { actual, date, note } — actual broker cash balance the user typed in. */
 const RECON_CHECKS = {};
