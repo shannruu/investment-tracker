@@ -124,9 +124,8 @@ const ZH = {
   "Data Safety & Backup": "数据安全与备份",
   "Choose your theme. Dark mode uses a true-black background; light mode is the default design.": "选择您的主题。深色模式使用纯黑背景；浅色模式为默认设计。",
   "All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.": "所有交易均保留其原始货币；基准货币金额由已存储的汇率换算得出，绝不会覆盖原始数值。",
-  "Language": "语言", "Guided Tour": "引导教程", "Replay guided tour": "重新播放引导教程",
+  "Language": "语言",
   "Investing since": "投资起始日", "Default return view": "默认回报视图",
-  "Replay the step-by-step walkthrough of adding a broker, recording a deposit, and setting a price.": "重新播放添加券商、记录存款和设置价格的分步教程。",
   // Table headers
   "Holding": "持仓", "Broker": "券商", "Bank": "银行", "Market": "市场", "Shares": "股数",
   "Avg Cost": "平均成本", "Price": "价格", "Cost Basis": "成本", "Market Value": "市值",
@@ -224,7 +223,7 @@ const ZH = {
   "Getting started": "开始使用", "Add a broker": "添加券商", "Record your first deposit": "记录第一笔存款",
   "Add your first buy transaction": "添加第一笔买入交易", "Add a current price": "添加当前价格", "Record a dividend": "记录一笔股息",
   "Record a Buy (or import an existing holding)": "记录一笔买入（或导入现有持仓）",
-  "A few things to set up — click any step below, or take the guided tour.": "还有几项设置待完成 — 点击下方任一步骤，或使用引导教程。",
+  "A few things to set up — click any step below to get started.": "还有几项设置待完成 — 点击下方任一步骤即可开始。",
   "Last saved on this device": "本设备最后保存", "Nothing saved yet": "尚未保存",
   // Return modes
   "Return mode": "回报模式", "Price return only": "仅价格回报", "Total return": "总回报",
@@ -283,23 +282,8 @@ const ZH = {
   "That file isn't valid JSON.": "该文件不是有效的 JSON。",
   "That doesn't look like an Investment Ledger backup.": "这看起来不是 Investment Ledger 的备份。",
   "For personal record-keeping only. Not financial, tax, or investment advice.": "仅供个人记录之用。并非财务、税务或投资建议。",
-  // Guided tour
   "Welcome to Investment Ledger": "欢迎使用 Investment Ledger",
-  "Take a 1-minute guided tour — we'll point to exactly where to click.": "用 1 分钟跟随引导教程 — 我们会指向您需要点击的确切位置。",
-  "Start the guided tour": "开始引导教程", "steps done": "步已完成",
-  "Skip": "跳过", "Back": "上一步", "Next": "下一步", "Done": "完成",
-  "Tour complete — you're ready to go.": "教程完成 — 一切就绪。",
-  "Step 1 · Add a broker": "第 1 步 · 添加券商",
-  "Start here. Click Brokers to add your investment app — every transaction belongs to a broker.": "从这里开始。点击「券商」添加您的投资平台 — 每笔交易都归属于某个券商。",
-  "Add your broker": "添加券商", "Enter the broker name and currency, then click Add Broker.": "输入券商名称和货币，然后点击「添加券商」。",
-  "Step 2 · Record a deposit": "第 2 步 · 记录存款",
-  "Use Add Transaction to record cash you put into a broker. Pick type Deposit.": "用「添加交易」记录您投入券商的现金，类型选择「存款」。",
-  "Pick the transaction type": "选择交易类型",
-  "Choose the type here. Buy and Sell create and update your holdings automatically.": "在此选择类型。买入和卖出会自动创建并更新您的持仓。",
-  "Step 3 · Set a current price": "第 3 步 · 设置当前价格",
-  "After a Buy your holding appears here. Use the ＄ button to type a current price (manual, not live).": "买入后，您的持仓会显示在这里。用 ＄ 按钮输入当前价格（手动，非实时）。",
-  "Back up your data": "备份您的数据",
-  "Your data lives only in this browser. Export a JSON backup from Settings regularly.": "您的数据仅存于此浏览器中。请定期在「设置」中导出 JSON 备份。",
+  "steps done": "步已完成",
   // Live prices
   "Refresh live prices": "刷新实时价格", "Fetch live price": "获取实时价格", "Live": "实时",
   "Fetching prices": "正在获取价格", "prices updated": "个价格已更新", "updated": "已更新",
@@ -555,10 +539,6 @@ const ZH = {
   "By market value": "按市值", "Calendar": "日历", "View all": "查看全部", "Recent Activity": "近期活动",
   "View the full holdings table": "查看完整持仓表",
   "Top Holdings": "主要持仓", "Asset Allocation": "资产配置", "Upcoming Dividends": "即将派发股息",
-  // Tour (updated steps)
-  "Open More to reach Brokers — add your investment app first. Every transaction belongs to a broker.": "打开「更多」进入券商 — 请先添加您的投资平台。每笔交易都属于某个券商。",
-  "Tap Add to record cash you put into a broker. Pick type Deposit.": "点击「添加」记录您投入券商的现金，类型选择「存款」。",
-  "Choose a type first — then only the fields that type needs appear. Buy and Sell create and update your holdings automatically.": "先选择类型 — 然后只显示该类型所需的字段。买入和卖出会自动创建并更新您的持仓。",
   // Misc
   "Portfolio": "投资组合",
   // Cloud Sync
@@ -2180,14 +2160,6 @@ function pageDashboard() {
         const chartBody = $("#dashChartBody");
         if (chartBody) { chartBody.innerHTML = buildDashChartContent(); mountChartTooltips(); }
       }));
-      const st = $("#startTour");
-      if (st) st.addEventListener("click", () => startTour());
-      // Auto-launch the tour once for brand-new users
-      let tourDone = false;
-      try { tourDone = localStorage.getItem("il-tour-done") === "1"; } catch (e) {}
-      if (isEmpty && !tourDone && tourIdx < 0 && !TOUR_SEEN) {
-        TOUR_SEEN = true; setTimeout(startTour, 500);
-      }
       // Auto-fetch dividend schedules for all holdings; re-render if still here
       if (LIVE_ENABLED) {
         fetchAllDivSchedules().then(({ fetched }) => {
@@ -2213,21 +2185,17 @@ function onboardingHTML() {
   const privacyNote = cloudOn
     ? `<span class="w-ico">☁</span><span class="w-body">${t("Cloud Sync is on — your data syncs to your account and is available on any device you sign into.")}</span>`
     : `<span class="w-ico">💻</span><span class="w-body">${t("Your data stays on this device and this browser only — nothing is shared or synced. If you're trying this out from a shared link, your entries are private to you and won't affect anyone else's. Opening the app on a different device starts a separate, empty ledger there too.")}</span>`;
-  // Each step is a real, clickable destination — the panel needs to stand on its own as
-  // an onboarding surface, not depend on the tour being started (a user who dismisses or
-  // never notices the tour button should still have a way to see what to do and go do it).
+  // Each step is a real, clickable destination — the panel is a self-sufficient
+  // onboarding surface on its own, not a summary that points somewhere else.
   const stepList = `<div class="onboard-list">${steps.map((s) => s.done
     ? `<span class="onboard-step done"><span class="os-check">✓</span><span class="os-label">${s.label}</span></span>`
     : `<a class="onboard-step" href="${s.href}"><span class="os-check"></span><span class="os-label">${s.label}</span></a>`
   ).join("")}</div>`;
   return panel("Welcome to Investment Ledger", `
-    <p class="muted" style="margin:-2px 0 10px">${t("A few things to set up — click any step below, or take the guided tour.")}</p>
+    <p class="muted" style="margin:-2px 0 10px">${t("A few things to set up — click any step below to get started.")}</p>
     <p class="info-card" style="margin:0 0 14px">${privacyNote}</p>
     ${stepList}
-    <div class="form-actions" style="margin-top:4px">
-      <button class="btn ghost" id="startTour">▶ ${t("Start the guided tour")}</button>
-      <span class="muted" style="align-self:center">${done} / ${steps.length} ${t("steps done")}</span>
-    </div>`);
+    <p class="muted" style="margin:8px 0 0;font-size:12.5px">${done} / ${steps.length} ${t("steps done")}</p>`);
 }
 
 function warningsHTML() {
@@ -4302,10 +4270,6 @@ function pageSettings() {
     ${panel(t("Language"), `<div class="setting-rows">
       ${settingRow(t("Language"), `<div style="width:200px">${styledSelect("lang", [{ value: "en", label: "English" }, { value: "zh", label: "中文" }], LANG, { id: "langSel" })}</div>`)}</div>`)}
 
-    ${panel(t("Guided Tour"), `
-      <p class="muted" style="margin:-2px 0 12px">${t("Replay the step-by-step walkthrough of adding a broker, recording a deposit, and setting a price.")}</p>
-      <div class="form-actions"><button class="btn ghost" id="replayTour">▶ ${t("Replay guided tour")}</button></div>`)}
-
     ${panel(t("Base Currency"), `<div class="setting-rows">
       ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
       <p class="muted" style="margin:6px 0 0">${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")}</p></div>`)}
@@ -4407,10 +4371,6 @@ function pageSettings() {
       $("#langSel").addEventListener("change", (e) => {
         setLang(e.target.value); applyStaticI18n(); updateLangBtn(); render();
       });
-      // Guided tour: only auto-shown once on the Dashboard for new users, so this is the only
-      // way to replay it afterward. startTour() navigates to its first step's route itself.
-      const replayBtn = $("#replayTour");
-      if (replayBtn) replayBtn.addEventListener("click", () => startTour());
       // Change base currency — re-base every stored rate so values stay correct
       $("#baseCcy").addEventListener("change", (e) => {
         const nb = e.target.value;
@@ -4534,106 +4494,6 @@ function loadDemoData() {
   });
 }
 
-/* =============================================================================
- * GUIDED TOUR — spotlight + pulsing highlight pointing at the exact element.
- * ========================================================================== */
-let tourIdx = -1;
-let TOUR_SEEN = false;
-function tourSteps() {
-  return [
-    { route: "dashboard", selector: '.sidebar [data-page="brokers"]', fallback: "#moreBtn",
-      title: t("Step 1 · Add a broker"), text: t("Open Brokers and add your investment app first — every transaction belongs to a broker.") },
-    { route: "brokers", selector: "#brokerForm",
-      title: t("Add your broker"), text: t("Enter the broker name and currency, then click Add Broker.") },
-    { route: "dashboard", selector: '[data-page="add"]', fallback: ".bn-item.add",
-      title: t("Step 2 · Record a deposit"), text: t("Tap Add to record cash you put into a broker. Pick type Deposit.") },
-    { route: "add", selector: ".type-picker", fallback: "#txForm",
-      title: t("Pick what to record"), text: t("Choose a type first — then only the fields that type needs appear. Buy and Sell create and update your holdings automatically.") },
-    { route: "portfolio", selector: "#holdingsBody",
-      title: t("Step 3 · Set a current price"), text: t("After a Buy your holding appears here. Use the ＄ button to type a current price (manual, not live).") },
-    { route: "settings", selector: "#expJson",
-      title: t("Back up your data"), text: t("Your data lives only in this browser. Export a JSON backup from Settings regularly.") },
-  ];
-}
-const TOUR = { steps: [] };
-
-function startTour() {
-  TOUR.steps = tourSteps();
-  tourIdx = 0;
-  runTourStep();
-}
-function endTour(complete) {
-  document.querySelectorAll(".tour-backdrop,.tour-spot,.tour-ring,.tour-pop").forEach((e) => e.remove());
-  window.removeEventListener("resize", repositionTour);
-  window.removeEventListener("scroll", repositionTour, true);
-  document.removeEventListener("keydown", tourKey);
-  tourIdx = -1;
-  if (complete) { try { localStorage.setItem("il-tour-done", "1"); } catch (e) {} }
-}
-function tourKey(e) { if (e.key === "Escape") endTour(true); }
-function runTourStep() {
-  const step = TOUR.steps[tourIdx];
-  if (!step) { endTour(true); toast(t("Tour complete — you're ready to go.")); return; }
-  if (step.route && currentPageKey() !== step.route) {
-    location.hash = "#/" + step.route;
-    setTimeout(() => renderTourStep(step), 110);
-  } else {
-    renderTourStep(step);
-  }
-}
-function tourEl(cls) {
-  let el = document.querySelector("." + cls);
-  if (!el) { el = document.createElement("div"); el.className = cls; document.body.appendChild(el); }
-  return el;
-}
-function renderTourStep(step) {
-  tourEl("tour-backdrop");
-  tourEl("tour-spot");
-  tourEl("tour-ring");
-  const pop = tourEl("tour-pop");
-  positionTour(step);
-  const last = tourIdx === TOUR.steps.length - 1;
-  pop.innerHTML = `<h4>${step.title}</h4><p>${step.text}</p>
-    <div class="tour-actions">
-      <span class="tour-step-n">${tourIdx + 1} / ${TOUR.steps.length}</span>
-      <button class="btn ghost" id="tourSkip">${t("Skip")}</button>
-      ${tourIdx > 0 ? `<button class="btn" id="tourPrev">${t("Back")}</button>` : ""}
-      <button class="btn primary" id="tourNext">${last ? t("Done") : t("Next")}</button>
-    </div>`;
-  $("#tourSkip").onclick = () => endTour(true);
-  $("#tourNext").onclick = () => { tourIdx++; runTourStep(); };
-  const prev = $("#tourPrev");
-  if (prev) prev.onclick = () => { tourIdx = Math.max(0, tourIdx - 1); runTourStep(); };
-  window.addEventListener("resize", repositionTour);
-  window.addEventListener("scroll", repositionTour, true);
-  document.addEventListener("keydown", tourKey);
-}
-function positionTour(step) {
-  const target = document.querySelector(step.selector) || (step.fallback && document.querySelector(step.fallback));
-  const spot = document.querySelector(".tour-spot");
-  const ring = document.querySelector(".tour-ring");
-  const pop = document.querySelector(".tour-pop");
-  if (!spot || !pop) return;
-  const r = target ? target.getBoundingClientRect() : null;
-  if (!target || r.width === 0 || r.height === 0) {
-    spot.style.display = "none"; ring.style.display = "none";
-    pop.style.left = "50%"; pop.style.top = "90px"; pop.style.transform = "translateX(-50%)";
-    return;
-  }
-  if (target.scrollIntoView) target.scrollIntoView({ block: "center", behavior: "smooth" });
-  const pad = 6;
-  const box = { left: r.left - pad, top: r.top - pad, width: r.width + pad * 2, height: r.height + pad * 2 };
-  [spot, ring].forEach((el) => {
-    el.style.display = "";
-    el.style.left = box.left + "px"; el.style.top = box.top + "px";
-    el.style.width = box.width + "px"; el.style.height = box.height + "px";
-  });
-  pop.style.transform = "";
-  pop.style.left = Math.min(Math.max(8, r.left), window.innerWidth - 320) + "px";
-  const below = r.bottom + 12;
-  pop.style.top = (below + 150 < window.innerHeight ? below : Math.max(8, r.top - 158)) + "px";
-}
-function repositionTour() { if (tourIdx >= 0 && TOUR.steps[tourIdx]) positionTour(TOUR.steps[tourIdx]); }
 
 /* Build the editable exchange-rate rows. */
 function fxRows() {
@@ -4712,7 +4572,6 @@ function pageHelp() {
   const sectionsEN = [
     { title: "Getting Started", items: [
       { q: "What order should I set things up in?", a: "Add a broker first — every transaction and every holding belongs to one, so nothing else can be recorded until it exists. Next, get your positions into the ledger: record real Buy transactions for anything you buy from now on, or use \"Import existing holdings\" (Settings → Import existing holdings) for positions you already owned before you started tracking. Log deposits and withdrawals as they happen so each broker's calculated cash balance stays meaningful. Once a holding exists, set its current price (the Set Price control on Portfolio) — until then, market value falls back to cost and unrealized P/L reads as zero even if you're actually up or down. The Dashboard's setup checklist counts these off in that order (broker → deposit → buy/holding → price → dividend) but doesn't enforce it — you can complete them out of sequence." },
-      { q: "What is the guided tour, and how do I replay it?", a: "It's a step-by-step spotlight walkthrough — add a broker, fill the broker form, record a deposit, pick a transaction type, set a current price on Portfolio, then export a backup from Settings — that highlights the exact control to click on each page. For a brand-new, empty account it auto-launches once on your first Dashboard visit, or you can start it manually from the \"Start the guided tour\" button on the Dashboard's welcome panel. Once dismissed, replay it anytime from Settings → Guided Tour → \"Replay guided tour.\" It covers the first few onboarding steps plus backup — it doesn't walk you through recording a dividend or through \"Import existing holdings,\" so use the checklist or this Help page for those." },
       { q: "What's the practical difference between recording a Buy and using \"Import existing holdings\"?", a: "A Buy (Add → Buy) is a real dated transaction: it deducts cash from the broker's calculated balance, sets or updates the position's average cost, and later feeds realized P/L when you sell part of it. \"Import existing holdings\" (Settings → Import existing holdings, requires a broker to already exist) instead writes a holding directly — ticker, shares, average cost, an as-of date, and an optional starting current price — with no transaction behind it, so it never touches cash, deposits, or realized P/L. It exists only to seed a starting position for something you owned before you started tracking here. Anything you buy from this point on should go in as a real Buy, otherwise the broker's cash reconciliation will flag a difference for money that, as far as the ledger's concerned, never left." },
       { q: "Do I need to complete all 5 onboarding checklist steps before the app is useful?", a: "No. The Dashboard's welcome panel just counts, out of 5, whether you have: a broker, a Deposit transaction, a Buy transaction or an opening holding, a current price set on any holding, and a Dividend transaction — it's a progress indicator, not a gate, and every page works with a partial setup. The one step worth prioritizing is the current price: without it, market value uses cost as a placeholder, so unrealized P/L and Total Return will understate or misstate your position even though the numbers are technically calculating." },
       { q: "I only have positions I already owned — do I need to re-enter every historical Buy?", a: "Not necessarily. Backfilling the real historical Buys preserves exact per-lot cost and commission/tax history, but for most people \"Import existing holdings\" (Settings → Import existing holdings) is the intended shortcut: enter the ticker, shares, and a single average cost as of a chosen date, and the app treats that as your starting position going forward. Because it creates no transaction, it has no effect on cash balances, XIRR's dated cash-flow list, or realized P/L — only Buy and Sell transactions touch those. Net dividends on an imported holding start at zero and only accumulate from Dividend transactions you record after the as-of date; anything paid before that isn't retroactively counted." },
@@ -4776,7 +4635,6 @@ function pageHelp() {
   const sectionsZH = [
     { title: "入门指南", items: [
       { q: "应该按什么顺序设置？", a: "先添加券商——每笔交易和每笔持仓都必须归属于某个券商，因此在此之前无法记录任何其他内容。接下来把您的持仓录入账本：为今后买入的任何股票记录真实的买入交易，或者对于您在开始使用本应用前就已持有的仓位，使用「导入现有持仓」（设置 → 导入现有持仓）。存款和取款请随时记录，这样每个券商的计算现金余额才有意义。持仓建立后，请设置其当前价格（投资组合页的设价功能）——在此之前，市值会以成本作为占位值，即使实际有盈亏，未实现盈亏也会显示为零。仪表盘的设置清单按此顺序（券商 → 存款 → 买入/持仓 → 价格 → 股息）计数，但并不强制要求——您可以不按顺序完成。" },
-      { q: "引导教程是什么？如何重新播放？", a: "这是一个分步聚光灯式引导——添加券商、填写券商表单、记录存款、选择交易类型、在投资组合页设置当前价格，最后从设置页导出备份——会在每个页面高亮显示需要点击的具体控件。对于全新的空账户，教程会在您首次访问仪表盘时自动启动一次，您也可以从仪表盘欢迎面板的「开始引导教程」按钮手动启动。关闭后，可随时从设置 → 引导教程 →「重新播放引导教程」重新播放。它涵盖前几个入门步骤加上备份——不会引导您完成记录股息或「导入现有持仓」，如需了解这些请查看设置清单或本帮助页面。" },
       { q: "记录买入交易和使用「导入现有持仓」有什么实际区别？", a: "买入（添加 → 买入）是一笔真实的带日期交易：它会从券商的计算现金余额中扣除现金，设定或更新该仓位的平均成本，并在您日后卖出部分持仓时计入已实现盈亏。「导入现有持仓」（设置 → 导入现有持仓，需已存在券商）则直接写入一笔持仓——股票代码、股数、平均成本、截止日期，以及可选的起始当前价格——背后没有交易记录，因此不会影响现金、存款或已实现盈亏。它的作用仅是为您在开始使用本应用前已持有的仓位设定起始状态。此后任何买入都应作为真实买入交易录入，否则券商的现金对账会为这笔账本上从未离开过的资金标记差异。" },
       { q: "使用本应用前，是否需要完成全部 5 项入门清单才有用？", a: "不需要。仪表盘欢迎面板只是统计以下 5 项中完成了几项：一个券商、一笔存款交易、一笔买入交易或期初持仓、任一持仓设置了当前价格、一笔股息交易——这只是进度提示，并非门槛，即使设置不完整，各页面也都能正常使用。最值得优先完成的是设置当前价格：在此之前，市值会以成本作为占位值，因此即使数字看似在正常计算，未实现盈亏和总回报也会被低估或误判。" },
       { q: "我只有已持有的仓位——需要重新录入每一笔历史买入吗？", a: "不一定。补录真实的历史买入交易能保留精确的逐笔成本与佣金/税费记录，但对大多数人来说，「导入现有持仓」（设置 → 导入现有持仓）才是本应用设计的捷径：只需输入股票代码、股数，以及截至某日期的单一平均成本，应用便会将其视为您此后的起始仓位。由于它不产生交易记录，因此对现金余额、XIRR 的带日期现金流列表或已实现盈亏都没有影响——只有买入和卖出交易才会影响这些。导入持仓的净股息从零开始，只会从截止日期之后记录的股息交易开始累积；截止日期之前派发的股息不会被追溯计入。" },
