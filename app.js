@@ -1981,8 +1981,10 @@ function pageDashboard() {
       </td>
       <td class="dcc-c">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>
       <td class="dcc-c">${money(h.marketValue)}</td>
-      <td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? moneySigned(h.unrealized) : `<span class="muted">—</span>`}${h.hasPrice ? `<div class="fx-note ${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</div>` : ""}</td>
-      <td class="dcc-c ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}${h.costBasis > 0 ? `<div class="fx-note ${cls(h.totalReturn)}">${pctTxt((h.totalReturn / h.costBasis) * 100)}</div>` : ""}</td></tr>`).join("");
+      <td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? moneySigned(h.unrealized) : `<span class="muted">—</span>`}</td>
+      <td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? pctTxt(h.unrealizedPct) : `<span class="muted">—</span>`}</td>
+      <td class="dcc-c ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</td>
+      <td class="dcc-c ${cls(h.totalReturn)}">${h.costBasis > 0 ? pctTxt((h.totalReturn / h.costBasis) * 100) : `<span class="muted">—</span>`}</td></tr>`).join("");
 
   // Upcoming dividends — manual (UPCOMING_DIVIDENDS), auto-fetched (AUTO_DIV_CACHE), legacy
   // Expected, AND pattern-based estimates (fc.nextPayments) for tickers with a detected
@@ -2111,7 +2113,7 @@ function pageDashboard() {
       table([{label:"Ticker",style:"width:15%"},{label:"Ex-Date",style:"width:20%"},{label:"Payment",style:"width:20%"},{label:"Expected Net (RM)",style:"width:25%"},{label:"Status",style:"width:20%"}], divRows, { fixed: true }),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
-      table([{label:"Holding",style:"width:20%"},{label:"Shares",style:"width:20%"},{label:"Market Value",style:"width:20%"},{label:"Unrealized P/L",style:"width:20%"},{label:"Total Return",style:"width:20%"}], holdingsRows, { fixed: true }),
+      table([{label:"Holding",style:"width:25%"},{label:"Shares",style:"width:10%"},{label:"Market Value",style:"width:15%"},{label:"Unrealized P/L",style:"width:15%"},{label:"P/L %",style:"width:10%"},{label:"Total Return",style:"width:15%"},{label:"Return %",style:"width:10%"}], holdingsRows, { fixed: true }),
       t("No holdings yet — record a Buy on the Add page and it appears here automatically."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${pricesAsOfFmt}`) : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
