@@ -75,6 +75,7 @@ module.exports = async (req, res) => {
       sector,
       industry,
       country,
+      quoteType: m.instrumentType || null,
       price,
       currency: m.currency || null,
       previousClose: prev,

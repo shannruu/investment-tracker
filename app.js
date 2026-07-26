@@ -965,6 +965,21 @@ function setHoldingType(ticker, type) {
   if (!type || type === "Stock") delete HOLDING_TYPES[tk];   // "Stock" is the default — no need to store it
   else HOLDING_TYPES[tk] = type;
 }
+/* Maps a live quote's Yahoo quoteType (+ sector/industry, for the Stock-vs-REIT
+ * split Yahoo doesn't give directly) to one of our ASSET_TYPES. Returns null when
+ * the signal isn't confident enough to override the field — Bond and most non-US/
+ * non-major-exchange securities aren't reliably classified by Yahoo, so those stay
+ * whatever the user already has (or the "Stock" default) rather than guessing. */
+function detectAssetType(quoteType, sector, industry) {
+  const qt = (quoteType || "").toUpperCase();
+  if (qt === "ETF") return "ETF";
+  if (qt === "MUTUALFUND") return "Unit Trust";
+  if (qt === "EQUITY") {
+    const sec = (sector || "").toLowerCase(), ind = (industry || "").toLowerCase();
+    return (sec === "real estate" || ind.includes("reit")) ? "REIT" : "Stock";
+  }
+  return null;
+}
 /* F3: drop manual/live prices for tickers no longer referenced by any transaction
  * or opening holding (keeps STOCK_META metadata cache, which is harmless). */
 function pruneOrphans() {
@@ -1406,6 +1421,12 @@ async function autofillFromTicker(form, statusEl, opts = {}) {
   STOCK_META[q.symbol || symbol] = { name: q.name || null, exchange: q.exchange || null,
     currency: q.currency || null, country: q.country || marketInfo(symbol).country,
     sector: q.sector || null, industry: q.industry || null };
+  // Auto-fill Asset Type from the live quote when the form has that field (Buy, DRIP,
+  // Opening Holding) — only overrides when Yahoo's classification is confident (see
+  // detectAssetType); the field stays a normal editable dropdown either way, so a wrong
+  // or missing detection is just the same manual pick the form already required before.
+  const detectedType = detectAssetType(q.quoteType, q.sector, q.industry);
+  if (detectedType && form.querySelector('[name="assetType"]')) setSelectValue(form, "assetType", detectedType);
   // Remember the current market price for valuation (clearly labelled "Live")
   if (q.currency) CURRENT_PRICES[q.symbol || symbol] = { price: +q.price, currency: q.currency, date: todayISO(), source: "live", fetchedAt: new Date().toISOString(), changePct: q.changePct };
   if (statusEl) {
