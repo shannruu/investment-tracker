@@ -4244,14 +4244,14 @@ function pageSettings() {
       </div>`)}
 
     ${panel(t("Language"), `<div class="setting-rows">
-      ${settingRow(t("Language"), `<select id="langSel"><option value="en" ${LANG === "en" ? "selected" : ""}>English</option><option value="zh" ${LANG === "zh" ? "selected" : ""}>中文</option></select>`)}</div>`)}
+      ${settingRow(t("Language"), `<div style="width:200px">${styledSelect("lang", [{ value: "en", label: "English" }, { value: "zh", label: "中文" }], LANG, { id: "langSel" })}</div>`)}</div>`)}
 
     ${panel(t("Guided Tour"), `
       <p class="muted" style="margin:-2px 0 12px">${t("Replay the step-by-step walkthrough of adding a broker, recording a deposit, and setting a price.")}</p>
       <div class="form-actions"><button class="btn ghost" id="replayTour">▶ ${t("Replay guided tour")}</button></div>`)}
 
     ${panel(t("Base Currency"), `<div class="setting-rows">
-      ${settingRow(t("Base currency"), `<select id="baseCcy">${Object.keys(FX.rates).map((c) => `<option value="${c}" ${c === FX.base ? "selected" : ""}>${ccyLabel(c)}</option>`).join("")}</select>`)}
+      ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
       <p class="muted" style="margin:6px 0 0">${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")}</p></div>`)}
 
     ${panel(t("Exchange Rates"), `
@@ -4269,18 +4269,16 @@ function pageSettings() {
       </div>`)}
 
     ${panel(t("Preferences"), `<div class="setting-rows">
-      ${settingRow(t("Date format"), `<select id="dateFmt">${DATE_FORMATS.map((f) => `<option value="${f.k}" ${SETTINGS.dateFormat === f.k ? "selected" : ""}>${f.label}</option>`).join("")}</select>`)}
-      ${settingRow(t("Time zone"), `<select id="tzSel"><option value="">${t("Device local")}</option>${TIME_ZONES.map((z) => `<option value="${z}" ${SETTINGS.timeZone === z ? "selected" : ""}>${z}</option>`).join("")}</select>`)}
-      ${settingRow(t("Default return view"), `<select id="returnModeSel">
-        <option value="total" ${SETTINGS.returnMode !== "price" ? "selected" : ""}>${t("Total Return")}</option>
-        <option value="price" ${SETTINGS.returnMode === "price" ? "selected" : ""}>${t("Unrealized")}</option>
-      </select>`)}
+      ${settingRow(t("Date format"), `<div style="width:200px">${styledSelect("dateFmt", DATE_FORMATS.map((f) => ({ value: f.k, label: f.label })), SETTINGS.dateFormat, { id: "dateFmt" })}</div>`)}
+      ${settingRow(t("Time zone"), `<div style="width:200px">${styledSelect("tzSel", [{ value: "", label: t("Device local") }, ...TIME_ZONES.map((z) => ({ value: z, label: z }))], SETTINGS.timeZone || "", { id: "tzSel" })}</div>`)}
+      ${settingRow(t("Default return view"), `<div style="width:200px">${styledSelect("returnMode", [
+        { value: "total", label: t("Total Return") },
+        { value: "price", label: t("Unrealized") },
+      ], SETTINGS.returnMode === "price" ? "price" : "total", { id: "returnModeSel" })}</div>`)}
       <p class="muted" style="margin:6px 0 0">${t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered.")}</p></div>`)}
 
     ${panel(t("Cost Basis Method"), `<div class="setting-rows">
-      ${settingRow(t("Method"), `<select id="costBasis">
-        <option value="average" selected>${t("Average Cost")}</option>
-      </select>`)}
+      ${settingRow(t("Method"), `<div style="width:200px">${styledSelect("costBasis", [{ value: "average", label: t("Average Cost") }], "average", { id: "costBasis" })}</div>`)}
       <p class="muted" style="margin:6px 0 0">${t("Average Cost is the active method for all gain/loss figures. More methods, including FIFO, are planned for a future update.")}</p></div>`)}
 
     ${panel(t("Reconciliation"), `<div class="setting-rows">
@@ -4360,7 +4358,7 @@ function pageSettings() {
       $("#baseCcy").addEventListener("change", (e) => {
         const nb = e.target.value;
         const div = FX.rates[nb];
-        if (!div) { toast(t("Add a rate for that currency first.")); e.target.value = FX.base; return; }
+        if (!div) { toast(t("Add a rate for that currency first.")); setSelectValue(document, "baseCcy", FX.base); return; }
         Object.keys(FX.rates).forEach((c) => { FX.rates[c] = +(FX.rates[c] / div).toFixed(6); });
         FX.base = nb; saveStore(); toast(`${t("Base currency set to")} ${nb}`); render();
       });
