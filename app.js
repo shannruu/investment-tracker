@@ -238,6 +238,11 @@ const ZH = {
   // Form labels
   "optional": "可选", "Quantity / Shares": "数量 / 股数", "Gross dividend": "总股息",
   "From broker": "来源券商", "Dividend schedule": "股息时间表", "Exchange rate": "兑换汇率", "Auto-calculated": "自动计算", "Add note": "添加备注",
+  "Reinvest Price / Share": "再投资单价", "Shares reinvested": "再投资股数", "Reinvested (DRIP)": "已再投资（DRIP）",
+  "Withholding tax can't exceed the gross dividend.": "预扣税不能超过总股息。",
+  "This is one half of a DRIP reinvestment. Its paired record won't be deleted automatically. Delete anyway?": "这是一笔股息再投资（DRIP）的其中一半记录，其配对记录不会自动删除。仍要删除吗？",
+  "DRIP rows must be Received — a dividend can't be reinvested before it's paid.": "股息再投资（DRIP）行必须为「已收到」状态——股息在派发前无法进行再投资。",
+  "This Buy has later Sell transactions for the same stock, and is also one half of a DRIP reinvestment whose paired record won't be deleted automatically. Deleting it will make those sells exceed shares held and distort realized P/L. Delete anyway?": "该买入交易有该股票的后续卖出交易，同时也是一笔股息再投资（DRIP）的其中一半记录，其配对记录不会自动删除。删除它会导致这些卖出超过持有股数并扭曲已实现盈亏。仍要删除吗？",
   "Enter an amount or stock code for the transfer.": "请输入金额或股票代号。",
   "Received": "已收到", "Expected": "预期", "Split ratio (new ÷ old)": "拆股比例（新 ÷ 旧）",
   "To broker": "转入券商", "Notes": "备注", "FX rate to": "汇率对",
@@ -792,7 +797,10 @@ function computeTotals() {
         const l = ensureLot(tx.brokerId, tx.ticker, tx);
         const localCost = q * price + fee + taxv;
         l.shares += q; l.costLocal += localCost; l.costMYR += localCost * fx;
-        addCash(tx.brokerId, ccy, -(gross + fee + taxv)); break;
+        // A DRIP-funded Buy never touched cash — the money it "spent" is the same dividend
+        // whose own cash was already suppressed (paidTo: "reinvested") on its Dividend leg.
+        if (!tx.drip) addCash(tx.brokerId, ccy, -(gross + fee + taxv));
+        break;
       }
       case "Sell": {
         const l = ensureLot(tx.brokerId, tx.ticker, tx);
@@ -812,7 +820,7 @@ function computeTotals() {
           const net = gross - taxv;
           netDividends += net * fx;
           addTo(dividendsByBroker, tx.brokerId, net * fx);
-          if (tx.paidTo !== "bank") addCash(tx.brokerId, ccy, net);
+          if (tx.paidTo !== "bank" && tx.paidTo !== "reinvested") addCash(tx.brokerId, ccy, net);
           ensureLot(tx.brokerId, tx.ticker, tx).netDivMYR += net * fx;
         }
         break;
@@ -1224,8 +1232,12 @@ function autoSyncDividends() {
     // is the primary source now — the user has directly told us how this broker works. Fall
     // back to inferring from your own most recent dividend at this broker (any ticker, since
     // it's a broker-level routing behavior) only if that setting was never configured.
+    // A DRIP leg's paidTo:"reinvested" is a one-off per-transaction choice, not broker-level
+    // routing — excluded here so it never gets inferred onto an unrelated auto-logged dividend
+    // that has no paired Buy to net it against.
     const broker = BROKERS.find((x) => x.id === h.brokerId);
-    const mostRecentAtBroker = brokerDivs.slice().sort((a, b) => ((b.payDate || b.date || "") < (a.payDate || a.date || "") ? -1 : 1))[0];
+    const mostRecentAtBroker = brokerDivs.filter((x) => x.paidTo !== "reinvested")
+      .slice().sort((a, b) => ((b.payDate || b.date || "") < (a.payDate || a.date || "") ? -1 : 1))[0];
     const inferredPaidTo = (broker && broker.divPaidTo) || (mostRecentAtBroker ? (mostRecentAtBroker.paidTo || "broker") : "broker");
     marketHist.forEach((d) => {
       if (d.date < earliestTxDate || d.date > today) return;   // before you held it, or hasn't happened yet
@@ -2952,9 +2964,13 @@ function pageRecords() {
         // Deleting a Buy that has later Sells of the same stock distorts realized P/L.
         const buyWithSells = tx && tx.type === "Buy" && ALL_TRANSACTIONS.some((x) =>
           x.type === "Sell" && x.brokerId === tx.brokerId && (x.ticker || "").toUpperCase() === (tx.ticker || "").toUpperCase());
-        const msg = buyWithSells
+        const msg = buyWithSells && tx.dripPairId
+          ? t("This Buy has later Sell transactions for the same stock, and is also one half of a DRIP reinvestment whose paired record won't be deleted automatically. Deleting it will make those sells exceed shares held and distort realized P/L. Delete anyway?")
+          : buyWithSells
           ? t("This Buy has later Sell transactions for the same stock. Deleting it will make those sells exceed shares held and distort realized P/L. Delete anyway?")
-          : t("Delete this transaction? Holdings and balances will be recalculated.");
+          : (tx && tx.dripPairId
+            ? t("This is one half of a DRIP reinvestment. Its paired record won't be deleted automatically. Delete anyway?")
+            : t("Delete this transaction? Holdings and balances will be recalculated."));
         if (!confirm(msg)) return;
         const i = ALL_TRANSACTIONS.findIndex((x) => x.id === b.dataset.delTx);
         if (i >= 0) ALL_TRANSACTIONS.splice(i, 1);
@@ -3009,11 +3025,11 @@ function recordsTable(list) {
  * ========================================================================== */
 const ADD_SLUGS = { buy: "Buy", sell: "Sell", deposit: "Deposit", withdraw: "Withdrawal",
   dividend: "Dividend", fx: "Currency Exchange", fee: "Fee",
-  interest: "Interest", split: "Stock split", transfer: "Transfer between brokers" };
+  interest: "Interest", split: "Stock split", transfer: "Transfer between brokers", drip: "DRIP / Reinvested" };
 const ADD_PRIMARY = [["buy", "Buy", "i-buy"], ["sell", "Sell", "i-sell"], ["deposit", "Deposit", "i-deposit"],
   ["withdraw", "Withdraw", "i-withdraw"], ["dividend", "Dividend", "i-dividends"], ["fx", "FX", "i-fx"]];
 const ADD_OTHER = [["fee", "Fee"], ["interest", "Interest"],
-  ["split", "Stock split"], ["transfer", "Transfer between brokers"]];
+  ["split", "Stock split"], ["transfer", "Transfer between brokers"], ["drip", "DRIP / Reinvested"]];
 
 // Shared fields kept across type switches on the Add page (broker/date/currency/notes).
 let addDraft = {};
@@ -3177,8 +3193,26 @@ function addForm2(type, editing) {
       <label>${t("Paid to")}<select name="paidTo">
         <option value="broker"${defPaidTo === "broker" ? " selected" : ""}>${t("Broker account (adds to cash)")}</option>
         <option value="bank"${defPaidTo === "bank" ? " selected" : ""}>${t("Bank account (income only)")}</option>
+        ${defPaidTo === "reinvested" ? `<option value="reinvested" selected>${t("Reinvested (DRIP)")}</option>` : ""}
       </select></label>
       <input type="hidden" name="company" value="${v(e.company)}">`;
+    extra = `
+      <label>${t("Ex-dividend Date")}<input type="date" name="exDate" value="${v(e.exDate)}"></label>
+      <label>${t("Payment Date")}<input type="date" name="payDate" value="${v(e.payDate)}"></label>
+      ${fxRow}`;
+  } else if (type === "DRIP / Reinvested") {
+    // One DRIP submission records two ordinary, independently-editable transactions (a
+    // Dividend with cash suppressed + a Buy it funds) — see wireTxSubmit. Share count is
+    // derived, not entered, so there's no Quantity field here.
+    const assetTypeField = `<label>${t("Asset type")}${styledSelect("assetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), tickerVal ? holdingType(tickerVal) : "Stock", { id: "afAssetType" })}</label>`;
+    core = `
+      <label>${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
+      <label class="amt-label">${t("Gross dividend")}${amtCombo("divGross", v(e.gross), "0.00")}</label>
+      <label>${t("Withholding Tax")}<input type="number" step="any" name="tax" value="${v(e.tax)}" placeholder="0.00"></label>
+      <label>${t("Reinvest Price / Share")}<input type="number" step="any" name="price" value="${v(e.price)}" placeholder="0.00"></label>
+      ${assetTypeField}
+      <input type="hidden" name="company" value="${v(e.company)}">
+      <input type="hidden" name="market" value="${v(e.market)}">`;
     extra = `
       <label>${t("Ex-dividend Date")}<input type="date" name="exDate" value="${v(e.exDate)}"></label>
       <label>${t("Payment Date")}<input type="date" name="payDate" value="${v(e.payDate)}"></label>
@@ -3222,14 +3256,14 @@ function addForm2(type, editing) {
 
   const oversell = type === "Sell"
     ? `<label class="check" id="oversellWrap"><input type="checkbox" name="override" ${e.override ? "checked" : ""}> ${t("Allow selling more shares than currently held (override)")}</label>` : "";
-  const needsTicker = isTrade || type === "Dividend" || type === "Stock split";
+  const needsTicker = isTrade || type === "Dividend" || type === "Stock split" || type === "DRIP / Reinvested";
   const hasNote = !!(e.notes || draft.notes);
 
   return `<form id="txForm" class="form add-form" autocomplete="off">
     <input type="hidden" name="type" value="${type}">
     <div class="form-grid">${head}${core}</div>
     ${needsTicker ? `<div class="lookup-status muted" id="lookupStatus"></div>` : ""}
-    ${extra ? `<details class="more-fields"><summary>${type === "Dividend" ? t("Dividend schedule") : t("Fees, taxes & details")}</summary><div class="form-grid">${extra}</div></details>` : ""}
+    ${extra ? `<details class="more-fields"><summary>${(type === "Dividend" || type === "DRIP / Reinvested") ? t("Dividend schedule") : t("Fees, taxes & details")}</summary><div class="form-grid">${extra}</div></details>` : ""}
     ${oversell}
     <div class="note-wrap">
       <button type="button" class="note-add-btn" id="noteToggle"${hasNote ? ' style="display:none"' : ''}>+ ${t("Add note")}</button>
@@ -3241,6 +3275,7 @@ function addForm2(type, editing) {
       <button type="submit" class="btn primary">${editing ? t("Update Transaction") : t("Save Transaction")}</button>
       <button type="button" class="btn secondary" id="addCancel">${t("Cancel")}</button>
       ${isTrade ? `<span class="add-total" id="addTotal"></span>` : ""}
+      ${type === "DRIP / Reinvested" ? `<span class="add-total" id="dripSharesPreview"></span>` : ""}
     </div>
   </form>`;
 }
@@ -3327,7 +3362,7 @@ function mountAddForm(type, editing) {
   // Ticker autocomplete + auto-fill (dividend: company only, no live-price line)
   const tickerEl = form.querySelector('[name="ticker"]');
   if (tickerEl && type !== "Transfer between brokers") {
-    const lookOpts = { fillPrice: type === "Buy" || type === "Sell", showPrice: type !== "Dividend" };
+    const lookOpts = { fillPrice: type === "Buy" || type === "Sell" || type === "DRIP / Reinvested", showPrice: type !== "Dividend" };
     const doLookup = () => autofillFromTicker(form, $("#lookupStatus"), lookOpts);
     tickerEl.addEventListener("change", doLookup);
     tickerEl.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); doLookup(); } });
@@ -3351,6 +3386,23 @@ function mountAddForm(type, editing) {
     if (brokerSel) brokerSel.addEventListener("change", updTotal);
     updTotal();
   }
+  // Live "Shares reinvested: X" for DRIP — (Gross − Tax) ÷ Reinvest price, so the derived
+  // share count is visible before submit even though it isn't a directly editable field.
+  const dripPreviewEl = $("#dripSharesPreview");
+  if (dripPreviewEl) {
+    const grossEl = form.querySelector('[name="divGross"]'), taxEl = form.querySelector('[name="tax"]'),
+          dripPriceEl = form.querySelector('[name="price"]');
+    const updDripPreview = () => {
+      const g = parseFloat(grossEl && grossEl.value) || 0, tx = parseFloat(taxEl && taxEl.value) || 0,
+            p = parseFloat(dripPriceEl && dripPriceEl.value) || 0;
+      const net = g - tx;
+      dripPreviewEl.innerHTML = (p > 0 && net > 0)
+        ? `${t("Shares reinvested")}: <strong>${fmt(net / p, { maximumFractionDigits: 4 })}</strong>`
+        : "";
+    };
+    [grossEl, taxEl, dripPriceEl].forEach((el) => el && el.addEventListener("input", updDripPreview));
+    updDripPreview();
+  }
 }
 
 /* Extracted submit path — validation, oversell guard, FX, build record, save. */
@@ -3369,7 +3421,7 @@ function wireTxSubmit(form) {
     let qty = d.qty ? parseFloat(d.qty) : null;
     let price = d.price ? parseFloat(d.price) : null;
     let gross = parseFloat(d.amount) || 0;
-    if (type === "Dividend") gross = parseFloat(d.divGross) || 0;
+    if (type === "Dividend" || type === "DRIP / Reinvested") gross = parseFloat(d.divGross) || 0;
     const ticker = (d.ticker || "").trim().toUpperCase();
     if (type === "Buy" || type === "Sell") gross = (qty || 0) * (price || 0);
     if (type === "Stock split") qty = parseFloat(d.splitRatio) || 1;
@@ -3414,6 +3466,11 @@ function wireTxSubmit(form) {
     } else if (type === "Dividend") {
       if (!ticker) return void fieldErr("ticker", t("Enter a ticker."));
       if (!(gross > 0)) return void fieldErr("divGross", t("Enter a gross dividend greater than 0."));
+    } else if (type === "DRIP / Reinvested") {
+      if (!ticker) return void fieldErr("ticker", t("Enter a ticker."));
+      if (!(gross > 0)) return void fieldErr("divGross", t("Enter a gross dividend greater than 0."));
+      if (!(price > 0)) return void fieldErr("price", t("Enter a price greater than 0."));
+      if (!(gross - tax > 0)) return void fieldErr("tax", t("Withholding tax can't exceed the gross dividend."));
     } else if (type === "Currency Exchange") {
       /* validated below */
     } else if (type === "Stock split") {
@@ -3432,6 +3489,48 @@ function wireTxSubmit(form) {
       if ((qty || 0) > held + 1e-9) return void fieldErr("qty", `${t("You only hold")} ${fmt(held, { maximumFractionDigits: 4 })} ${t("shares — tick the override to sell more.")}`);
     }
 
+    // A DRIP submission is always a CREATE of two ordinary, independently-editable records
+    // (a Dividend with cash suppressed + the Buy it funds) — never a single "DRIP"-typed
+    // row, so it takes its own build+push path and returns early instead of falling into
+    // the generic single-record path below. Reuses the already-correct Buy/Dividend math
+    // in computeTotals() untouched, rather than inventing a bespoke third case.
+    if (type === "DRIP / Reinvested") {
+      const net = gross - tax;
+      const dripQty = price > 0 ? net / price : 0;
+      const pairId = uid("drip");
+      const companyVal = (d.company || "").trim(), marketVal = (d.market || "").trim(), notesVal = (d.notes || "").trim() || undefined;
+      const divRecord = { id: uid("t"), date: d.date, brokerId: d.broker, type: "Dividend",
+        ticker, company: companyVal, market: marketVal, currency, qty: null, price: null,
+        gross, fee: 0, tax, fxRate, myrEquivalent: gross * fxRate, status: "Received", paidTo: "reinvested",
+        exDate: d.exDate || undefined, payDate: d.payDate || undefined, notes: notesVal, dripPairId: pairId };
+      const buyRecord = { id: uid("t"), date: d.date, brokerId: d.broker, type: "Buy",
+        ticker, company: companyVal, market: marketVal, currency, qty: dripQty, price,
+        gross: dripQty * price, fee: 0, tax: 0, fxRate, myrEquivalent: dripQty * price * fxRate,
+        notes: notesVal, dripPairId: pairId, drip: true };
+      ALL_TRANSACTIONS.unshift(divRecord, buyRecord);
+      if (ticker) setHoldingType(ticker, d.assetType);
+      if (divRecord.exDate) {
+        const udIdx = UPCOMING_DIVIDENDS.findIndex((u) =>
+          u.ticker === divRecord.ticker && u.exDate === divRecord.exDate &&
+          (u.status || "upcoming") === "upcoming");
+        if (udIdx >= 0) {
+          UPCOMING_DIVIDENDS[udIdx].status = "confirmed";
+          UPCOMING_DIVIDENDS[udIdx].confirmedTransactionId = divRecord.id;
+        } else {
+          UPCOMING_DIVIDENDS.push({ id: uid("ud"), ticker: divRecord.ticker,
+            exDate: divRecord.exDate, payDate: divRecord.payDate || undefined,
+            estimatedAmount: null, currency: divRecord.currency,
+            source: "manual", status: "confirmed", confirmedTransactionId: divRecord.id });
+        }
+      }
+      editingTxId = null;
+      saveStore();
+      toast(t("Saved ✓"));
+      if (addDraft) delete addDraft.notes;
+      render();
+      return;
+    }
+
     let extra = {};
     if (type === "Currency Exchange") {
       const fromCurrency = currency;
@@ -3446,7 +3545,12 @@ function wireTxSubmit(form) {
       extra = { fromCurrency, toCurrency, fromAmount, toAmount, exchangeRate };
     }
 
-    const record = { id: editingTxId || uid("t"), date: d.date, brokerId: d.broker, type,
+    // Spread the pre-edit record first so fields the form doesn't expose (e.g. a DRIP
+    // pair's `drip`/`dripPairId` bookkeeping) survive an edit instead of being silently
+    // dropped by this whitelist — every field the form DOES control is set explicitly
+    // below and overrides the spread.
+    const origRecord = editingTxId ? ALL_TRANSACTIONS.find((x) => x.id === editingTxId) : null;
+    const record = { ...(origRecord || {}), id: editingTxId || uid("t"), date: d.date, brokerId: d.broker, type,
       ticker: ticker || "—", company: (d.company || "").trim(), market: (d.market || "").trim(),
       currency, qty, price, gross, fee, tax, fxRate, myrEquivalent: gross * fxRate,
       status: type === "Dividend" ? "Received" : undefined,
@@ -4589,7 +4693,8 @@ function pageHelp() {
       { q: "How is dividend tax handled?", a: "Net Dividend = Gross Dividend − Withholding Tax. Withholding tax is tracked per dividend and summarised by country (using the stock's real country from the lookup) in the Dividends page." },
     ] },
     { title: "Transaction Types & Reconciliation", items: [
-      { q: "What do the transaction types mean?", a: "Deposit/Withdrawal move cash in/out. Buy/Sell trade shares (and capture commission + taxes). Dividend records income (Received or Expected). Currency Exchange converts between currencies. Fee, Tax withholding, Interest, and Transfer-between-brokers cover the rest." },
+      { q: "What do the transaction types mean?", a: "Deposit/Withdrawal move cash in/out. Buy/Sell trade shares (and capture commission + taxes). Dividend records income (Received or Expected). Currency Exchange converts between currencies. Fee, Tax withholding, Interest, and Transfer-between-brokers cover the rest. DRIP / Reinvested is a shortcut, not a separate ledger type — see the next question." },
+      { q: "How does DRIP (dividend reinvestment) work?", a: "Add → DRIP / Reinvested records two ordinary, independently-editable transactions in one step: a Dividend (its cash is marked \"Reinvested\" so it never hits the broker's cash balance) and a Buy funded by that net dividend, at the reinvest price/share you enter — share count is derived automatically as (gross dividend − withholding tax) ÷ reinvest price. Because both legs are just a normal Dividend and a normal Buy, everything downstream — average cost, dividend income, dividend yield, yield on cost, forecasts — already accounts for them correctly with no special-casing. The two records aren't hard-linked after saving: each shows up and can be edited or deleted independently, like any other transaction." },
       { q: "Why does a broker show a cash difference?", a: "Your calculated cash balance (deposits − buys − fees + sells + net dividends − withdrawals) differs from the actual balance you entered. Usually a missing fee, dividend or transfer entry. A negative balance means spending exceeded recorded cash." },
     ] },
     { title: "Multi-Currency & Exchange Rates", items: [
@@ -4652,7 +4757,8 @@ function pageHelp() {
       { q: "股息税是如何处理的？", a: "净股息 = 总股息 − 预扣税。预扣税按每笔股息记录，并在股息页面按国家/地区（使用查询得到的真实国家）汇总。" },
     ] },
     { title: "交易类型与对账", items: [
-      { q: "各交易类型是什么意思？", a: "存款/取款用于现金进出。买入/卖出用于交易股票（并记录佣金和税费）。股息记录收入（已收到或预期）。货币兑换在货币间转换。费用、预扣税、利息和券商间转账涵盖其余情况。" },
+      { q: "各交易类型是什么意思？", a: "存款/取款用于现金进出。买入/卖出用于交易股票（并记录佣金和税费）。股息记录收入（已收到或预期）。货币兑换在货币间转换。费用、预扣税、利息和券商间转账涵盖其余情况。股息再投资（DRIP）是一种快捷方式，而非独立的账本类型——详见下一个问题。" },
+      { q: "股息再投资（DRIP）是如何运作的？", a: "添加 → 股息再投资（DRIP）会一次性记录两笔普通且可独立编辑的交易：一笔股息记录（其现金标记为「已再投资」，因此不会计入券商现金余额）和一笔由该笔净股息资助的买入交易，按您输入的再投资单价计算——股数会自动计算为（股息总额 − 预扣税）÷ 再投资单价。由于这两笔记录本质上就是普通的股息和买入交易，后续所有计算——平均成本、股息收入、股息收益率、成本收益率、预测——无需任何特殊处理即可正确计入。保存后这两笔记录并非强制关联：每笔都会像其他任何交易一样单独显示，并可独立编辑或删除。" },
       { q: "为什么券商会显示现金差异？", a: "您的计算现金余额（存款 − 买入 − 费用 + 卖出 + 净股息 − 取款）与您输入的实际余额不一致，通常是漏记了费用、股息或转账。余额为负表示支出超过了已记录的现金。" },
     ] },
     { title: "多币种与汇率", items: [
@@ -5191,7 +5297,7 @@ function exportDivCSV() {
 let pendingImport = null;   // { rows:[{...parsed, errors, dup, needsBroker}], text, unknownBrokers:[] }
 
 const IMPORT_TYPES = ["Deposit","Withdrawal","Buy","Sell","Dividend","Fee","Tax withholding",
-  "Interest / cash yield","Interest","Currency Exchange","Transfer between brokers"];
+  "Interest / cash yield","Interest","Currency Exchange","Transfer between brokers","DRIP / Reinvested"];
 
 const IMPORT_HEADER = ["Date","Broker","Type","Ticker","Quantity","Price","Gross","Fee","Tax","Currency","FX Rate",
   "To Broker","To Currency","To Amount","Status","Ex-Date","Pay Date","Notes"];
@@ -5208,6 +5314,8 @@ function downloadImportTemplate() {
     blank(["2026-07-30", b2, "Dividend", "AAPL", "", "", "12", "1.8", "0", "USD", "4.70", "", "", "", "Expected", "2026-07-25", "2026-08-10"]),
     blank(["2026-02-01", b2, "Currency Exchange", "", "", "", "4000", "0", "0", "MYR", "1", "", "USD", "850"]),
     blank(["2026-04-01", b1, "Transfer between brokers", "", "", "", "5000", "0", "0", "MYR", "1", b2]),
+    // DRIP: Price = reinvest price/share, Gross = gross dividend (share count is derived).
+    blank(["2026-05-20", b1, "DRIP / Reinvested", "1155.KL", "", "9.35", "180", "0", "0", "MYR", "1"]),
   ]);
 }
 
@@ -5285,11 +5393,21 @@ function importTxFromCSV(text) {
     if (!fxRate) errors.push(t("No FX rate for") + " " + currency);
 
     let toBrokerId;
+    let dripQty;
     if (type === "Buy" || type === "Sell") {
       if (!(qty > 0)) errors.push(t("Quantity required"));
       if (!(price > 0)) errors.push(t("Price required"));
       if (!ticker) errors.push(t("Ticker required"));
       gross = (qty || 0) * (price || 0);
+    } else if (type === "DRIP / Reinvested") {
+      // Price = reinvest price/share, Gross = gross dividend; share count is derived.
+      if (!ticker) errors.push(t("Ticker required"));
+      if (!(gross > 0)) errors.push(t("Amount required"));
+      if (!(price > 0)) errors.push(t("Price required"));
+      if (tax < 0) errors.push(t("Tax can't be negative."));
+      if (!(gross - tax > 0)) errors.push(t("Withholding tax can't exceed the gross dividend."));
+      if (/expected/i.test(status)) errors.push(t("DRIP rows must be Received — a dividend can't be reinvested before it's paid."));
+      dripQty = price > 0 ? (gross - tax) / price : 0;
     } else if (type === "Currency Exchange") {
       qty = null; price = null;
       if (!(gross > 0)) errors.push(t("Amount required"));
@@ -5306,15 +5424,19 @@ function importTxFromCSV(text) {
       if (!(gross > 0)) errors.push(t("Amount required"));
     }
 
-    // Duplicate check (only meaningful once broker + amount resolve).
+    // Duplicate check (only meaningful once broker + amount resolve). A DRIP row lands in
+    // the ledger as a plain "Dividend" record (see commitImport), so it's checked and
+    // marked against that same signature shape — not a "DRIP / Reinvested"-typed one that
+    // would never match anything post-import.
     let dup = false;
     if (!needsBroker && !errors.length) {
-      const sig = txSignature(brokerId, date, type, ticker, gross, currency);
+      const sigType = type === "DRIP / Reinvested" ? "Dividend" : type;
+      const sig = txSignature(brokerId, date, sigType, ticker, gross, currency);
       if (existing.has(sig) || batchSeen.has(sig)) dup = true;
       else batchSeen.add(sig);
     }
     return { line: n + 2, date, brokerId, brokerName: brokerRaw, type, ticker, currency, qty, price,
-      gross: gross || 0, fee, tax, fxRate: fxRate || 1, toCurrency, toAmount, toBrokerId,
+      gross: gross || 0, fee, tax, fxRate: fxRate || 1, toCurrency, toAmount, toBrokerId, dripQty,
       status, exDate, payDate, notes: g(col.notes), errors, dup, needsBroker };
   });
   return { rows: out, unknownBrokers };
@@ -5354,6 +5476,7 @@ function importPreviewHTML() {
   const body = rows.map((r) => {
     const amt = r.type === "Buy" || r.type === "Sell" ? `${esc(r.qty)} @ ${fmt(r.price)}`
       : r.type === "Currency Exchange" ? `${fmt(r.gross)} → ${esc(ccyLabel(r.toCurrency))} ${fmt(r.toAmount)}`
+      : r.type === "DRIP / Reinvested" ? `${fmt(r.gross)} → ${fmt(r.dripQty, { maximumFractionDigits: 4 })} @ ${fmt(r.price)}`
       : fmt(r.gross);
     return `<tr class="${rowReady(r) ? "" : (r.dup ? "row-dup" : "row-bad")}">
       <td class="num">${r.line}</td><td>${fmtDate(r.date)}</td><td>${esc(r.brokerName) || "—"}</td>
@@ -5410,6 +5533,24 @@ function commitImport() {
   const good = pendingImport.rows.filter(rowReady);
   if (!good.length) { toast(t("No valid rows to import.")); return; }
   good.forEach((r) => {
+    if (r.type === "DRIP / Reinvested") {
+      // Same two-record model as the Add form: a Dividend (cash suppressed) + the Buy it funds.
+      const net = (r.gross || 0) - (r.tax || 0);
+      const dripQty = r.price > 0 ? net / r.price : 0;
+      const pairId = uid("drip");
+      ALL_TRANSACTIONS.unshift(
+        { id: uid("t"), date: r.date, brokerId: r.brokerId, type: "Dividend",
+          ticker: r.ticker || "—", currency: r.currency, qty: null, price: null,
+          gross: r.gross, fee: 0, tax: r.tax, fxRate: r.fxRate, myrEquivalent: r.gross * r.fxRate,
+          status: "Received", paidTo: "reinvested", exDate: r.exDate || undefined, payDate: r.payDate || r.date,
+          notes: r.notes || undefined, imported: true, dripPairId: pairId },
+        { id: uid("t"), date: r.date, brokerId: r.brokerId, type: "Buy",
+          ticker: r.ticker || "—", currency: r.currency, qty: dripQty, price: r.price,
+          gross: dripQty * r.price, fee: 0, tax: 0, fxRate: r.fxRate, myrEquivalent: dripQty * r.price * r.fxRate,
+          notes: r.notes || undefined, imported: true, dripPairId: pairId, drip: true }
+      );
+      return;
+    }
     const rec = {
       id: uid("t"), date: r.date, brokerId: r.brokerId, type: r.type,
       ticker: r.ticker || "—", currency: r.currency, qty: r.qty, price: r.price,
