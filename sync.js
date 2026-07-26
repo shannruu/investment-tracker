@@ -23,6 +23,16 @@ let LAST_SYNCED = (() => { try { return localStorage.getItem("il-last-synced") |
 let _pushTimer = null;
 let _syncBusy = false;
 
+const LOCAL_OWNER_KEY = "il-local-owner";
+// Tracks WHICH account's data currently occupies localStorage on this device —
+// deliberately survives sign-out (signing out doesn't clear local data, so the
+// data still "belongs" to whoever last synced it). Without this, switching
+// accounts on a shared device can silently upload or overwrite one user's
+// financial data with another's, since reconcileOnSignIn() would otherwise
+// treat any local data as belonging to whoever just signed in.
+function getLocalOwner() { try { return localStorage.getItem(LOCAL_OWNER_KEY) || ""; } catch (e) { return ""; } }
+function setLocalOwner(id) { try { localStorage.setItem(LOCAL_OWNER_KEY, id); } catch (e) {} }
+
 function syncAvailable() { return !!window.SUPABASE; }
 
 /* Called once from app.js's init(), fire-and-forget (never awaited there) so
@@ -32,7 +42,7 @@ async function initSync() {
 
   try {
     const { data } = await SUPABASE.auth.getSession();
-    if (data && data.session) { SYNC_USER = data.session.user; await reconcileOnSignIn(); }
+    if (data && data.session) { SYNC_USER = data.session.user; await reconcileOnSignIn(); render(); }
   } catch (e) { /* stays signed out */ }
 
   SUPABASE.auth.onAuthStateChange(async (event, session) => {
@@ -52,6 +62,13 @@ async function initSync() {
 
   const pullBtn = $("#cloudStalePull");
   if (pullBtn) pullBtn.addEventListener("click", async () => {
+    // A push may already be scheduled for a local edit that hasn't reached the
+    // cloud yet — pulling now would overwrite that edit in memory, and letting
+    // the pending push fire afterward would silently re-push the stale (reverted)
+    // data right back over the fresh pull, losing the edit on both sides.
+    const hasUnsyncedEdit = LAST_SAVED && (!LAST_SYNCED || new Date(LAST_SAVED) > new Date(LAST_SYNCED));
+    if (hasUnsyncedEdit && !confirm(t("You have a change on this device that hasn't finished syncing yet. Pulling now will discard it. Continue?"))) return;
+    clearTimeout(_pushTimer);
     const row = await pullFromCloud();
     if (row) { applySnapshot(row.data); saveStore(); }
     hideCloudStaleWarning(); render();
@@ -75,8 +92,16 @@ function debouncedPush() {
 }
 
 async function pushToCloud() {
-  if (!syncAvailable() || !SYNC_USER || _syncBusy) return;
+  if (!syncAvailable() || !SYNC_USER) return false;
+  if (_syncBusy) {
+    // A push is already in flight — don't drop this one, retry shortly instead,
+    // otherwise an edit that lands mid-push can be silently skipped forever.
+    clearTimeout(_pushTimer);
+    _pushTimer = setTimeout(pushToCloud, 1000);
+    return false;
+  }
   _syncBusy = true;
+  let ok = false;
   try {
     const { data, error } = await SUPABASE.from("ledger_data")
       .upsert({ user_id: SYNC_USER.id, data: snapshot() }, { onConflict: "user_id" })
@@ -84,9 +109,11 @@ async function pushToCloud() {
     if (!error && data && data.updated_at) {
       LAST_SYNCED = data.updated_at;
       try { localStorage.setItem("il-last-synced", LAST_SYNCED); } catch (e) {}
+      ok = true;
     }
   } catch (e) { /* offline/etc — next edit or the "online" listener retries */ }
   _syncBusy = false;
+  return ok;
 }
 
 async function pullFromCloud() {
@@ -114,29 +141,48 @@ async function pullIfNewer() {
 /* Runs once per sign-in (fresh or rehydrated-on-load). Only prompts the user
  * when there's a genuine ambiguity — most sign-ins resolve silently. */
 async function reconcileOnSignIn() {
-  const marker = `il-cloud-linked-${SYNC_USER.id}`;
+  const userId = SYNC_USER.id;   // capture now — SYNC_USER can change while we await below
+  const marker = `il-cloud-linked-${userId}`;
   let already = false;
   try { already = localStorage.getItem(marker) === "1"; } catch (e) {}
   if (already) { pullIfNewer(); return; }
+
+  // Local data left over from a DIFFERENT account on this device (sign-out never
+  // clears it) must never be treated as this account's — wipe it first, exactly
+  // like a fresh device, rather than risk uploading it into or over this account.
+  const owner = getLocalOwner();
+  if (owner && owner !== userId) {
+    clearAllData();
+    toast(t("Local data from a previous account was cleared before syncing this account."));
+  }
 
   const localHas = BROKERS.length > 0 || ALL_TRANSACTIONS.length > 0;
   const row = await pullFromCloud();
   const cloudHas = !!(row && row.data && (((row.data.BROKERS || []).length > 0) || ((row.data.ALL_TRANSACTIONS || []).length > 0)));
   const markLinked = () => { try { localStorage.setItem(marker, "1"); } catch (e) {} };
 
-  if (!localHas && !cloudHas) { markLinked(); return; }
+  if (!localHas && !cloudHas) { markLinked(); setLocalOwner(userId); return; }
   if (!localHas && cloudHas) {
-    applySnapshot(row.data); saveStore(); markLinked();
+    applySnapshot(row.data); saveStore(); markLinked(); setLocalOwner(userId);
     toast(t("Synced from your account.")); return;
   }
   if (localHas && !cloudHas) {
-    markLinked(); pushToCloud();
-    toast(t("Your data was uploaded to your account.")); return;
+    // Don't mark as linked (and don't claim success) until the upload actually
+    // succeeds — otherwise a failed first push looks permanently synced with
+    // no retry path, since every future sign-in would skip straight past it.
+    const ok = await pushToCloud();
+    if (ok) {
+      markLinked(); setLocalOwner(userId);
+      toast(t("Your data was uploaded to your account."));
+    } else {
+      toast(t("Couldn't upload to your account — check your connection and try again."));
+    }
+    return;
   }
-  openReconcileModal(row);   // both sides have data — genuinely ambiguous
+  openReconcileModal(row, userId);   // both sides have data — genuinely ambiguous
 }
 
-function openReconcileModal(cloudRow) {
+function openReconcileModal(cloudRow, userId) {
   SYNC_STATUS = "needs-reconciliation";
   const localCount = ALL_TRANSACTIONS.length;
   const cloudCount = (cloudRow.data.ALL_TRANSACTIONS || []).length;
@@ -153,14 +199,25 @@ function openReconcileModal(cloudRow) {
     </div>`;
   $("#modal").hidden = false;
 
-  const marker = `il-cloud-linked-${SYNC_USER.id}`;
-  $("#reconcileKeepLocal").addEventListener("click", () => {
-    try { localStorage.setItem(marker, "1"); } catch (e) {}
-    SYNC_STATUS = "idle"; closeModal(); pushToCloud();
-    toast(t("Your data was uploaded to your account.")); render();
+  // userId is the id captured when reconciliation started, NOT re-read from the
+  // live SYNC_USER global — signing out while this modal is open would otherwise
+  // null it out (or, worse, a different account could sign in) mid-flow.
+  const marker = `il-cloud-linked-${userId}`;
+  $("#reconcileKeepLocal").addEventListener("click", async () => {
+    SYNC_STATUS = "idle"; closeModal();
+    const ok = await pushToCloud();
+    if (ok) {
+      try { localStorage.setItem(marker, "1"); } catch (e) {}
+      setLocalOwner(userId);
+      toast(t("Your data was uploaded to your account."));
+    } else {
+      toast(t("Couldn't upload to your account — check your connection and try again."));
+    }
+    render();
   });
   $("#reconcileKeepCloud").addEventListener("click", () => {
     try { localStorage.setItem(marker, "1"); } catch (e) {}
+    setLocalOwner(userId);
     applySnapshot(cloudRow.data); saveStore();
     SYNC_STATUS = "idle"; closeModal();
     toast(t("Synced from your account.")); render();
@@ -240,8 +297,8 @@ function mountAccountSyncPanel() {
   const syncNowBtn = $("#syncNowBtn");
   if (syncNowBtn) syncNowBtn.addEventListener("click", async () => {
     syncNowBtn.disabled = true;
-    await pushToCloud();
-    toast(t("Synced."));
+    const ok = await pushToCloud();
+    toast(ok ? t("Synced.") : t("Couldn't sync — check your connection and try again."));
     render();
   });
   const signOutBtn = $("#signOutBtn");
@@ -253,7 +310,9 @@ function mountAccountSyncPanel() {
   const reopenLink = $("#reopenReconcile");
   if (reopenLink) reopenLink.addEventListener("click", async (e) => {
     e.preventDefault();
+    if (!SYNC_USER) return;
+    const userId = SYNC_USER.id;
     const row = await pullFromCloud();
-    if (row) openReconcileModal(row);
+    if (row) openReconcileModal(row, userId);
   });
 }

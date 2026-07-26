@@ -161,6 +161,13 @@ const ZH = {
   "All P/L": "全部盈亏", "Profit": "盈利", "Loss": "亏损",
   // Mini cards / dividend summary
   "Net Cash Added": "净增现金", "Gross Dividends (YTD)": "总股息（年初至今）",
+  "Gross Dividends": "总股息",
+  "Your data stays on this device and this browser only — nothing is shared or synced. If you're trying this out from a shared link, your entries are private to you and won't affect anyone else's. Opening the app on a different device starts a separate, empty ledger there too.": "您的数据仅保存在此设备和此浏览器中 — 不会被分享或同步。如果您是通过共享链接体验本应用，您输入的内容仅您可见，不会影响他人。在其他设备上打开本应用会是一个全新的空白账本。",
+  "Forecast needs more data": "预测数据不足",
+  "Investment Return Over Time": "投资回报随时间变化",
+  "Incl. Dividends": "含股息", "By stock": "按股票",
+  "All stocks": "所有股票", "Default order": "默认顺序", "Edit columns": "编辑列",
+  "Dividend Income": "股息收入",
   // Settings
   "Name": "姓名", "Email": "邮箱", "Member since": "注册于",
   "Light": "浅色", "Dark": "深色", "Default design": "默认设计", "True black": "纯黑",
@@ -185,9 +192,12 @@ const ZH = {
   "Currency code": "货币代码", "Rate to": "汇率对", "Add currency": "添加货币",
   "Refresh live rates": "刷新实时汇率", "base": "基准", "Remove": "移除",
   "Fetching…": "获取中…", "Fetching live rates…": "正在获取实时汇率…",
-  "Live rates as of": "实时汇率截至", "updated": "项已更新", "added": "已添加",
+  "Live rates as of": "实时汇率截至", "updated": "项已更新", "added": "已添加", "exported": "已导出",
+  "Dark theme applied": "已应用深色主题", "Light theme applied": "已应用浅色主题",
   "Couldn't reach the rate service — check your connection.": "无法连接汇率服务 — 请检查网络连接。",
   "Enter a 3-letter currency code.": "请输入 3 位货币代码。", "Enter a valid rate.": "请输入有效的汇率。",
+  "Enter a rate greater than 0.": "请输入大于 0 的汇率。",
+  "already has a rate — edit it in the list above instead.": "已有汇率 — 请在上方列表中编辑。",
   // Data entry — brokers / holdings / transactions
   "Broker name": "券商名称", "Default currency": "默认货币", "Broker added": "已添加券商",
   "Broker removed": "已移除券商", "This broker still has records. Remove it anyway?": "该券商仍有记录，仍要移除吗？",
@@ -311,6 +321,10 @@ const ZH = {
   "Enter a split ratio greater than 0.": "请输入大于 0 的拆股比例。", "Enter an amount greater than 0.": "请输入大于 0 的金额。",
   "Choose a different destination broker.": "请选择不同的目标券商。", "Enter an amount to convert.": "请输入要兑换的金额。",
   "Enter an exchange rate.": "请输入汇率。", "Choose a different destination currency.": "请选择不同的目标货币。",
+  "Enter an exchange rate greater than 0.": "请输入大于 0 的汇率。",
+  "Fee can't be negative.": "费用不能为负数。", "Tax can't be negative.": "税费不能为负数。",
+  "Enter a number of shares greater than 0.": "请输入大于 0 的股数。",
+  "Enter an average cost of 0 or more.": "请输入不小于 0 的平均成本。",
   "Negative cash balance": "现金余额为负",
   "A buy, fee or withdrawal exceeds the cash recorded for this broker. Add a deposit or check the entries.": "买入、费用或取款超过了该券商记录的现金。请添加存款或检查记录。",
   "Realized gain/loss from": "已实现盈亏，来自", "currency-exchange transaction(s), valued at current rates.": "笔货币兑换交易，按当前汇率估值。",
@@ -382,6 +396,7 @@ const ZH = {
   "Est. Payment": "预估派息日",
   "Not logged": "尚未记录",
   "Auto-logged from market dividend history — review the tax withheld and \"Paid to\".": "已根据市场股息记录自动登记——请自行核对预扣税金额及「派发至」设定。",
+  "Auto-logged from market dividend history — review the tax withheld, \"Paid to\", and FX rate (this uses today's rate, not the rate on the payment date).": "已根据市场股息记录自动登记——请自行核对预扣税金额、「派发至」设定及汇率（此处使用今日汇率，而非派发当日汇率）。",
   "dividends auto-logged from market history": "笔股息已根据市场记录自动登记",
   "Position": "持仓概况", "Position opened": "持仓建立于",
   "unrealized P/L, realized P/L and dividends will build up over time.": "未实现盈亏、已实现盈亏和股息将随时间累积。",
@@ -562,6 +577,10 @@ const ZH = {
   "Your data was updated from another device. Pull the latest before making more changes here, or you'll overwrite it.": "您的数据已在其他设备上更新。请先拉取最新数据，否则继续编辑将覆盖它。",
   "Cloud Sync is on — your data syncs to your account and is available on any device you sign into.": "云同步已开启 — 您的数据会同步到账户，并可在您登录的任何设备上使用。",
   "Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.": "登录状态下您的数据也会同步到账户，因此清除浏览器数据不会丢失它 — 但仍建议定期导出 JSON 备份。",
+  "Local data from a previous account was cleared before syncing this account.": "同步此账户前，已清除上一账户遗留在本设备的数据。",
+  "You have a change on this device that hasn't finished syncing yet. Pulling now will discard it. Continue?": "此设备上有一项更改尚未同步完成。现在拉取将丢弃该更改，是否继续？",
+  "Couldn't upload to your account — check your connection and try again.": "上传到您的账户失败 — 请检查网络连接后重试。",
+  "Couldn't sync — check your connection and try again.": "同步失败 — 请检查网络连接后重试。",
 };
 
 const I18N = { zh: ZH };
@@ -1049,9 +1068,12 @@ function replaceArr(arr, next) {
   next.forEach((x) => arr.push(x));
 }
 function applySnapshot(s) {
+  // Cloud-pulled data isn't validated before this runs the way a local backup
+  // restore is (see validBackup()) — guard every optional field's shape here so a
+  // malformed row can't throw partway through and leave a half-old/half-new state.
   replaceArr(BROKERS, s.BROKERS); replaceArr(HOLDINGS, s.HOLDINGS);
   replaceArr(ALL_TRANSACTIONS, s.ALL_TRANSACTIONS); replaceArr(UPCOMING_DIVIDENDS, s.UPCOMING_DIVIDENDS);
-  if (s.PV_HISTORY) replaceArr(PV_HISTORY, s.PV_HISTORY.filter((p) => p.value > 0));
+  if (Array.isArray(s.PV_HISTORY)) replaceArr(PV_HISTORY, s.PV_HISTORY.filter((p) => p && p.value > 0));
   assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(RECON_CHECKS, s.RECON_CHECKS);
   assignObj(STOCK_META, s.STOCK_META);
   if (s.SETTINGS) safeAssign(SETTINGS, s.SETTINGS);
@@ -1059,7 +1081,12 @@ function applySnapshot(s) {
   if (s.lastSaved) LAST_SAVED = s.lastSaved;
   if (s.FX) {
     if (s.FX.base) FX.base = s.FX.base;
-    if (s.FX.rates) { Object.keys(FX.rates).forEach((k) => delete FX.rates[k]); safeAssign(FX.rates, s.FX.rates); }
+    // A present-but-empty rates object (a corrupted/truncated backup or cloud row)
+    // must never wipe out the real, working rates — only replace when there's an
+    // actual non-empty replacement.
+    if (s.FX.rates && typeof s.FX.rates === "object" && Object.keys(s.FX.rates).length) {
+      Object.keys(FX.rates).forEach((k) => delete FX.rates[k]); safeAssign(FX.rates, s.FX.rates);
+    }
     if (s.FX.updated) FX.updated = s.FX.updated;
   }
 }
@@ -1208,6 +1235,9 @@ function autoSyncDividends() {
       if (d.date < earliestTxDate || d.date > today) return;   // before you held it, or hasn't happened yet
       const dTime = new Date(d.date + "T00:00:00").getTime();
       if (loggedDates.some((t) => Math.abs(t - dTime) <= 10 * 86400000)) return;   // already logged
+      // The app has no historical FX rate history — today's rate is the best available
+      // approximation for a dividend paid on a past date. Flagged clearly in the note
+      // below so the user knows to correct it manually if the FX drift since then matters.
       const fxRate = FX.rates[d.currency] || 1;
       const gross = (d.amount || 0) * h.shares;
       const tax = gross * ((broker && broker.divTaxRate ? broker.divTaxRate : 0) / 100);
@@ -1216,7 +1246,7 @@ function autoSyncDividends() {
         ticker: h.ticker, company: h.company || "", market: h.market || "",
         currency: d.currency, gross, tax, fxRate, myrEquivalent: gross * fxRate,
         status: "Received", paidTo: inferredPaidTo, exDate: d.date, payDate: d.date,
-        notes: t("Auto-logged from market dividend history — review the tax withheld and \"Paid to\"."),
+        notes: t("Auto-logged from market dividend history — review the tax withheld, \"Paid to\", and FX rate (this uses today's rate, not the rate on the payment date)."),
       });
       loggedDates.push(dTime);   // don't double-log within the same pass
       added++;
@@ -1816,7 +1846,7 @@ function insightsHTML() {
     <div class="ph-stat-value">${val}</div>
     ${sub ? `<div class="mc-sub muted">${sub}</div>` : ""}
   </div>`;
-  return panel("Portfolio Health", `<div class="ph-row">
+  return panel(t("Portfolio Health"), `<div class="ph-row">
     ${stat("phDivYield", t("Dividend Yield (TTM)"), hp.yieldEst != null ? fmt(hp.yieldEst, { maximumFractionDigits: 2 }) + "%" : "—")}
     ${stat("phCashAlloc", t("Cash Allocation"), hp.cashAlloc != null ? fmt(hp.cashAlloc, { maximumFractionDigits: 1 }) + "%" : "—", t("of total net value"))}
     ${stat("phDivScore", t("Diversification Score"), T.holdings.length >= 2 ? `${hp.divScore}/100` : "—", T.holdings.length >= 2 ? `${fmt(hp.effectiveN, { maximumFractionDigits: 1 })} ${t("effective holdings")}` : t("Add more holdings to score"))}
@@ -1914,7 +1944,10 @@ function pageDashboard() {
 
   const netWorth = (T.portfolioValue || 0) + (T.totalCash || 0);
   const returnIsTotal = SETTINGS.returnMode !== "price";
-  const shownReturn = returnIsTotal ? T.totalReturn : T.priceReturn;
+  // "Unrealized" must show pure unrealized P/L, not T.priceReturn (which also mixes
+  // in realized P/L and fees) — otherwise a fully-sold position with no current
+  // holdings can still show a large nonzero "Unrealized P/L" from past realized gains.
+  const shownReturn = returnIsTotal ? T.totalReturn : T.unrealizedPL;
   const shownPct = T.netCapitalInvested ? (shownReturn / T.netCapitalInvested) * 100 : 0;
   const up = shownReturn > 0;
   const dn = shownReturn < 0;
@@ -1985,12 +2018,14 @@ function pageDashboard() {
     nw: { title: "Net Worth", rows: [
       { op: "+", label: "Current Portfolio Value", val: fmt(T.portfolioValue) },
       { op: "+", label: "Available cash (all brokers)", val: fmt(T.totalCash || 0) }], total: netWorth },
-    pl: { title: returnIsTotal ? "Total Return" : "Unrealized P/L", rows: [
+    pl: { title: returnIsTotal ? "Total Return" : "Unrealized P/L", rows: returnIsTotal ? [
       { op: "+", label: "Unrealized P/L", val: moneySigned(T.unrealizedPL) },
       { op: "+", label: "Realized P/L", val: moneySigned(T.realizedPL) },
-      ...(returnIsTotal ? [{ op: "+", label: "Net Dividends", val: moneySigned(T.netDividends) }] : []),
-      ...(returnIsTotal && T.totalInterest ? [{ op: "+", label: "Interest Received", val: moneySigned(T.totalInterest) }] : []),
-      { op: "−", label: "Total Fees", val: fmt(T.totalFees) }], total: shownReturn },
+      { op: "+", label: "Net Dividends", val: moneySigned(T.netDividends) },
+      ...(T.totalInterest ? [{ op: "+", label: "Interest Received", val: moneySigned(T.totalInterest) }] : []),
+      { op: "−", label: "Total Fees", val: fmt(T.totalFees) }] : [
+      { op: "+", label: "Unrealized P/L", val: moneySigned(T.unrealizedPL) },
+    ], total: shownReturn },
     cash: availableCashCalc(),
     principal: netCashAddedCalc("Principal Invested"),
   };
@@ -2049,7 +2084,7 @@ function pageDashboard() {
         const chartBody = hasTxn
           ? `<div id="dashChartBody">${buildDashChartContent()}</div>`
           : emptyState(t("Record your first deposit or Buy to start tracking."));
-        return panel("Investment Return Over Time", chartBody, chartHeadExtra);
+        return panel(t("Investment Return Over Time"), chartBody, chartHeadExtra);
       })()}
       ${(() => {
         const allocToggle = `<div class="seg seg-sm" id="dashAllocSeg"><button class="seg-btn ${dashAllocMode === "currency" ? "on" : ""}" data-alloc="currency">${t("By currency")}</button><button class="seg-btn ${dashAllocMode === "stock" ? "on" : ""}" data-alloc="stock">${t("By stock")}</button></div>`;
@@ -2417,11 +2452,20 @@ function mountOpeningHoldingForm() {
     e.preventDefault();
     const d = Object.fromEntries(new FormData(e.target).entries());
     const ticker = d.ticker.trim().toUpperCase();
+    if (!ticker) { toast(t("Enter a ticker.")); return; }
+    const shares = parseFloat(d.shares);
+    if (!(shares > 0)) { toast(t("Enter a number of shares greater than 0.")); return; }
+    const avgCost = parseFloat(d.avgCost);
+    if (!(avgCost >= 0)) { toast(t("Enter an average cost of 0 or more.")); return; }
+    let openingFxRate = null;
+    if (d.openingFxRate) {
+      openingFxRate = parseFloat(d.openingFxRate);
+      if (!(openingFxRate > 0)) { toast(t("Enter an exchange rate greater than 0.")); return; }
+    }
     HOLDINGS.push({
       ticker, company: (d.company || "").trim(),
       brokerId: d.brokerId, market: (d.market || "").trim(), currency: d.currency,
-      shares: parseFloat(d.shares) || 0, avgCost: parseFloat(d.avgCost) || 0,
-      openingFxRate: d.openingFxRate ? parseFloat(d.openingFxRate) : null,
+      shares, avgCost, openingFxRate,
       asOfDate: d.asOfDate || todayISO(), netDividends: 0,
     });
     const cp = parseFloat(d.currentPrice);
@@ -2583,9 +2627,9 @@ function pagePortfolio() {
     ? `<div id="pfSummary">${portfolioSummaryHTML()}</div>
        ${pfNav}
        ${portfolioTab === "allocation" ? breakdowns
-          : panel("All Holdings", filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
+          : panel(t("All Holdings"), filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
               `<div class="panel-head-actions">${priceStampHtml}${refreshBtn}</div>`)}`
-    : panel("Holdings", emptyContent);
+    : panel(t("Holdings"), emptyContent);
 
   return { title: "Portfolio", subtitle: LANG === "zh"
       ? `${T.holdings.length} 个持仓，${BROKERS.length} 个券商 · ${money(T.portfolioValue)}`
@@ -2946,7 +2990,7 @@ function recordsTable(list) {
     { label: "Amount (RM)", style: "width:18%;text-align:left" },
     { label: "Broker", style: "width:18%;text-align:left" },
     { label: "", style: "width:10%" },
-  ], rows);
+  ], rows, { fixed: true });
 }
 
 /* =============================================================================
@@ -3341,6 +3385,10 @@ function wireTxSubmit(form) {
       (form.querySelector(".form-actions") || form).insertAdjacentElement("beforebegin", errEl);
       return true;
     };
+
+    if (d.fxRate && !(parseFloat(d.fxRate) > 0)) return void fieldErr("fxRate", t("Enter an exchange rate greater than 0."));
+    if (fee < 0) return void fieldErr("fee", t("Fee can't be negative."));
+    if (tax < 0) return void fieldErr(type === "Buy" || type === "Sell" ? "tradeTax" : "tax", t("Tax can't be negative."));
 
     if (type === "Buy" || type === "Sell") {
       if (!ticker) return void fieldErr("ticker", t("Enter a ticker."));
@@ -3883,7 +3931,7 @@ function pageDividends() {
 
   const html = `
     <div class="mini-cards">
-      ${miniCard("Gross Dividends", money(grossBase))}
+      ${miniCard(t("Gross Dividends"), money(grossBase))}
       ${miniCard("Withholding Tax", money(taxBase), taxBase > 0 ? "neg" : "")}
       ${miniCard("Net Dividends (Lifetime)", money(grossBase - taxBase), "pos")}</div>
 
@@ -3896,7 +3944,7 @@ function pageDividends() {
               { label: "Ticker", style: "width:14%;text-align:left" },
               { label: `${t("Ex-Date")}${exDateTip}`, style: "width:14%;text-align:left" },
               { label: `${t("Est. Payment")}${payDateTip}`, style: "width:14%;text-align:left" },
-              { label: "Per Share (RM)", style: "width:14%;text-align:left" },
+              { label: `${t("Per Share")} (${ccyLabel(FX.base)})`, style: "width:14%;text-align:left" },
               { label: "Amount (RM)", style: "width:14%;text-align:left" },
               { label: "Yield", style: "width:14%;text-align:left" },
               { label: "Status", style: "width:14%;text-align:left" },
@@ -3913,10 +3961,10 @@ function pageDividends() {
       )}
     </div>
 
-    ${panel("Dividend Income", table([
+    ${panel(t("Dividend Income"), table([
         { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
         { label: "Net (RM)", style: "width:50%;text-align:left" },
-      ], incomeRowsByPeriod[divIncomePeriod] || monthRows),
+      ], incomeRowsByPeriod[divIncomePeriod] || monthRows, { fixed: true }),
       `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}`;
 
   return {
@@ -4283,7 +4331,7 @@ function pageSettings() {
     mount() {
       reflectThemeChoice();
       $$("#themeOptions .theme-card").forEach((btn) => {
-        btn.addEventListener("click", () => { setTheme(btn.dataset.themeChoice); reflectThemeChoice(); toast(`${btn.dataset.themeChoice === "dark" ? "Dark" : "Light"} theme applied`); });
+        btn.addEventListener("click", () => { setTheme(btn.dataset.themeChoice); reflectThemeChoice(); toast(btn.dataset.themeChoice === "dark" ? t("Dark theme applied") : t("Light theme applied")); });
       });
       mountOpeningHoldingForm();   // "Import existing holdings" form
       // Deep-linked from the Portfolio empty state → reveal + scroll to the import section.
@@ -4550,6 +4598,7 @@ function mountFxControls() {
   $$(".fx-rate").forEach((inp) => inp.addEventListener("change", (e) => {
     const v = parseFloat(e.target.value);
     if (v > 0) { FX.rates[e.target.dataset.ccy] = v; saveStore(); }
+    else { toast(t("Enter a rate greater than 0.")); e.target.value = FX.rates[e.target.dataset.ccy] || ""; }
   }));
   // Delete a currency
   $$(".fx-del").forEach((btn) => btn.addEventListener("click", () => {
@@ -4571,6 +4620,7 @@ function mountFxControls() {
     const rate = parseFloat($("#newRate").value);
     if (code.length !== 3) { toast(t("Enter a 3-letter currency code.")); return; }
     if (!(rate > 0)) { toast(t("Enter a valid rate.")); return; }
+    if (code === FX.base || FX.rates[code]) { toast(`${code} ${t("already has a rate — edit it in the list above instead.")}`); return; }
     FX.rates[code] = rate; saveStore(); render();
     toast(`${code} ${t("added")}`);
   });
@@ -4692,12 +4742,24 @@ function pageHolding() {
   const divYearSeries = Object.keys(divByYear).sort().map((yr) => ({
     label: yr, value: divByYear[yr], projected: yr === curYear ? projThisYear : 0,
   }));
-  // Cumulative cost basis over time (proxy for position size — historical market prices aren't stored)
-  let cum = 0; const costSeries = [];
+  // Cumulative cost basis over time (proxy for position size — historical market prices aren't stored).
+  // A Sell must reduce cost basis by the AVERAGE COST of the shares sold, not by the sale
+  // proceeds (qty × sell price) — otherwise a profitable sale (price above avg cost) makes
+  // cost basis drop too far, and a loss sale makes it drop too little, same accounting
+  // computeTotals() already uses correctly elsewhere.
+  let cum = 0, cumShares = 0; const costSeries = [];
   [...txs].sort((a, b) => (a.date < b.date ? -1 : 1)).forEach((x) => {
     const xfx = x.fxRate || FX.rates[x.currency] || 1;
-    if (x.type === "Buy") cum += ((+x.qty || 0) * (+x.price || 0) + (+x.fee || 0) + (+x.tax || 0)) * xfx;
-    else if (x.type === "Sell") cum = Math.max(0, cum - (+x.qty || 0) * (+x.price || 0) * xfx);
+    const qty = +x.qty || 0;
+    if (x.type === "Buy") {
+      cum += (qty * (+x.price || 0) + (+x.fee || 0) + (+x.tax || 0)) * xfx;
+      cumShares += qty;
+    } else if (x.type === "Sell") {
+      const avgCostPerShare = cumShares > 0 ? cum / cumShares : 0;
+      const sellQty = Math.min(qty, cumShares);
+      cum = Math.max(0, cum - avgCostPerShare * sellQty);
+      cumShares = Math.max(0, cumShares - sellQty);
+    }
     if (x.type === "Buy" || x.type === "Sell") costSeries.push({ month: x.date.slice(2), value: cum });
   });
 
@@ -4738,7 +4800,7 @@ function pageHolding() {
       </div>
     </div>`;
   })() : "";
-  const positionPanel = panel("Position", `
+  const positionPanel = panel(t("Position"), `
     <div class="metrics pos-metrics">
       ${posStat(t("Market Value"), money(h.marketValue), "", "net")}
       ${posStat(t("Total Return"), moneySigned(h.totalReturn), cls(h.totalReturn))}
@@ -4879,7 +4941,7 @@ function pageHolding() {
       // Only scroll once there's more than 5 rows to show — a short list shouldn't sit
       // inside a scroll container it doesn't need.
       const scrollCls = filtered.length > 5 ? "dcc-table-scroll" : "";
-      return panel(`${t("Dividend Calendar")}${titleTip}`, `<div class="${scrollCls}">${table(heads, rows)}</div>`, `<div class="panel-head-actions">${filterSel}</div>`);
+      return panel(`${t("Dividend Calendar")}${titleTip}`, `<div class="${scrollCls}">${table(heads, rows, { fixed: true })}</div>`, `<div class="panel-head-actions">${filterSel}</div>`);
     })()}
 
     ${(() => {
@@ -4900,8 +4962,8 @@ function pageHolding() {
       const showCost = costSeries.length >= 2;
       const showDiv = divSeries.length >= 2;
       if (!showCost && !showDiv) return "";
-      const costPanel = panel("Cost Basis Over Time", `<div class="chart">${lineChartSVG(costSeries)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Cumulative cost — historical market prices are not stored.")}</p>`);
-      const divPanel = panel("Dividend Income Over Time", `<div class="chart">${lineChartSVG(divSeries)}</div>`);
+      const costPanel = panel(t("Cost Basis Over Time"), `<div class="chart">${lineChartSVG(costSeries)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Cumulative cost — historical market prices are not stored.")}</p>`);
+      const divPanel = panel(t("Dividend Income Over Time"), `<div class="chart">${lineChartSVG(divSeries)}</div>`);
       if (showCost && showDiv) return `<section class="grid-2">${costPanel}${divPanel}</section>`;
       return showCost ? costPanel : divPanel;
     })()}
@@ -5069,19 +5131,24 @@ function downloadCSV(filename, header, lines) {
   a.href = url; a.download = filename;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
-  toast(filename + " exported");
+  toast(filename + " " + t("exported"));
 }
 function exportCashCSV() {
   const cashTypes = ["Deposit", "Withdrawal", "Interest / cash yield", "Interest", "Fee", "Tax withholding", "Transfer between brokers", "Currency Exchange"];
   const rows = ALL_TRANSACTIONS.filter((x) => cashTypes.includes(x.type) || (x.type === "Dividend" && x.status !== "Expected"));
   downloadCSV("investment-ledger-cash.csv",
-    ["Date","Broker","Type","Amount","Currency","FX Rate","Amount in " + FX.base],
-    rows.map((c) => [c.date, brokerName(c.brokerId), c.type, c.gross, c.currency, c.fxRate || FX.rates[c.currency] || 1, (c.myrEquivalent != null ? c.myrEquivalent : (+c.gross || 0) * (c.fxRate || 1)).toFixed(2)]));
+    ["Date","Broker","Type","Amount","Currency","FX Rate","Amount in " + FX.base,"To Broker","To Currency","To Amount"],
+    rows.map((c) => [c.date, brokerName(c.brokerId), c.type, c.gross, c.currency, c.fxRate || FX.rates[c.currency] || 1, (c.myrEquivalent != null ? c.myrEquivalent : (+c.gross || 0) * (c.fxRate || 1)).toFixed(2),
+      c.toBrokerId ? brokerName(c.toBrokerId) : "", c.toCurrency || "", c.toAmount ?? ""]));
 }
 function exportTxCSV() {
   downloadCSV("investment-ledger-transactions.csv",
-    ["Date","Broker","Type","Ticker","Quantity","Price","Gross","Fee","Tax","Currency","FX Rate","MYR Equivalent","Notes"],
-    ALL_TRANSACTIONS.map((x) => [x.date, brokerName(x.brokerId), x.type, x.ticker, x.qty ?? "", x.price ?? "", x.gross ?? "", x.fee ?? 0, x.tax ?? 0, x.currency, x.fxRate ?? "", (x.myrEquivalent != null ? x.myrEquivalent : "").toString(), x.notes || ""]));
+    ["Date","Broker","Type","Ticker","Quantity","Price","Gross","Fee","Tax","Currency","FX Rate",
+      "To Broker","To Currency","To Amount","Status","Ex-Date","Pay Date","MYR Equivalent","Notes"],
+    ALL_TRANSACTIONS.map((x) => [x.date, brokerName(x.brokerId), x.type, x.ticker, x.qty ?? "", x.price ?? "", x.gross ?? "", x.fee ?? 0, x.tax ?? 0, x.currency, x.fxRate ?? "",
+      x.toBrokerId ? brokerName(x.toBrokerId) : "", x.toCurrency || "", x.toAmount ?? "",
+      x.status || "", x.exDate || "", x.payDate || "",
+      (x.myrEquivalent != null ? x.myrEquivalent : "").toString(), x.notes || ""]));
 }
 function exportDivCSV() {
   const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend");
