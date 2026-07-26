@@ -2423,6 +2423,7 @@ function openingHoldingFormHTML() {
 function mountOpeningHoldingForm() {
   const hf = $("#holdingForm");
   if (!hf) return;
+  mountDatePickers(hf);
   const ht = hf.querySelector('[name="ticker"]');
   if (ht) ht.addEventListener("change", () => autofillFromTicker(hf, $("#holdingLookup"), { fillPrice: false }));
   attachAutocomplete(hf, $("#holdingLookup"), { fillPrice: false });
@@ -4338,6 +4339,7 @@ function pageSettings() {
         if (ih) setTimeout(() => ih.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
       }
       // Editable profile
+      mountDatePickers($("#profileForm"));
       $("#profileForm").addEventListener("submit", (e) => {
         e.preventDefault();
         const d = Object.fromEntries(new FormData(e.target).entries());
