@@ -353,6 +353,11 @@ const ZH = {
   "Pattern detected for": "已侦测到规律", "payment": "次派息",
   "Pattern detected": "已侦测到规律", "from market dividend history": "来自市场股息历史",
   "from your logged dividends": "来自您记录的股息", "Record at least 2 dividends for this holding to enable pattern-based estimates.": "请为此持仓至少录入 2 次股息，以启用规律预测。",
+  "dividend cut": "股息遭削减", "dividend suspended": "股息已暂停",
+  "Dividend cut detected": "侦测到股息削减", "Dividend suspended": "股息已暂停",
+  "Dividend cut detected for": "侦测到股息削减", "Dividend appears suspended for": "股息似乎已暂停",
+  "the forecast has been adjusted down; see the Dividends page.": "预测已相应下调；详见股息页面。",
+  "no payment near its usual schedule; see the Dividends page.": "未在通常派息时间附近收到派息；详见股息页面。",
   "div.": "股息",
   "No upcoming dividends yet. Add them manually when recording a dividend, or they'll appear automatically once market data is connected.": "暂无即将派发的股息。记录股息时可手动添加，或在连接市场数据后自动显示。",
   "No upcoming dividends yet. Add one manually when recording a dividend.": "暂无即将派发的股息。记录股息时可手动添加一笔。",
@@ -2117,7 +2122,7 @@ function pageDashboard() {
   const html = `
     ${isEmpty ? onboardingHTML() : ""}
     ${metrics}
-    <section class="warn-wrap">${warningsHTML()}</section>
+    <section class="warn-wrap">${warningsHTML(dashFc)}</section>
     <section class="grid-2 dash-charts">
       ${(() => {
         const hasTxn = ALL_TRANSACTIONS.some((x) => x.type === "Buy" || x.type === "Deposit") || HOLDINGS.length > 0;
@@ -2232,7 +2237,7 @@ function onboardingHTML() {
     <p class="muted" style="margin:8px 0 0;font-size:12.5px">${done} / ${steps.length} ${t("steps done")}</p>`);
 }
 
-function warningsHTML() {
+function warningsHTML(dashFc) {
   const items = [];
   // Reconciliation differences beyond tolerance
   Object.keys(RECON_CHECKS).forEach((bid) => {
@@ -2253,6 +2258,14 @@ function warningsHTML() {
   if (T.oversells && T.oversells.length) items.push({ level: "crit", html: `${t("A sell exceeds shares held for")}: ${[...new Set(T.oversells.map((o) => o.ticker))].join(", ")}. ${t("Use the oversell override if intentional.")}` });
   // Stale FX
   if (FX.updated && daysSince(FX.updated) > 30) items.push({ level: "warn", html: `${t("Exchange rates were last updated")} ${daysSince(FX.updated)} ${t("days ago — refresh them in Settings.")}` });
+  // Dividend cut/suspension detected in the forecast pattern
+  if (dashFc && dashFc.tickerInfo) {
+    const alerted = Object.entries(dashFc.tickerInfo).filter(([, info]) => info.alert);
+    const suspended = alerted.filter(([, info]) => info.alert === "suspended").map(([tk]) => tk);
+    const cut = alerted.filter(([, info]) => info.alert === "cut").map(([tk]) => tk);
+    if (suspended.length) items.push({ level: "warn", html: `${t("Dividend appears suspended for")}: ${suspended.join(", ")} — ${t("no payment near its usual schedule; see the Dividends page.")}` });
+    if (cut.length) items.push({ level: "warn", html: `${t("Dividend cut detected for")}: ${cut.join(", ")} — ${t("the forecast has been adjusted down; see the Dividends page.")}` });
+  }
   return items.map((it) => `<div class="warn-card ${it.level === "crit" ? "crit" : ""}">
     <span class="w-ico">${it.level === "crit" ? "⚠️" : HOW_ICON_SVG}</span><div class="w-body">${it.html}</div></div>`).join("");
 }
@@ -3782,10 +3795,19 @@ function dividendByPeriod(received) {
  *     logged dividends where you have ≥2; otherwise falls back to the ticker's
  *     real market dividend history (Yahoo, via AUTO_DIV_CACHE), scaled to your
  *     current share count and today's FX rate.
- *  3. Growth: with ≥6 historical payments, the average of the most recent 3 is
- *     compared to the 3 before that to estimate a per-payment growth rate
- *     (clamped to ±25%/payment against outliers), compounded forward — so a
- *     stock with a raising history projects growing payments, not a flat repeat.
+ *  3. Growth: for anything paying ≥2×/year with 2 full cycles of history, each
+ *     payment is compared to the same position in the cycle one year back (this
+ *     March vs last March) and averaged into a per-payment rate. Annual payers
+ *     (or tickers without 2 full cycles yet) fall back to comparing the average
+ *     of the most recent 3 payments to the 3 before that. Either way the result
+ *     is clamped to ±25%/payment against outliers, then compounded forward — so
+ *     a stock with a rising history projects growing payments, not a flat repeat.
+ *  4. Cut/suspension: the single latest payment is checked against the pattern
+ *     (same trailing baseline growth uses) — a drop of 15%+ marks the ticker
+ *     "cut" and restarts the projection flat from that lower actual payment
+ *     instead of compounding the pre-cut rate forward; a next-payment date more
+ *     than half a cycle overdue with nothing confirmed marks it "suspended" and
+ *     stops projecting further payments for that ticker entirely.
  * Confirmed and projected amounts are summed separately (expMonth/Quarter/Year
  * vs nextMonth/Quarter/Year) so a run-rate estimate is never confused with a
  * confirmed one. */
@@ -3876,11 +3898,41 @@ function dividendForecast(received, upcoming) {
     let next = new Date(sorted[sorted.length - 1].ds + "T00:00:00");
     next.setDate(next.getDate() + freqDays);
     const limit = new Date(now); limit.setFullYear(limit.getFullYear() + 3);
-    tickerInfo[ticker] = { count: sorted.length, freq: freqLabel, source, growthPct: growthPerPayment * 100 };
-    while (next <= limit) {
-      const ds = dateToISO(next);
-      if (ds >= today) { projected.push({ payDate: ds, amtMYR: amt, ticker, confirmed: false }); amt *= (1 + growthPerPayment); }
-      next = new Date(next); next.setDate(next.getDate() + freqDays);
+
+    // Cut/suspension detection: compares the single LATEST payment (not the
+    // blended last-3 average `amt` uses above) against what the pattern predicts
+    // — same-season one cycle back when available, else the average of the 1-3
+    // payments right before it. A real cut shouldn't get diluted into a 3-payment
+    // blend, and a stopped dividend shouldn't keep projecting future payments as
+    // if nothing changed.
+    const lastPayment = sorted[sorted.length - 1];
+    let cutBaseline = null;
+    if (paymentsPerYear >= 2 && sorted.length > paymentsPerYear) {
+      cutBaseline = sorted[sorted.length - 1 - paymentsPerYear].net;
+    } else if (sorted.length >= 2) {
+      const priorPayments = sorted.slice(Math.max(0, sorted.length - 4), sorted.length - 1);
+      cutBaseline = priorPayments.reduce((s, d) => s + d.net, 0) / priorPayments.length;
+    }
+    const cutDetected = !!(cutBaseline && cutBaseline > 0 && lastPayment.net < cutBaseline * 0.85);
+    // `next` already IS the expected date of the payment that would follow the
+    // last known one — comparing it to today tells us how overdue it is.
+    const overdueDays = Math.round((now - next) / 86400000);
+    const suspendedDetected = overdueDays > freqDays * 0.5;
+    const alert = suspendedDetected ? "suspended" : cutDetected ? "cut" : null;
+
+    if (cutDetected) {
+      // Project forward flat from the actual (lower) latest payment — not the
+      // last-3 blend above, and not compounding the pre-cut growth rate forward.
+      amt = lastPayment.net;
+      growthPerPayment = 0;
+    }
+    tickerInfo[ticker] = { count: sorted.length, freq: freqLabel, source, growthPct: growthPerPayment * 100, alert };
+    if (!suspendedDetected) {
+      while (next <= limit) {
+        const ds = dateToISO(next);
+        if (ds >= today) { projected.push({ payDate: ds, amtMYR: amt, ticker, confirmed: false }); amt *= (1 + growthPerPayment); }
+        next = new Date(next); next.setDate(next.getDate() + freqDays);
+      }
     }
   });
 
@@ -4058,6 +4110,11 @@ function pageDividends() {
 
   const dash = `<span class="muted" style="font-size:22px;line-height:1">—</span>`;
   const tickerEntries = Object.entries(fc.tickerInfo || {});
+  const alertTickers = tickerEntries.filter(([, info]) => info.alert);
+  const alertLine = alertTickers.length
+    ? `<p style="margin:6px 0 0;font-size:12px">${alertTickers.map(([tk, info]) =>
+        `<span class="badge neg" style="margin-right:6px">${esc(tk)} ${info.alert === "suspended" ? t("dividend suspended") : t("dividend cut")}</span>`).join("")}</p>`
+    : "";
   const tickerSummary = tickerEntries.length
     ? tickerEntries.map(([tk, info]) => {
         const growth = info.growthPct ? `, ${info.growthPct > 0 ? "+" : ""}${fmt(info.growthPct, { maximumFractionDigits: 1 })}%/${t("payment")}` : "";
@@ -4070,12 +4127,13 @@ function pageDividends() {
     : "";
   const forecastBody = fc.hasProjections
     ? `<p class="muted" style="margin:-4px 0 12px">${t("Based on payment patterns and upcoming dividends.")} ${t("Estimate only — not a guarantee.")}${fc.ttm > 0 ? ` ${t("Received TTM")}: <strong>${money(fc.ttm)}</strong>.` : ""}</p>
+      ${alertLine}
       <div class="mini-cards">
         ${miniCard(t("Next Month"), fc.nextMonth > 0 ? money(fc.nextMonth) : dash)}
         ${miniCard(t("Next Year"), fc.nextYear > 0 ? money(fc.nextYear) : dash)}${multiYearCards}</div>
       ${patternLine}
       <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`
-    : `<div class="div-fc-empty"><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}<div class="form-actions" style="margin-top:10px"><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a></div></div></div>
+    : `${alertLine}<div class="div-fc-empty"><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}<div class="form-actions" style="margin-top:10px"><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a></div></div></div>
       <p class="muted" style="margin:10px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
 
   const html = `
@@ -4712,8 +4770,9 @@ function pageHelp() {
       { q: "How is XIRR calculated?", a: "Methodology: the account boundary is your whole portfolio (holdings + cash). External flows are dated: each Deposit is negative (cash in), each Withdrawal is positive (cash out). Today's terminal value = current holdings market value + cash balance, as a final positive flow. Buys, Sells and Dividends are INTERNAL to the account (they move value between cash and securities, or generate cash that stays in the account), so they are already captured in the terminal value — adding them as separate flows would double-count. XIRR is then the rate r solving Σ flow_i / (1+r)^(years_i) = 0, found by Newton-Raphson with a bisection fallback. Requires at least one deposit and ≥7 days of history." },
       { q: "Why is XIRR different from simple return?", a: "Simple return = (gain) ÷ (money invested), ignoring timing. XIRR is time-weighted by date and annualised. Example: depositing RM10,000 a year ago vs last week gives the same simple return but very different XIRR, because the recent money had almost no time to compound. XIRR is the fairer measure of the rate your money actually earned." },
       { q: "How is the dividend forecast calculated?", a: "Methodology: not a flat TTM ÷ 12 run-rate. For each holding, past payment dates are used to detect a real frequency (monthly/quarterly/semi-annual/annual), and future pay dates are projected at that cadence up to 3 years out. History comes from your own logged dividends where you have at least 2; otherwise it falls back to the stock's real public dividend history (fetched automatically for any market), scaled to your current share count and today's FX rate. With at least 6 historical payments, a per-payment growth rate is also estimated (comparing your 3 most recent payments to the 3 before that, capped at ±25% per payment) and compounded forward, so a stock with a track record of raising its dividend projects growing future payments instead of a flat repeat. Any dividend already confirmed — one you marked 'Expected', or a near-term one already declared — is summed separately as a 'confirmed pipeline' so it's never mixed up with the pattern-based estimate." },
+      { q: "What happens if a company cuts or suspends its dividend?", a: "The forecast checks the single latest payment against the pattern — the same trailing baseline the growth-rate estimate uses (same position in the payment cycle one year back, or the average of the payments right before it). A drop of 15% or more marks the holding 'cut' and restarts the projection flat from that lower actual payment instead of compounding the pre-cut rate forward. If the next payment is now more than half a cycle overdue with nothing confirmed, it's marked 'suspended' instead, and the forecast stops projecting further payments for that ticker until a new one is recorded. Either state shows as a red badge on the Dividends page and on the holding's Dividend Summary, and also surfaces as a Dashboard warning." },
       { q: "How accurate is the dividend forecast?", a: "It is a directional estimate, not a prediction. Accuracy is best for a holding with a long, regular payment history (own-logged or from public market data). It is least accurate for a brand-new holding with fewer than 2 payments on record anywhere, or a stock with irregular/special dividends that don't fit a monthly/quarterly/semi-annual/annual cadence." },
-      { q: "What are the forecast's limitations?", a: "It does NOT model: future buys or sells, special/one-off dividends, changes in withholding tax, or FX movement on future payments (today's FX rate is used throughout). Growth detection needs at least 6 historical payments per holding — with fewer, the projection is flat (no growth applied). Treat it as a planning aid only — never as guaranteed income." },
+      { q: "What are the forecast's limitations?", a: "It does NOT model: future buys or sells, changes in withholding tax, or FX movement on future payments (today's FX rate is used throughout). Growth detection needs at least 6 historical payments per holding — with fewer, the projection is flat (no growth applied). A one-off special dividend followed by the regular (lower) payment can also trigger a false 'cut' flag, since the forecast can't yet tell a special dividend apart from a real cut. Treat it as a planning aid only — never as guaranteed income." },
       { q: "How is dividend tax handled?", a: "Net Dividend = Gross Dividend − Withholding Tax. Withholding tax is tracked per dividend and summarised by country (using the stock's real country from the lookup) in the Dividends page." },
     ] },
     { title: "Transaction Types & Reconciliation", items: [
@@ -4776,8 +4835,9 @@ function pageHelp() {
       { q: "XIRR 是如何计算的？", a: "方法：账户边界为整个投资组合（持仓 + 现金）。外部现金流按日期计入：每笔存款为负（现金流入），每笔取款为正（现金流出）。今天的终值 = 当前持仓市值 + 现金余额，作为最后一笔正现金流。买入、卖出和股息属于账户内部（在现金与证券间转移价值，或产生留在账户内的现金），已包含在终值中——若再作为单独现金流会重复计算。XIRR 即求解 Σ 现金流 / (1+r)^(年数) = 0 的利率 r，采用牛顿法并以二分法兜底。至少需一笔存款且 ≥7 天历史。" },
       { q: "为什么 XIRR 与简单回报不同？", a: "简单回报 = 收益 ÷ 投入金额，忽略时间。XIRR 按日期加权并年化。例如：一年前投入 RM10,000 与上周投入，简单回报相同，但 XIRR 差别很大，因为近期资金几乎没有时间复利。XIRR 更公平地衡量您资金实际赚取的回报率。" },
       { q: "股息预测是如何计算的？", a: "方法：并非简单的 TTM ÷ 12 运行率。系统会为每个持仓从过去的派息日期侦测真实的派息频率（每月/每季/每半年/每年），并按该周期向未来预测最多 3 年的派息日期。历史数据优先使用您自己记录的股息（至少 2 笔）；不足时改用该股票的真实公开股息历史（自动获取，涵盖各市场），并按您当前持股数与当前汇率换算。若历史派息达 6 笔以上，还会估算每次派息的增长率（比较最近 3 笔与之前 3 笔的均值，增长率上限为每次派息 ±25%）并向前复利，因此有加息记录的股票会预测出增长的未来派息，而非简单重复。任何已确认的股息——您标记为「预期」的，或近期已宣布的——会单独汇总为「已确认管道」，绝不与规律预测混淆。" },
+      { q: "如果公司削减或暂停股息会怎样？", a: "预测会将最新一笔派息与规律模型进行比对——采用与增长率估算相同的基准（周期中同一位置的一年前派息，或紧邻其前的几笔派息均值）。若跌幅达 15% 或以上，该持仓会被标记为「削减」，并以该笔较低的实际派息为起点重新持平预测，而不再按削减前的增长率向前复利。若下一笔派息已超过半个周期仍未到账且无已确认记录，则标记为「暂停」，预测会停止为该股票继续推算未来派息，直到记录到新的派息为止。这两种状态都会在股息页面与该持仓的股息摘要中显示为红色徽章，并同时作为仪表盘警告出现。" },
       { q: "股息预测有多准确？", a: "这是方向性估算，并非预测。对于拥有长期、规律派息记录（无论是您自己记录的还是来自公开市场数据）的持仓最准确；对于任何来源派息记录都不足 2 笔的全新持仓，或不符合每月/每季/每半年/每年周期的不规则/特别股息股票最不准确。" },
-      { q: "股息预测有哪些局限？", a: "它不建模：未来的买卖、特别/一次性股息、预扣税变动，或未来派息的汇率波动（全程使用当前汇率）。增长侦测需要每个持仓至少 6 笔历史派息记录——不足时预测为持平（不套用增长）。请仅作为规划参考，切勿视为有保证的收入。" },
+      { q: "股息预测有哪些局限？", a: "它不建模：未来的买卖、预扣税变动，或未来派息的汇率波动（全程使用当前汇率）。增长侦测需要每个持仓至少 6 笔历史派息记录——不足时预测为持平（不套用增长）。一次性特别股息之后紧接的常规（较低）派息，也可能误判为「削减」，因为目前系统尚无法区分特别股息与真正的削减。请仅作为规划参考，切勿视为有保证的收入。" },
       { q: "股息税是如何处理的？", a: "净股息 = 总股息 − 预扣税。预扣税按每笔股息记录，并在股息页面按国家/地区（使用查询得到的真实国家）汇总。" },
     ] },
     { title: "交易类型与对账", items: [
@@ -4986,6 +5046,9 @@ function pageHolding() {
       const patternNote = tInfo
         ? `${t("Pattern detected")}: ${tInfo.freq}${tInfo.growthPct ? `, ${tInfo.growthPct > 0 ? "+" : ""}${fmt(tInfo.growthPct, { maximumFractionDigits: 1 })}%/${t("payment")}` : ""} (${tInfo.source === "market history" ? t("from market dividend history") : t("from your logged dividends")}).`
         : t("Record at least 2 dividends for this holding to enable pattern-based estimates.");
+      const alertNote = tInfo && tInfo.alert
+        ? `<p style="margin:0 0 8px"><span class="badge neg">${tInfo.alert === "suspended" ? t("Dividend suspended") : t("Dividend cut detected")}</span></p>`
+        : "";
       // Year 2 / Year 3 only earn their own stats when the forecast actually diverges from
       // Next Year (i.e. growth was detected) — otherwise they just repeat the same number
       // and add nothing "Next Year" hasn't already said.
@@ -5004,7 +5067,7 @@ function pageHolding() {
         ${stat(t("Next Month"), tFc.nextMonth > 0 ? money(tFc.nextMonth) : "—")}
         ${stat(t("Next Quarter"), tFc.nextQuarter > 0 ? money(tFc.nextQuarter) : "—")}
         ${stat(t("Next Year"), tFc.nextYear > 0 ? money(tFc.nextYear) : "—")}${multiYear}</div>
-        <p class="muted" style="font-size:12px;margin:20px 0 0">${patternNote}</p>`);
+        ${alertNote}<p class="muted" style="font-size:12px;margin:20px 0 0">${patternNote}</p>`);
     })()}
 
     ${(() => {
