@@ -164,7 +164,7 @@ const ZH = {
   "Your data stays on this device and this browser only — nothing is shared or synced. If you're trying this out from a shared link, your entries are private to you and won't affect anyone else's. Opening the app on a different device starts a separate, empty ledger there too.": "您的数据仅保存在此设备和此浏览器中 — 不会被分享或同步。如果您是通过共享链接体验本应用，您输入的内容仅您可见，不会影响他人。在其他设备上打开本应用会是一个全新的空白账本。",
   "Forecast needs more data": "预测数据不足",
   "Investment Return Over Time": "投资回报随时间变化",
-  "Incl. Dividends": "含股息", "By holding": "按持仓",
+  "Incl. Dividends": "含股息",
   "All stocks": "所有股票", "Default order": "默认顺序", "Edit columns": "编辑列",
   "Dividend Income": "股息收入",
   // Settings
@@ -1872,17 +1872,17 @@ function portfolioHealth() {
 /* =============================================================================
  * PAGE: DASHBOARD
  * ========================================================================== */
-let dashAllocMode = "currency"; // "currency" | "stock" | "type"
+let dashAllocMode = "currency"; // "currency" | "type"
 let dashChartMode = (() => { try { return localStorage.getItem("il-chart-mode") || "mv"; } catch(e) { return "mv"; } })(); // "mv" | "div"
 
 /* Builds the Asset Allocation donut for the current dashAllocMode — shared by the
- * initial Dashboard render and the toggle's click handler so the 3-way branch only
- * lives in one place. */
+ * initial Dashboard render and the toggle's click handler so the branch only lives
+ * in one place. No "by individual holding" mode — unlike currency or asset type,
+ * the number of distinct holdings isn't bounded, and a pie stops being readable
+ * past 4-5 slices (same reasoning Portfolio's own breakdown panels use a ranked
+ * bar list instead of a donut for exactly this kind of unbounded category count). */
 function dashAllocDonutHTML() {
   const totalStr = money(T.portfolioValue).replace(".00", "");
-  if (dashAllocMode === "stock") {
-    return donutHTML(T.holdings.map((h) => ({ label: h.ticker, value: h.marketValue })), t("Portfolio"), totalStr, T.holdings.map((h) => ccyColor(h.currency || "Other")));
-  }
   if (dashAllocMode === "type") {
     const typeSlices = groupSum(T.holdings, (h) => t(holdingType(h.ticker)), (h) => h.marketValue).filter((s) => s.value > 0);
     return donutHTML(typeSlices, t("Portfolio"), totalStr, typeSlices.map((s) => ccyColor(s.label)));
@@ -2103,7 +2103,6 @@ function pageDashboard() {
       ${(() => {
         const allocToggle = `<div class="seg seg-sm" id="dashAllocSeg">
           <button class="seg-btn ${dashAllocMode === "currency" ? "on" : ""}" data-alloc="currency">${t("By currency")}</button>
-          <button class="seg-btn ${dashAllocMode === "stock" ? "on" : ""}" data-alloc="stock">${t("By holding")}</button>
           <button class="seg-btn ${dashAllocMode === "type" ? "on" : ""}" data-alloc="type">${t("By type")}</button>
         </div>`;
         return panel("Asset Allocation", `<div id="dashAllocBody" class="panel-body">${dashAllocDonutHTML()}</div>`, allocToggle);
