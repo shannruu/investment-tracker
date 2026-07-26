@@ -223,6 +223,8 @@ const ZH = {
   "No holdings match these filters.": "没有符合筛选条件的持仓。",
   "Getting started": "开始使用", "Add a broker": "添加券商", "Record your first deposit": "记录第一笔存款",
   "Add your first buy transaction": "添加第一笔买入交易", "Add a current price": "添加当前价格", "Record a dividend": "记录一笔股息",
+  "Record a Buy (or import an existing holding)": "记录一笔买入（或导入现有持仓）",
+  "A few things to set up — click any step below, or take the guided tour.": "还有几项设置待完成 — 点击下方任一步骤，或使用引导教程。",
   "Last saved on this device": "本设备最后保存", "Nothing saved yet": "尚未保存",
   // Return modes
   "Return mode": "回报模式", "Price return only": "仅价格回报", "Total return": "总回报",
@@ -340,7 +342,7 @@ const ZH = {
   "Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward.": "适用于此券商自动登记的市场股息记录——例如无税务协定的美股填 30，马来西亚股票填 0。之后仍可在个别股息记录上自行修改税额。",
   "Applied to dividends auto-logged from market history at this broker.": "适用于此券商自动登记的市场股息记录。",
   "Broker archived": "券商已归档", "Broker unarchived": "已取消归档", "Enter a broker name.": "请输入券商名称。",
-  "No brokers yet. Add your first one below.": "暂无券商。在下方添加第一个。",
+  "No brokers yet — every transaction and holding needs one.": "暂无券商 — 每笔交易和每笔持仓都需要归属于一个券商。",
   "This broker still has records. Remove it anyway? (Consider Archive instead.)": "该券商仍有记录。仍要删除吗？（建议改为归档。）",
   "Deleted broker": "已删除的券商",
   "Money-weighted annual return": "资金加权年化回报",
@@ -542,6 +544,9 @@ const ZH = {
   "More currencies…": "更多货币…", "Search currency…": "搜索货币…", "No matching currency": "无匹配货币",
   "Pick a different currency for the exchange.": "请为兑换选择不同的货币。",
   "Saved ✓": "已保存 ✓", "Add more holdings to score": "添加更多持仓以评分",
+  "No dividends recorded yet": "尚未记录股息", "Nothing to allocate yet": "暂无可分配项目",
+  "No dividend income yet. Record one to start tracking it over time.": "尚无股息收入记录。记录一笔即可开始追踪其变化趋势。",
+  "No cash recorded yet.": "尚未记录现金。",
   "added at the live rate": "已按实时汇率添加", "added — set its rate in Settings": "已添加 — 请在设置中设定其汇率",
   "Buys (incl. fees & tax)": "买入（含费用与税）", "Sells (net of fees)": "卖出（扣除费用）",
   "Net dividends received": "已收净股息", "Standalone fees": "独立费用",
@@ -1776,7 +1781,7 @@ function ccyColor(ccy) {
 }
 function donutHTML(slices, centerLabel, centerValue, colors) {
   slices = (slices || []).filter((s) => s.value > 0);
-  if (!slices.length) return emptyState(t("No holdings yet. Add a buy transaction to create your first holding."));
+  if (!slices.length) return emptyState(`${t("No holdings yet. Add a buy transaction to create your first holding.")}<div style="margin-top:14px"><a class="btn primary" href="#/add">${t("Add a transaction")} →</a></div>`);
   const total = slices.reduce((s, x) => s + x.value, 0) || 1;
   const R = 70, r = 44, C = 88;
   const clr = (i) => (colors && colors[i]) || PALETTE[i % PALETTE.length];
@@ -1858,8 +1863,8 @@ function insightsHTML() {
     ${sub ? `<div class="mc-sub muted">${sub}</div>` : ""}
   </div>`;
   return panel(t("Portfolio Health"), `<div class="ph-row">
-    ${stat("phDivYield", t("Dividend Yield (TTM)"), hp.yieldEst != null ? fmt(hp.yieldEst, { maximumFractionDigits: 2 }) + "%" : "—")}
-    ${stat("phCashAlloc", t("Cash Allocation"), hp.cashAlloc != null ? fmt(hp.cashAlloc, { maximumFractionDigits: 1 }) + "%" : "—", t("of total net value"))}
+    ${stat("phDivYield", t("Dividend Yield (TTM)"), hp.yieldEst != null ? fmt(hp.yieldEst, { maximumFractionDigits: 2 }) + "%" : "—", hp.yieldEst != null ? "" : t("No dividends recorded yet"))}
+    ${stat("phCashAlloc", t("Cash Allocation"), hp.cashAlloc != null ? fmt(hp.cashAlloc, { maximumFractionDigits: 1 }) + "%" : "—", hp.cashAlloc != null ? t("of total net value") : t("Nothing to allocate yet"))}
     ${stat("phDivScore", t("Diversification Score"), T.holdings.length >= 2 ? `${hp.divScore}/100` : "—", T.holdings.length >= 2 ? `${fmt(hp.effectiveN, { maximumFractionDigits: 1 })} ${t("effective holdings")}` : t("Add more holdings to score"))}
   </div>`);
 }
@@ -2092,7 +2097,7 @@ function pageDashboard() {
 
   // Collapse list panels to a one-line empty state until they have data.
   const listPanel = (title, has, body, emptyMsg, extra) =>
-    has ? panel(title, body, extra) : panel(title, `<p class="empty-line muted">${emptyMsg}</p>`);
+    panel(title, has ? body : `<p class="empty-line muted">${emptyMsg}</p>`, extra);
 
   const html = `
     ${isEmpty ? onboardingHTML() : ""}
@@ -2110,7 +2115,7 @@ function pageDashboard() {
           : "";
         const chartBody = hasTxn
           ? `<div id="dashChartBody">${buildDashChartContent()}</div>`
-          : emptyState(t("Record your first deposit or Buy to start tracking."));
+          : emptyState(`${t("Record your first deposit or Buy to start tracking.")}<div style="margin-top:14px"><a class="btn primary" href="#/add">${t("Add a transaction")} →</a></div>`);
         return panel(t("Investment Return Over Time"), chartBody, chartHeadExtra);
       })()}
       ${(() => {
@@ -2127,7 +2132,7 @@ function pageDashboard() {
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
       table([{label:"Holding",style:"width:20%"},{label:"Shares",style:"width:20%"},{label:"Market Value",style:"width:20%"},{label:"Unrealized P/L",style:"width:20%"},{label:"Total Return",style:"width:20%"}], holdingsRows, { fixed: true }),
-      t("No holdings yet — add a Buy to get started."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${pricesAsOfFmt}`) : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
+      t("No holdings yet — record a Buy on the Add page and it appears here automatically."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${pricesAsOfFmt}`) : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
       table([{label:"Date",style:"width:20%"},{label:"Type",style:"width:20%"},{label:"Ticker",style:"width:20%"},{label:"Broker",style:"width:20%"},{label:"Amount",style:"width:20%"}], recentRows, { fixed: true }),
@@ -2197,22 +2202,30 @@ function pageDashboard() {
 
 function onboardingHTML() {
   const steps = [
-    BROKERS.length > 0,
-    ALL_TRANSACTIONS.some((x) => x.type === "Deposit"),
-    ALL_TRANSACTIONS.some((x) => x.type === "Buy") || HOLDINGS.length > 0,
-    Object.keys(CURRENT_PRICES).length > 0,
-    ALL_TRANSACTIONS.some((x) => x.type === "Dividend"),
+    { done: BROKERS.length > 0, label: t("Add a broker"), href: "#/brokers" },
+    { done: ALL_TRANSACTIONS.some((x) => x.type === "Deposit"), label: t("Record your first deposit"), href: "#/add/deposit" },
+    { done: ALL_TRANSACTIONS.some((x) => x.type === "Buy") || HOLDINGS.length > 0, label: t("Record a Buy (or import an existing holding)"), href: "#/add/buy" },
+    { done: Object.keys(CURRENT_PRICES).length > 0, label: t("Add a current price"), href: "#/portfolio" },
+    { done: ALL_TRANSACTIONS.some((x) => x.type === "Dividend"), label: t("Record a dividend"), href: "#/add/dividend" },
   ];
-  const done = steps.filter(Boolean).length;
+  const done = steps.filter((s) => s.done).length;
   const cloudOn = typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER;
   const privacyNote = cloudOn
     ? `<span class="w-ico">☁</span><span class="w-body">${t("Cloud Sync is on — your data syncs to your account and is available on any device you sign into.")}</span>`
     : `<span class="w-ico">💻</span><span class="w-body">${t("Your data stays on this device and this browser only — nothing is shared or synced. If you're trying this out from a shared link, your entries are private to you and won't affect anyone else's. Opening the app on a different device starts a separate, empty ledger there too.")}</span>`;
+  // Each step is a real, clickable destination — the panel needs to stand on its own as
+  // an onboarding surface, not depend on the tour being started (a user who dismisses or
+  // never notices the tour button should still have a way to see what to do and go do it).
+  const stepList = `<div class="onboard-list">${steps.map((s) => s.done
+    ? `<span class="onboard-step done"><span class="os-check">✓</span><span class="os-label">${s.label}</span></span>`
+    : `<a class="onboard-step" href="${s.href}"><span class="os-check"></span><span class="os-label">${s.label}</span></a>`
+  ).join("")}</div>`;
   return panel("Welcome to Investment Ledger", `
-    <p class="muted" style="margin:-2px 0 14px">${t("Take a 1-minute guided tour — we'll point to exactly where to click.")}</p>
+    <p class="muted" style="margin:-2px 0 10px">${t("A few things to set up — click any step below, or take the guided tour.")}</p>
     <p class="info-card" style="margin:0 0 14px">${privacyNote}</p>
-    <div class="form-actions">
-      <button class="btn primary" id="startTour">▶ ${t("Start the guided tour")}</button>
+    ${stepList}
+    <div class="form-actions" style="margin-top:4px">
+      <button class="btn ghost" id="startTour">▶ ${t("Start the guided tour")}</button>
       <span class="muted" style="align-self:center">${done} / ${steps.length} ${t("steps done")}</span>
     </div>`);
 }
@@ -2402,7 +2415,7 @@ function plural(n, one, many) { return `${n} ${n === 1 ? one : many}`; }
  * "add a stock" flow, which is a Buy transaction on the Add page.
  * ========================================================================== */
 function openingHoldingFormHTML() {
-  if (!BROKERS.length) return `<p class="muted">${t("Add a broker first (More → Brokers), then you can import holdings.")}</p>`;
+  if (!BROKERS.length) return `<p class="muted">${t("Add a broker first (More → Brokers), then you can import holdings.")}</p><div class="form-actions" style="margin-top:14px"><a class="btn primary" href="#/brokers">${t("Add a broker")} →</a></div>`;
   const ccyItems = currencyItems();
   const brokerItems = BROKERS.filter((b) => !b.archived).map((b) => ({ value: b.id, label: b.name }));
   return `<form id="holdingForm" class="form opening-form" autocomplete="off">
@@ -2991,7 +3004,12 @@ function pageRecords() {
 /* One unified ledger table: base-currency (MYR) amount, equal-width dcc-c columns
  * (same style as the Portfolio / Dividends tables). */
 function recordsTable(list) {
-  if (!ALL_TRANSACTIONS.length) return emptyState(t("No transactions yet. Tap ＋ Add to record your first deposit or investment."));
+  if (!ALL_TRANSACTIONS.length) {
+    // The panel's "＋ Add" button only renders when a broker exists (see addBtn a few
+    // lines up) — telling the user to tap it when there's nothing to tap is a dead end.
+    if (!BROKERS.length) return emptyState(`${t("You need a broker before you can record transactions — every transaction belongs to a broker.")}<div class="form-actions" style="margin-top:14px;justify-content:center"><a class="btn primary" href="#/brokers">${t("Add a broker")} →</a></div>`);
+    return emptyState(t("No transactions yet. Tap ＋ Add to record your first deposit or investment."));
+  }
   if (!list.length) return emptyState(t("No records in this view yet."));
   const sorted = [...list].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   const rows = sorted.map((tx) => {
@@ -3610,8 +3628,10 @@ function brokerCashPanelsHTML() {
          {label:"Difference",style:"width:15%"},{label:"Status",style:"width:14%"},{label:"",style:"width:13%"}], recRows, { fixed: true }))
     : "";
 
-  return `${panel(`${t("Cash Balances by Currency")}`, table(
-      [{label:"Broker"},{label:"Balance"},{label:`≈ ${ccyLabel(FX.base)}`}], ccyRows + ccyTotalRow))}
+  const cashBody = ccyRows
+    ? table([{label:"Broker"},{label:"Balance"},{label:`≈ ${ccyLabel(FX.base)}`}], ccyRows + ccyTotalRow)
+    : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No cash recorded yet.")}</p><a class="btn ghost" href="#/add/deposit">${t("Record a deposit")} →</a>`;
+  return `${panel(`${t("Cash Balances by Currency")}`, cashBody)}
     ${reconPanel}`;
 }
 
@@ -3958,7 +3978,7 @@ function pageDividends() {
         ${miniCard(t("Next Year"), fc.nextYear > 0 ? money(fc.nextYear) : dash)}${multiYearCards}</div>
       ${patternLine}
       <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`
-    : `<div class="div-fc-empty"><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}</div></div>
+    : `<div class="div-fc-empty"><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}<div class="form-actions" style="margin-top:10px"><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a></div></div></div>
       <p class="muted" style="margin:10px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
 
   const html = `
@@ -3984,19 +4004,21 @@ function pageDividends() {
             ], calendarRows)
           // Genuinely empty now only when there's no logged history AND no declared date
           // AND no detectable pattern anywhere in the portfolio.
-          : `<p class="muted" style="margin:0;font-size:13px">${
+          : `<p class="muted" style="margin:0 0 12px;font-size:13px">${
               !LIVE_ENABLED
                 ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.")
                 : t("No dividends yet. Record one to get started.")
-            }</p>`,
+            }</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
         `<div class="panel-head-actions"><div style="width:150px">${calendarFilterSel}</div><small class="muted" id="divFetchStatus"></small></div>`
       )}
     </div>
 
-    ${panel(t("Dividend Income"), table([
-        { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
-        { label: "Net (RM)", style: "width:50%;text-align:left" },
-      ], incomeRowsByPeriod[divIncomePeriod] || monthRows, { fixed: true }),
+    ${panel(t("Dividend Income"), received.length
+        ? table([
+            { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
+            { label: "Net (RM)", style: "width:50%;text-align:left" },
+          ], incomeRowsByPeriod[divIncomePeriod] || monthRows, { fixed: true })
+        : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
       `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}`;
 
   return {
@@ -4136,7 +4158,7 @@ function pageBrokers() {
   const addBtn = `<button type="button" class="btn primary" id="openBrokerDrawer">＋ ${t("Add Broker")}</button>`;
 
   const html = `${summary}<div class="panel-head" style="margin-bottom:14px"><h2>${t("Your Brokers")}</h2><div class="panel-head-actions">${archToggle}${addBtn}</div></div>
-    ${cards ? `<div class="broker-grid">${cards}</div>` : emptyState(t("No brokers yet. Add your first one below."))}
+    ${cards ? `<div class="broker-grid">${cards}</div>` : emptyState(`${t("No brokers yet — every transaction and holding needs one.")}<div class="form-actions" style="margin-top:14px;justify-content:center"><button type="button" class="btn primary" id="emptyAddBroker">＋ ${t("Add Broker")}</button></div>`)}
     ${showArchivedBrokers && archivedCards ? `<div class="broker-grid" style="margin-top:14px">${archivedCards}</div>` : ""}
     ${BROKERS.length ? brokerCashPanelsHTML() : ""}`;
 
@@ -4146,6 +4168,8 @@ function pageBrokers() {
     mount() {
       const openBtn = $("#openBrokerDrawer");
       if (openBtn) openBtn.addEventListener("click", () => openBrokerDrawer());
+      const emptyAddBtn = $("#emptyAddBroker");
+      if (emptyAddBtn) emptyAddBtn.addEventListener("click", () => openBrokerDrawer());
       const tog = $("#toggleArchived");
       if (tog) tog.addEventListener("click", () => { showArchivedBrokers = !showArchivedBrokers; render(); });
 
