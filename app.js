@@ -2429,7 +2429,7 @@ function openingHoldingFormHTML() {
             <label>${t("Ticker")}<input name="ticker" placeholder="AAPL" required></label>
             <label>${t("Company Name")}<input name="company" placeholder="Apple Inc."></label>
             <label>${t("Market")}<input name="market" placeholder="NASDAQ"></label>
-            <label>${t("Asset type")}${styledSelect("assetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), "Stock", { id: "ohAssetType" })}</label>
+            <input type="hidden" name="assetType" value="Stock">
           </div>
           <div class="lookup-status muted" id="holdingLookup"></div>
         </div>
@@ -3189,8 +3189,11 @@ function addForm2(type, editing) {
     // Company/Market are auto-filled from the ticker lookup → kept as hidden fields.
     // Asset type is only offered on Buy — a Sell operates on an existing position, so
     // there's nothing new to classify (the ticker's type, if already set, still applies).
+    // Auto-detected from the live quote (autofillFromTicker → setSelectValue) rather than
+    // asked for here — a plain hidden field, not a picker; correctable on the Holding
+    // Detail page afterward if a security ever gets classified wrong.
     const assetTypeField = type === "Buy"
-      ? `<label>${t("Asset type")}${styledSelect("assetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), tickerVal ? holdingType(tickerVal) : "Stock", { id: "afAssetType" })}</label>`
+      ? `<input type="hidden" name="assetType" value="${tickerVal ? holdingType(tickerVal) : "Stock"}">`
       : "";
     core = `
       <label style="grid-column:1/-1">${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
@@ -3225,7 +3228,7 @@ function addForm2(type, editing) {
     // One DRIP submission records two ordinary, independently-editable transactions (a
     // Dividend with cash suppressed + a Buy it funds) — see wireTxSubmit. Share count is
     // derived, not entered, so there's no Quantity field here.
-    const assetTypeField = `<label>${t("Asset type")}${styledSelect("assetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), tickerVal ? holdingType(tickerVal) : "Stock", { id: "afAssetType" })}</label>`;
+    const assetTypeField = `<input type="hidden" name="assetType" value="${tickerVal ? holdingType(tickerVal) : "Stock"}">`;
     core = `
       <label>${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
       <label class="amt-label">${t("Gross dividend")}${amtCombo("divGross", v(e.gross), "0.00")}</label>
