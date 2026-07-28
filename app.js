@@ -123,6 +123,10 @@ const ZH = {
   "Profile": "个人资料", "Appearance": "外观", "Base Currency": "基准货币",
   "Exchange Rates": "汇率", "Data Import / Export": "数据导入 / 导出", "Danger Zone": "危险操作",
   "Data Safety & Backup": "数据安全与备份",
+  "Or export just one part, as CSV": "或仅导出其中一部分（CSV 格式）",
+  "Trying the app out?": "还在试用本应用？",
+  "Just want to reset the Dashboard chart, not your data?": "只想重置仪表盘图表，而不清除数据？",
+  "Clear chart history": "清除图表历史",
   "Choose your theme. Dark mode uses a true-black background; light mode is the default design.": "选择您的主题。深色模式使用纯黑背景；浅色模式为默认设计。",
   "All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.": "所有交易均保留其原始货币；基准货币金额由已存储的汇率换算得出，绝不会覆盖原始数值。",
   "Language": "语言",
@@ -4520,11 +4524,16 @@ function pageSettings() {
         <button class="btn primary" id="expJson">⭳ ${t("Export full backup (JSON)")}</button>
         <button class="btn" id="impJsonBtn">⭱ ${t("Import backup (JSON)")}</button>
         <input type="file" id="impJsonFile" accept="application/json,.json" hidden>
-        <button class="btn" id="setExpTx">⭳ ${t("Export Transactions CSV")}</button>
-        <button class="btn" id="setExpCash">⭳ ${t("Export Cash CSV")}</button>
-        <button class="btn" id="setExpDiv">⭳ ${t("Export Dividends CSV")}</button>
-        <button class="btn ghost" id="loadDemo">${t("Load demo data")}</button>
-        <button class="btn ghost" id="clearPvHistory">${t("Clear chart history")}</button>
+      </div>
+      <p class="muted" style="margin:16px 0 8px;font-size:12.5px">${t("Or export just one part, as CSV")}:</p>
+      <div class="form-actions">
+        <button class="btn small" id="setExpTx">⭳ ${t("Transactions")}</button>
+        <button class="btn small" id="setExpCash">⭳ ${t("Cash")}</button>
+        <button class="btn small" id="setExpDiv">⭳ ${t("Dividends")}</button>
+      </div>
+      <p class="muted" style="margin:16px 0 8px;font-size:12.5px">${t("Trying the app out?")}</p>
+      <div class="form-actions">
+        <button class="btn ghost small" id="loadDemo">${t("Load demo data")}</button>
       </div>`)}
 
     ${panel(t("Import from CSV"), `
@@ -4545,6 +4554,10 @@ function pageSettings() {
       <div class="fx-add">
         <input type="text" id="clearConfirm" class="fx-input" placeholder="${t("Type DELETE to confirm")}" autocomplete="off" style="width:220px">
         <button class="btn danger" id="clearData">${t("Clear all data")}</button>
+      </div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+        <p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("Just want to reset the Dashboard chart, not your data?")}</p>
+        <button class="btn ghost small" id="clearPvHistory">${t("Clear chart history")}</button>
       </div>`)}`;
 
   return { title: "Settings", subtitle: "Profile, currency, appearance and data.", html,
