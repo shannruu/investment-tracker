@@ -5836,5 +5836,12 @@ function init() {
   render();
 
   if (typeof initSync === "function") initSync();   // fire-and-forget, never blocks first paint
+
+  // Registers the service worker for installability + offline shell loading.
+  // Fire-and-forget, same as sync — a registration failure (unsupported browser,
+  // opened from a local file instead of a real origin) never blocks the app.
+  if ("serviceWorker" in navigator && LIVE_ENABLED) {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }
 }
 document.addEventListener("DOMContentLoaded", init);
