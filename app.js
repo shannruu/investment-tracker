@@ -115,6 +115,7 @@ const ZH = {
   "All Transactions": "全部交易", "Cash Ledger — Deposits & Withdrawals": "现金账本 — 存款与取款",
   "Broker Cash Reconciliation": "券商现金对账", "Dividend History": "股息历史",
   "Dividend History by Year": "年度股息历史", "Projected (this year)": "预计（今年）",
+  "consecutive years of growth": "年连续增长",
   "Dividend history by year": "年度股息历史图",
   "Profit / Loss by Holding": "按持仓盈亏", "Profit / Loss by Broker": "按券商盈亏",
   "Dividend Income by Year": "按年度股息收入",
@@ -3784,6 +3785,20 @@ function dividendByPeriod(received) {
   return { byMonth, byQuarter, byYear };
 }
 
+/* Consecutive years of dividend growth, counted backward from the most recent
+ * COMPLETE year — `excludeYear` (pass the current year) is left out since a
+ * partial in-progress year can't be fairly compared against a full prior one
+ * yet. Returns 0 if there aren't at least 2 complete years to compare. */
+function dividendGrowthStreak(byYear, excludeYear) {
+  const years = Object.keys(byYear).filter((y) => y !== excludeYear && byYear[y] > 0).sort();
+  let streak = 0;
+  for (let i = years.length - 1; i > 0; i--) {
+    if (byYear[years[i]] > byYear[years[i - 1]]) streak++;
+    else break;
+  }
+  return streak;
+}
+
 /* Dividend forecast — pattern-based, never a flat TTM ÷ 12 run-rate.
  * METHOD (documented):
  *  1. Confirmed pipeline: any dividend you (or the market-data auto-fetch)
@@ -5165,7 +5180,9 @@ function pageHolding() {
         <span class="cl-item"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--pos)"></span>${t("Received")}</span>
         ${projThisYear > 0 ? `<span class="cl-item"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--warn);opacity:.55"></span>${t("Projected (this year)")}</span>` : ""}
       </div>`;
-      return panel(t("Dividend History by Year"), `<div class="chart">${barChartSVG(divYearSeries, { ariaLabel: t("Dividend history by year") })}</div>${legend}`);
+      const streak = dividendGrowthStreak(divByYear, curYear);
+      const streakBadge = streak >= 2 ? `<span class="badge pos">${streak} ${t("consecutive years of growth")}</span>` : "";
+      return panel(t("Dividend History by Year"), `<div class="chart">${barChartSVG(divYearSeries, { ariaLabel: t("Dividend history by year") })}</div>${legend}`, streakBadge);
     })()}
 
     ${(() => {
