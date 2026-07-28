@@ -5729,8 +5729,16 @@ function currentPageKey() {
   return PAGES[key] ? key : "dashboard";
 }
 
+// Tracks the hash render() last ran for, so it can tell a real navigation
+// (hash changed — scroll to top, like any page load should) apart from an
+// in-place refresh after an action on the SAME page (button click, form save,
+// toggle) — which should leave the user right where they were, not yank them
+// back to the top of a long page.
+let lastRenderedHash = null;
 function render() {
   const key = currentPageKey();
+  const isNavigation = location.hash !== lastRenderedHash;
+  lastRenderedHash = location.hash;
   if (key !== "add") { editingTxId = null; addDraft = {}; closeAddDrawer(); }  // drop edit mode + draft + drawer when leaving Add
   if (key !== "brokers") closeBrokerDrawer();  // drop the broker drawer when leaving Brokers
   const root = $("#page");
@@ -5739,8 +5747,7 @@ function render() {
     $("#pageTitle").textContent = t(page.title);
     $("#pageSubtitle").textContent = t(page.subtitle);
     root.innerHTML = page.html;
-    root.scrollTop = 0;
-    window.scrollTo(0, 0);
+    if (isNavigation) { root.scrollTop = 0; window.scrollTo(0, 0); }
     if (page.mount) page.mount();
     translateDOM(root);  // swap any matching text to the current language
   } catch (err) {
