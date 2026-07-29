@@ -1419,7 +1419,10 @@ async function autofillFromTicker(form, statusEl, opts = {}) {
   tEl.value = q.symbol || symbol;                       // normalise to the resolved symbol
   const set = (name, val) => { const el = form.querySelector(`[name="${name}"]`); if (el && val != null && val !== "") el.value = val; };
   set("company", q.name);
-  set("market", q.exchange);
+  // /api/quote returns Yahoo's raw internal exchange code (NMS, NYQ, KLS, ...) — converted
+  // to a friendly display name so the Market field and STOCK_META never show a cryptic code.
+  const marketName = exchangeName(q.exchange);
+  set("market", marketName);
   if (q.currency) {
     setSelectValue(form, "currency", q.currency);   // works for native <select> AND the styled dropdown
     const fxEl = form.querySelector('[name="fxRate"]');
@@ -1428,7 +1431,7 @@ async function autofillFromTicker(form, statusEl, opts = {}) {
   // Fill price only if empty (don't clobber a price the user already typed)
   if (opts.fillPrice) { const pe = form.querySelector('[name="price"]'); if (pe && !pe.value) pe.value = q.price; }
   // Cache stock metadata (name, exchange, country, sector, industry) for grouping/detail
-  STOCK_META[q.symbol || symbol] = { name: q.name || null, exchange: q.exchange || null,
+  STOCK_META[q.symbol || symbol] = { name: q.name || null, exchange: marketName || null,
     currency: q.currency || null, country: q.country || marketInfo(symbol).country,
     sector: q.sector || null, industry: q.industry || null };
   // Auto-fill Asset Type from the live quote when the form has that field (Buy, DRIP,
@@ -2422,8 +2425,8 @@ function setSelectValue(form, name, value) {
 const MARKET_CCY = {
   NASDAQ: "USD", NYSE: "USD", NYSEARCA: "USD", ARCA: "USD", AMEX: "USD", BATS: "USD",
   "BURSA": "MYR", "BURSA MALAYSIA": "MYR", KLSE: "MYR", MYX: "MYR",
-  SGX: "SGD", SES: "SGD", HKEX: "HKD", HKSE: "HKD", SEHK: "HKD",
-  LSE: "GBP", TSX: "CAD", ASX: "AUD", TYO: "JPY", TSE: "JPY", JPX: "JPY",
+  SGX: "SGD", SES: "SGD", HKEX: "HKD", HKSE: "HKD", SEHK: "HKD", "HONG KONG SE": "HKD",
+  LSE: "GBP", "LONDON SE": "GBP", TSX: "CAD", ASX: "AUD", TYO: "JPY", TSE: "JPY", JPX: "JPY",
 };
 
 /* "1 broker" vs "3 brokers" — singular when count is 1 (EN). */
@@ -4949,7 +4952,7 @@ function pageHolding() {
     <td class="dcc-c">${x.price != null ? ccyLabel(x.currency) + " " + fmt(x.price) : "—"}</td>
     <td class="dcc-c">${x.gross != null ? ccyLabel(x.currency) + " " + fmt(x.gross) : "—"}</td>
     <td class="dcc-c">${x.fee ? ccyLabel(x.currency) + " " + fmt(x.fee) : "—"}</td></tr>`).join("");
-  const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && (x.ticker || "").toUpperCase() === tk)
+  const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.brokerId === brokerId && (x.ticker || "").toUpperCase() === tk)
     .sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? 1 : -1));
   // Per-ticker dividend analytics + forecast + charts (F1)
   const tReceived = divs.filter((d) => d.status !== "Expected");
