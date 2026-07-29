@@ -451,6 +451,7 @@ const ZH = {
   "Next Year (est.)": "明年（预估）",
   "Forecast is a run-rate estimate from this holding's trailing-12-month dividends.": "预测基于此持仓近12个月股息的年化估算。",
   "Upcoming Dividends": "即将派发股息", "Expected Net": "预期净额", "Cost Basis": "成本基础",
+  "Commission Paid": "已付佣金", "% of Portfolio": "占投资组合比例",
   // Phase 2 — Settings (F4)
   "Preferences": "偏好设置", "Date format": "日期格式", "Time zone": "时区",
   "Device local": "设备本地", "Cost Basis Method": "成本计算方法", "Method": "方法",
@@ -1301,6 +1302,39 @@ function myRealPayDate(ticker, exDate) {
   return entry.payDate;
 }
 
+/* Bursa Malaysia trading symbol (e.g. "CRESNDO" for ticker "6718.KL") — shown under the
+ * ticker in the Dashboard/Portfolio holdings tables, matching DivTracker's convention,
+ * instead of this app's own default of showing the company name there. Only meaningful for
+ * Malaysia holdings: a US ticker (e.g. "AAPL") already IS its own short symbol, nothing
+ * shorter to resolve, so those keep showing the company name unchanged. */
+let MY_SYMBOL_CACHE = {};   // { [ticker]: symbol | null }
+async function fetchMySymbol(ticker) {
+  if (ticker in MY_SYMBOL_CACHE) return MY_SYMBOL_CACHE[ticker];
+  try {
+    const r = await fetch(`/api/stock-symbol-my?ticker=${encodeURIComponent(ticker)}`);
+    if (!r.ok) { MY_SYMBOL_CACHE[ticker] = null; return null; }
+    const d = await r.json();
+    MY_SYMBOL_CACHE[ticker] = d.symbol || null;
+    return MY_SYMBOL_CACHE[ticker];
+  } catch (e) { MY_SYMBOL_CACHE[ticker] = null; return null; }
+}
+/* Resolves every not-yet-cached .KL holding's symbol in parallel — call from a page's
+ * mount(), then render() again only if it actually found something new. */
+async function fetchAllMySymbols() {
+  const klTickers = [...new Set(T.holdings.map((h) => h.ticker).filter((t) => (t || "").toUpperCase().endsWith(".KL")))];
+  const missing = klTickers.filter((t) => !(t in MY_SYMBOL_CACHE));
+  if (!missing.length) return false;
+  await Promise.all(missing.map((t) => fetchMySymbol(t)));
+  return true;
+}
+/* What to show under a holding's ticker in a table row: the resolved Malaysia trading
+ * symbol once known, else the company name as before (including for every non-.KL ticker,
+ * which never has a symbol to resolve in the first place). */
+function holdingSubLabel(h) {
+  const symbol = (h.ticker || "").toUpperCase().endsWith(".KL") ? MY_SYMBOL_CACHE[h.ticker] : null;
+  return symbol || h.company || "";
+}
+
 /* Auto-log dividends you're eligible for (held the stock on/after its ex-date) but haven't
  * recorded yet — same eligibility check the Holding Detail calendar's "Not logged" badge
  * uses. Creates real "Dividend" transactions (0 tax withheld — edit afterward if it differs)
@@ -2092,7 +2126,7 @@ function pageDashboard() {
   const holdingsRows = aggregateHoldingsByTicker(T.holdings).sort((a, b) => b.marketValue - a.marketValue).slice(0, 8).map((h) => `
     <tr><td class="dcc-c td-holding">
         <a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${esc(h.ticker)}</a>
-        ${h.company ? `<div class="sub">${esc(h.company)}</div>` : ""}
+        ${holdingSubLabel(h) ? `<div class="sub">${esc(holdingSubLabel(h))}</div>` : ""}
       </td>
       <td class="dcc-c">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>
       <td class="dcc-c">${money(h.marketValue)}</td>
@@ -2286,6 +2320,7 @@ function pageDashboard() {
         fetchAllLivePrices().then(({ fetched }) => {
           if (fetched && document.getElementById("dashDivSection")) render();
         });
+        fetchAllMySymbols().then((found) => { if (found && document.getElementById("dashDivSection")) render(); });
       }
     } };
 }
@@ -2819,6 +2854,7 @@ function pagePortfolio() {
         fetchAllLivePrices().then(({ fetched }) => {
           if (fetched && document.getElementById("pfRefreshBtn")) render();
         });
+        fetchAllMySymbols().then((found) => { if (found && document.getElementById("pfRefreshBtn")) render(); });
       }
       // Panel drag-to-reorder
       if (colPanel) {
@@ -2987,7 +3023,7 @@ function portfolioTable() {
     return `<tr>
       <td class="dcc-c td-holding">
         <a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${esc(h.ticker)}</a>
-        ${h.company ? `<div class="sub">${esc(h.company)}</div>` : ""}
+        ${holdingSubLabel(h) ? `<div class="sub">${esc(holdingSubLabel(h))}</div>` : ""}
       </td>
       ${orderedColIds.map((id) => cellMap[id] || "").join("")}</tr>`;
   }).join("");
@@ -5320,6 +5356,11 @@ function pageHolding() {
       </div>
     </div>`;
   })() : "";
+  // Both derived from data already tracked per-transaction/portfolio-wide — not new
+  // independent facts worth their own stat card (same reasoning the comment above already
+  // applies to Shares/Average Cost/Cost Basis), so they join that same description line.
+  const commissionPaid = txs.reduce((s, x) => s + (+x.fee || 0) * (x.fxRate || FX.rates[x.currency] || 1), 0);
+  const pctOfPortfolio = T.portfolioValue ? (h.marketValue / T.portfolioValue) * 100 : 0;
   const positionPanel = panel(t("Position"), `
     <div class="metrics pos-metrics">
       ${posStat(t("Market Value"), money(h.marketValue), "", "net")}
@@ -5327,7 +5368,7 @@ function pageHolding() {
       ${posStat(t("Price Return"), moneySigned(h.priceUnrealized), cls(h.priceUnrealized), "", `${signed(priceReturnPct)}%`)}
       ${posStat(t("Current Price"), priceLbl)}
     </div>
-    <p style="font-size:14px;margin:14px 0 0">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} · ${t("Average Cost")} ${money(h.avgCost)} · ${t("Cost Basis")} ${money(h.costBasis)}</p>
+    <p style="font-size:14px;margin:14px 0 0">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} · ${t("Average Cost")} ${money(h.avgCost)} · ${t("Cost Basis")} ${money(h.costBasis)} · ${t("Commission Paid")} ${money(commissionPaid)} · ${t("% of Portfolio")} ${fmt(pctOfPortfolio, { maximumFractionDigits: 2 })}%</p>
     <div class="setting-row" style="padding:11px 0 0;border-bottom:0">
       <span class="sr-label">${t("Asset type")}</span>
       <span class="sr-value"><div style="width:160px">${styledSelect("holdingAssetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), holdingType(h.ticker), { id: "holdingAssetType" })}</div></span>
