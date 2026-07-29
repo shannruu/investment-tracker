@@ -101,15 +101,15 @@ const ZH = {
   "Profile, currency, appearance and data.": "个人资料、货币、外观和数据。",
   "How calculations work, transaction types and FAQ.": "计算方式、交易类型与常见问题。",
   // Summary cards
-  "Total Deposits": "总存款", "Total Withdrawals": "总取款", "Net Capital Invested": "净投入资本",
+  "Net Capital Invested": "净投入资本",
   "Current Portfolio Value": "当前组合价值", "Net Dividends Received": "净股息收入",
-  "Total Return": "总回报", "Unrealized / Realized P/L": "未实现 / 已实现盈亏",
+  "Unrealized / Realized P/L": "未实现 / 已实现盈亏",
   "Cash put into brokers": "投入券商的现金", "Cash taken out": "取出的现金",
   "Deposits − Withdrawals": "存款 − 取款", "Market value of holdings": "持仓市值",
   "After withholding tax": "扣除预扣税后", "How this was calculated": "查看计算方式",
   // Panel titles
-  "Portfolio Value Over Time": "组合价值走势", "Asset Allocation": "资产配置",
-  "Top Holdings": "主要持仓", "Upcoming Dividends": "即将到来的股息",
+  "Asset Allocation": "资产配置",
+  "Top Holdings": "主要持仓",
   "Recent Transactions": "近期交易", "Holdings by Broker": "按券商分布",
   "Holdings by Currency": "按货币分布", "All Holdings": "全部持仓",
   "All Transactions": "全部交易", "Cash Ledger — Deposits & Withdrawals": "现金账本 — 存款与取款",
@@ -133,10 +133,10 @@ const ZH = {
   "Investing since": "投资起始日", "Default return view": "默认回报视图",
   // Table headers
   "Holding": "持仓", "Broker": "券商", "Bank": "银行", "Market": "市场", "Shares": "股数",
-  "Avg Cost": "平均成本", "Price": "价格", "Cost Basis": "成本", "Market Value": "市值",
+  "Avg Cost": "平均成本", "Price": "价格", "Market Value": "市值",
   "Unrealized P/L": "未实现盈亏", "Net Div": "净股息", "Ticker": "代码", "Stock code": "股票代号",
   "P/L %": "盈亏 %", "Return %": "回报 %",
-  "Ex-Date": "除息日", "Payment": "派息日", "Expected Net": "预计净额", "Status": "状态",
+  "Ex-Date": "除息日", "Status": "状态",
   "The ex-dividend date — buy before it to qualify for the payment. This is what market data sources report; they don't give a separate payment date.": "除息日——须在此日期之前买入才符合领取资格。这是市场数据来源提供的日期；它们并未另外提供派息日期。",
   "A rough estimate of Ex-Date + 14 days (when the money would actually land), since market data reports only the ex-date, not a real payment date. A manually entered payment date is shown exactly as you typed it.": "除息日 + 14 天的粗略估算（资金大约到账的日期），因为市场数据只提供除息日，而非真实的派息日期。手动输入的派息日期则完全按您输入的显示。",
   "Date": "日期", "Type": "类型", "Qty": "数量", "Gross": "总额", "Fee": "费用",
@@ -161,10 +161,9 @@ const ZH = {
   "Price / Share": "每股价格", "Ex-dividend Date": "除息日", "Payment Date": "派息日",
   "Withholding Tax": "预扣税", "Save Transaction": "保存交易",
   "Hide": "隐藏", "Show": "显示", "Reset": "重置",
-  "All brokers": "全部券商", "All markets": "全部市场", "All currencies": "全部货币",
-  "All P/L": "全部盈亏", "Profit": "盈利", "Loss": "亏损",
+  "Profit": "盈利", "Loss": "亏损",
   // Mini cards / dividend summary
-  "Net Cash Added": "净增现金", "Gross Dividends (YTD)": "总股息（年初至今）",
+  "Gross Dividends (YTD)": "总股息（年初至今）",
   "Gross Dividends": "总股息",
   "Your data stays on this device and this browser only — nothing is shared or synced. If you're trying this out from a shared link, your entries are private to you and won't affect anyone else's. Opening the app on a different device starts a separate, empty ledger there too.": "您的数据仅保存在此设备和此浏览器中 — 不会被分享或同步。如果您是通过共享链接体验本应用，您输入的内容仅您可见，不会影响他人。在其他设备上打开本应用会是一个全新的空白账本。",
   "Forecast needs more data": "预测数据不足",
@@ -175,11 +174,6 @@ const ZH = {
   // Settings
   "Name": "姓名", "Email": "邮箱", "Member since": "注册于",
   "Light": "浅色", "Dark": "深色", "Default design": "默认设计", "True black": "纯黑",
-  "Export Cash CSV": "导出现金 CSV", "Export Transactions CSV": "导出交易 CSV",
-  "Import CSV": "导入 CSV", "Delete Account": "删除账户",
-  "⭳ Export Cash CSV": "⭳ 导出现金 CSV", "⭳ Export Transactions CSV": "⭳ 导出交易 CSV",
-  "⭱ Import CSV": "⭱ 导入 CSV", "⭳ Cash Ledger CSV": "⭳ 现金账本 CSV",
-  "⭳ Transactions CSV": "⭳ 交易 CSV", "⭳ Dividends CSV": "⭳ 股息 CSV",
   // Empty states
   "No holdings match these filters.": "没有符合筛选条件的持仓。",
   // Calc modal
@@ -196,7 +190,7 @@ const ZH = {
   "Currency code": "货币代码", "Rate to": "汇率对", "Add currency": "添加货币",
   "Refresh live rates": "刷新实时汇率", "base": "基准", "Remove": "移除",
   "Fetching…": "获取中…", "Fetching live rates…": "正在获取实时汇率…",
-  "Live rates as of": "实时汇率截至", "updated": "项已更新", "added": "已添加", "exported": "已导出",
+  "Live rates as of": "实时汇率截至", "added": "已添加", "exported": "已导出",
   "Dark theme applied": "已应用深色主题", "Light theme applied": "已应用浅色主题",
   "Couldn't reach the rate service — check your connection.": "无法连接汇率服务 — 请检查网络连接。",
   "Enter a 3-letter currency code.": "请输入 3 位货币代码。", "Enter a valid rate.": "请输入有效的汇率。",
@@ -207,14 +201,13 @@ const ZH = {
   "Broker removed": "已移除券商", "This broker still has records. Remove it anyway?": "该券商仍有记录，仍要移除吗？",
   "Add a broker first (Brokers page), then you can add holdings.": "请先在「券商」页面添加券商，然后才能添加持仓。",
   "Add a broker first (Brokers page), then you can record transactions.": "请先在「券商」页面添加券商，然后才能记录交易。",
-  "Company Name": "公司名称", "Current Price": "当前价格", "Add Holding": "添加持仓",
+  "Company Name": "公司名称", "Add Holding": "添加持仓",
   "Holding added": "已添加持仓", "Holding removed": "已移除持仓",
   "records": "条记录", "Transaction added": "已添加交易",
   "DRIP recorded as 2 linked records: dividend + buy": "股息再投资已记录为两条关联记录：股息 + 买入",
   // Settings
   "Your name": "您的姓名", "Save profile": "保存资料", "Profile saved": "资料已保存",
   "Add a rate for that currency first.": "请先为该货币添加汇率。", "Base currency set to": "基准货币已设为",
-  "CSV import is coming soon.": "CSV 导入即将推出。",
   "Clear all data": "清除所有数据",
   "Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone.": "清除将删除本浏览器中保存的所有券商、持仓和交易，且无法撤销。",
   "Delete ALL your data from this browser? This cannot be undone.": "确定要删除本浏览器中的所有数据吗？此操作无法撤销。",
@@ -281,11 +274,10 @@ const ZH = {
   "Tolerance saved": "容差已保存",
   "Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.": "您的投资数据仅保存在本设备的此浏览器中。清除浏览器数据可能会将其删除。请定期导出 JSON 备份。",
   "Export full backup (JSON)": "导出完整备份 (JSON)", "Import backup (JSON)": "导入备份 (JSON)",
-  "Export Transactions CSV": "导出交易 CSV", "Export Cash CSV": "导出现金 CSV", "Export Dividends CSV": "导出股息 CSV",
   "Load demo data": "加载演示数据", "Demo data loaded": "已加载演示数据",
   "This will replace your current data with demo data. Continue?": "这将用演示数据替换您当前的数据。是否继续？",
   "This replaces your current data with this backup file. Export your current data first if you want to keep it. Continue?": "此操作将用该备份文件替换您当前的数据。如需保留当前数据，请先导出备份。是否继续？",
-  "That file isn't valid JSON.": "该文件不是有效的 JSON。", "That doesn't look like an Investment Ledger backup.": "该文件看起来不是 Investment Ledger 的备份文件。", "Backup restored": "备份已恢复",
+  "That file isn't valid JSON.": "该文件不是有效的 JSON。", "Backup restored": "备份已恢复",
   "Type DELETE to confirm": "输入 DELETE 确认", "Type DELETE to confirm.": "请输入 DELETE 确认。",
   "Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.": "清除会删除本浏览器中保存的所有券商、持仓和交易，且无法撤销 — 请先导出备份。",
   "Backup downloaded": "备份已下载", "Backup restored": "备份已恢复",
@@ -348,7 +340,6 @@ const ZH = {
   "Not enough cash-flow history": "现金流历史不足",
   "Run-rate estimate from your trailing-12-month dividends": "基于过去 12 个月股息的运行率估算",
   "Estimate only — not a guarantee.": "仅为估算 — 并非保证。",
-  "Next Month (est.)": "下月（估）", "Next Quarter (est.)": "下季（估）", "Next Year (est.)": "下年（估）",
   "Next Month": "下月", "Next Quarter": "下季", "Next Year": "下年",
   "Year 2": "第 2 年", "Year 3": "第 3 年",
   "Based on payment patterns and upcoming dividends.": "基于股息历史规律及即将派息数据。",
@@ -374,13 +365,22 @@ const ZH = {
   "How is the forecast calculated?": "预测是如何计算的？",
   "Net Dividends (Lifetime)": "净股息（累计）", "Month": "月份", "Quarter": "季度",
   "Dividend Forecast": "股息预测",
+  "Ex-Dividend Screener": "除息股筛选器",
+  "Next 7 days": "未来 7 天", "Next 14 days": "未来 14 天", "Next 30 days": "未来 30 天",
+  "Search ticker or company": "搜索代码或公司名称",
+  "Loading ex-dividend calendar…": "正在加载除息日历…",
+  "No ex-dividend dates in this window.": "此时间范围内没有除息日期。",
+  "No matches for your search.": "没有符合搜索条件的结果。",
+  "Showing the first 300 results — narrow your search to see more.": "显示前 300 条结果 — 请缩小搜索范围以查看更多。",
+  "Pay Date": "派息日", "Indicated Annual": "预期年股息",
+  "Couldn't load the ex-dividend calendar — try again later.": "无法加载除息日历 — 请稍后重试。",
   // Holding detail
   "Back to Portfolio": "返回投资组合", "Holding detail": "持仓明细",
-  "Shares Held": "持有股数", "Average Cost": "平均成本", "share": "股",
+  "Shares Held": "持有股数", "share": "股",
   "Set price": "设置价格", "Realized P/L": "已实现盈亏", "Net Dividends": "净股息",
   "Set Price": "设置价格", "Price per share": "每股价格", "Save": "保存",
   "Manually entered prices are always labelled \"Manual price\" and are never mistaken for live market data.": "手动输入的价格始终标记为「手动价格」，绝不会与实时市场数据混淆。",
-  "price": "价格", "FX": "汇率", "Manual": "手动",
+  "price": "价格", "Manual": "手动",
   "Transactions": "交易记录",
   "No transactions for this holding.": "此持仓暂无交易。",
   "No dividends recorded for this holding.": "此持仓暂无股息记录。",
@@ -475,7 +475,7 @@ const ZH = {
   "broker(s) created": "个券商已创建", "brokers created": "个券商已创建",
   "Duplicates already in your ledger are skipped automatically.": "账本中已存在的重复项将被自动跳过。",
   // Report panel titles + table headers (translateDOM text-node matches)
-  "Export": "导出", "Cash Ledger CSV": "现金账本 CSV", "Transactions CSV": "交易 CSV", "Dividends CSV": "股息 CSV",
+  "Export": "导出",
   "Deposits": "存款", "Withdrawals": "取款", "Currency Exchanges": "货币兑换",
   "Profit / Loss by Broker": "按券商盈亏",
   "Month": "月份", "Quarter": "季度", "Year": "年份",
@@ -1233,6 +1233,25 @@ async function fetchDivHistory(ticker) {
   } catch (e) { return { ok: false, divs: null }; }
 }
 
+/* ─── Ex-dividend screener (Nasdaq calendar, keyless, market-wide) ──────────── */
+// Unlike fetchDivHistory above (per-ticker, your own holdings), this browses
+// upcoming ex-dividend dates across the whole US market — powers the Dividends
+// page's Ex-Dividend Screener panel. Cached by window so switching tabs or an
+// unrelated render() doesn't re-hit the API; only a genuine window change does.
+let EX_DIV_CACHE = {};   // key `${from}|${to}` -> { rows, truncated }
+async function fetchExDividendCalendar(from, to) {
+  const key = `${from}|${to}`;
+  if (EX_DIV_CACHE[key]) return EX_DIV_CACHE[key];
+  try {
+    const r = await fetch(`/api/ex-dividend-calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+    if (!r.ok) return null;
+    const d = await r.json();
+    if (!d || !Array.isArray(d.rows)) return null;
+    EX_DIV_CACHE[key] = d;
+    return d;
+  } catch (e) { return null; }
+}
+
 /* Auto-log dividends you're eligible for (held the stock on/after its ex-date) but haven't
  * recorded yet — same eligibility check the Holding Detail calendar's "Not logged" badge
  * uses. Creates real "Dividend" transactions (0 tax withheld — edit afterward if it differs)
@@ -1892,6 +1911,7 @@ function insightsHTML() {
     ${stat("phDivYield", t("Dividend Yield (TTM)"), hp.yieldEst != null ? fmt(hp.yieldEst, { maximumFractionDigits: 2 }) + "%" : "—", hp.yieldEst != null ? "" : t("No dividends recorded yet"))}
     ${stat("phCashAlloc", t("Cash Allocation"), hp.cashAlloc != null ? fmt(hp.cashAlloc, { maximumFractionDigits: 1 }) + "%" : "—", hp.cashAlloc != null ? t("of total net value") : t("Nothing to allocate yet"))}
     ${stat("phDivScore", t("Diversification Score"), T.holdings.length >= 2 ? `${hp.divScore}/100` : "—", T.holdings.length >= 2 ? `${fmt(hp.effectiveN, { maximumFractionDigits: 1 })} ${t("effective holdings")}` : t("Add more holdings to score"))}
+    ${stat("phXirr", t("XIRR"), T.xirr != null ? fmt(T.xirr, { maximumFractionDigits: 2 }) + "%" : "—", T.xirr != null ? t("Money-weighted annual return") : t("Not enough cash-flow history"))}
   </div>`);
 }
 
@@ -2198,6 +2218,8 @@ function pageDashboard() {
           $("#modal").hidden = false;
         });
       });
+      const xirrStatEl = $("#phXirr");
+      if (xirrStatEl) xirrStatEl.addEventListener("click", () => showCalc(xirrCalc()));
       mountChartTooltips();
       $$("[data-chart]").forEach((b) => b.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -3992,6 +4014,8 @@ function dividendForecast(received, upcoming) {
  * ========================================================================== */
 let divCalendarFilter = "all";   // all | past | upcoming — filters the combined dividend calendar
 let divIncomePeriod = "monthly"; // monthly | quarterly | annual — which Dividend Income view is shown
+let exDivWindowDays = 14;        // 7 | 14 | 30 — how far ahead the ex-dividend screener looks
+let exDivSearch = "";            // client-side ticker/company filter for the ex-dividend screener
 function pageDividends() {
   /* Calculation reference:
    * grossBase        = Σ (d.gross × fxRate) for all received dividends
@@ -4158,6 +4182,51 @@ function pageDividends() {
     : `${alertLine}<div class="div-fc-empty"><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}<div class="form-actions" style="margin-top:10px"><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a></div></div></div>
       <p class="muted" style="margin:10px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
 
+  // Ex-Dividend Screener — market-wide upcoming ex-dividend dates (Nasdaq calendar),
+  // distinct from the personal Dividend Calendar above: browsing what's coming up
+  // across the whole market, not just holdings already owned.
+  const exDivFrom = todayISO();
+  const exDivToDateObj = new Date(todayDate()); exDivToDateObj.setDate(exDivToDateObj.getDate() + exDivWindowDays - 1);
+  const exDivTo = dateToISO(exDivToDateObj);
+  const exDivData = EX_DIV_CACHE[`${exDivFrom}|${exDivTo}`] || null;
+  const exDivWindowSel = styledSelect("exDivWindow", [
+    { value: "7", label: t("Next 7 days") },
+    { value: "14", label: t("Next 14 days") },
+    { value: "30", label: t("Next 30 days") },
+  ], String(exDivWindowDays), { id: "exDivWindowSel" });
+  function renderExDivBody() {
+    if (!LIVE_ENABLED) return `<p class="muted" style="margin:0;font-size:13px">${t("Live lookup only works on your deployed website, not when you open the file locally. Commit, push, and try it on your Vercel URL.")}</p>`;
+    if (!exDivData) return `<p class="muted" id="exDivStatus" style="margin:0;font-size:13px">${t("Loading ex-dividend calendar…")}</p>`;
+    const rowsAll = exDivData.rows;
+    if (rowsAll.length === 0) return `<p class="muted" style="margin:0;font-size:13px">${t("No ex-dividend dates in this window.")}</p>`;
+    const q = exDivSearch.trim().toLowerCase();
+    const filtered = q ? rowsAll.filter((r) => (r.symbol || "").toLowerCase().includes(q) || (r.company || "").toLowerCase().includes(q)) : rowsAll;
+    if (filtered.length === 0) return `<p class="muted" style="margin:0;font-size:13px">${t("No matches for your search.")}</p>`;
+    const shown = filtered.slice(0, 300);
+    const rowsHtml = shown.map((r) => `<tr>
+      <td class="dcc-c"><span class="ticker">${esc(r.symbol)}</span></td>
+      <td class="dcc-c">${esc(r.company || "—")}</td>
+      <td class="dcc-c">${fmtDate(r.exDate)}</td>
+      <td class="dcc-c">${r.payDate ? fmtDate(r.payDate) : "—"}</td>
+      <td class="dcc-c">${r.rate != null ? fmt(r.rate, { maximumFractionDigits: 4 }) : "—"}</td>
+      <td class="dcc-c">${r.indicatedAnnual != null ? fmt(r.indicatedAnnual, { maximumFractionDigits: 4 }) : "—"}</td>
+    </tr>`).join("");
+    return `${filtered.length > 300 ? `<p class="muted" style="margin:0 0 10px;font-size:12px">${t("Showing the first 300 results — narrow your search to see more.")}</p>` : ""}${table([
+      { label: t("Ticker"), style: "width:12%;text-align:left" },
+      { label: t("Company Name"), style: "width:34%;text-align:left" },
+      { label: t("Ex-Date"), style: "width:14%;text-align:left" },
+      { label: t("Pay Date"), style: "width:14%;text-align:left" },
+      { label: t("Per Share"), style: "width:13%;text-align:left" },
+      { label: t("Indicated Annual"), style: "width:13%;text-align:left" },
+    ], rowsHtml, { fixed: true })}`;
+  }
+  const exDivHeadActions = LIVE_ENABLED
+    ? `<div class="panel-head-actions" style="flex-wrap:wrap">
+        <input type="search" id="exDivSearchInput" placeholder="${t("Search ticker or company")}" value="${escAttr(exDivSearch)}">
+        <div style="width:150px">${exDivWindowSel}</div>
+      </div>`
+    : "";
+
   const html = `
     <div class="mini-cards">
       ${miniCard(t("Gross Dividends"), money(grossBase))}
@@ -4190,6 +4259,8 @@ function pageDividends() {
       )}
     </div>
 
+    ${panel(t("Ex-Dividend Screener"), `<div id="exDivResults">${renderExDivBody()}</div>`, exDivHeadActions)}
+
     ${panel(t("Dividend Income"), received.length
         ? table([
             { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
@@ -4219,6 +4290,21 @@ function pageDividends() {
           if (fetched && document.getElementById("divUpcomingSection")) render();
           const s = document.getElementById("divFetchStatus");
           if (s) s.textContent = hadError ? t("Couldn't check some dividend schedules — try again later.") : "";
+        });
+      }
+      const exDivSearchEl = $("#exDivSearchInput");
+      if (exDivSearchEl) exDivSearchEl.addEventListener("input", () => {
+        exDivSearch = exDivSearchEl.value;
+        const results = document.getElementById("exDivResults");
+        if (results) results.innerHTML = renderExDivBody();
+      });
+      const exDivWindowEl = $("#exDivWindowSel");
+      if (exDivWindowEl) exDivWindowEl.addEventListener("change", () => { exDivWindowDays = +exDivWindowEl.value; render(); });
+      if (LIVE_ENABLED && !exDivData) {
+        fetchExDividendCalendar(exDivFrom, exDivTo).then((d) => {
+          if (d) { render(); return; }
+          const results = document.getElementById("exDivResults");
+          if (results) results.innerHTML = `<p class="muted" style="margin:0;font-size:13px">${t("Couldn't load the ex-dividend calendar — try again later.")}</p>`;
         });
       }
     },
@@ -5304,6 +5390,26 @@ function netCashAddedCalc(title = "Net Cash Added") {
     { op: "−", label: "Total Withdrawals", val: fmt(T.totalWithdrawals) }], total: T.netCapitalInvested };
 }
 
+/* XIRR isn't a simple sum of its inputs — it's a rate SOLVED so the discounted cash
+ * flows net to zero — so unlike the other calc builders, the rows here are shown as
+ * informational context (op "•", nothing to add/subtract) rather than a running total
+ * that adds up to the result. */
+function xirrCalc() {
+  if (T.xirr == null) {
+    return { title: "XIRR (money-weighted return)", intro: "Not enough cash-flow history", rows: [], totalFmt: "—" };
+  }
+  const terminalValue = (T.portfolioValue || 0) + (T.totalCash || 0);
+  return {
+    title: "XIRR (money-weighted return)",
+    intro: "Deposits = cash in (−), Withdrawals = cash out (+)",
+    rows: [
+      { op: "•", label: "Net Capital Invested", val: moneySigned(T.netCapitalInvested) },
+      { op: "•", label: "Terminal value today = holdings + cash", val: money(terminalValue), hint: t("Solved so discounted flows net to 0") },
+    ],
+    totalFmt: fmt(T.xirr, { maximumFractionDigits: 2 }) + "%",
+  };
+}
+
 /* Per-broker breakdown of a set of transactions — Total Deposits/Withdrawals and the
  * Cash tab's single-type filter sums (Fee/Interest/Transfer/etc). */
 function brokerBreakdownCalc(title, txList) {
@@ -5321,7 +5427,7 @@ function brokerBreakdownCalc(title, txList) {
 function showCalc(calc) {
   $("#modalTitle").textContent = t(calc.title);
   const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span> ${t(r.label)}${r.hint ? ` <span class="col-info tip-down" data-tip="${r.hint}">${COL_INFO_ICON_SVG}</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`).join("");
-  $("#modalBody").innerHTML = `${rows}
+  $("#modalBody").innerHTML = `${calc.intro ? `<p class="muted" style="margin:0 0 14px;font-size:13px">${t(calc.intro)}</p>` : ""}${rows}
     <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${calc.totalFmt != null ? calc.totalFmt : money(calc.total)}</span></div>
     <p class="muted" style="margin:14px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
   $("#modal").hidden = false;

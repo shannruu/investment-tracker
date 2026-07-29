@@ -96,7 +96,6 @@ const SETTINGS = {
   dateFormat: "D MMM YYYY",  // D MMM YYYY | YYYY-MM-DD | DD/MM/YYYY | MM/DD/YYYY
   timeZone: "",              // display reference (blank = device local)
   costBasis: "average",      // "average" (implemented) | "fifo" (future)
-  pvMode: "mv",              // "mv" (market value only) | "total" (incl. cash)
   showReconciliation: false, // Broker Cash Reconciliation panel — opt-in, off by default
 };
 
