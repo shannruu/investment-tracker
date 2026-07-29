@@ -4205,22 +4205,29 @@ function pageDividends() {
     const filtered = q ? rowsAll.filter((r) => (r.symbol || "").toLowerCase().includes(q) || (r.company || "").toLowerCase().includes(q)) : rowsAll;
     if (filtered.length === 0) return `<p class="muted" style="margin:0;font-size:13px">${t("No matches for your search.")}</p>`;
     const shown = filtered.slice(0, 300);
+    // Some real listings (depositary shares, preferred stock series, etc.) have very long
+    // company names — .exdiv-company truncates with an ellipsis instead of overflowing into
+    // neighboring cells (the default .data-table td is nowrap with no overflow clipping),
+    // with the full name still available via the title tooltip.
     const rowsHtml = shown.map((r) => `<tr>
       <td class="dcc-c"><span class="ticker">${esc(r.symbol)}</span></td>
-      <td class="dcc-c">${esc(r.company || "—")}</td>
+      <td class="dcc-c exdiv-company" title="${escAttr(r.company || "")}">${esc(r.company || "—")}</td>
       <td class="dcc-c">${fmtDate(r.exDate)}</td>
       <td class="dcc-c">${r.payDate ? fmtDate(r.payDate) : "—"}</td>
       <td class="dcc-c">${r.rate != null ? fmt(r.rate, { maximumFractionDigits: 4 }) : "—"}</td>
       <td class="dcc-c">${r.indicatedAnnual != null ? fmt(r.indicatedAnnual, { maximumFractionDigits: 4 }) : "—"}</td>
     </tr>`).join("");
-    return `${filtered.length > 300 ? `<p class="muted" style="margin:0 0 10px;font-size:12px">${t("Showing the first 300 results — narrow your search to see more.")}</p>` : ""}${table([
+    // Scrollable once the list gets long, instead of pushing the rest of the page down —
+    // same pattern used by the Dividend Calendar table above (.dcc-table-scroll).
+    const scrollCls = shown.length > 8 ? "dcc-table-scroll" : "";
+    return `${filtered.length > 300 ? `<p class="muted" style="margin:0 0 10px;font-size:12px">${t("Showing the first 300 results — narrow your search to see more.")}</p>` : ""}<div class="${scrollCls}">${table([
       { label: t("Ticker"), style: "width:12%;text-align:left" },
       { label: t("Company Name"), style: "width:34%;text-align:left" },
       { label: t("Ex-Date"), style: "width:14%;text-align:left" },
       { label: t("Pay Date"), style: "width:14%;text-align:left" },
       { label: t("Per Share"), style: "width:13%;text-align:left" },
       { label: t("Indicated Annual"), style: "width:13%;text-align:left" },
-    ], rowsHtml, { fixed: true })}`;
+    ], rowsHtml, { fixed: true })}</div>`;
   }
   const exDivHeadActions = LIVE_ENABLED
     ? `<div class="panel-head-actions" style="flex-wrap:wrap">
