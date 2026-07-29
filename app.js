@@ -3602,8 +3602,7 @@ function wireTxSubmit(form) {
       editingTxId = null;
       saveStore();
       toast(t("Saved ✓"));
-      if (addDraft) delete addDraft.notes;
-      render();
+      location.hash = "#/records";
       return;
     }
 
@@ -3664,13 +3663,10 @@ function wireTxSubmit(form) {
     saveStore();
     if (wasEditing) {
       toast(t("Transaction updated"));
-      location.hash = "#/records";
     } else {
       toast(t("Saved ✓"));
-      // Stay on Add for rapid entry: keep broker/date/currency (addDraft), clear the type-specific fields.
-      if (addDraft) delete addDraft.notes;
-      render();
     }
+    location.hash = "#/records";
   });
 }
 
