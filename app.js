@@ -4232,8 +4232,10 @@ function pageDividends() {
       <td class="dcc-c">${r.indicatedAnnual != null ? fmt(r.indicatedAnnual, { maximumFractionDigits: 4 }) : "—"}</td>
     </tr>`).join("");
     // Scrollable once the list gets long, instead of pushing the rest of the page down —
-    // same pattern used by the Dividend Calendar table above (.dcc-table-scroll).
-    const scrollCls = shown.length > 8 ? "dcc-table-scroll" : "";
+    // same sticky-header pattern as the Dividend Calendar table above (.dcc-table-scroll),
+    // but taller (.exdiv-table-scroll overrides just the max-height) since this list is
+    // typically longer and worth showing more of at a glance.
+    const scrollCls = shown.length > 8 ? "dcc-table-scroll exdiv-table-scroll" : "";
     return `${filtered.length > 300 ? `<p class="muted" style="margin:0 0 10px;font-size:12px">${t("Showing the first 300 results — narrow your search to see more.")}</p>` : ""}<div class="${scrollCls}">${table([
       { label: t("Ticker"), style: "width:12%;text-align:left" },
       { label: t("Company Name"), style: "width:34%;text-align:left" },

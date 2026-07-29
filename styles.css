@@ -402,6 +402,9 @@ a { color: inherit; text-decoration: none; }
 /* Keep the header row visible while scrolling a tall table — without this the column
    labels (Ex-Date, Est. Payment, ...) scroll away with row 1, leaving later rows unlabeled. */
 .dcc-table-scroll thead th { position: sticky; top: 0; z-index: 2; background: var(--surface); }
+/* Ex-Dividend Screener reuses .dcc-table-scroll's overflow/sticky-header behavior but wants
+   a taller viewport (its lists run longer) — override just the max-height, source order wins. */
+.exdiv-table-scroll { max-height: 440px; }
 .data-table td.dcc-c { text-align: left; font-variant-numeric: tabular-nums; }
 /* Long company names (depositary shares, preferred stock series, etc.) would otherwise
    overflow .data-table td's nowrap into neighboring cells — max-width:0 forces the cell
