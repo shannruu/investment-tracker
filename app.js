@@ -374,6 +374,9 @@ const ZH = {
   "No matches for your search.": "没有符合搜索条件的结果。",
   "Showing the first 300 results — narrow your search to see more.": "显示前 300 条结果 — 请缩小搜索范围以查看更多。",
   "Pay Date": "派息日", "Indicated Annual": "预期年股息", "Irregular": "不定期",
+  "Privacy Policy": "隐私政策", "Terms of Use": "使用条款", "Legal": "法律信息",
+  "What data this app touches, and where it goes.": "本应用会接触哪些数据，以及这些数据会流向何处。",
+  "Please read before relying on this app for real financial decisions.": "在依赖本应用做出实际财务决策之前，请先阅读本页内容。",
   "Couldn't load the ex-dividend calendar — try again later.": "无法加载除息日历 — 请稍后重试。",
   "Show on Dividends page": "在股息页面显示",
   "Off by default. When enabled, browse upcoming ex-dividend dates across the whole market — not just your own holdings.": "默认关闭。启用后可浏览整个市场即将到来的除息日期，而不仅限于您持有的股票。",
@@ -4680,7 +4683,12 @@ function pageSettings() {
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
         <p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("Just want to reset the Dashboard chart, not your data?")}</p>
         <button class="btn ghost small" id="clearPvHistory">${t("Clear chart history")}</button>
-      </div>`)}`;
+      </div>`)}
+
+    ${panel(t("Legal"), `<div class="form-actions">
+      <a class="btn ghost small" href="#/privacy">${t("Privacy Policy")}</a>
+      <a class="btn ghost small" href="#/terms">${t("Terms of Use")}</a>
+    </div>`)}`;
 
   return { title: "Settings", subtitle: "Profile, currency, appearance and data.", html,
     mount() {
@@ -5045,6 +5053,114 @@ function pageHelp() {
   const html = sections.map((sec) => panel(sec.title, `<div class="help-list">${sec.items.map((it) => `
     <details class="help-item"><summary>${it.q}</summary><p>${it.a}</p></details>`).join("")}</div>`)).join("");
   return { title: "Help", subtitle: "Getting started, how calculations work, and answers to common questions.", html };
+}
+
+/* =============================================================================
+ * PAGE: PRIVACY POLICY
+ * ========================================================================== */
+function pagePrivacy() {
+  const sectionsEN = [
+    { title: "Overview", body: [
+      "Investment Ledger is an independent, personal, non-commercial project — not a company or a registered service. This page explains, plainly, what data the app touches and where it goes.",
+    ] },
+    { title: "Your data lives on your device, by default", body: [
+      "Every broker, holding, transaction, and setting you enter is stored only in your browser's localStorage, on your own device. It is never sent to any server for storage unless you deliberately turn on Cloud Sync (below). Clearing your browser's site data will remove it — export a JSON backup regularly (Settings → Data Safety & Backup) if you want a copy elsewhere.",
+    ] },
+    { title: "Live market data lookups", body: [
+      "Looking up a stock price, a dividend history, or browsing the Ex-Dividend Screener sends a request through this app's own server functions to third-party public market data sources (Yahoo Finance, Nasdaq, TradingView). Only the ticker symbol or date range you're asking about is sent — never your portfolio, your holdings, or any other personal financial data.",
+    ] },
+    { title: "Optional Cloud Sync (Supabase)", body: [
+      "If you choose to turn on Cloud Sync (Settings → Account & Cloud Sync), your email address is used to sign you in via a one-time link — no password is ever set or stored. Once signed in, your local ledger is copied to a Supabase-hosted database tied to your account, so the same data appears on any device you sign into.",
+      "This is entirely opt-in and off by default. It exists only to save and restore your own data across your own devices — it's never shared, sold, or used for anything else. Row Level Security on the underlying database means only your signed-in account can ever read or write your own data.",
+    ] },
+    { title: "No analytics, no ads, no tracking", body: [
+      "This app doesn't run any analytics or advertising scripts and doesn't use tracking cookies. The only network requests it makes are the ones described above: market data lookups, and — only if you opt in — Cloud Sync.",
+    ] },
+    { title: "Your control over your data", body: [
+      "You can export a complete JSON backup at any time (Settings → Export full backup), and delete all local data at any time (Settings → Clear all data). If you've signed in to Cloud Sync, signing out ends the session without touching your local data — see the Cloud Sync section of the Help page for exactly how signed-in state and stored data interact.",
+    ] },
+    { title: "Hosting", body: [
+      "This app is hosted on Vercel. As with any web host, standard server logs (like IP address and request timestamp) may be briefly retained as part of normal hosting operation — this is Vercel's infrastructure, not something this app controls or accesses.",
+    ] },
+    { title: "Changes to this policy", body: [
+      "This page may be updated as the app changes. There's no mailing list or notification system — check back here if you want to know what's current.",
+    ] },
+  ];
+  const sectionsZH = [
+    { title: "概述", body: [
+      "Investment Ledger 是一个独立的个人非商业项目——并非一家公司或注册服务。本页面将直白地说明本应用会接触哪些数据，以及这些数据会流向何处。",
+    ] },
+    { title: "您的数据默认保存在您的设备上", body: [
+      "您输入的每一个券商、持仓、交易和设置，都只保存在您浏览器的 localStorage 中，位于您自己的设备上。除非您主动开启云同步（见下文），否则这些数据绝不会被发送到任何服务器进行存储。清除浏览器的网站数据会将其删除——如果您希望在别处保留一份副本，请定期导出 JSON 备份（设置 → 数据安全与备份）。",
+    ] },
+    { title: "实时市场数据查询", body: [
+      "查询股票价格、股息历史，或浏览除息股筛选器时，会通过本应用自身的服务器功能向第三方公开市场数据来源（Yahoo Finance、Nasdaq、TradingView）发出请求。只有您所查询的股票代码或日期范围会被发送——绝不会发送您的投资组合、持仓或任何其他个人财务数据。",
+    ] },
+    { title: "可选的云同步（Supabase）", body: [
+      "如果您选择开启云同步（设置 → 账户与云同步），您的邮箱地址将用于通过一次性登录链接为您登录——系统从不设置或保存任何密码。登录后，您的本地账本会被复制到与您账户关联的 Supabase 托管数据库中，因此您登录的任何设备都会显示相同的数据。",
+      "此功能完全是可选的，默认关闭。它的作用仅仅是在您自己的多台设备之间保存和恢复您自己的数据——绝不会被分享、出售或用于其他任何用途。底层数据库的行级安全策略确保只有您已登录的账户才能读取或写入您自己的数据。",
+    ] },
+    { title: "没有分析追踪，没有广告，没有追踪工具", body: [
+      "本应用不运行任何分析或广告脚本，也不使用追踪 Cookie。它发出的网络请求仅限于上文所述的两类：市场数据查询，以及——仅在您选择开启时——云同步。",
+    ] },
+    { title: "您对自己数据的掌控权", body: [
+      "您可以随时导出完整的 JSON 备份（设置 → 导出完整备份），也可以随时删除所有本地数据（设置 → 清除所有数据）。如果您已登录云同步，退出登录只会结束登录会话，不会触碰您的本地数据——登录状态与已存数据之间的具体关系，详见帮助页面的「云同步」部分。",
+    ] },
+    { title: "托管服务", body: [
+      "本应用托管于 Vercel。与任何网络托管服务一样，标准的服务器日志（如 IP 地址和请求时间戳）可能会作为正常托管运作的一部分被短暂保留——这属于 Vercel 的基础设施范畴，并非本应用所能控制或访问的内容。",
+    ] },
+    { title: "本政策的变更", body: [
+      "本页面可能会随应用的更新而调整。本项目没有邮件列表或通知机制——如需了解最新内容，请自行回来查看本页面。",
+    ] },
+  ];
+  const sections = LANG === "zh" ? sectionsZH : sectionsEN;
+  const html = sections.map((sec) => panel(sec.title, sec.body.map((p) => `<p style="margin:0 0 10px;font-size:13.5px;line-height:1.6">${p}</p>`).join(""))).join("");
+  return { title: "Privacy Policy", subtitle: "What data this app touches, and where it goes.", html };
+}
+
+/* =============================================================================
+ * PAGE: TERMS OF USE
+ * ========================================================================== */
+function pageTerms() {
+  const sectionsEN = [
+    { title: "What this app is", body: [
+      "Investment Ledger is a personal record-keeping tool for tracking your own investments — brokers, holdings, transactions, dividends, and returns. It is an independent, non-commercial personal project, not a company or a registered financial service.",
+      "For personal record-keeping only. Nothing in this app is financial, tax, or investment advice — figures like XIRR, dividend forecasts, and diversification scores are calculations based on the data you enter and public market data, not recommendations.",
+    ] },
+    { title: "Provided as-is, no warranty", body: [
+      "This app is provided free, as-is, with no warranty of any kind. There's no guarantee that calculations are error-free, that live market data (prices, dividend dates, exchange rates) is accurate, current, or even available — it comes from third-party sources this project doesn't control — or that the app will be available, bug-free, or maintained indefinitely.",
+    ] },
+    { title: "Your responsibility", body: [
+      "You're responsible for the accuracy of the data you enter, for keeping your own backups (Settings → Export full backup), and for independently verifying any figure before using it to make a real financial decision. Market data shown as \"Live\" is fetched from third-party sources and may be delayed, incomplete, or wrong — always cross-check against your broker's own records before relying on it.",
+    ] },
+    { title: "Limitation of liability", body: [
+      "To the fullest extent permitted by law, this app and its author aren't liable for any loss or damage arising from your use of the app, from errors or omissions in calculations, or from reliance on market data or any figure the app displays. Use it at your own risk, alongside — not instead of — your broker's own statements and records.",
+    ] },
+    { title: "Changes", body: [
+      "This app, and these terms, may change or be discontinued at any time without notice — it's a personal project maintained on a best-effort basis, not a service with a support commitment.",
+    ] },
+  ];
+  const sectionsZH = [
+    { title: "本应用是什么", body: [
+      "Investment Ledger 是一款用于记录您自己投资状况的个人工具——涵盖券商、持仓、交易、股息与回报。这是一个独立的非商业个人项目，并非一家公司或注册金融服务机构。",
+      "仅供个人记录之用。本应用中的任何内容均不构成财务、税务或投资建议——诸如 XIRR、股息预测和分散度评分等数字，都是基于您输入的数据和公开市场数据得出的计算结果，而非建议。",
+    ] },
+    { title: "按「现状」提供，不作任何担保", body: [
+      "本应用免费提供，按「现状」提供，不作任何形式的担保。本项目不保证计算结果完全无误，不保证实时市场数据（价格、除息日、汇率）准确、最新甚至可用——这些数据来自本项目无法控制的第三方来源——也不保证应用会持续可用、无故障或长期维护。",
+    ] },
+    { title: "您的责任", body: [
+      "您需自行对所输入数据的准确性负责，自行妥善保管备份（设置 → 导出完整备份），并在将任何数字用于实际财务决策前自行独立核实。标注为「实时」的市场数据来自第三方来源，可能存在延迟、不完整或错误——在依赖之前，请务必与您券商自身的记录进行核对。",
+    ] },
+    { title: "责任限制", body: [
+      "在法律允许的最大范围内，本应用及其作者对因使用本应用、计算中的错误或遗漏，或对市场数据或应用所显示任何数字的依赖而产生的任何损失或损害概不负责。使用本应用需自担风险，并应与——而非取代——您券商自身的对账单和记录配合使用。",
+    ] },
+    { title: "变更", body: [
+      "本应用及本条款可能随时变更或终止，恕不另行通知——这是一个尽力维护的个人项目，而非承诺提供支持服务的产品。",
+    ] },
+  ];
+  const sections = LANG === "zh" ? sectionsZH : sectionsEN;
+  const html = sections.map((sec) => panel(sec.title, sec.body.map((p) => `<p style="margin:0 0 10px;font-size:13.5px;line-height:1.6">${p}</p>`).join(""))).join("");
+  return { title: "Terms of Use", subtitle: "Please read before relying on this app for real financial decisions.", html };
 }
 
 /* =============================================================================
@@ -5934,6 +6050,7 @@ const PAGES = {
   dashboard: pageDashboard, portfolio: pagePortfolio, records: pageRecords, add: pageAdd,
   dividends: pageDividends,
   brokers: pageBrokers, settings: pageSettings, help: pageHelp, holding: pageHolding,
+  privacy: pagePrivacy, terms: pageTerms,
 };
 
 function currentPageKey() {
