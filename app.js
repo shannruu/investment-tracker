@@ -933,6 +933,31 @@ function computeTotals() {
     holdings, brokerCash, brokerCashByCcy, oversells, missingPrices, negativeCash, xirr: xirrValue, totalCash,
     depositsByBroker, withdrawalsByBroker, dividendsByBroker, realizedByBroker, unrealizedByBroker, totalReturnByBroker };
 }
+
+/* Shares actually held in a ticker+broker lot as of a given date — replays the opening
+ * HOLDINGS position plus every Buy/Sell/Stock split transaction up to that date. T.holdings
+ * only ever reflects TODAY's share count, which is the wrong basis for a PAST dividend's
+ * Per Share figure once the position has grown or shrunk since: a RM1.60 dividend received
+ * while holding 40 shares is RM0.04/share, not RM0.0004/share just because the position has
+ * since been built up to 3,810 shares. Used for historical dividend rows only — future/
+ * projected payments correctly keep using today's share count (the best available guess for
+ * a position that hasn't happened yet). */
+function sharesAsOf(ticker, brokerId, date) {
+  const tk = (ticker || "").toUpperCase();
+  let shares = 0;
+  const opening = HOLDINGS.find((h) => (h.ticker || "").toUpperCase() === tk && h.brokerId === brokerId);
+  if (opening) shares += +opening.shares || 0;
+  const txns = ALL_TRANSACTIONS
+    .filter((x) => x.brokerId === brokerId && (x.ticker || "").toUpperCase() === tk && x.date <= date)
+    .sort(txDateSort);
+  txns.forEach((tx) => {
+    const q = +tx.qty || 0;
+    if (tx.type === "Buy") shares += q;
+    else if (tx.type === "Sell") shares -= q;
+    else if (tx.type === "Stock split") shares *= (q || 1);
+  });
+  return Math.max(0, shares);
+}
 /* =============================================================================
  * PERSISTENCE — saves everything to the browser (localStorage) so your data
  * survives reloads. Defaults come from data.js the first time.
@@ -1374,7 +1399,13 @@ function autoSyncDividends() {
       // approximation for a dividend paid on a past date. Flagged clearly in the note
       // below so the user knows to correct it manually if the FX drift since then matters.
       const fxRate = FX.rates[d.currency] || 1;
-      const gross = (d.amount || 0) * h.shares;
+      // Shares held ON THIS DIVIDEND'S DATE, not h.shares (today's count) — auto-sync can
+      // run long after the ex-date (e.g. the first visit after several payouts have piled
+      // up), and by then the position may have grown or shrunk since. Using today's count
+      // would log a permanently wrong gross amount baked into the transaction forever.
+      const sharesThen = sharesAsOf(h.ticker, h.brokerId, d.date);
+      if (sharesThen <= 0) return;   // sold out entirely by the time this dividend priced — not eligible
+      const gross = (d.amount || 0) * sharesThen;
       const tax = gross * ((broker && broker.divTaxRate ? broker.divTaxRate : 0) / 100);
       ALL_TRANSACTIONS.unshift({
         id: uid("t"), date: d.date, brokerId: h.brokerId, type: "Dividend",
@@ -4132,13 +4163,20 @@ function pageDividends() {
     ...estimatedUpcoming,
   ].sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
 
-  // Per-share amount and per-payment yield use each ticker's CURRENT share count/price —
-  // the real historical share count at the time of a past dividend isn't stored anywhere,
-  // so this is the same approximation the Holding Detail page's own calendar already makes
-  // for its projected rows, just applied uniformly here across past and future alike.
+  // Per-payment yield always uses TODAY's price (a yield is meaningful relative to what the
+  // stock costs to buy now, regardless of when the dividend itself was paid).
   const perShareFor = (ticker, amtMYR) => {
     const h = T.holdings.find((x) => x.ticker === ticker);
     return (h && h.shares) ? amtMYR / h.shares : null;
+  };
+  // Past dividends use the shares actually held ON THAT PAYMENT'S ex-date (sharesAsOf), not
+  // today's count — otherwise a position that's grown or shrunk since makes an old dividend's
+  // Per Share figure look wrong even though the RM total it was paid on was correct at the
+  // time. Upcoming/estimated rows keep using perShareFor (today's shares) — the best available
+  // basis for a payment that hasn't happened yet.
+  const perShareForHistory = (d, amtMYR) => {
+    const shares = sharesAsOf(d.ticker, d.brokerId, d.exDate || d.payDate || d.date);
+    return shares ? amtMYR / shares : null;
   };
   const yieldFor = (ticker, perShareAmt) => {
     const h = T.holdings.find((x) => x.ticker === ticker);
@@ -4163,8 +4201,8 @@ function pageDividends() {
   const today = todayISO();
   const historyEntries = received.map((d) => {
     const amtMYR = ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1);
-    const perShareAmt = perShareFor(d.ticker, amtMYR);
     const exDate = d.exDate || d.payDate || d.date, payDate = d.payDate || d.date;
+    const perShareAmt = perShareForHistory({ ticker: d.ticker, brokerId: d.brokerId, exDate }, amtMYR);
     const pay = resolvePay(exDate, payDate, d.ticker);
     return { ticker: d.ticker, brokerId: d.brokerId, exDate, payDate, payDisplay: pay.display, payEstimated: pay.estimated,
       amtMYR, perShareAmt, yieldPct: yieldFor(d.ticker, perShareAmt), status: "Received" };
