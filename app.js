@@ -4282,10 +4282,10 @@ function pageDividends() {
     ], rowsHtml, { fixed: true })}</div>`;
   }
   const exDivHeadActions = LIVE_ENABLED
-    ? `<div class="panel-head-actions" style="flex-wrap:wrap">
-        <input type="search" id="exDivSearchInput" placeholder="${t("Search ticker or company")}" value="${escAttr(exDivSearch)}" style="width:220px">
-        <div style="width:170px">${exDivMarketSel}</div>
-        <div style="width:150px">${exDivWindowSel}</div>
+    ? `<div class="panel-head-actions" style="flex-wrap:wrap;min-width:0;max-width:100%">
+        <input type="search" id="exDivSearchInput" placeholder="${t("Search ticker or company")}" value="${escAttr(exDivSearch)}" style="width:220px;max-width:100%">
+        <div style="width:170px;max-width:100%">${exDivMarketSel}</div>
+        <div style="width:150px;max-width:100%">${exDivWindowSel}</div>
       </div>`
     : "";
   // Off by default — opt in from Settings (SETTINGS.showExDivScreener), same pattern as
@@ -6158,9 +6158,11 @@ function render() {
  * INIT / WIRING
  * ========================================================================== */
 function updateLangBtn() {
-  // Clearly labelled language selector: active language emphasised.
+  // Clearly labelled language selector: active language emphasised. The inactive side is
+  // wrapped in .lang-alt so mobile CSS can drop it — full "EN / 中文" is too wide alongside
+  // the title + other topbar buttons at narrow widths, easy overflow otherwise.
   const el = $("#langBtn");
-  el.innerHTML = LANG === "en" ? `<b>EN</b> / 中文` : `EN / <b>中文</b>`;
+  el.innerHTML = LANG === "en" ? `<b>EN</b><span class="lang-alt"> / 中文</span>` : `<span class="lang-alt">EN / </span><b>中文</b>`;
   el.setAttribute("aria-label", LANG === "en" ? "Language: English. Switch to Chinese" : "语言：中文。切换为英文");
 }
 

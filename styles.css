@@ -381,7 +381,14 @@ a { color: inherit; text-decoration: none; }
 /* ===================== Tables ===================== */
 .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.data-table-fixed { table-layout: fixed; }
+/* table-layout:fixed makes the browser honor each column's declared percentage width
+   literally, even when that squeezes a column below what its content needs — on a narrow
+   mobile viewport this collapsed multi-word headers and values into overlapping text
+   instead of wrapping or clipping. A min-width means the table instead stays at a legible
+   width and .table-wrap's overflow-x:auto (already in place, with the swipe-hint fade
+   below) provides real horizontal scroll, the same tradeoff table-layout:auto columns get
+   for free from their own content-based minimum width. */
+.data-table-fixed { table-layout: fixed; min-width: 640px; }
 .data-table th {
   text-align: left; color: var(--text-soft); font-weight: 700; font-size: 12px;
   text-transform: uppercase; letter-spacing: .03em;
@@ -501,7 +508,7 @@ a.onboard-step:hover { background: var(--surface-2); }
 @keyframes backdrop-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes backdrop-out { from { opacity: 1; } to { opacity: 0; } }
 .drawer-panel {
-  width: min(720px, 100%); height: 100%; background: var(--surface);
+  width: min(720px, 100%); min-width: 0; height: 100%; background: var(--surface);
   border-left: 1px solid var(--border); box-shadow: var(--shadow);
   display: flex; flex-direction: column; animation: drawer-in .28s cubic-bezier(.16,1,.3,1);
 }
@@ -619,11 +626,16 @@ a.onboard-step:hover { background: var(--surface-2); }
     box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 45%, transparent); font-weight: 700; font-size: 20px;
   }
 
-  /* Topbar: drop the redundant subtitle, icon-only export, tighter actions */
+  /* Topbar: drop the redundant subtitle, icon-only export, tighter actions. flex-wrap is a
+     safety net — if actions still don't fit next to a long page title, they drop to their
+     own line instead of clipping off the right edge (the actual mobile-audit failure mode). */
+  .topbar { flex-wrap: wrap; row-gap: 8px; }
+  .topbar-title { min-width: 0; }
+  .topbar-title h1 { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .topbar-title p { display: none; }
-  .topbar-title h1 { font-size: 17px; }
-  .topbar-actions { gap: 6px; }
+  .topbar-actions { gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
   #exportBtn .btn-ico + span { display: none; }
+  .lang-alt { display: none; }
 
   /* Bigger touch targets in the bottom nav */
   .bn-item { min-height: 50px; }
@@ -869,9 +881,14 @@ input[type="date"] { cursor: pointer; }
 .btn.small { padding: 4px 10px; font-size: 12px; }
 
 /* ---- Forms ---- */
-.form { display: flex; flex-direction: column; gap: 16px; }
-.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 14px; }
-.form label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text-soft); }
+/* min-width:0 at every level here breaks the flex/grid "min-width:auto defaults to
+   content's min-content size" trap — without it, a field whose content can't shrink
+   (e.g. the amount+currency combo) forces its grid cell, then .form-grid, then .form
+   itself wider than the drawer, pushing later fields (and the drawer's own close button)
+   off-screen on narrow viewports instead of the fields actually stacking to fit. */
+.form { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 14px; min-width: 0; }
+.form label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text-soft); min-width: 0; }
 .form input, .form select { min-width: 0; }
 .field-invalid { border-color: var(--neg) !important; }
 .field-err { font-size: 12px; color: var(--neg); margin: -4px 0 4px; line-height: 1.4; }
@@ -891,14 +908,14 @@ input[type="date"] { cursor: pointer; }
 .note-field { display: flex; flex-direction: column; gap: 6px; }
 
 /* Amount + currency combo: [ 0.00 ][ MYR ▾ ] joined into one control */
-.amt-combo { display: flex; align-items: stretch; }
+.amt-combo { display: flex; align-items: stretch; min-width: 0; }
 .amt-combo > input { flex: 1 1 auto; min-width: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .amt-combo .sel { flex: 0 0 auto; margin-left: -1px; }
 .sel-combo .sel-trigger { border-top-left-radius: 0; border-bottom-left-radius: 0; min-width: 76px; max-width: 90px; }
 .amt-combo > input:focus, .sel-combo.open .sel-trigger { position: relative; z-index: 1; }
 .amt-combo .sel-pop { left: auto; right: 0; min-width: 230px; max-width: 280px; }
 /* FX pair: [ Currency ▾ ][ Amount                    ] — selector left, amount fills right */
-.ccy-combo { display: flex; align-items: stretch; }
+.ccy-combo { display: flex; align-items: stretch; min-width: 0; }
 .ccy-combo .sel { flex: 0 0 auto; margin-right: -1px; }
 .ccy-combo > input { flex: 1 1 auto; min-width: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .sel-combo-l .sel-trigger { border-top-right-radius: 0; border-bottom-right-radius: 0; min-width: 76px; max-width: 100px; }
