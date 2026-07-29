@@ -466,7 +466,7 @@ const ZH = {
   "Amount required": "需要金额", "Could not read that file.": "无法读取该文件。",
   "rows ready to import": "行可导入", "rows": "行", "ready": "就绪", "with errors": "有错误",
   "Ready": "就绪", "Ccy": "货币", "Status": "状态", "Amount": "金额",
-  "Import valid rows": "导入有效行", "Cancel": "取消",
+  "Import valid rows": "导入有效行", "Cancel": "取消", "OK": "确定", "Confirm": "确认",
   "Rows with errors are skipped. Fix them in your spreadsheet and re-upload.": "有错误的行将被跳过。请在电子表格中修正后重新上传。",
   "No valid rows to import.": "没有可导入的有效行。", "transactions imported": "笔交易已导入",
   // F5 round 2 — exchange/transfer/dups/broker-create
@@ -3028,7 +3028,7 @@ function pageRecords() {
       $$("[data-rectab]").forEach((b) => b.addEventListener("click", () => { recordsTab = b.dataset.rectab; cashSubFilter = "all"; render(); }));
       const cashFilterEl = $("#cashSubFilterSel");
       if (cashFilterEl) cashFilterEl.addEventListener("change", () => { cashSubFilter = cashFilterEl.value; render(); });
-      $("#recBody").addEventListener("click", (e) => {
+      $("#recBody").addEventListener("click", async (e) => {
         const ed = e.target.closest("[data-edit-tx]");
         if (ed) { editingTxId = ed.dataset.editTx; location.hash = "#/add"; return; }
         const b = e.target.closest("[data-del-tx]");
@@ -3044,7 +3044,7 @@ function pageRecords() {
           : (tx && tx.dripPairId
             ? t("This is one half of a DRIP reinvestment. Its paired record won't be deleted automatically. Delete anyway?")
             : t("Delete this transaction? Holdings and balances will be recalculated."));
-        if (!confirm(msg)) return;
+        if (!(await showConfirmModal(msg, { danger: true, okLabel: "Remove" }))) return;
         const i = ALL_TRANSACTIONS.findIndex((x) => x.id === b.dataset.delTx);
         if (i >= 0) ALL_TRANSACTIONS.splice(i, 1);
         if (editingTxId === b.dataset.delTx) editingTxId = null;
@@ -3782,15 +3782,7 @@ function brokerCashPanelsHTML() {
 
 function mountBrokerCashPanels() {
   $$("[data-recon-broker]").forEach((btn) => btn.addEventListener("click", () => {
-    const id = btn.dataset.reconBroker;
-    const chk = RECON_CHECKS[id] || {};
-    const a = prompt(`${t("Actual cash balance for")} ${brokerName(id)} (${ccyLabel(FX.base)})`, chk.actual != null ? chk.actual : "");
-    if (a == null) return;
-    const actual = parseFloat(a);
-    if (isNaN(actual)) { toast(t("Enter a valid number.")); return; }
-    const note = prompt(t("Note (optional)"), chk.note || "") || "";
-    RECON_CHECKS[id] = { actual, date: todayISO(), note };
-    saveStore(); toast(t("Reconciliation saved")); render();
+    showReconciliationModal(btn.dataset.reconBroker);
   }));
 }
 
@@ -4485,10 +4477,10 @@ function pageBrokers() {
         const b = BROKERS.find((x) => x.id === btn.dataset.archiveBroker);
         if (b) { b.archived = !b.archived; saveStore(); toast(b.archived ? t("Broker archived") : t("Broker unarchived")); render(); }
       }));
-      $$("[data-del-broker]").forEach((btn) => btn.addEventListener("click", () => {
+      $$("[data-del-broker]").forEach((btn) => btn.addEventListener("click", async () => {
         const id = btn.dataset.delBroker;
         const used = HOLDINGS.some((h) => h.brokerId === id) || ALL_TRANSACTIONS.some((x) => x.brokerId === id);
-        if (used && !confirm(t("This broker still has records. Remove it anyway? (Consider Archive instead.)"))) return;
+        if (used && !(await showConfirmModal(t("This broker still has records. Remove it anyway? (Consider Archive instead.)"), { danger: true, okLabel: "Remove" }))) return;
         const i = BROKERS.findIndex((b) => b.id === id);
         if (i >= 0) BROKERS.splice(i, 1);
         if (editingBrokerId === id) editingBrokerId = null;
@@ -4751,15 +4743,15 @@ function pageSettings() {
       $("#expJson").addEventListener("click", exportBackupJSON);
       $("#impJsonBtn").addEventListener("click", () => $("#impJsonFile").click());
       $("#impJsonFile").addEventListener("change", (e) => importBackupJSON(e.target.files[0]));
-      $("#loadDemo").addEventListener("click", () => {
+      $("#loadDemo").addEventListener("click", async () => {
         if (ALL_TRANSACTIONS.length || BROKERS.length) {
-          if (!confirm(t("This will replace your current data with demo data. Continue?"))) return;
+          if (!(await showConfirmModal(t("This will replace your current data with demo data. Continue?"), { danger: true }))) return;
         }
         loadDemoData(); saveStore(); toast(t("Demo data loaded")); render();
       });
       const cpvhBtn = $("#clearPvHistory");
-      if (cpvhBtn) cpvhBtn.addEventListener("click", () => {
-        if (!confirm(t("Clear the Portfolio Value Over Time chart? All chart data points will be permanently deleted."))) return;
+      if (cpvhBtn) cpvhBtn.addEventListener("click", async () => {
+        if (!(await showConfirmModal(t("Clear the Portfolio Value Over Time chart? All chart data points will be permanently deleted."), { danger: true }))) return;
         PV_HISTORY.splice(0);
         saveStore(); toast(t("Chart history cleared.")); render();
       });
@@ -4796,14 +4788,14 @@ function validBackup(s) {
 function importBackupJSON(file) {
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     let s;
     try { s = JSON.parse(reader.result); } catch (e) { toast(t("That file isn't valid JSON.")); return; }
     if (!validBackup(s)) { toast(t("That doesn't look like an Investment Ledger backup.")); return; }
     const versionNote = (typeof s.version === "number" && s.version > SCHEMA_VERSION)
       ? " " + t("This backup was made by a newer version of the app — some newer fields may not be restored.")
       : "";
-    if (!confirm(t("This replaces your current data with this backup file. Export your current data first if you want to keep it. Continue?") + versionNote)) return;
+    if (!(await showConfirmModal(t("This replaces your current data with this backup file. Export your current data first if you want to keep it. Continue?") + versionNote, { danger: true }))) return;
     applySnapshot(s); saveStore(); toast(t("Backup restored")); render();
   };
   reader.readAsText(file);
@@ -5465,7 +5457,10 @@ function brokerBreakdownCalc(title, txList) {
   return { title, rows: rows.length ? rows : [{ op: "+", label: "No transactions", val: money(0) }], total };
 }
 
+let modalResolve = null;   // pending Promise resolver for showConfirmModal, if any — see closeModal()
+
 function showCalc(calc) {
+  modalResolve = null;   // defensive: opening a different modal abandons any pending confirm
   $("#modalTitle").textContent = t(calc.title);
   const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span> ${t(r.label)}${r.hint ? ` <span class="col-info tip-down" data-tip="${r.hint}">${COL_INFO_ICON_SVG}</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`).join("");
   $("#modalBody").innerHTML = `${calc.intro ? `<p class="muted" style="margin:0 0 14px;font-size:13px">${t(calc.intro)}</p>` : ""}${rows}
@@ -5473,13 +5468,77 @@ function showCalc(calc) {
     <p class="muted" style="margin:14px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
   $("#modal").hidden = false;
 }
-function closeModal() { $("#modal").hidden = true; }
+function closeModal() {
+  $("#modal").hidden = true;
+  // Any dismissal path (×, backdrop click, Escape) that isn't the explicit confirm button
+  // resolves a pending showConfirmModal() promise as "cancelled" — same semantics as
+  // window.confirm() returning false for anything but OK.
+  if (modalResolve) { const r = modalResolve; modalResolve = null; r(false); }
+}
+
+/* Custom-styled replacement for the browser's native confirm() — reuses the same modal
+ * shell as showCalc()/showSetPriceModal() instead of an unstyled native dialog that looks
+ * like it belongs to a different app. Resolves true only on the explicit confirm button;
+ * any other dismissal resolves false. */
+function showConfirmModal(message, opts = {}) {
+  modalResolve = null;
+  return new Promise((resolve) => {
+    modalResolve = resolve;
+    $("#modalTitle").textContent = opts.title ? t(opts.title) : t("Confirm");
+    $("#modalBody").innerHTML = `
+      <p style="margin:0 0 18px;font-size:13.5px;line-height:1.5">${esc(message)}</p>
+      <div class="form-actions">
+        <button type="button" class="btn ${opts.danger ? "danger" : "primary"}" id="modalConfirmOk">${t(opts.okLabel || "OK")}</button>
+        <button type="button" class="btn ghost" id="modalConfirmCancel">${t("Cancel")}</button>
+      </div>`;
+    $("#modal").hidden = false;
+    $("#modalConfirmOk").addEventListener("click", () => { modalResolve = null; resolve(true); closeModal(); });
+    $("#modalConfirmCancel").addEventListener("click", () => closeModal());
+    $("#modalConfirmOk").focus();
+  });
+}
+
+/* Broker Cash Reconciliation's "actual balance + note" entry — reuses the same modal
+ * shell rather than two sequential native prompt() calls (unstyled, and awkward to fill
+ * two related fields one popup at a time). */
+function showReconciliationModal(brokerId) {
+  modalResolve = null;
+  const chk = RECON_CHECKS[brokerId] || {};
+  $("#modalTitle").textContent = `${t("Actual cash balance for")} ${brokerName(brokerId)}`;
+  $("#modalBody").innerHTML = `
+    <form id="reconForm" class="form">
+      <label>${t("Actual Balance")} (${ccyLabel(FX.base)})
+        <input type="number" step="any" name="actual" value="${chk.actual != null ? esc(chk.actual) : ""}" placeholder="0.00" required>
+      </label>
+      <label>${t("Note (optional)")}
+        <input type="text" name="note" value="${escAttr(chk.note || "")}" placeholder="">
+      </label>
+      <div class="form-actions" style="margin-top:14px">
+        <button class="btn primary" type="submit">${t("Save")}</button>
+        <button class="btn ghost" type="button" id="reconCancel">${t("Cancel")}</button>
+      </div>
+    </form>`;
+  $("#modal").hidden = false;
+  const form = $("#reconForm");
+  const actualInput = form.querySelector('[name="actual"]');
+  actualInput.focus();
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const actual = parseFloat(actualInput.value);
+    if (isNaN(actual)) { toast(t("Enter a valid number.")); return; }
+    const note = form.querySelector('[name="note"]').value || "";
+    RECON_CHECKS[brokerId] = { actual, date: todayISO(), note };
+    saveStore(); closeModal(); toast(t("Reconciliation saved")); render();
+  });
+  $("#reconCancel").addEventListener("click", closeModal);
+}
 
 /* Manual price entry — reuses the same modal shell as showCalc() (title +
  * body + the existing Escape/backdrop-click/× close wiring) instead of the
  * browser's native prompt(), which can't be styled and looks like it belongs
  * to a different app entirely. */
 function showSetPriceModal(h) {
+  modalResolve = null;
   const cur = CURRENT_PRICES[h.ticker];
   $("#modalTitle").textContent = `${t("Set Price")} — ${h.ticker}`;
   $("#modalBody").innerHTML = `
