@@ -1264,6 +1264,43 @@ async function fetchExDividendCalendar(market, from, to) {
   } catch (e) { return null; }
 }
 
+/* Real Malaysia payment dates for the user's OWN holdings, sourced from the same
+ * TradingView data backing the Ex-Dividend Screener — used to replace the Dividend
+ * Calendar's flat "ex-date + 14 days" guess with each company's actual, individually
+ * varying gap (confirmed in testing: genuinely ranges 14-30+ days, not a fixed offset)
+ * wherever a real one is available. Keyed by ticker (e.g. "6718.KL"), matched via the
+ * screener's stockCode field — TradingView's own Malaysia data has no numeric-code field
+ * itself, so stockCode is resolved server-side via Yahoo search (see ex-dividend-calendar-my.js). */
+let MY_REAL_PAYDATES = {};      // { [ticker]: { exDate, payDate } }
+let myRealPayDatesFetched = false;
+async function fetchMyRealPayDates() {
+  if (myRealPayDatesFetched) return false;
+  // Deliberately does NOT set myRealPayDatesFetched here — a holding added later in the
+  // same session (no .KL tickers yet on this check) should still trigger a real fetch on
+  // the next mount(), not be permanently skipped for the rest of the session.
+  if (!T.holdings.some((h) => (h.ticker || "").toUpperCase().endsWith(".KL"))) return false;
+  const from = todayISO();
+  const toObj = new Date(todayDate()); toObj.setDate(toObj.getDate() + 45);
+  const to = dateToISO(toObj);
+  const d = await fetchExDividendCalendar("my", from, to);
+  myRealPayDatesFetched = true;
+  if (!d || !Array.isArray(d.rows)) return false;
+  let found = false;
+  d.rows.forEach((r) => {
+    if (!r.stockCode || !r.payDate) return;
+    MY_REAL_PAYDATES[`${r.stockCode}.KL`] = { exDate: r.exDate, payDate: r.payDate };
+    found = true;
+  });
+  return found;
+}
+/* Only trusted when the ex-dates line up — otherwise this could be a different, unrelated
+ * declared dividend for the same ticker (e.g. last quarter's, already superseded). */
+function myRealPayDate(ticker, exDate) {
+  const entry = MY_REAL_PAYDATES[(ticker || "").toUpperCase()];
+  if (!entry || !exDate || entry.exDate !== exDate) return null;
+  return entry.payDate;
+}
+
 /* Auto-log dividends you're eligible for (held the stock on/after its ex-date) but haven't
  * recorded yet — same eligibility check the Holding Detail calendar's "Not logged" badge
  * uses. Creates real "Dividend" transactions (0 tax withheld — edit afterward if it differs)
@@ -4075,12 +4112,15 @@ function pageDividends() {
   // so for any auto-fetched/projected dividend the two are stored identical, making the
   // "Payment Date" column just repeat the Ex-Date (misleading — a real dividend pays out
   // ~2-4 weeks AFTER its ex-date). Same honest handling as the Holding Detail calendar:
-  // when we have a genuinely distinct real payment date (manually entered), show it; when
-  // we only have the ex-date, show a clearly-flagged estimate of ex-date + 14 days.
+  // when we have a genuinely distinct real payment date (manually entered, or fetched from
+  // TradingView for a Malaysia holding — see myRealPayDate), show it; when we only have the
+  // ex-date, show a clearly-flagged estimate of ex-date + 14 days.
   const estPayDate = (ds) => { const dd = new Date(ds + "T00:00:00"); dd.setDate(dd.getDate() + 14); return dateToISO(dd); };
-  const resolvePay = (exDate, payDate) => {
+  const resolvePay = (exDate, payDate, ticker) => {
     const realDistinct = payDate && exDate && payDate !== exDate;   // user typed a real, different payment date
     if (realDistinct) return { display: payDate, estimated: false };
+    const realMy = ticker ? myRealPayDate(ticker, exDate) : null;
+    if (realMy) return { display: realMy, estimated: false };
     if (exDate) return { display: estPayDate(exDate), estimated: true };
     return { display: payDate || null, estimated: false };
   };
@@ -4089,14 +4129,14 @@ function pageDividends() {
     const amtMYR = ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1);
     const perShareAmt = perShareFor(d.ticker, amtMYR);
     const exDate = d.exDate || d.payDate || d.date, payDate = d.payDate || d.date;
-    const pay = resolvePay(exDate, payDate);
+    const pay = resolvePay(exDate, payDate, d.ticker);
     return { ticker: d.ticker, brokerId: d.brokerId, exDate, payDate, payDisplay: pay.display, payEstimated: pay.estimated,
       amtMYR, perShareAmt, yieldPct: yieldFor(d.ticker, perShareAmt), status: "Received" };
   });
   const upcomingEntries = combinedUpcoming.map((d) => {
     const perShareAmt = perShareFor(d.ticker, d.amtMYR);
     const exDate = d.exDate || d.payDate, payDate = d.payDate;
-    const pay = resolvePay(exDate, payDate);
+    const pay = resolvePay(exDate, payDate, d.ticker);
     return { ticker: d.ticker, brokerId: d.brokerId, exDate, payDate, payDisplay: pay.display, payEstimated: pay.estimated,
       amtMYR: d.amtMYR, perShareAmt, yieldPct: yieldFor(d.ticker, perShareAmt),
       status: d.source === "estimated" ? "Estimated" : "Confirmed", _id: d._id };
@@ -4220,7 +4260,7 @@ function pageDividends() {
     const irregularNote = (r) => (r.payoutStreak != null && r.payoutStreak <= 1)
       ? `<div class="muted" style="font-size:11px;margin-top:2px">(${t("Irregular")})</div>` : "";
     const rowsHtml = shown.map((r) => `<tr>
-      <td class="dcc-c"><span class="ticker">${esc(r.symbol)}</span></td>
+      <td class="dcc-c"><span class="ticker">${esc(r.symbol)}</span>${r.stockCode ? `<div class="sub">${esc(r.stockCode)}</div>` : ""}</td>
       <td class="dcc-c exdiv-company" title="${escAttr(r.company || "")}">${esc(r.company || "—")}</td>
       <td class="dcc-c">${fmtDate(r.exDate)}${irregularNote(r)}</td>
       <td class="dcc-c">${r.payDate ? fmtDate(r.payDate) : "—"}</td>
@@ -4319,6 +4359,9 @@ function pageDividends() {
           const s = document.getElementById("divFetchStatus");
           if (s) s.textContent = hadError ? t("Couldn't check some dividend schedules — try again later.") : "";
         });
+        // Real Malaysia payment dates (see myRealPayDate) — silent, only re-renders if it
+        // actually found something to correct an estimate with.
+        fetchMyRealPayDates().then((found) => { if (found && document.getElementById("divUpcomingSection")) render(); });
       }
       if (SETTINGS.showExDivScreener) {
         const exDivSearchEl = $("#exDivSearchInput");
@@ -5386,11 +5429,13 @@ function pageHolding() {
       const filtered = holdingDivFilter === "past" ? allRows.filter((r) => r.date < today)
         : holdingDivFilter === "upcoming" ? allRows.filter((r) => r.date >= today)
         : allRows;
-      // Rough universal estimate — real payment date isn't in the market data (only the
+      // Universal fallback estimate — real payment date isn't in the market data (only the
       // ex-date is), but issuers typically settle 2-4 weeks after ex-date. Shown clearly
       // labeled "(est.)" alongside the real ex-date so a user deciding "do I need to buy
       // before or after this date" has both: the hard cutoff (Ex-Date) and a rough sense
-      // of when the money would actually show up (Est. Payment).
+      // of when the money would actually show up (Est. Payment). For a Malaysia holding,
+      // myRealPayDate() substitutes TradingView's actual reported date when one's available
+      // instead of guessing — see its definition for how that's sourced.
       const estPayDate = (ds) => { const dd = new Date(ds + "T00:00:00"); dd.setDate(dd.getDate() + 14); return dateToISO(dd); };
       const rows = filtered.map((r) => {
         const yieldPct = (h.hasPrice && h.currentPrice > 0 && r.perShareAmt != null) ? (r.perShareAmt / h.currentPrice * 100) : null;
@@ -5398,7 +5443,13 @@ function pageHolding() {
         // Exactly one badge per row — the "next payment" row shows that instead of its
         // Confirmed/Estimated badge, rather than stacking two pills in the same cell.
         const statusCell = isNext ? `<span class="badge confirmed">${t("Next payment")}</span>` : statusBadge(r.status);
-        return `<tr${isNext ? ` class="next-div-row"` : ""}><td class="dcc-c">${fmtDate(r.date)}</td><td class="dcc-c">${fmtDate(estPayDate(r.date))}</td><td class="dcc-c">${r.perShareAmt != null ? fmt(r.perShareAmt, { maximumFractionDigits: 2 }) : "—"}</td><td class="dcc-c">${fmt(r.amtMYR, { maximumFractionDigits: 2 })}</td><td class="dcc-c">${yieldPct != null ? fmt(yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td><td class="dcc-c">${statusCell}</td></tr>`;
+        // Only "Confirmed" rows' .date is a real declared ex-date (from knownUpcoming, same
+        // raw payDate the auto-fetch path defaults to the ex-date) — "Estimated" rows' .date
+        // is already an algorithmically projected PAYMENT date from the cadence engine, not
+        // an ex-date, so it has no matching entry in MY_REAL_PAYDATES (keyed by ex-date) and
+        // shouldn't be looked up against it.
+        const payDisplay = (r.status === "Confirmed" && myRealPayDate(h.ticker, r.date)) || estPayDate(r.date);
+        return `<tr${isNext ? ` class="next-div-row"` : ""}><td class="dcc-c">${fmtDate(r.date)}</td><td class="dcc-c">${fmtDate(payDisplay)}</td><td class="dcc-c">${r.perShareAmt != null ? fmt(r.perShareAmt, { maximumFractionDigits: 2 }) : "—"}</td><td class="dcc-c">${fmt(r.amtMYR, { maximumFractionDigits: 2 })}</td><td class="dcc-c">${yieldPct != null ? fmt(yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td><td class="dcc-c">${statusCell}</td></tr>`;
       }).join("");
       const filterSel = `<div style="width:150px">${styledSelect("divCalFilter", [
         { value: "all", label: t("All") },
@@ -5492,6 +5543,7 @@ function pageHolding() {
         fetchAllLivePrices().then(({ fetched }) => {
           if (fetched && document.getElementById("dtlPrice")) render();
         });
+        fetchMyRealPayDates().then((found) => { if (found && document.getElementById("dtlPrice")) render(); });
       }
     } };
 }
