@@ -366,6 +366,7 @@ const ZH = {
   "Net Dividends (Lifetime)": "净股息（累计）", "Month": "月份", "Quarter": "季度",
   "Dividend Forecast": "股息预测",
   "Ex-Dividend Screener": "除息股筛选器",
+  "US Market": "美国市场", "Malaysia (Bursa)": "马来西亚（大马交易所）",
   "Next 7 days": "未来 7 天", "Next 14 days": "未来 14 天", "Next 30 days": "未来 30 天",
   "Search ticker or company": "搜索代码或公司名称",
   "Loading ex-dividend calendar…": "正在加载除息日历…",
@@ -1235,17 +1236,23 @@ async function fetchDivHistory(ticker) {
   } catch (e) { return { ok: false, divs: null }; }
 }
 
-/* ─── Ex-dividend screener (Nasdaq calendar, keyless, market-wide) ──────────── */
+/* ─── Ex-dividend screener (keyless, market-wide) ───────────────────────────── */
 // Unlike fetchDivHistory above (per-ticker, your own holdings), this browses
-// upcoming ex-dividend dates across the whole US market — powers the Dividends
-// page's Ex-Dividend Screener panel. Cached by window so switching tabs or an
-// unrelated render() doesn't re-hit the API; only a genuine window change does.
-let EX_DIV_CACHE = {};   // key `${from}|${to}` -> { rows, truncated }
-async function fetchExDividendCalendar(from, to) {
-  const key = `${from}|${to}`;
+// upcoming ex-dividend dates across a whole market — powers the Dividends
+// page's Ex-Dividend Screener panel. Two markets, two data sources, kept
+// strictly separate rather than merged into one list (different exchanges,
+// different currencies, different data completeness — combining them would
+// misrepresent both). Cached by market+window so switching tabs or an
+// unrelated render() doesn't re-hit the API; only a genuine market/window
+// change does.
+const EX_DIV_ENDPOINTS = { us: "/api/ex-dividend-calendar", my: "/api/ex-dividend-calendar-my" };
+let EX_DIV_CACHE = {};   // key `${market}|${from}|${to}` -> { rows, truncated }
+async function fetchExDividendCalendar(market, from, to) {
+  const key = `${market}|${from}|${to}`;
   if (EX_DIV_CACHE[key]) return EX_DIV_CACHE[key];
   try {
-    const r = await fetch(`/api/ex-dividend-calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+    const endpoint = EX_DIV_ENDPOINTS[market] || EX_DIV_ENDPOINTS.us;
+    const r = await fetch(`${endpoint}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
     if (!r.ok) return null;
     const d = await r.json();
     if (!d || !Array.isArray(d.rows)) return null;
@@ -4018,6 +4025,7 @@ let divCalendarFilter = "all";   // all | past | upcoming — filters the combin
 let divIncomePeriod = "monthly"; // monthly | quarterly | annual — which Dividend Income view is shown
 let exDivWindowDays = 14;        // 7 | 14 | 30 — how far ahead the ex-dividend screener looks
 let exDivSearch = "";            // client-side ticker/company filter for the ex-dividend screener
+let exDivMarket = "us";          // us | my — which market's ex-dividend calendar is shown
 function pageDividends() {
   /* Calculation reference:
    * grossBase        = Σ (d.gross × fxRate) for all received dividends
@@ -4184,13 +4192,19 @@ function pageDividends() {
     : `${alertLine}<div class="div-fc-empty"><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}<div class="form-actions" style="margin-top:10px"><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a></div></div></div>
       <p class="muted" style="margin:10px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
 
-  // Ex-Dividend Screener — market-wide upcoming ex-dividend dates (Nasdaq calendar),
-  // distinct from the personal Dividend Calendar above: browsing what's coming up
-  // across the whole market, not just holdings already owned.
+  // Ex-Dividend Screener — market-wide upcoming ex-dividend dates, distinct from the
+  // personal Dividend Calendar above: browsing what's coming up across a whole market,
+  // not just holdings already owned. US and Malaysia are two entirely separate data
+  // sources/currencies — a market selector switches between them rather than merging
+  // both into one list, which would misrepresent both (see EX_DIV_ENDPOINTS above).
   const exDivFrom = todayISO();
   const exDivToDateObj = new Date(todayDate()); exDivToDateObj.setDate(exDivToDateObj.getDate() + exDivWindowDays - 1);
   const exDivTo = dateToISO(exDivToDateObj);
-  const exDivData = EX_DIV_CACHE[`${exDivFrom}|${exDivTo}`] || null;
+  const exDivData = EX_DIV_CACHE[`${exDivMarket}|${exDivFrom}|${exDivTo}`] || null;
+  const exDivMarketSel = styledSelect("exDivMarketSel", [
+    { value: "us", label: t("US Market") },
+    { value: "my", label: t("Malaysia (Bursa)") },
+  ], exDivMarket, { id: "exDivMarketSel" });
   const exDivWindowSel = styledSelect("exDivWindow", [
     { value: "7", label: t("Next 7 days") },
     { value: "14", label: t("Next 14 days") },
@@ -4231,7 +4245,8 @@ function pageDividends() {
   }
   const exDivHeadActions = LIVE_ENABLED
     ? `<div class="panel-head-actions" style="flex-wrap:wrap">
-        <input type="search" id="exDivSearchInput" placeholder="${t("Search ticker or company")}" value="${escAttr(exDivSearch)}">
+        <input type="search" id="exDivSearchInput" placeholder="${t("Search ticker or company")}" value="${escAttr(exDivSearch)}" style="width:220px">
+        <div style="width:170px">${exDivMarketSel}</div>
         <div style="width:150px">${exDivWindowSel}</div>
       </div>`
     : "";
@@ -4316,8 +4331,10 @@ function pageDividends() {
         });
         const exDivWindowEl = $("#exDivWindowSel");
         if (exDivWindowEl) exDivWindowEl.addEventListener("change", () => { exDivWindowDays = +exDivWindowEl.value; render(); });
+        const exDivMarketEl = $("#exDivMarketSel");
+        if (exDivMarketEl) exDivMarketEl.addEventListener("change", () => { exDivMarket = exDivMarketEl.value; exDivSearch = ""; render(); });
         if (LIVE_ENABLED && !exDivData) {
-          fetchExDividendCalendar(exDivFrom, exDivTo).then((d) => {
+          fetchExDividendCalendar(exDivMarket, exDivFrom, exDivTo).then((d) => {
             if (d) { render(); return; }
             const results = document.getElementById("exDivResults");
             if (results) results.innerHTML = `<p class="muted" style="margin:0;font-size:13px">${t("Couldn't load the ex-dividend calendar — try again later.")}</p>`;
