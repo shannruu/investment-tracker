@@ -373,7 +373,7 @@ const ZH = {
   "No ex-dividend dates in this window.": "此时间范围内没有除息日期。",
   "No matches for your search.": "没有符合搜索条件的结果。",
   "Showing the first 300 results — narrow your search to see more.": "显示前 300 条结果 — 请缩小搜索范围以查看更多。",
-  "Pay Date": "派息日", "Indicated Annual": "预期年股息",
+  "Pay Date": "派息日", "Indicated Annual": "预期年股息", "Irregular": "不定期",
   "Couldn't load the ex-dividend calendar — try again later.": "无法加载除息日历 — 请稍后重试。",
   "Show on Dividends page": "在股息页面显示",
   "Off by default. When enabled, browse upcoming ex-dividend dates across the whole market — not just your own holdings.": "默认关闭。启用后可浏览整个市场即将到来的除息日期，而不仅限于您持有的股票。",
@@ -4211,10 +4211,15 @@ function pageDividends() {
     // company names — .exdiv-company truncates with an ellipsis instead of overflowing into
     // neighboring cells (the default .data-table td is nowrap with no overflow clipping),
     // with the full name still available via the title tooltip.
+    // Malaysia rows carry payoutStreak (TradingView's continuous_dividend_payout) — a company
+    // with 0 or 1 consecutive payouts hasn't established a regular schedule, flagged the same
+    // way DivTracker marks these, a small note under the ex-date rather than a loud badge.
+    const irregularNote = (r) => (r.payoutStreak != null && r.payoutStreak <= 1)
+      ? `<div class="muted" style="font-size:11px;margin-top:2px">(${t("Irregular")})</div>` : "";
     const rowsHtml = shown.map((r) => `<tr>
       <td class="dcc-c"><span class="ticker">${esc(r.symbol)}</span></td>
       <td class="dcc-c exdiv-company" title="${escAttr(r.company || "")}">${esc(r.company || "—")}</td>
-      <td class="dcc-c">${fmtDate(r.exDate)}</td>
+      <td class="dcc-c">${fmtDate(r.exDate)}${irregularNote(r)}</td>
       <td class="dcc-c">${r.payDate ? fmtDate(r.payDate) : "—"}</td>
       <td class="dcc-c">${r.rate != null ? fmt(r.rate, { maximumFractionDigits: 4 }) : "—"}</td>
       <td class="dcc-c">${r.indicatedAnnual != null ? fmt(r.indicatedAnnual, { maximumFractionDigits: 4 }) : "—"}</td>

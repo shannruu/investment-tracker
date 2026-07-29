@@ -18,12 +18,21 @@
  *   /api/ex-dividend-calendar-my?from=2026-08-01&to=2026-08-07
  *
  * Response shape matches /api/ex-dividend-calendar so the frontend can treat
- * both markets identically:
+ * both markets identically, plus one Malaysia-only extra field:
  *   { rows: [{ symbol, company, exDate, payDate, recordDate, rate,
- *              indicatedAnnual, announcementDate }, ...], truncated }
+ *              indicatedAnnual, announcementDate, payoutStreak }, ...], truncated }
  * TradingView's scanner doesn't expose a separate payment/record/announcement
  * date or a trailing-annual-dividend figure for this field, so those come back
  * null — the frontend already renders "—" for any missing field.
+ *
+ * payoutStreak comes from TradingView's `continuous_dividend_payout` field —
+ * inferred (this is an undocumented endpoint, no official field reference)
+ * from its name and empirically checking it against ~48 real upcoming
+ * dividends: known long-standing steady payers (Nestlé Malaysia, Panasonic
+ * Manufacturing, QL Resources) score 26-38, while newer/inconsistent payers
+ * score 0-1. Used by the frontend to flag a dividend as "irregular" when a
+ * company has no established payout streak, at essentially zero extra cost —
+ * it rides along on the same request, no additional API calls.
  * ========================================================================== */
 const MAX_WINDOW_DAYS = 21;
 const MAX_ROWS = 1500;
@@ -56,7 +65,7 @@ module.exports = async (req, res) => {
 
   const body = {
     filter: [{ left: "dividend_ex_date_upcoming", operation: "in_range", right: [fromUnix, toUnix] }],
-    columns: ["name", "description", "exchange", "dividend_ex_date_upcoming", "dividend_amount_upcoming", "dividends_yield_current", "currency"],
+    columns: ["name", "description", "exchange", "dividend_ex_date_upcoming", "dividend_amount_upcoming", "dividends_yield_current", "currency", "continuous_dividend_payout"],
     sort: { sortBy: "dividend_ex_date_upcoming", sortOrder: "asc" },
     range: [0, MAX_ROWS],
   };
@@ -72,7 +81,7 @@ module.exports = async (req, res) => {
     const rawRows = Array.isArray(data.data) ? data.data : [];
     let rows = rawRows.map((row) => {
       const d = row.d || [];
-      const [name, description, , exUnix, amount] = d;
+      const [name, description, , exUnix, amount, , , payoutStreak] = d;
       return {
         symbol: name || (row.s || "").replace(/^MYX:/, "") || null,
         company: description || null,
@@ -82,6 +91,7 @@ module.exports = async (req, res) => {
         rate: typeof amount === "number" ? amount : null,
         indicatedAnnual: null,
         announcementDate: null,
+        payoutStreak: typeof payoutStreak === "number" ? payoutStreak : null,
       };
     }).filter((row) => row.symbol && row.exDate);
     rows.sort((a, b) => (a.exDate < b.exDate ? -1 : a.exDate > b.exDate ? 1 : (a.symbol < b.symbol ? -1 : 1)));
