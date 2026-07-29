@@ -1477,10 +1477,22 @@ function allUpcomingDivs() {
     })
   );
 
+  // An "Expected" transaction's gross was frozen against WHATEVER share count was true when
+  // it was entered (typed by hand, or from a CSV import — the import template documents
+  // "Expected" as a valid status, so this isn't just old data, new ones can appear anytime).
+  // Unlike `manual`/`auto` above, this used to pass that frozen total straight through — so a
+  // placeholder entered before a big position increase kept showing its stale, too-small
+  // total forever. Recover the implied per-share rate using the shares held on its own entry
+  // date, then rescale to TODAY's shares, same treatment `manual`/`auto` already get.
   const legacy = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status === "Expected")
-    .map((x) => ({ ticker: x.ticker, brokerId: x.brokerId, exDate: x.exDate, payDate: x.payDate,
-      currency: x.currency, expectedNet: (+x.gross || 0) - (+x.tax || 0),
-      expectedNetMYR: divNetMYR(x), source: "manual" }));
+    .map((x) => {
+      const h = T.holdings.find((hh) => hh.ticker === x.ticker);
+      const rawNet = (+x.gross || 0) - (+x.tax || 0);
+      const sharesThen = sharesAsOf(x.ticker, x.brokerId, x.date);
+      const expectedNet = (sharesThen && h && h.shares) ? (rawNet / sharesThen) * h.shares : rawNet;
+      return { ticker: x.ticker, brokerId: x.brokerId, exDate: x.exDate, payDate: x.payDate,
+        currency: x.currency, expectedNet, expectedNetMYR: toMYR(expectedNet, x.currency), source: "manual" };
+    });
 
   return [...manual, ...auto, ...legacy]
     .filter((d) => d.payDate || d.exDate)
@@ -3959,7 +3971,13 @@ function dividendGrowthStreak(byYear, excludeYear) {
  * Confirmed and projected amounts are summed separately (expMonth/Quarter/Year
  * vs nextMonth/Quarter/Year) so a run-rate estimate is never confused with a
  * confirmed one. */
-function dividendForecast(received, upcoming) {
+// tickerScope: optional array/Set restricting which tickers get projected — omit for a
+// portfolio-wide forecast (every held ticker, including AUTO_DIV_CACHE-only ones with no
+// logged history yet). Pass e.g. [h.ticker] for a SINGLE holding's own forecast — without
+// it, `allTickers` below falls back to every key in the GLOBAL AUTO_DIV_CACHE, so a
+// per-ticker call would silently pull in every OTHER portfolio ticker's own projected
+// payments too, alongside amounts meant for a completely different holding.
+function dividendForecast(received, upcoming, tickerScope) {
   const now = todayDate();
   const today = todayISO();
   const cutoff = new Date(now); cutoff.setFullYear(now.getFullYear() - 1);
@@ -3983,7 +4001,9 @@ function dividendForecast(received, upcoming) {
   const tickerInfo = {};
   const byTicker = {};
   received.forEach((d) => { if (!byTicker[d.ticker]) byTicker[d.ticker] = []; byTicker[d.ticker].push(d); });
-  const allTickers = new Set([...Object.keys(byTicker), ...Object.keys(AUTO_DIV_CACHE)]);
+  const allTickers = tickerScope
+    ? new Set(tickerScope)
+    : new Set([...Object.keys(byTicker), ...Object.keys(AUTO_DIV_CACHE)]);
 
   allTickers.forEach((ticker) => {
     if (coveredTickers.has(ticker)) return;
@@ -5316,10 +5336,16 @@ function pageHolding() {
   const tExpected = divs.filter((d) => d.status === "Expected").sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
   const totalDivReceived = tReceived.reduce((s, d) => s + divNetMYR(d), 0);
   // dividendForecast() expects allUpcomingDivs()-shaped rows (expectedNetMYR), not raw
-  // transaction rows (gross/tax/fxRate) — map before passing, same as allUpcomingDivs()'s
-  // own "legacy Expected" branch does, so the forecast can actually see this ticker's payment.
-  const tExpectedForForecast = tExpected.map((d) => ({ ticker: d.ticker, payDate: d.payDate, expectedNetMYR: divNetMYR(d) }));
-  const tFc = dividendForecast(tReceived, tExpectedForForecast);
+  // transaction rows (gross/tax/fxRate) — map before passing. Rescaled from the shares held
+  // on its own entry date to today's shares (same fix as allUpcomingDivs()'s "legacy Expected"
+  // branch) so a placeholder entered before a position change doesn't keep showing its stale total.
+  const tExpectedForForecast = tExpected.map((d) => {
+    const rawNet = divNetMYR(d);
+    const sharesThen = sharesAsOf(d.ticker, d.brokerId, d.date);
+    const expectedNetMYR = (sharesThen && h.shares) ? (rawNet / sharesThen) * h.shares : rawNet;
+    return { ticker: d.ticker, payDate: d.payDate, expectedNetMYR };
+  });
+  const tFc = dividendForecast(tReceived, tExpectedForForecast, [h.ticker]);
   // Raw market dividend history (Yahoo-fetched, per-share, native currency) — the actual data behind the estimates above.
   const marketHist = (AUTO_DIV_CACHE[h.ticker] || []).slice().sort((a, b) => (a.date < b.date ? 1 : -1));
   // Dividend income over time (monthly, base ccy)
@@ -5484,7 +5510,10 @@ function pageHolding() {
         return {
           date: d.date,
           perShareAmt: d.amount || 0,
-          amtMYR: (d.amount || 0) * h.shares * (FX.rates[d.currency] || 1),
+          // Shares held ON THIS PAST EX-DATE, not h.shares (today's count) — otherwise an old
+          // market-history row's Total misrepresents what the position was actually worth back
+          // then whenever it's grown or shrunk since.
+          amtMYR: (d.amount || 0) * sharesAsOf(h.ticker, h.brokerId, d.date) * (FX.rates[d.currency] || 1),
           status: !heldAtTime ? "Market record" : logged ? "Received" : "Not logged",
         };
       });
