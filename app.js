@@ -1352,12 +1352,23 @@ async function fetchAllMySymbols() {
   await Promise.all(missing.map((t) => fetchMySymbol(t)));
   return true;
 }
+/* What to show under a ticker in ANY table row (dividends, transactions, not just current
+ * holdings): the resolved Malaysia trading symbol once known, else an explicit fallback name
+ * the caller already has to hand, else — for a ticker still currently held — that holding's
+ * company name, else nothing. Covers rows for a ticker no longer held (fully sold) as
+ * gracefully as one still in the portfolio. */
+function tickerSubLabel(ticker, fallbackCompany) {
+  const symbol = (ticker || "").toUpperCase().endsWith(".KL") ? MY_SYMBOL_CACHE[ticker] : null;
+  if (symbol) return symbol;
+  if (fallbackCompany) return fallbackCompany;
+  const h = T.holdings.find((x) => x.ticker === ticker);
+  return h ? h.company || "" : "";
+}
 /* What to show under a holding's ticker in a table row: the resolved Malaysia trading
  * symbol once known, else the company name as before (including for every non-.KL ticker,
  * which never has a symbol to resolve in the first place). */
 function holdingSubLabel(h) {
-  const symbol = (h.ticker || "").toUpperCase().endsWith(".KL") ? MY_SYMBOL_CACHE[h.ticker] : null;
-  return symbol || h.company || "";
+  return tickerSubLabel(h.ticker, h.company);
 }
 
 /* Auto-log dividends you're eligible for (held the stock on/after its ex-date) but haven't
@@ -2200,7 +2211,8 @@ function pageDashboard() {
   const estExDate = (payDs) => { const dd = new Date(payDs + "T00:00:00"); dd.setDate(dd.getDate() - 14); return dateToISO(dd); };
   const divRows = dashUpcoming.map((d) => {
     const exDate = d.exDate || (d.payDate ? estExDate(d.payDate) : null);
-    return `<tr><td class="dcc-c ticker">${esc(d.ticker)}</td><td class="dcc-c">${fmtDate(exDate)}</td><td class="dcc-c">${fmtDate(d.payDate)}</td>
+    const sub = tickerSubLabel(d.ticker);
+    return `<tr><td class="dcc-c"><span class="ticker">${esc(d.ticker)}</span>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}</td><td class="dcc-c">${fmtDate(exDate)}</td><td class="dcc-c">${fmtDate(d.payDate)}</td>
       <td class="dcc-c">${money(d.amtMYR)}</td><td class="dcc-c">${dashSourceBadge(d.source || "manual")}</td></tr>`;
   }).join("");
 
@@ -2208,8 +2220,9 @@ function pageDashboard() {
     const txAmt = tx.gross != null ? tx.gross : 0;
     const fxR = tx.fxRate || FX.rates[tx.currency] || 1;
     const myrEq = tx.currency !== FX.base && txAmt > 0 ? txAmt * fxR : 0;
+    const txSub = tx.ticker && tx.ticker !== "—" ? tickerSubLabel(tx.ticker, tx.company) : "";
     return `<tr><td class="dcc-c">${fmtDate(tx.date)}</td><td class="dcc-c">${typeChip(tx.type)}</td>
-      <td class="dcc-c ticker">${esc(tx.ticker) || "—"}</td><td class="dcc-c sub">${esc(brokerName(tx.brokerId))}</td>
+      <td class="dcc-c"><span class="ticker">${esc(tx.ticker) || "—"}</span>${txSub ? `<div class="sub">${esc(txSub)}</div>` : ""}</td><td class="dcc-c sub">${esc(brokerName(tx.brokerId))}</td>
       <td class="dcc-c">${esc(ccyLabel(tx.currency))} ${fmt(txAmt)}${myrEq > 0 ? `<div class="fx-note">${ccyLabel(FX.base)} ${fmt(myrEq)}</div>` : ""}</td></tr>`;
   }).join("");
 
@@ -3175,6 +3188,7 @@ function pageRecords() {
         el.addEventListener("click", open);
         el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
       });
+      if (LIVE_ENABLED) fetchAllMySymbols().then((found) => { if (found && document.getElementById("recBody")) render(); });
     } };
 }
 
@@ -3192,10 +3206,12 @@ function recordsTable(list) {
   const rows = sorted.map((tx) => {
     const fxr = tx.fxRate || FX.rates[tx.currency] || 1;
     const myr = tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * fxr;
+    const hasTicker = tx.ticker && tx.ticker !== "—";
+    const txSub = hasTicker ? tickerSubLabel(tx.ticker, tx.company) : "";
     return `<tr>
       <td class="dcc-c">${fmtDate(tx.date)}</td>
       <td class="dcc-c">${typeChip(tx.type)}</td>
-      <td class="dcc-c ticker">${tx.ticker && tx.ticker !== "—" ? esc(tx.ticker) : "—"}</td>
+      <td class="dcc-c"><span class="ticker">${hasTicker ? esc(tx.ticker) : "—"}</span>${txSub ? `<div class="sub">${esc(txSub)}</div>` : ""}</td>
       <td class="dcc-c">${money(myr)}</td>
       <td class="dcc-c">${esc(brokerName(tx.brokerId))}${tx.type === "Transfer between brokers" && tx.toBrokerId ? `<div class="fx-note">→ ${esc(brokerName(tx.toBrokerId))}</div>` : ""}</td>
       <td class="dcc-c"><div class="rec-actions">
@@ -4255,7 +4271,7 @@ function pageDividends() {
     const isNext = nextIdx >= 0 && d === allDivEntries[nextIdx];
     const statusCell = isNext ? `<span class="badge confirmed">${t("Next payment")}</span>` : statusBadge(d.status);
     return `<tr${isNext ? ` class="next-div-row"` : ""}>
-      <td class="dcc-c"><span class="ticker">${esc(d.ticker)}</span><div class="sub">${d.brokerId ? esc(brokerName(d.brokerId)) : ""}</div></td>
+      <td class="dcc-c"><span class="ticker">${esc(d.ticker)}</span>${tickerSubLabel(d.ticker) ? `<div class="sub">${esc(tickerSubLabel(d.ticker))}</div>` : ""}</td>
       <td class="dcc-c">${fmtDate(d.exDate)}</td>
       <td class="dcc-c">${d.payDisplay ? fmtDate(d.payDisplay) : "—"}</td>
       <td class="dcc-c">${d.perShareAmt != null ? fmt(d.perShareAmt, { maximumFractionDigits: 2 }) : "—"}</td>
@@ -4341,7 +4357,7 @@ function pageDividends() {
     const rowsAll = exDivData.rows;
     if (rowsAll.length === 0) return `<p class="muted" style="margin:0;font-size:13px">${t("No ex-dividend dates in this window.")}</p>`;
     const q = exDivSearch.trim().toLowerCase();
-    const filtered = q ? rowsAll.filter((r) => (r.symbol || "").toLowerCase().includes(q) || (r.company || "").toLowerCase().includes(q)) : rowsAll;
+    const filtered = q ? rowsAll.filter((r) => (r.symbol || "").toLowerCase().includes(q) || (r.company || "").toLowerCase().includes(q) || (r.stockCode || "").toLowerCase().includes(q)) : rowsAll;
     if (filtered.length === 0) return `<p class="muted" style="margin:0;font-size:13px">${t("No matches for your search.")}</p>`;
     const shown = filtered.slice(0, 300);
     // Some real listings (depositary shares, preferred stock series, etc.) have very long
@@ -4353,8 +4369,11 @@ function pageDividends() {
     // way DivTracker marks these, a small note under the ex-date rather than a loud badge.
     const irregularNote = (r) => (r.payoutStreak != null && r.payoutStreak <= 1)
       ? `<div class="muted" style="font-size:11px;margin-top:2px">(${t("Irregular")})</div>` : "";
+    // Same ticker-code-on-top, trading-symbol-below convention as the Holdings tables
+    // (e.g. "6718.KL" over "CRESNDO") — stockCode is Malaysia-only, so a US row (no
+    // stockCode) falls back to showing just its own symbol as the primary line, unchanged.
     const rowsHtml = shown.map((r) => `<tr>
-      <td class="dcc-c"><span class="ticker">${esc(r.symbol)}</span>${r.stockCode ? `<div class="sub">${esc(r.stockCode)}</div>` : ""}</td>
+      <td class="dcc-c"><span class="ticker">${r.stockCode ? esc(r.stockCode + ".KL") : esc(r.symbol)}</span>${r.stockCode ? `<div class="sub">${esc(r.symbol)}</div>` : ""}</td>
       <td class="dcc-c exdiv-company" title="${escAttr(r.company || "")}">${esc(r.company || "—")}</td>
       <td class="dcc-c">${fmtDate(r.exDate)}${irregularNote(r)}</td>
       <td class="dcc-c">${r.payDate ? fmtDate(r.payDate) : "—"}</td>
@@ -4456,6 +4475,7 @@ function pageDividends() {
         // Real Malaysia payment dates (see myRealPayDate) — silent, only re-renders if it
         // actually found something to correct an estimate with.
         fetchMyRealPayDates().then((found) => { if (found && document.getElementById("divUpcomingSection")) render(); });
+        fetchAllMySymbols().then((found) => { if (found && document.getElementById("divUpcomingSection")) render(); });
       }
       if (SETTINGS.showExDivScreener) {
         const exDivSearchEl = $("#exDivSearchInput");
