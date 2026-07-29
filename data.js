@@ -97,6 +97,7 @@ const SETTINGS = {
   timeZone: "",              // display reference (blank = device local)
   costBasis: "average",      // "average" (implemented) | "fifo" (future)
   showReconciliation: false, // Broker Cash Reconciliation panel — opt-in, off by default
+  showExDivScreener: false,  // Ex-Dividend Screener panel (Dividends page) — opt-in, off by default
 };
 
 /* Daily portfolio-value history (base currency), built automatically: one

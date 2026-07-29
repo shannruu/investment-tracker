@@ -374,6 +374,8 @@ const ZH = {
   "Showing the first 300 results — narrow your search to see more.": "显示前 300 条结果 — 请缩小搜索范围以查看更多。",
   "Pay Date": "派息日", "Indicated Annual": "预期年股息",
   "Couldn't load the ex-dividend calendar — try again later.": "无法加载除息日历 — 请稍后重试。",
+  "Show on Dividends page": "在股息页面显示",
+  "Off by default. When enabled, browse upcoming ex-dividend dates across the whole market — not just your own holdings.": "默认关闭。启用后可浏览整个市场即将到来的除息日期，而不仅限于您持有的股票。",
   // Holding detail
   "Back to Portfolio": "返回投资组合", "Holding detail": "持仓明细",
   "Shares Held": "持有股数", "share": "股",
@@ -4226,6 +4228,12 @@ function pageDividends() {
         <div style="width:150px">${exDivWindowSel}</div>
       </div>`
     : "";
+  // Off by default — opt in from Settings (SETTINGS.showExDivScreener), same pattern as
+  // the Brokers page's Reconciliation panel. Placed last on the page: it's market-wide
+  // discovery, not your own data, so it shouldn't compete with your own history/forecast.
+  const exDivPanel = SETTINGS.showExDivScreener
+    ? panel(t("Ex-Dividend Screener"), `<div id="exDivResults">${renderExDivBody()}</div>`, exDivHeadActions)
+    : "";
 
   const html = `
     <div class="mini-cards">
@@ -4259,15 +4267,15 @@ function pageDividends() {
       )}
     </div>
 
-    ${panel(t("Ex-Dividend Screener"), `<div id="exDivResults">${renderExDivBody()}</div>`, exDivHeadActions)}
-
     ${panel(t("Dividend Income"), received.length
         ? table([
             { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
             { label: "Net (RM)", style: "width:50%;text-align:left" },
           ], incomeRowsByPeriod[divIncomePeriod] || monthRows, { fixed: true })
         : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
-      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}`;
+      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}
+
+    ${exDivPanel}`;
 
   return {
     title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
@@ -4292,20 +4300,22 @@ function pageDividends() {
           if (s) s.textContent = hadError ? t("Couldn't check some dividend schedules — try again later.") : "";
         });
       }
-      const exDivSearchEl = $("#exDivSearchInput");
-      if (exDivSearchEl) exDivSearchEl.addEventListener("input", () => {
-        exDivSearch = exDivSearchEl.value;
-        const results = document.getElementById("exDivResults");
-        if (results) results.innerHTML = renderExDivBody();
-      });
-      const exDivWindowEl = $("#exDivWindowSel");
-      if (exDivWindowEl) exDivWindowEl.addEventListener("change", () => { exDivWindowDays = +exDivWindowEl.value; render(); });
-      if (LIVE_ENABLED && !exDivData) {
-        fetchExDividendCalendar(exDivFrom, exDivTo).then((d) => {
-          if (d) { render(); return; }
+      if (SETTINGS.showExDivScreener) {
+        const exDivSearchEl = $("#exDivSearchInput");
+        if (exDivSearchEl) exDivSearchEl.addEventListener("input", () => {
+          exDivSearch = exDivSearchEl.value;
           const results = document.getElementById("exDivResults");
-          if (results) results.innerHTML = `<p class="muted" style="margin:0;font-size:13px">${t("Couldn't load the ex-dividend calendar — try again later.")}</p>`;
+          if (results) results.innerHTML = renderExDivBody();
         });
+        const exDivWindowEl = $("#exDivWindowSel");
+        if (exDivWindowEl) exDivWindowEl.addEventListener("change", () => { exDivWindowDays = +exDivWindowEl.value; render(); });
+        if (LIVE_ENABLED && !exDivData) {
+          fetchExDividendCalendar(exDivFrom, exDivTo).then((d) => {
+            if (d) { render(); return; }
+            const results = document.getElementById("exDivResults");
+            if (results) results.innerHTML = `<p class="muted" style="margin:0;font-size:13px">${t("Couldn't load the ex-dividend calendar — try again later.")}</p>`;
+          });
+        }
       }
     },
   };
@@ -4601,14 +4611,18 @@ function pageSettings() {
       ${settingRow(t("Tolerance"), `<div class="input-prefix"><span class="input-prefix-tag">${esc(FX.base)}</span><input type="number" step="any" id="reconTol" value="${SETTINGS.reconTolerance}"></div>`)}
       <p class="muted" style="margin:6px 0 0">${t("Differences within this amount are treated as a small difference rather than needing review.")}</p></div>`)}
 
+    ${panel(t("Ex-Dividend Screener"), `<div class="setting-rows">
+      ${settingRow(t("Show on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
+      <p class="muted" style="margin:6px 0 0">${t("Off by default. When enabled, browse upcoming ex-dividend dates across the whole market — not just your own holdings.")}</p></div>`)}
+
     ${typeof accountSyncPanelHTML === "function" ? accountSyncPanelHTML() : ""}
 
     ${panel(t("Data Safety & Backup"), `
-      <p class="muted info-card" style="display:flex;gap:10px;margin:-2px 0 14px"><span class="w-ico">🔒</span><span>${
+      <p class="muted info-card" style="margin:-2px 0 14px">${
         (typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER)
           ? t("Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.")
           : t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.")
-      }</span></p>
+      }</p>
       <div class="form-actions">
         <button class="btn primary" id="expJson">⭳ ${t("Export full backup (JSON)")}</button>
         <button class="btn" id="impJsonBtn">⭱ ${t("Import backup (JSON)")}</button>
@@ -4692,6 +4706,11 @@ function pageSettings() {
         const v = parseFloat(e.target.value);
         SETTINGS.reconTolerance = isNaN(v) ? 0 : Math.abs(v);
         saveStore(); toast(t("Tolerance saved"));
+      });
+      // Ex-Dividend Screener: visibility toggle
+      $("#showExDivScreener").addEventListener("change", (e) => {
+        SETTINGS.showExDivScreener = e.target.checked;
+        saveStore(); toast(t("Preferences saved"));
       });
       // Preferences (date format / time zone / return view / cost basis)
       $("#dateFmt").addEventListener("change", (e) => { SETTINGS.dateFormat = e.target.value; saveStore(); toast(t("Preferences saved")); render(); });
