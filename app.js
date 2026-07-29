@@ -1370,6 +1370,15 @@ function tickerSubLabel(ticker, fallbackCompany) {
 function holdingSubLabel(h) {
   return tickerSubLabel(h.ticker, h.company);
 }
+/* A ticker cell that links to its Holding Detail page when a broker is known (any row
+ * that's actually part of the portfolio), plain text otherwise (a ticker no longer held,
+ * or a market-wide row like the Ex-Dividend Screener that was never yours to begin with). */
+function tickerCell(ticker, brokerId, sub) {
+  const label = brokerId
+    ? `<a class="ticker ticker-link" href="#/holding/${encodeURIComponent(brokerId + "|" + ticker)}">${esc(ticker)}</a>`
+    : `<span class="ticker">${esc(ticker)}</span>`;
+  return `${label}${sub ? `<div class="sub">${esc(sub)}</div>` : ""}`;
+}
 
 /* Auto-log dividends you're eligible for (held the stock on/after its ex-date) but haven't
  * recorded yet — same eligibility check the Holding Detail calendar's "Not logged" badge
@@ -2199,7 +2208,10 @@ function pageDashboard() {
   const dashOneYearOutStr = dateToISO(dashOneYearOut);
   const dashEstimated = (dashFc.nextPayments || [])
     .filter((p) => !p.confirmed && p.payDate <= dashOneYearOutStr)
-    .map((p) => ({ ticker: p.ticker, exDate: null, payDate: p.payDate, amtMYR: p.amtMYR, source: "estimated" }));
+    .map((p) => {
+      const h = T.holdings.find((x) => x.ticker === p.ticker);
+      return { ticker: p.ticker, brokerId: h ? h.brokerId : null, exDate: null, payDate: p.payDate, amtMYR: p.amtMYR, source: "estimated" };
+    });
   const dashSourceBadge = (src) => src === "api" ? `<span class="badge info">API</span>`
     : src === "estimated" ? `<span class="badge warn">${t("Estimated")}</span>` : `<span class="badge subtle">${t("Manual")}</span>`;
   const dashUpcoming = [...upcoming.map((d) => ({ ...d, amtMYR: d.expectedNetMYR })), ...dashEstimated]
@@ -2211,8 +2223,7 @@ function pageDashboard() {
   const estExDate = (payDs) => { const dd = new Date(payDs + "T00:00:00"); dd.setDate(dd.getDate() - 14); return dateToISO(dd); };
   const divRows = dashUpcoming.map((d) => {
     const exDate = d.exDate || (d.payDate ? estExDate(d.payDate) : null);
-    const sub = tickerSubLabel(d.ticker);
-    return `<tr><td class="dcc-c"><span class="ticker">${esc(d.ticker)}</span>${sub ? `<div class="sub">${esc(sub)}</div>` : ""}</td><td class="dcc-c">${fmtDate(exDate)}</td><td class="dcc-c">${fmtDate(d.payDate)}</td>
+    return `<tr><td class="dcc-c">${tickerCell(d.ticker, d.brokerId, tickerSubLabel(d.ticker))}</td><td class="dcc-c">${fmtDate(exDate)}</td><td class="dcc-c">${fmtDate(d.payDate)}</td>
       <td class="dcc-c">${money(d.amtMYR)}</td><td class="dcc-c">${dashSourceBadge(d.source || "manual")}</td></tr>`;
   }).join("");
 
@@ -2220,9 +2231,10 @@ function pageDashboard() {
     const txAmt = tx.gross != null ? tx.gross : 0;
     const fxR = tx.fxRate || FX.rates[tx.currency] || 1;
     const myrEq = tx.currency !== FX.base && txAmt > 0 ? txAmt * fxR : 0;
-    const txSub = tx.ticker && tx.ticker !== "—" ? tickerSubLabel(tx.ticker, tx.company) : "";
+    const hasTicker = tx.ticker && tx.ticker !== "—";
+    const txSub = hasTicker ? tickerSubLabel(tx.ticker, tx.company) : "";
     return `<tr><td class="dcc-c">${fmtDate(tx.date)}</td><td class="dcc-c">${typeChip(tx.type)}</td>
-      <td class="dcc-c"><span class="ticker">${esc(tx.ticker) || "—"}</span>${txSub ? `<div class="sub">${esc(txSub)}</div>` : ""}</td><td class="dcc-c sub">${esc(brokerName(tx.brokerId))}</td>
+      <td class="dcc-c">${hasTicker ? tickerCell(tx.ticker, tx.brokerId, txSub) : `<span class="ticker">—</span>`}</td><td class="dcc-c sub">${esc(brokerName(tx.brokerId))}</td>
       <td class="dcc-c">${esc(ccyLabel(tx.currency))} ${fmt(txAmt)}${myrEq > 0 ? `<div class="fx-note">${ccyLabel(FX.base)} ${fmt(myrEq)}</div>` : ""}</td></tr>`;
   }).join("");
 
@@ -2314,14 +2326,14 @@ function pageDashboard() {
       })()}
     </section>
     <div id="dashDivSection">${listPanel("Upcoming Dividends", dashUpcoming.length,
-      table([{label:"Ticker",style:"width:15%"},{label:"Ex-Date",style:"width:20%"},{label:"Payment",style:"width:20%"},{label:"Expected Net (RM)",style:"width:25%"},{label:"Status",style:"width:20%"}], divRows, { fixed: true }),
+      table([{label:"Holding",style:"width:15%"},{label:"Ex-Date",style:"width:20%"},{label:"Payment",style:"width:20%"},{label:"Expected Net (RM)",style:"width:25%"},{label:"Status",style:"width:20%"}], divRows, { fixed: true }),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
       table([{label:"Holding",style:"width:25%"},{label:"Shares",style:"width:10%"},{label:"Market Value",style:"width:15%"},{label:"Unrealized P/L",style:"width:15%"},{label:"P/L %",style:"width:10%"},{label:"Total Return",style:"width:15%"},{label:"Return %",style:"width:10%"}], holdingsRows, { fixed: true }),
       t("No holdings yet — record a Buy on the Add page and it appears here automatically."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${pricesAsOfFmt}`) : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
-      table([{label:"Date",style:"width:20%"},{label:"Type",style:"width:20%"},{label:"Ticker",style:"width:20%"},{label:"Broker",style:"width:20%"},{label:"Amount",style:"width:20%"}], recentRows, { fixed: true }),
+      table([{label:"Date",style:"width:20%"},{label:"Type",style:"width:20%"},{label:"Holding",style:"width:20%"},{label:"Broker",style:"width:20%"},{label:"Amount",style:"width:20%"}], recentRows, { fixed: true }),
       t("No activity yet."), `<a class="link" href="#/records">${t("All")} →</a>`)}
     <p class="dash-footnote">${metaNote(SAVED_ICON_SVG, LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet"))}</p>`;
 
@@ -3211,7 +3223,7 @@ function recordsTable(list) {
     return `<tr>
       <td class="dcc-c">${fmtDate(tx.date)}</td>
       <td class="dcc-c">${typeChip(tx.type)}</td>
-      <td class="dcc-c"><span class="ticker">${hasTicker ? esc(tx.ticker) : "—"}</span>${txSub ? `<div class="sub">${esc(txSub)}</div>` : ""}</td>
+      <td class="dcc-c">${hasTicker ? tickerCell(tx.ticker, tx.brokerId, txSub) : `<span class="ticker">—</span>`}</td>
       <td class="dcc-c">${money(myr)}</td>
       <td class="dcc-c">${esc(brokerName(tx.brokerId))}${tx.type === "Transfer between brokers" && tx.toBrokerId ? `<div class="fx-note">→ ${esc(brokerName(tx.toBrokerId))}</div>` : ""}</td>
       <td class="dcc-c"><div class="rec-actions">
@@ -3221,7 +3233,7 @@ function recordsTable(list) {
   return table([
     { label: "Date", style: "width:18%;text-align:left" },
     { label: "Type", style: "width:16%;text-align:left" },
-    { label: "Ticker", style: "width:20%;text-align:left" },
+    { label: "Holding", style: "width:20%;text-align:left" },
     { label: "Amount (RM)", style: "width:18%;text-align:left" },
     { label: "Broker", style: "width:18%;text-align:left" },
     { label: "", style: "width:10%" },
@@ -4271,7 +4283,7 @@ function pageDividends() {
     const isNext = nextIdx >= 0 && d === allDivEntries[nextIdx];
     const statusCell = isNext ? `<span class="badge confirmed">${t("Next payment")}</span>` : statusBadge(d.status);
     return `<tr${isNext ? ` class="next-div-row"` : ""}>
-      <td class="dcc-c"><span class="ticker">${esc(d.ticker)}</span>${tickerSubLabel(d.ticker) ? `<div class="sub">${esc(tickerSubLabel(d.ticker))}</div>` : ""}</td>
+      <td class="dcc-c">${tickerCell(d.ticker, d.brokerId, tickerSubLabel(d.ticker))}</td>
       <td class="dcc-c">${fmtDate(d.exDate)}</td>
       <td class="dcc-c">${d.payDisplay ? fmtDate(d.payDisplay) : "—"}</td>
       <td class="dcc-c">${d.perShareAmt != null ? fmt(d.perShareAmt, { maximumFractionDigits: 2 }) : "—"}</td>
@@ -4420,7 +4432,7 @@ function pageDividends() {
       ${panel(`${t("Dividend Calendar")}${calendarTitleTip}`,
         allDivEntries.length
           ? table([
-              { label: "Ticker", style: "width:14%;text-align:left" },
+              { label: "Holding", style: "width:14%;text-align:left" },
               { label: `${t("Ex-Date")}${exDateTip}`, style: "width:14%;text-align:left" },
               { label: `${t("Est. Payment")}${payDateTip}`, style: "width:14%;text-align:left" },
               { label: `${t("Per Share")} (${ccyLabel(FX.base)})`, style: "width:14%;text-align:left" },
