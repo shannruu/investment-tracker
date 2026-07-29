@@ -2329,7 +2329,7 @@ function pageDashboard() {
       table([{label:"Holding",style:"width:15%"},{label:"Ex-Date",style:"width:20%"},{label:"Payment",style:"width:20%"},{label:"Expected Net (RM)",style:"width:25%"},{label:"Status",style:"width:20%"}], divRows, { fixed: true }),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
-      table([{label:"Holding",style:"width:25%"},{label:"Shares",style:"width:10%"},{label:"Market Value",style:"width:15%"},{label:"Unrealized P/L",style:"width:15%"},{label:"P/L %",style:"width:10%"},{label:"Total Return",style:"width:15%"},{label:"Return %",style:"width:10%"}], holdingsRows, { fixed: true }),
+      table([{label:"Holding",style:"width:16%"},{label:"Shares",style:"width:10%"},{label:"Market Value",style:"width:18%"},{label:"Unrealized P/L",style:"width:17%"},{label:"P/L %",style:"width:10%"},{label:"Total Return",style:"width:18%"},{label:"Return %",style:"width:11%"}], holdingsRows, { fixed: true }),
       t("No holdings yet — record a Buy on the Add page and it appears here automatically."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${pricesAsOfFmt}`) : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
