@@ -2334,14 +2334,14 @@ function pageDashboard() {
       })()}
     </section>
     <div id="dashDivSection">${listPanel("Upcoming Dividends", dashUpcoming.length,
-      table([{label:"Holding",style:"width:18%;min-width:130px"},{label:"Ex-Date",style:"width:16%;min-width:110px"},{label:"Payment",style:"width:16%;min-width:110px"},{label:"Expected Net (RM)",num:true,style:"width:16%;min-width:110px"},{label:"Status",style:"width:16%;min-width:100px"}], divRows, { maxWidth: 820 }),
+      table([{label:"Holding",style:"width:20%"},{label:"Ex-Date",style:"width:20%"},{label:"Payment",style:"width:20%"},{label:"Expected Net (RM)",num:true,style:"width:20%"},{label:"Status",style:"width:20%"}], divRows),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
-      table([{label:"Holding",style:"width:16%;min-width:130px"},{label:"Shares",num:true,style:"width:10%;min-width:80px"},{label:"Market Value",num:true,style:"width:14%;min-width:110px"},{label:"Unrealized P/L",num:true,style:"width:14%;min-width:110px"},{label:"P/L %",num:true,style:"width:10%;min-width:80px"},{label:"Total Return",num:true,style:"width:14%;min-width:110px"},{label:"Return %",num:true,style:"width:10%;min-width:80px"}], holdingsRows, { maxWidth: 950 }),
+      table([{label:"Holding",style:"width:14.3%"},{label:"Shares",num:true,style:"width:14.3%"},{label:"Market Value",num:true,style:"width:14.3%"},{label:"Unrealized P/L",num:true,style:"width:14.3%"},{label:"P/L %",num:true,style:"width:14.3%"},{label:"Total Return",num:true,style:"width:14.3%"},{label:"Return %",num:true,style:"width:14.2%"}], holdingsRows),
       t("No holdings yet — record a Buy on the Add page and it appears here automatically."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${pricesAsOfFmt}`) : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
-      table([{label:"Date",style:"width:18%;min-width:100px"},{label:"Type",style:"width:18%;min-width:90px"},{label:"Holding",style:"width:18%;min-width:130px"},{label:"Broker",style:"width:18%;min-width:100px"},{label:"Amount",num:true,style:"width:18%;min-width:120px"}], recentRows, { maxWidth: 800 }),
+      table([{label:"Date",style:"width:20%"},{label:"Type",style:"width:20%"},{label:"Holding",style:"width:20%"},{label:"Broker",style:"width:20%"},{label:"Amount",num:true,style:"width:20%"}], recentRows),
       t("No activity yet."), `<a class="link" href="#/records">${t("All")} →</a>`)}
     <p class="dash-footnote">${metaNote(SAVED_ICON_SVG, LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet"))}</p>`;
 
@@ -3242,13 +3242,13 @@ function recordsTable(list) {
         <button class="icon-btn rec-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></div></td></tr>`;
   }).join("");
   return table([
-    { label: "Date", style: "width:16%;min-width:100px;text-align:left" },
-    { label: "Type", style: "width:14%;min-width:90px;text-align:left" },
-    { label: "Holding", style: "width:18%;min-width:130px;text-align:left" },
-    { label: "Amount (RM)", num: true, style: "width:16%;min-width:110px" },
-    { label: "Broker", style: "width:16%;min-width:100px;text-align:left" },
-    { label: "", style: "width:8%;min-width:70px" },
-  ], rows, { maxWidth: 1000 });
+    { label: "Date", style: "width:19%;text-align:left" },
+    { label: "Type", style: "width:19%;text-align:left" },
+    { label: "Holding", style: "width:19%;text-align:left" },
+    { label: "Amount (RM)", num: true, style: "width:19%" },
+    { label: "Broker", style: "width:19%;text-align:left" },
+    { label: "" },
+  ], rows);
 }
 
 /* =============================================================================
