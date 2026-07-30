@@ -1678,7 +1678,15 @@ function table(headers, rows, opts = {}) {
   // content — table-layout:auto (the default) lets a table with few/short rows sit
   // narrower than its 100% container, leaving a visible gap on the right. Opt-in only,
   // since it requires every column to have a sane width already declared.
-  return `<div class="table-wrap"><table class="data-table${opts.fixed ? " data-table-fixed" : ""}">${thead}<tbody>${body}</tbody></table></div>`;
+  // opts.maxWidth: cap how wide the table itself grows inside a much wider panel. With
+  // only a handful of short-content columns (a few dates, one money figure, a badge),
+  // width:100% forces the browser to stretch each column to fill the container anyway —
+  // spreading the excess evenly doesn't remove it, it just moves the resulting gaps
+  // around between columns instead of collecting them in one. Capping the table's own
+  // width lets any leftover space sit as plain trailing space to the right of the table,
+  // which reads as normal instead of as broken alignment.
+  const style = opts.maxWidth ? ` style="max-width:${opts.maxWidth}px"` : "";
+  return `<div class="table-wrap"><table class="data-table${opts.fixed ? " data-table-fixed" : ""}"${style}>${thead}<tbody>${body}</tbody></table></div>`;
 }
 
 function statusBadge(s) {
@@ -2326,14 +2334,14 @@ function pageDashboard() {
       })()}
     </section>
     <div id="dashDivSection">${listPanel("Upcoming Dividends", dashUpcoming.length,
-      table([{label:"Holding",style:"width:15%"},{label:"Ex-Date",style:"width:20%"},{label:"Payment",style:"width:20%"},{label:"Expected Net (RM)",num:true,style:"width:25%"},{label:"Status",style:"width:20%"}], divRows, { fixed: true }),
+      table([{label:"Holding",style:"width:18%;min-width:130px"},{label:"Ex-Date",style:"width:16%;min-width:110px"},{label:"Payment",style:"width:16%;min-width:110px"},{label:"Expected Net (RM)",num:true,style:"width:16%;min-width:110px"},{label:"Status",style:"width:16%;min-width:100px"}], divRows, { maxWidth: 820 }),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
-      table([{label:"Holding",style:"width:16%"},{label:"Shares",num:true,style:"width:10%"},{label:"Market Value",num:true,style:"width:18%"},{label:"Unrealized P/L",num:true,style:"width:17%"},{label:"P/L %",num:true,style:"width:10%"},{label:"Total Return",num:true,style:"width:18%"},{label:"Return %",num:true,style:"width:11%"}], holdingsRows, { fixed: true }),
+      table([{label:"Holding",style:"width:16%;min-width:130px"},{label:"Shares",num:true,style:"width:10%;min-width:80px"},{label:"Market Value",num:true,style:"width:14%;min-width:110px"},{label:"Unrealized P/L",num:true,style:"width:14%;min-width:110px"},{label:"P/L %",num:true,style:"width:10%;min-width:80px"},{label:"Total Return",num:true,style:"width:14%;min-width:110px"},{label:"Return %",num:true,style:"width:10%;min-width:80px"}], holdingsRows, { maxWidth: 950 }),
       t("No holdings yet — record a Buy on the Add page and it appears here automatically."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${pricesAsOfFmt}`) : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
-      table([{label:"Date",style:"width:20%"},{label:"Type",style:"width:20%"},{label:"Holding",style:"width:20%"},{label:"Broker",style:"width:20%"},{label:"Amount",num:true,style:"width:20%"}], recentRows, { fixed: true }),
+      table([{label:"Date",style:"width:18%;min-width:100px"},{label:"Type",style:"width:18%;min-width:90px"},{label:"Holding",style:"width:18%;min-width:130px"},{label:"Broker",style:"width:18%;min-width:100px"},{label:"Amount",num:true,style:"width:18%;min-width:120px"}], recentRows, { maxWidth: 800 }),
       t("No activity yet."), `<a class="link" href="#/records">${t("All")} →</a>`)}
     <p class="dash-footnote">${metaNote(SAVED_ICON_SVG, LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet"))}</p>`;
 
@@ -3234,13 +3242,13 @@ function recordsTable(list) {
         <button class="icon-btn rec-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></div></td></tr>`;
   }).join("");
   return table([
-    { label: "Date", style: "width:18%;text-align:left" },
-    { label: "Type", style: "width:16%;text-align:left" },
-    { label: "Holding", style: "width:20%;text-align:left" },
-    { label: "Amount (RM)", num: true, style: "width:18%" },
-    { label: "Broker", style: "width:18%;text-align:left" },
-    { label: "", style: "width:10%" },
-  ], rows, { fixed: true });
+    { label: "Date", style: "width:16%;min-width:100px;text-align:left" },
+    { label: "Type", style: "width:14%;min-width:90px;text-align:left" },
+    { label: "Holding", style: "width:18%;min-width:130px;text-align:left" },
+    { label: "Amount (RM)", num: true, style: "width:16%;min-width:110px" },
+    { label: "Broker", style: "width:16%;min-width:100px;text-align:left" },
+    { label: "", style: "width:8%;min-width:70px" },
+  ], rows, { maxWidth: 1000 });
 }
 
 /* =============================================================================
