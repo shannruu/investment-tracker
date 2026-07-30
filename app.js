@@ -2199,12 +2199,12 @@ function pageDashboard() {
         <a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${esc(h.ticker)}</a>
         ${holdingSubLabel(h) ? `<div class="sub">${esc(holdingSubLabel(h))}</div>` : ""}
       </td>
-      <td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>
-      <td class="num">${money(h.marketValue)}</td>
-      <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? moneySigned(h.unrealized) : `<span class="muted">—</span>`}</td>
-      <td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? pctTxt(h.unrealizedPct) : `<span class="muted">—</span>`}</td>
-      <td class="num ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</td>
-      <td class="num ${cls(h.totalReturn)}">${h.costBasis > 0 ? pctTxt((h.totalReturn / h.costBasis) * 100) : `<span class="muted">—</span>`}</td></tr>`).join("");
+      <td class="dcc-c">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>
+      <td class="dcc-c">${money(h.marketValue)}</td>
+      <td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? moneySigned(h.unrealized) : `<span class="muted">—</span>`}</td>
+      <td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? pctTxt(h.unrealizedPct) : `<span class="muted">—</span>`}</td>
+      <td class="dcc-c ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</td>
+      <td class="dcc-c ${cls(h.totalReturn)}">${h.costBasis > 0 ? pctTxt((h.totalReturn / h.costBasis) * 100) : `<span class="muted">—</span>`}</td></tr>`).join("");
 
   // Upcoming dividends — manual (UPCOMING_DIVIDENDS), auto-fetched (AUTO_DIV_CACHE), legacy
   // Expected, AND pattern-based estimates (fc.nextPayments) for tickers with a detected
@@ -2232,7 +2232,7 @@ function pageDashboard() {
   const divRows = dashUpcoming.map((d) => {
     const exDate = d.exDate || (d.payDate ? estExDate(d.payDate) : null);
     return `<tr><td class="dcc-c">${tickerCell(d.ticker, d.brokerId, tickerSubLabel(d.ticker))}</td><td class="dcc-c">${fmtDate(exDate)}</td><td class="dcc-c">${fmtDate(d.payDate)}</td>
-      <td class="num">${money(d.amtMYR)}</td><td class="dcc-c">${dashSourceBadge(d.source || "manual")}</td></tr>`;
+      <td class="dcc-c">${money(d.amtMYR)}</td><td class="dcc-c">${dashSourceBadge(d.source || "manual")}</td></tr>`;
   }).join("");
 
   const recentRows = ALL_TRANSACTIONS.slice(0, 6).map((tx) => {
@@ -2243,7 +2243,7 @@ function pageDashboard() {
     const txSub = hasTicker ? tickerSubLabel(tx.ticker, tx.company) : "";
     return `<tr><td class="dcc-c">${fmtDate(tx.date)}</td><td class="dcc-c">${typeChip(tx.type)}</td>
       <td class="dcc-c">${hasTicker ? tickerCell(tx.ticker, tx.brokerId, txSub) : `<span class="ticker">—</span>`}</td><td class="dcc-c sub">${esc(brokerName(tx.brokerId))}</td>
-      <td class="num">${esc(ccyLabel(tx.currency))} ${fmt(txAmt)}${myrEq > 0 ? `<div class="fx-note">${ccyLabel(FX.base)} ${fmt(myrEq)}</div>` : ""}</td></tr>`;
+      <td class="dcc-c">${esc(ccyLabel(tx.currency))} ${fmt(txAmt)}${myrEq > 0 ? `<div class="fx-note">${ccyLabel(FX.base)} ${fmt(myrEq)}</div>` : ""}</td></tr>`;
   }).join("");
 
   // In-card return-mode toggle (controls the Total P/L figure).
@@ -2334,14 +2334,14 @@ function pageDashboard() {
       })()}
     </section>
     <div id="dashDivSection">${listPanel("Upcoming Dividends", dashUpcoming.length,
-      table([{label:"Holding",style:"width:20%"},{label:"Ex-Date",style:"width:20%"},{label:"Payment",style:"width:20%"},{label:"Expected Net (RM)",num:true,style:"width:20%"},{label:"Status",style:"width:20%"}], divRows),
+      table([{label:"Holding",style:"width:20%"},{label:"Ex-Date",style:"width:20%"},{label:"Payment",style:"width:20%"},{label:"Expected Net (RM)",style:"width:20%"},{label:"Status",style:"width:20%"}], divRows),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
-      table([{label:"Holding",style:"width:14.3%"},{label:"Shares",num:true,style:"width:14.3%"},{label:"Market Value",num:true,style:"width:14.3%"},{label:"Unrealized P/L",num:true,style:"width:14.3%"},{label:"P/L %",num:true,style:"width:14.3%"},{label:"Total Return",num:true,style:"width:14.3%"},{label:"Return %",num:true,style:"width:14.2%"}], holdingsRows),
+      table([{label:"Holding",style:"width:14.3%"},{label:"Shares",style:"width:14.3%"},{label:"Market Value",style:"width:14.3%"},{label:"Unrealized P/L",style:"width:14.3%"},{label:"P/L %",style:"width:14.3%"},{label:"Total Return",style:"width:14.3%"},{label:"Return %",style:"width:14.2%"}], holdingsRows),
       t("No holdings yet — record a Buy on the Add page and it appears here automatically."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${pricesAsOfFmt}`) : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
     ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
-      table([{label:"Date",style:"width:20%"},{label:"Type",style:"width:20%"},{label:"Holding",style:"width:20%"},{label:"Broker",style:"width:20%"},{label:"Amount",num:true,style:"width:20%"}], recentRows),
+      table([{label:"Date",style:"width:20%"},{label:"Type",style:"width:20%"},{label:"Holding",style:"width:20%"},{label:"Broker",style:"width:20%"},{label:"Amount",style:"width:20%"}], recentRows),
       t("No activity yet."), `<a class="link" href="#/records">${t("All")} →</a>`)}
     <p class="dash-footnote">${metaNote(SAVED_ICON_SVG, LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet"))}</p>`;
 
@@ -3066,11 +3066,12 @@ function portfolioTable() {
     marketValue: t("Market Value"), netDiv: t("Net Dividends"),
   };
 
-  // Equal-width columns, numbers right-aligned (.num — every column here except Broker is
-  // numeric) so values hang from a consistent right edge instead of leaving a ragged gap
-  // after whichever ones happen to be short. Widths are computed dynamically since the
-  // column set here is user-configurable via "Edit columns", so a fixed percentage split
-  // wouldn't fit every combination. Percentage
+  // Equal-width, left-aligned columns (same convention as the Dividend Calendar) — mixing
+  // right-aligned numeric columns into an otherwise left-aligned row made values cluster
+  // against whatever column followed them while leaving a ragged gap on the other side,
+  // which read as messier than uniform left-alignment, not cleaner. Widths are computed
+  // dynamically since the column set here is user-configurable via "Edit columns", so a
+  // fixed percentage split wouldn't fit every combination. Percentage
   // widths alone are only a hint under table-layout:auto, so narrow-content columns (e.g.
   // Broker, Price) render narrower than intended — but switching to table-layout:fixed
   // instead makes columns overflow into each other once many columns are enabled (each
@@ -3087,16 +3088,16 @@ function portfolioTable() {
     const totalReturnPct = h.costBasis > 0 ? (h.totalReturn / h.costBasis) * 100 : 0;
     const cellMap = {
       broker:         `<td class="dcc-c"><div class="broker-pills">${(h._brokerNames || [brokerName(h.brokerId)]).map((n) => `<span class="chip chip-pill">${esc(n)}</span>`).join("")}</div></td>`,
-      shares:         `<td class="num">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>`,
-      avgCost:        `<td class="num">${money(h.avgCost)}</td>`,
-      price:          `<td class="num">${h.hasPrice ? `${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}` : `<span class="muted">—</span>`}</td>`,
-      priceMyr:       `<td class="num">${(h.hasPrice && h.currency !== FX.base) ? `${ccyLabel(FX.base)} ${fmt(h.currentPrice * (FX.rates[h.currency] || 1))}` : `<span class="muted">—</span>`}</td>`,
-      unrealizedAmt:  `<td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? moneySigned(h.unrealized) : `<span class="muted">—</span>`}</td>`,
-      unrealizedPct:  `<td class="num ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? pctTxt(h.unrealizedPct) : `<span class="muted">—</span>`}</td>`,
-      totalReturnAmt: `<td class="num ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</td>`,
-      totalReturnPct: `<td class="num ${cls(h.totalReturn)}">${pctTxt(totalReturnPct)}</td>`,
-      marketValue:    `<td class="num">${h.hasPrice ? money(h.marketValue) : `<span class="muted">—</span>`}</td>`,
-      netDiv:         `<td class="num">${h.netDividends ? money(h.netDividends) : `<span class="muted">—</span>`}</td>`,
+      shares:         `<td class="dcc-c">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>`,
+      avgCost:        `<td class="dcc-c">${money(h.avgCost)}</td>`,
+      price:          `<td class="dcc-c">${h.hasPrice ? `${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}` : `<span class="muted">—</span>`}</td>`,
+      priceMyr:       `<td class="dcc-c">${(h.hasPrice && h.currency !== FX.base) ? `${ccyLabel(FX.base)} ${fmt(h.currentPrice * (FX.rates[h.currency] || 1))}` : `<span class="muted">—</span>`}</td>`,
+      unrealizedAmt:  `<td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? moneySigned(h.unrealized) : `<span class="muted">—</span>`}</td>`,
+      unrealizedPct:  `<td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? pctTxt(h.unrealizedPct) : `<span class="muted">—</span>`}</td>`,
+      totalReturnAmt: `<td class="dcc-c ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</td>`,
+      totalReturnPct: `<td class="dcc-c ${cls(h.totalReturn)}">${pctTxt(totalReturnPct)}</td>`,
+      marketValue:    `<td class="dcc-c">${h.hasPrice ? money(h.marketValue) : `<span class="muted">—</span>`}</td>`,
+      netDiv:         `<td class="dcc-c">${h.netDividends ? money(h.netDividends) : `<span class="muted">—</span>`}</td>`,
     };
     return `<tr>
       <td class="dcc-c td-holding">
@@ -3113,8 +3114,7 @@ function portfolioTable() {
   };
   const thCols = orderedColIds.map((id) => {
     const tip = colTooltips[id] ? ` <span class="col-info tip-down" data-tip="${colTooltips[id]}">${COL_INFO_ICON_SVG}</span>` : "";
-    const align = id === "broker" ? "left" : "right";
-    return `<th style="width:${colPct}%;min-width:${colMinWidths[id] || 100}px;text-align:${align}" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
+    return `<th style="width:${colPct}%;min-width:${colMinWidths[id] || 100}px;text-align:left" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
   }).join("");
   const thead = `<thead><tr><th style="width:${colPct}%;min-width:140px">${t("Holding")}</th>${thCols}</tr></thead>`;
 
@@ -3235,7 +3235,7 @@ function recordsTable(list) {
       <td class="dcc-c">${fmtDate(tx.date)}</td>
       <td class="dcc-c">${typeChip(tx.type)}</td>
       <td class="dcc-c">${hasTicker ? tickerCell(tx.ticker, tx.brokerId, txSub) : `<span class="ticker">—</span>`}</td>
-      <td class="num">${money(myr)}</td>
+      <td class="dcc-c">${money(myr)}</td>
       <td class="dcc-c">${esc(brokerName(tx.brokerId))}${tx.type === "Transfer between brokers" && tx.toBrokerId ? `<div class="fx-note">→ ${esc(brokerName(tx.toBrokerId))}</div>` : ""}</td>
       <td class="dcc-c"><div class="rec-actions">
         <button class="icon-btn rec-edit" data-edit-tx="${tx.id}" title="${t("Edit")}" aria-label="${t("Edit")}"><svg class="icon"><use href="#i-edit"/></svg></button>
@@ -3245,7 +3245,7 @@ function recordsTable(list) {
     { label: "Date", style: "width:19%;text-align:left" },
     { label: "Type", style: "width:19%;text-align:left" },
     { label: "Holding", style: "width:19%;text-align:left" },
-    { label: "Amount (RM)", num: true, style: "width:19%" },
+    { label: "Amount (RM)", style: "width:19%;text-align:left" },
     { label: "Broker", style: "width:19%;text-align:left" },
     { label: "" },
   ], rows);
