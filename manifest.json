@@ -1,6 +1,6 @@
 {
-  "name": "Investment Ledger",
-  "short_name": "Inv Ledger",
+  "name": "Noriva - Portfolio & Dividend Tracker",
+  "short_name": "Noriva",
   "description": "Track investments across multiple brokers in one place.",
   "start_url": "/",
   "scope": "/",

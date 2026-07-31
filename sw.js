@@ -1,5 +1,5 @@
 /* =============================================================================
- * Investment Ledger — service worker
+ * Noriva — service worker
  * -----------------------------------------------------------------------------
  * Two jobs: makes the app installable ("Add to Home Screen") and lets the app
  * shell load when offline — the app's actual data already lives in localStorage,
