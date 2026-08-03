@@ -121,6 +121,8 @@ const ZH = {
   "Dividend Income by Year": "按年度股息收入",
   "Currency Gain / Loss": "汇率盈亏", "Export": "导出", "Add Broker": "添加券商", "Your Brokers": "您的券商",
   "Profile": "个人资料", "Appearance": "外观", "Base Currency": "基准货币",
+  "Your Account": "您的账户", "Set up your profile": "设置您的个人资料",
+  "Synced": "已同步", "Local only": "仅本地",
   "Exchange Rates": "汇率", "Data Import / Export": "数据导入 / 导出", "Danger Zone": "危险操作",
   "Data Safety & Backup": "数据安全与备份",
   "Or export just one part, as CSV": "或仅导出其中一部分（CSV 格式）",
@@ -4888,7 +4890,7 @@ function pageSettings() {
         e.preventDefault();
         const d = Object.fromEntries(new FormData(e.target).entries());
         USER.name = d.name; USER.email = d.email; USER.joined = d.joined;
-        saveStore(); toast(t("Profile saved"));
+        saveStore(); renderSidebarAccount(); toast(t("Profile saved"));
       });
       // Language — same setLang + applyStaticI18n + updateLangBtn + render sequence as the
       // topbar's quick-toggle button, just as an explicit dropdown here (same duplication
@@ -6269,6 +6271,42 @@ function currentPageKey() {
 // toggle) — which should leave the user right where they were, not yank them
 // back to the top of a long page.
 let lastRenderedHash = null;
+/* Sidebar account switcher — identity is Cloud Sync's account when signed in
+ * (the "real" account once cross-device sync exists), else the local Profile
+ * fields (Settings → Profile), else an empty-state prompt. */
+function acctIdentity() {
+  const cloudEmail = (typeof SYNC_USER !== "undefined" && SYNC_USER) ? SYNC_USER.email : "";
+  const localName = (USER.name || "").trim();
+  const localEmail = (USER.email || "").trim();
+  const email = cloudEmail || localEmail;
+  const name = localName || (email ? email.split("@")[0] : "");
+  return { name, email, signedIn: !!cloudEmail, hasIdentity: !!(name || email) };
+}
+
+function acctInitials(name) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function renderSidebarAccount() {
+  const nameEl = $("#sidebarAcctName"), subEl = $("#sidebarAcctSub"), avatarEl = $("#sidebarAcctAvatar");
+  if (!nameEl || !subEl || !avatarEl) return;
+  const idn = acctIdentity();
+  if (idn.hasIdentity) {
+    const label = idn.name || idn.email;
+    nameEl.textContent = label;
+    subEl.textContent = idn.signedIn ? t("Synced") : t("Local only");
+    avatarEl.innerHTML = "";
+    avatarEl.textContent = acctInitials(label);
+  } else {
+    nameEl.textContent = t("Your Account");
+    subEl.textContent = t("Set up your profile");
+    avatarEl.innerHTML = `<svg class="icon"><use href="#i-user"/></svg>`;
+  }
+}
+
 function render() {
   const key = currentPageKey();
   const isNavigation = location.hash !== lastRenderedHash;
@@ -6303,6 +6341,7 @@ function render() {
   });
   const mb = $("#moreBtn"); if (mb) mb.classList.toggle("active", secondary.includes(key));
   closeMoreSheet();
+  renderSidebarAccount();
 }
 
 /* =============================================================================
