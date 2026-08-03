@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Divz" />
-  <link rel="stylesheet" href="styles.css?v=278" />
+  <link rel="stylesheet" href="styles.css?v=279" />
 </head>
 <body>
 
@@ -40,7 +40,7 @@
 
     <!-- ===================== SIDEBAR (desktop) — 5-item primary nav ===================== -->
     <aside class="sidebar" id="sidebar">
-      <a class="acct-switch" href="#/settings" id="sidebarAccount" aria-label="Account settings">
+      <a class="acct-switch" href="#/profile" id="sidebarAccount" aria-label="Account settings">
         <span class="brand-mark" id="sidebarAcctAvatar" aria-hidden="true"></span>
         <span class="acct-info">
           <span class="acct-name" id="sidebarAcctName"></span>
@@ -110,6 +110,7 @@
   <div class="sheet-backdrop" id="moreSheet" hidden>
     <div class="more-sheet" role="dialog" aria-modal="true" aria-label="More">
       <div class="more-head"><strong data-i18n="More">More</strong><button class="icon-btn" id="moreClose" aria-label="Close">✕</button></div>
+      <a class="more-item" href="#/profile" data-page="profile"><span class="ni-ico"><svg class="icon"><use href="#i-user"/></svg></span><span data-i18n="Profile">Profile</span><span class="more-sub" data-i18n="Name, email & cloud sync">Name, email &amp; cloud sync</span></a>
       <a class="more-item" href="#/records" data-page="records"><span class="ni-ico"><svg class="icon"><use href="#i-records"/></svg></span><span data-i18n="Transactions">Transactions</span><span class="more-sub" data-i18n="All transactions, cash & dividends">All transactions, cash &amp; dividends</span></a>
       <a class="more-item" href="#/brokers" data-page="brokers"><span class="ni-ico"><svg class="icon"><use href="#i-brokers"/></svg></span><span data-i18n="Brokers">Brokers</span><span class="more-sub" data-i18n="Accounts & reconciliation">Accounts &amp; reconciliation</span></a>
       <a class="more-item" href="#/settings" data-page="settings"><span class="ni-ico"><svg class="icon"><use href="#i-settings"/></svg></span><span data-i18n="Settings">Settings</span><span class="more-sub" data-i18n="Currency, preferences, import & backup">Currency, preferences, import &amp; backup</span></a>
@@ -172,9 +173,9 @@
     </div>
   </div>
 
-  <script type="module" src="supabase-client.js?v=278"></script>
-  <script src="data.js?v=278"></script>
-  <script src="app.js?v=278"></script>
-  <script src="sync.js?v=278"></script>
+  <script type="module" src="supabase-client.js?v=279"></script>
+  <script src="data.js?v=279"></script>
+  <script src="app.js?v=279"></script>
+  <script src="sync.js?v=279"></script>
 </body>
 </html>

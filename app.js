@@ -123,6 +123,9 @@ const ZH = {
   "Profile": "个人资料", "Appearance": "外观", "Base Currency": "基准货币",
   "Your Account": "您的账户", "Set up your profile": "设置您的个人资料",
   "Synced": "已同步", "Local only": "仅本地",
+  "Your identity, and how this app is set up for you.": "您的身份信息，以及本应用为您所做的设置。",
+  "Currency, appearance and data.": "货币、外观与数据。",
+  "Name, email & cloud sync": "姓名、邮箱与云同步",
   "Exchange Rates": "汇率", "Data Import / Export": "数据导入 / 导出", "Danger Zone": "危险操作",
   "Data Safety & Backup": "数据安全与备份",
   "Or export just one part, as CSV": "或仅导出其中一部分（CSV 格式）",
@@ -4744,14 +4747,22 @@ function closeBrokerDrawer() {
 }
 
 /* =============================================================================
- * PAGE: SETTINGS  (incl. theme switcher)
+ * PAGE: PROFILE  (identity, Profile form, Account & Cloud Sync)
  * ========================================================================== */
-function pageSettings() {
+function pageProfile() {
+  const idn = acctIdentity();
+  const label = idn.hasIdentity ? (idn.name || idn.email) : t("Your Account");
+  const heroSub = idn.hasIdentity
+    ? `<span class="badge ${idn.signedIn ? "pos" : "subtle"}">${idn.signedIn ? t("Synced") : t("Local only")}</span>`
+    : `<span class="muted">${t("Set up your profile")}</span>`;
   const html = `
-    <div class="mini-cards" style="margin-bottom:16px">
-      <div class="mini-card"><div class="mc-label">${t("Brokers")}</div><div class="mc-value">${BROKERS.length}</div></div>
-      <div class="mini-card"><div class="mc-label">${t("Holdings")}</div><div class="mc-value">${T.holdings.length}</div></div>
-      <div class="mini-card"><div class="mc-label">${t("Transactions")}</div><div class="mc-value">${ALL_TRANSACTIONS.length}</div></div>
+    <div class="panel profile-hero">
+      <span class="brand-mark lg" aria-hidden="true">${idn.hasIdentity ? esc(acctInitials(label)) : `<svg class="icon"><use href="#i-user"/></svg>`}</span>
+      <div class="profile-hero-info">
+        <h2>${esc(label)}</h2>
+        ${idn.email ? `<p class="muted">${esc(idn.email)}</p>` : ""}
+        <p class="profile-hero-sub">${heroSub}</p>
+      </div>
     </div>
 
     ${panel(t("Profile"), `<form id="profileForm" class="form" autocomplete="off">
@@ -4762,6 +4773,32 @@ function pageSettings() {
       </div>
       <div class="form-actions"><button class="btn primary" type="submit">${t("Save profile")}</button></div>
     </form>`)}
+
+    ${typeof accountSyncPanelHTML === "function" ? accountSyncPanelHTML() : ""}`;
+
+  return { title: "Profile", subtitle: "Your identity, and how this app is set up for you.", html,
+    mount() {
+      mountDatePickers($("#profileForm"));
+      $("#profileForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const d = Object.fromEntries(new FormData(e.target).entries());
+        USER.name = d.name; USER.email = d.email; USER.joined = d.joined;
+        saveStore(); toast(t("Profile saved")); render();
+      });
+      if (typeof mountAccountSyncPanel === "function") mountAccountSyncPanel();
+    } };
+}
+
+/* =============================================================================
+ * PAGE: SETTINGS  (incl. theme switcher)
+ * ========================================================================== */
+function pageSettings() {
+  const html = `
+    <div class="mini-cards" style="margin-bottom:16px">
+      <div class="mini-card"><div class="mc-label">${t("Brokers")}</div><div class="mc-value">${BROKERS.length}</div></div>
+      <div class="mini-card"><div class="mc-label">${t("Holdings")}</div><div class="mc-value">${T.holdings.length}</div></div>
+      <div class="mini-card"><div class="mc-label">${t("Transactions")}</div><div class="mc-value">${ALL_TRANSACTIONS.length}</div></div>
+    </div>
 
     ${panel(t("Appearance"), `
       <p class="muted" style="margin:-4px 0 14px">${t("Choose your theme. Dark mode uses a true-black background; light mode is the default design.")}</p>
@@ -4819,8 +4856,6 @@ function pageSettings() {
       ${settingRow(t("Show on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
       <p class="muted" style="margin:6px 0 0">${t("Off by default. When enabled, browse upcoming ex-dividend dates across the whole market — not just your own holdings.")}</p></div>`)}
 
-    ${typeof accountSyncPanelHTML === "function" ? accountSyncPanelHTML() : ""}
-
     ${panel(t("Data Safety & Backup"), `
       <p class="muted info-card" style="margin:-2px 0 14px">${
         (typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER)
@@ -4872,7 +4907,7 @@ function pageSettings() {
       <a class="btn ghost small" href="#/terms">${t("Terms of Use")}</a>
     </div>`)}`;
 
-  return { title: "Settings", subtitle: "Profile, currency, appearance and data.", html,
+  return { title: "Settings", subtitle: "Currency, appearance and data.", html,
     mount() {
       reflectThemeChoice();
       $$("#themeOptions .theme-card").forEach((btn) => {
@@ -4884,14 +4919,6 @@ function pageSettings() {
         const ih = $("#importHoldings");
         if (ih) setTimeout(() => ih.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
       }
-      // Editable profile
-      mountDatePickers($("#profileForm"));
-      $("#profileForm").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const d = Object.fromEntries(new FormData(e.target).entries());
-        USER.name = d.name; USER.email = d.email; USER.joined = d.joined;
-        saveStore(); renderSidebarAccount(); toast(t("Profile saved"));
-      });
       // Language — same setLang + applyStaticI18n + updateLangBtn + render sequence as the
       // topbar's quick-toggle button, just as an explicit dropdown here (same duplication
       // pattern as Appearance/theme, which also has both a topbar toggle and a Settings panel).
@@ -4957,7 +4984,6 @@ function pageSettings() {
         clearAllData(); toast(t("All data cleared")); render();
       });
       mountFxControls();
-      if (typeof mountAccountSyncPanel === "function") mountAccountSyncPanel();
     } };
 }
 
@@ -5143,8 +5169,8 @@ function pageHelp() {
     ] },
     { title: "Cloud Sync", items: [
       { q: "What is Cloud Sync?", a: "Cloud Sync copies your whole local ledger — every broker, transaction and setting — up to a Supabase-hosted account and back down again, so the same data appears when you open the app in a different browser or on a different device. It solves one problem: using the app on more than one device with the same data. It is not real-time collaboration — there's no live shared editing session, just a push of the entire local snapshot after each edit and a pull of the whole thing on sign-in." },
-      { q: "Do I have to set up Cloud Sync?", a: "No. It's entirely opt-in and off by default — until you sign in with an email, the app behaves exactly as it always has, saving only to localStorage on that device, with zero code path touched. If the deployment itself has no Cloud Sync configured, the Account & Cloud Sync panel in Settings just shows \"not configured\" and nothing else about the app changes." },
-      { q: "How does signing in work?", a: "Enter your email in Settings → Account & Cloud Sync and you'll be emailed a one-time magic link — there's no password to set, remember, or reset. Clicking the link signs you in and returns you to the app already authenticated. The same email always maps to the same cloud account, so using it on a second device or browser links that device to the same data rather than creating a separate account." },
+      { q: "Do I have to set up Cloud Sync?", a: "No. It's entirely opt-in and off by default — until you sign in with an email, the app behaves exactly as it always has, saving only to localStorage on that device, with zero code path touched. If the deployment itself has no Cloud Sync configured, the Account & Cloud Sync panel on the Profile page just shows \"not configured\" and nothing else about the app changes." },
+      { q: "How does signing in work?", a: "Enter your email in Profile → Account & Cloud Sync and you'll be emailed a one-time magic link — there's no password to set, remember, or reset. Clicking the link signs you in and returns you to the app already authenticated. The same email always maps to the same cloud account, so using it on a second device or browser links that device to the same data rather than creating a separate account." },
       { q: "I signed in on a second device that already has its own data — what happens?", a: "If that device already has local transactions and your account already has cloud data from elsewhere, the app can't guess which one you want, so it opens a \"Choose which data to keep\" prompt showing both sides' transaction counts and last-changed times. \"Keep this device\" uploads the local copy and overwrites the cloud copy; \"Use my account's data\" downloads the cloud copy and overwrites what's local — whichever you don't pick is fully replaced, not merged. If only one side actually has data (a genuinely fresh device, or your first-ever sign-in), it resolves automatically in that direction with no prompt." },
       { q: "What does \"last write wins\" actually mean?", a: "Each edit debounces a push of the full local snapshot to your account a few seconds later, and sign-in pulls that row down if it's newer than your last local edit. There is no field-level merge: if you edit on device A and device B before either has synced, whichever push reaches the server last simply overwrites the other device's row in its entirety, silently discarding the earlier device's changes — even edits to unrelated transactions. In practice, treat Cloud Sync as one edit session at a time, not a way to work on two devices concurrently." },
       { q: "Does signing out delete my data?", a: "No. Signing out only ends the session; everything already saved to localStorage on that device stays exactly as it was. The app separately remembers which account's data currently occupies that device's storage, independent of whether you're signed in, so that if a different account signs in later it won't upload or merge in the leftover data — it clears it first instead, treating the device as fresh for that new account." },
@@ -5208,8 +5234,8 @@ function pageHelp() {
     ] },
     { title: "云同步", items: [
       { q: "云同步是什么？", a: "云同步会将您的整个本地账本——每个券商、交易和设置——上传到由 Supabase 托管的账户，并可再下载回来，因此在不同浏览器或不同设备打开应用时会显示相同的数据。它只解决一个问题：在多台设备上使用相同数据。它不是实时协作——没有实时共享编辑会话，只是每次编辑后推送整个本地快照，并在登录时拉取整个远程数据。" },
-      { q: "我必须设置云同步吗？", a: "不需要。它完全是可选功能，默认关闭——在您用邮箱登录之前，应用行为与以往完全一致，仅保存到该设备的 localStorage，不会触及任何相关代码路径。如果该部署本身未配置云同步，设置中的「账户与云同步」面板只会显示「未配置」，应用的其他部分不会有任何变化。" },
-      { q: "登录是如何运作的？", a: "在设置 → 账户与云同步中输入您的邮箱，系统会向您发送一封一次性登录链接邮件——无需设置、记住或重置密码。点击链接即可登录，并返回已认证状态的应用。同一邮箱始终对应同一云端账户，因此在第二台设备或浏览器上使用它会关联到相同数据，而不会创建新账户。" },
+      { q: "我必须设置云同步吗？", a: "不需要。它完全是可选功能，默认关闭——在您用邮箱登录之前，应用行为与以往完全一致，仅保存到该设备的 localStorage，不会触及任何相关代码路径。如果该部署本身未配置云同步，个人资料页面中的「账户与云同步」面板只会显示「未配置」，应用的其他部分不会有任何变化。" },
+      { q: "登录是如何运作的？", a: "在个人资料 → 账户与云同步中输入您的邮箱，系统会向您发送一封一次性登录链接邮件——无需设置、记住或重置密码。点击链接即可登录，并返回已认证状态的应用。同一邮箱始终对应同一云端账户，因此在第二台设备或浏览器上使用它会关联到相同数据，而不会创建新账户。" },
       { q: "我在已有自己数据的第二台设备上登录了——会发生什么？", a: "如果该设备本地已有交易数据，而您的账户在别处也已有云端数据，应用无法自行判断您想保留哪一份，因此会弹出「选择要保留的数据」提示，显示两侧的交易数量和最后更改时间。「保留此设备」会上传本地数据并覆盖云端数据；「使用我账户的数据」会下载云端数据并覆盖本地数据——无论选择哪一方，未选中的一方都会被完全替换，而非合并。如果只有一方真正有数据（真正的全新设备，或您的首次登录），系统会自动朝该方向解析，不会弹出提示。" },
       { q: "「最后写入者获胜」具体是什么意思？", a: "每次编辑都会在几秒后自动触发一次整份本地快照的推送，而登录会在云端数据比您最后一次本地编辑更新时将其拉取下来。这里没有字段级合并：如果您在设备 A 和设备 B 上分别编辑、且两者都尚未同步，无论哪一次推送最后到达服务器，都会整体覆盖另一台设备的数据行，悄悄丢弃较早那台设备的更改——即使是与本次编辑无关的其他交易。实际使用时，请将云同步视为「同一时间只在一台设备上编辑」，而非可在多台设备同时工作的方式。" },
       { q: "退出登录会删除我的数据吗？", a: "不会。退出登录只会结束登录会话；已保存在该设备 localStorage 中的一切都会原样保留。应用会单独记录该设备存储中当前所属的账户，与是否已登录无关，因此如果之后有不同账户登录，不会将遗留数据上传或合并进去——而是会先将其清除，把该设备视为该新账户的全新设备。" },
@@ -5252,7 +5278,7 @@ function pagePrivacy() {
       "Looking up a stock price, a dividend history, or browsing the Ex-Dividend Screener sends a request through this app's own server functions to third-party public market data sources (Yahoo Finance, Nasdaq, TradingView). Only the ticker symbol or date range you're asking about is sent — never your portfolio, your holdings, or any other personal financial data.",
     ] },
     { title: "Optional Cloud Sync (Supabase)", body: [
-      "If you choose to turn on Cloud Sync (Settings → Account & Cloud Sync), your email address is used to sign you in via a one-time link — no password is ever set or stored. Once signed in, your local ledger is copied to a Supabase-hosted database tied to your account, so the same data appears on any device you sign into.",
+      "If you choose to turn on Cloud Sync (Profile → Account & Cloud Sync), your email address is used to sign you in via a one-time link — no password is ever set or stored. Once signed in, your local ledger is copied to a Supabase-hosted database tied to your account, so the same data appears on any device you sign into.",
       "This is entirely opt-in and off by default. It exists only to save and restore your own data across your own devices — it's never shared, sold, or used for anything else. Row Level Security on the underlying database means only your signed-in account can ever read or write your own data.",
     ] },
     { title: "No analytics, no ads, no tracking", body: [
@@ -5279,7 +5305,7 @@ function pagePrivacy() {
       "查询股票价格、股息历史，或浏览除息股筛选器时，会通过本应用自身的服务器功能向第三方公开市场数据来源（Yahoo Finance、Nasdaq、TradingView）发出请求。只有您所查询的股票代码或日期范围会被发送——绝不会发送您的投资组合、持仓或任何其他个人财务数据。",
     ] },
     { title: "可选的云同步（Supabase）", body: [
-      "如果您选择开启云同步（设置 → 账户与云同步），您的邮箱地址将用于通过一次性登录链接为您登录——系统从不设置或保存任何密码。登录后，您的本地账本会被复制到与您账户关联的 Supabase 托管数据库中，因此您登录的任何设备都会显示相同的数据。",
+      "如果您选择开启云同步（个人资料 → 账户与云同步），您的邮箱地址将用于通过一次性登录链接为您登录——系统从不设置或保存任何密码。登录后，您的本地账本会被复制到与您账户关联的 Supabase 托管数据库中，因此您登录的任何设备都会显示相同的数据。",
       "此功能完全是可选的，默认关闭。它的作用仅仅是在您自己的多台设备之间保存和恢复您自己的数据——绝不会被分享、出售或用于其他任何用途。底层数据库的行级安全策略确保只有您已登录的账户才能读取或写入您自己的数据。",
     ] },
     { title: "没有分析追踪，没有广告，没有追踪工具", body: [
@@ -6255,7 +6281,7 @@ const PAGES = {
   dashboard: pageDashboard, portfolio: pagePortfolio, records: pageRecords, add: pageAdd,
   dividends: pageDividends,
   brokers: pageBrokers, settings: pageSettings, help: pageHelp, holding: pageHolding,
-  privacy: pagePrivacy, terms: pageTerms,
+  privacy: pagePrivacy, terms: pageTerms, profile: pageProfile,
 };
 
 function currentPageKey() {
