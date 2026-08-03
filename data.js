@@ -1,5 +1,5 @@
 /* =============================================================================
- * Noriva — YOUR DATA
+ * Divz — YOUR DATA
  * -----------------------------------------------------------------------------
  * This is the seed data loaded the very first time the app runs on a device —
  * after that, everything lives in the browser's localStorage and this file is

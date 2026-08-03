@@ -1,4 +1,4 @@
-# Noriva
+# Divz
 
 A privacy-first personal investment tracker. Transactions are the single source of
 truth; holdings, P/L, dividends and cash are derived. Data is stored in your browser

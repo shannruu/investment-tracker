@@ -1,4 +1,4 @@
-# Deploying Noriva to GitHub + Vercel
+# Deploying Divz to GitHub + Vercel
 
 Your site is **100% static** (HTML/CSS/JS, relative paths, no build step, no `npm install`).
 That means it works on any device once it has a URL — Vercel is a perfect fit and the free
@@ -68,7 +68,7 @@ Install Git from https://git-scm.com/download/win, then in this folder:
 ```powershell
 git init
 git add .
-git commit -m "Noriva dashboard"
+git commit -m "Divz dashboard"
 git branch -M main
 git remote add origin https://github.com/<your-username>/investment-ledger.git
 git push -u origin main

@@ -1,5 +1,5 @@
 ﻿/* =============================================================================
- * Noriva — App (router + all pages)
+ * Divz — App (router + all pages)
  * Every figure is COMPUTED from the data module so numbers stay auditable.
  * ========================================================================== */
 "use strict";
@@ -247,7 +247,7 @@ const ZH = {
   "Allow selling more shares than currently held (override)": "允许卖出超过当前持有的股数（覆盖）",
   "You only hold": "您仅持有", "shares — tick the override to sell more.": "股 — 勾选覆盖以卖出更多。",
   "Avg Cost per share": "每股平均成本", "blank = use current": "留空 = 使用当前汇率",
-  "Use this only for investments you owned before you started tracking in Noriva. New purchases should be entered as Buy transactions.": "仅用于您在开始使用 Noriva 之前已持有的投资。新买入请记为买入交易。",
+  "Use this only for investments you owned before you started tracking in Divz. New purchases should be entered as Buy transactions.": "仅用于您在开始使用 Divz 之前已持有的投资。新买入请记为买入交易。",
   "Add Opening Holding": "添加期初持仓", "Opening holding added": "已添加期初持仓",
   "Set current price": "设置当前价格", "Manual price": "手动价格", "No price set": "未设价格",
   "Current price per share for": "每股当前价格：", "manual, not live": "手动，非实时",
@@ -282,9 +282,9 @@ const ZH = {
   "Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.": "清除会删除本浏览器中保存的所有券商、持仓和交易，且无法撤销 — 请先导出备份。",
   "Backup downloaded": "备份已下载", "Backup restored": "备份已恢复",
   "That file isn't valid JSON.": "该文件不是有效的 JSON。",
-  "That doesn't look like a Noriva backup.": "这看起来不是 Noriva 的备份。",
+  "That doesn't look like a Divz backup.": "这看起来不是 Divz 的备份。",
   "For personal record-keeping only. Not financial, tax, or investment advice.": "仅供个人记录之用。并非财务、税务或投资建议。",
-  "Welcome to Noriva": "欢迎使用 Noriva",
+  "Welcome to Divz": "欢迎使用 Divz",
   "steps done": "步已完成",
   // Live prices
   "Refresh live prices": "刷新实时价格", "Fetch live price": "获取实时价格", "Live": "实时",
@@ -2420,7 +2420,7 @@ function onboardingHTML() {
     ? `<span class="onboard-step done"><span class="os-check">✓</span><span class="os-label">${s.label}</span></span>`
     : `<a class="onboard-step" href="${s.href}"><span class="os-check"></span><span class="os-label">${s.label}</span></a>`
   ).join("")}</div>`;
-  return panel("Welcome to Noriva", `
+  return panel("Welcome to Divz", `
     <p class="muted" style="margin:-2px 0 10px">${t("A few things to set up — click any step below to get started.")}</p>
     <p class="info-card" style="margin:0 0 14px">${privacyNote}</p>
     ${stepList}
@@ -2624,7 +2624,7 @@ function openingHoldingFormHTML() {
   const ccyItems = currencyItems();
   const brokerItems = BROKERS.filter((b) => !b.archived).map((b) => ({ value: b.id, label: b.name }));
   return `<form id="holdingForm" class="form opening-form" autocomplete="off">
-        <p class="muted form-intro">${t("Use this only for investments you owned before you started tracking in Noriva. New purchases should be entered as Buy transactions.")}</p>
+        <p class="muted form-intro">${t("Use this only for investments you owned before you started tracking in Divz. New purchases should be entered as Buy transactions.")}</p>
 
         <div class="form-group">
           <h4 class="form-sub">${t("What you own")}</h4>
@@ -4984,7 +4984,7 @@ function importBackupJSON(file) {
   reader.onload = async () => {
     let s;
     try { s = JSON.parse(reader.result); } catch (e) { toast(t("That file isn't valid JSON.")); return; }
-    if (!validBackup(s)) { toast(t("That doesn't look like a Noriva backup.")); return; }
+    if (!validBackup(s)) { toast(t("That doesn't look like a Divz backup.")); return; }
     const versionNote = (typeof s.version === "number" && s.version > SCHEMA_VERSION)
       ? " " + t("This backup was made by a newer version of the app — some newer fields may not be restored.")
       : "";
@@ -5241,7 +5241,7 @@ function pageHelp() {
 function pagePrivacy() {
   const sectionsEN = [
     { title: "Overview", body: [
-      "Noriva is an independent, personal, non-commercial project — not a company or a registered service. This page explains, plainly, what data the app touches and where it goes.",
+      "Divz is an independent, personal, non-commercial project — not a company or a registered service. This page explains, plainly, what data the app touches and where it goes.",
     ] },
     { title: "Your data lives on your device, by default", body: [
       "Every broker, holding, transaction, and setting you enter is stored only in your browser's localStorage, on your own device. It is never sent to any server for storage unless you deliberately turn on Cloud Sync (below). Clearing your browser's site data will remove it — export a JSON backup regularly (Settings → Data Safety & Backup) if you want a copy elsewhere.",
@@ -5268,7 +5268,7 @@ function pagePrivacy() {
   ];
   const sectionsZH = [
     { title: "概述", body: [
-      "Noriva 是一个独立的个人非商业项目——并非一家公司或注册服务。本页面将直白地说明本应用会接触哪些数据，以及这些数据会流向何处。",
+      "Divz 是一个独立的个人非商业项目——并非一家公司或注册服务。本页面将直白地说明本应用会接触哪些数据，以及这些数据会流向何处。",
     ] },
     { title: "您的数据默认保存在您的设备上", body: [
       "您输入的每一个券商、持仓、交易和设置，都只保存在您浏览器的 localStorage 中，位于您自己的设备上。除非您主动开启云同步（见下文），否则这些数据绝不会被发送到任何服务器进行存储。清除浏览器的网站数据会将其删除——如果您希望在别处保留一份副本，请定期导出 JSON 备份（设置 → 数据安全与备份）。",
@@ -5304,7 +5304,7 @@ function pagePrivacy() {
 function pageTerms() {
   const sectionsEN = [
     { title: "What this app is", body: [
-      "Noriva is a personal record-keeping tool for tracking your own investments — brokers, holdings, transactions, dividends, and returns. It is an independent, non-commercial personal project, not a company or a registered financial service.",
+      "Divz is a personal record-keeping tool for tracking your own investments — brokers, holdings, transactions, dividends, and returns. It is an independent, non-commercial personal project, not a company or a registered financial service.",
       "For personal record-keeping only. Nothing in this app is financial, tax, or investment advice — figures like XIRR, dividend forecasts, and diversification scores are calculations based on the data you enter and public market data, not recommendations.",
     ] },
     { title: "Provided as-is, no warranty", body: [
@@ -5322,7 +5322,7 @@ function pageTerms() {
   ];
   const sectionsZH = [
     { title: "本应用是什么", body: [
-      "Noriva 是一款用于记录您自己投资状况的个人工具——涵盖券商、持仓、交易、股息与回报。这是一个独立的非商业个人项目，并非一家公司或注册金融服务机构。",
+      "Divz 是一款用于记录您自己投资状况的个人工具——涵盖券商、持仓、交易、股息与回报。这是一个独立的非商业个人项目，并非一家公司或注册金融服务机构。",
       "仅供个人记录之用。本应用中的任何内容均不构成财务、税务或投资建议——诸如 XIRR、股息预测和分散度评分等数字，都是基于您输入的数据和公开市场数据得出的计算结果，而非建议。",
     ] },
     { title: "按「现状」提供，不作任何担保", body: [
