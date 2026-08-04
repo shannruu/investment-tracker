@@ -467,6 +467,12 @@ const ZH = {
   "Time zone is used as a display reference for dates; stored dates are never altered.": "时区仅用作日期的显示参考；存储的日期不会被更改。",
   "Average Cost is the active method for all gain/loss figures. More methods, including FIFO, are planned for a future update.": "所有盈亏数字均采用平均成本法。更多方法（包括先进先出法）将在未来版本中推出。",
   "Preferences saved": "偏好已保存",
+  "Currency & Exchange Rates": "货币与汇率", "Data & Backup": "数据与备份",
+  "Cost basis method": "成本计算方法",
+  "Show reconciliation on Brokers page": "在券商页面显示对账", "Reconciliation tolerance": "对账容差",
+  "Show Ex-Dividend Screener on Dividends page": "在股息页面显示除息筛选器",
+  "Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update.":
+    "时区决定天数统计和股息预测中「今天」的判定；存储的日期不会被更改。所有盈亏数字均采用平均成本法——更多方法（包括先进先出法）将在未来版本中推出。",
   // Phase 2 — CSV Import (F5)
   "Import from CSV": "从 CSV 导入", "Download CSV template": "下载 CSV 模板", "Upload CSV": "上传 CSV",
   "Bulk-add transactions (deposits, withdrawals, buys, sells, dividends) from a spreadsheet. Download the template, fill it in, then upload to preview before anything is saved.": "从电子表格批量添加交易（存款、取款、买入、卖出、股息）。下载模板填写后上传，保存前可先预览。",
@@ -4829,17 +4835,15 @@ function pageSettings() {
           <span class="tc-swatch dark"><span></span><span></span><span></span></span>
           <span class="tc-label">${t("Dark")} <span class="tc-check">✓</span></span>
           <span class="sub">${t("True black")}</span></button>
+      </div>
+      <div class="setting-rows" style="margin-top:18px">
+        ${settingRow(t("Language"), `<div style="width:200px">${styledSelect("lang", [{ value: "en", label: "English" }, { value: "zh", label: "中文" }], LANG, { id: "langSel" })}</div>`)}
       </div>`)}
 
-    ${panel(t("Language"), `<div class="setting-rows">
-      ${settingRow(t("Language"), `<div style="width:200px">${styledSelect("lang", [{ value: "en", label: "English" }, { value: "zh", label: "中文" }], LANG, { id: "langSel" })}</div>`)}</div>`)}
-
-    ${panel(t("Base Currency"), `<div class="setting-rows">
+    ${panel(t("Currency & Exchange Rates"), `<div class="setting-rows">
       ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
-      <p class="muted" style="margin:6px 0 0">${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")}</p></div>`)}
-
-    ${panel(t("Exchange Rates"), `
-      <p class="muted" style="margin:-4px 0 12px">${t("Rates convert each currency to your base.")} ${t("Pull today's market rate or type your own.")}</p>
+      </div>
+      <p class="muted" style="margin:10px 0 14px">${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}</p>
       <div id="fxRows">${fxRows()}</div>
       <div class="fx-add">
         <input list="ccyList" id="newCcy" class="fx-input" placeholder="${t("Currency code")} (e.g. JPY)" maxlength="3" autocomplete="off" />
@@ -4859,22 +4863,14 @@ function pageSettings() {
         { value: "total", label: t("Total Return") },
         { value: "price", label: t("Unrealized") },
       ], SETTINGS.returnMode === "price" ? "price" : "total", { id: "returnModeSel" })}</div>`)}
-      <p class="muted" style="margin:6px 0 0">${t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered.")}</p></div>`)}
+      ${settingRow(t("Cost basis method"), `<div style="width:200px">${styledSelect("costBasis", [{ value: "average", label: t("Average Cost") }], "average", { id: "costBasis" })}</div>`)}
+      ${settingRow(t("Show reconciliation on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
+      ${settingRow(t("Reconciliation tolerance"), `<div class="input-prefix"><span class="input-prefix-tag">${esc(FX.base)}</span><input type="number" step="any" id="reconTol" value="${SETTINGS.reconTolerance}"></div>`)}
+      ${settingRow(t("Show Ex-Dividend Screener on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
+      </div>
+      <p class="muted" style="margin:12px 0 0">${t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update.")}</p>`)}
 
-    ${panel(t("Cost Basis Method"), `<div class="setting-rows">
-      ${settingRow(t("Method"), `<div style="width:200px">${styledSelect("costBasis", [{ value: "average", label: t("Average Cost") }], "average", { id: "costBasis" })}</div>`)}
-      <p class="muted" style="margin:6px 0 0">${t("Average Cost is the active method for all gain/loss figures. More methods, including FIFO, are planned for a future update.")}</p></div>`)}
-
-    ${panel(t("Reconciliation"), `<div class="setting-rows">
-      ${settingRow(t("Show on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
-      ${settingRow(t("Tolerance"), `<div class="input-prefix"><span class="input-prefix-tag">${esc(FX.base)}</span><input type="number" step="any" id="reconTol" value="${SETTINGS.reconTolerance}"></div>`)}
-      <p class="muted" style="margin:6px 0 0">${t("Differences within this amount are treated as a small difference rather than needing review.")}</p></div>`)}
-
-    ${panel(t("Ex-Dividend Screener"), `<div class="setting-rows">
-      ${settingRow(t("Show on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
-      <p class="muted" style="margin:6px 0 0">${t("Off by default. When enabled, browse upcoming ex-dividend dates across the whole market — not just your own holdings.")}</p></div>`)}
-
-    ${panel(t("Data Safety & Backup"), `
+    ${panel(t("Data & Backup"), `
       <p class="muted info-card" style="margin:-2px 0 14px">${
         (typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER)
           ? t("Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.")
@@ -4891,19 +4887,23 @@ function pageSettings() {
         <button class="btn small" id="setExpCash">⭳ ${t("Cash")}</button>
         <button class="btn small" id="setExpDiv">⭳ ${t("Dividends")}</button>
       </div>
-      <p class="muted" style="margin:16px 0 8px;font-size:12.5px">${t("Trying the app out?")}</p>
-      <div class="form-actions">
-        <button class="btn ghost small" id="loadDemo">${t("Load demo data")}</button>
-      </div>`)}
 
-    ${panel(t("Import from CSV"), `
-      <p class="muted" style="margin:-2px 0 12px">${t("Bulk-add transactions (deposits, withdrawals, buys, sells, dividends) from a spreadsheet. Download the template, fill it in, then upload to preview before anything is saved.")}</p>
-      <div class="form-actions">
-        <button class="btn" id="dlTemplate">⭳ ${t("Download CSV template")}</button>
-        <button class="btn primary" id="impCsvBtn">⭱ ${t("Upload CSV")}</button>
-        <input type="file" id="impCsvFile" accept=".csv,text/csv" hidden>
+      <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border)">
+        <p class="muted" style="margin:0 0 12px;font-size:12.5px">${t("Bulk-add transactions (deposits, withdrawals, buys, sells, dividends) from a spreadsheet. Download the template, fill it in, then upload to preview before anything is saved.")}</p>
+        <div class="form-actions">
+          <button class="btn" id="dlTemplate">⭳ ${t("Download CSV template")}</button>
+          <button class="btn primary" id="impCsvBtn">⭱ ${t("Upload CSV")}</button>
+          <input type="file" id="impCsvFile" accept=".csv,text/csv" hidden>
+        </div>
+        <div id="csvPreview">${importPreviewHTML()}</div>
       </div>
-      <div id="csvPreview">${importPreviewHTML()}</div>`)}
+
+      <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border)">
+        <p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("Trying the app out?")}</p>
+        <div class="form-actions">
+          <button class="btn ghost small" id="loadDemo">${t("Load demo data")}</button>
+        </div>
+      </div>`)}
 
     <details class="panel addhold" id="importHoldings"${decodeURIComponent((location.hash.split("/")[2] || "")) === "holdings" ? " open" : ""}>
       <summary><span class="addhold-head"><span class="addhold-title">${t("Import existing holdings")}</span><span class="addhold-sub">${t("Positions you held before tracking — click to open")}</span></span></summary>
@@ -4918,12 +4918,7 @@ function pageSettings() {
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
         <p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("Just want to reset the Dashboard chart, not your data?")}</p>
         <button class="btn ghost small" id="clearPvHistory">${t("Clear chart history")}</button>
-      </div>`)}
-
-    ${panel(t("Legal"), `<div class="form-actions">
-      <a class="btn ghost small" href="#/privacy">${t("Privacy Policy")}</a>
-      <a class="btn ghost small" href="#/terms">${t("Terms of Use")}</a>
-    </div>`)}`;
+      </div>`)}`;
 
   return { title: "Settings", subtitle: "Currency, appearance and data.", html,
     mount() {
