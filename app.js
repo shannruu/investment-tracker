@@ -126,7 +126,7 @@ const ZH = {
   "Your identity, and how this app is set up for you.": "您的身份信息，以及本应用为您所做的设置。",
   "Currency, appearance and data.": "货币、外观与数据。",
   "Name, email & cloud sync": "姓名、邮箱与云同步",
-  "Change photo": "更换照片", "Remove photo": "移除照片",
+  "Change photo": "更换照片", "Remove photo": "移除照片", "Upload photo": "上传照片",
   "Profile photo updated": "头像已更新", "Profile photo removed": "头像已移除",
   "Please choose an image file.": "请选择一个图片文件。", "Couldn't read that image.": "无法读取该图片。",
   "Exchange Rates": "汇率", "Data Import / Export": "数据导入 / 导出", "Danger Zone": "危险操作",
@@ -4760,17 +4760,20 @@ function pageProfile() {
     : `<span class="badge subtle">${t("Set up your profile")}</span>`;
   const html = `
     ${panel(t("Profile"), `<form id="profileForm" class="form" autocomplete="off">
-      <div class="profile-avatar-row">
+      <div class="avatar-manage-row">
         <div class="avatar-upload">
-          <span class="brand-mark lg" id="profileAvatarPreview" role="button" tabindex="0" aria-label="${t("Change photo")}">${avatarInnerHTML(heroLabel)}</span>
+          <span class="brand-mark xl" id="profileAvatarPreview" role="button" tabindex="0" aria-label="${t("Change photo")}">${avatarInnerHTML(heroLabel)}</span>
           <button type="button" class="avatar-edit-btn" id="avatarEditBtn" aria-label="${t("Change photo")}"><svg class="icon"><use href="#i-camera"/></svg></button>
           <input type="file" id="avatarFileInput" accept="image/*" hidden>
-          ${USER.avatar ? `<button type="button" class="avatar-remove-btn" id="avatarRemoveBtn">${t("Remove photo")}</button>` : ""}
         </div>
-        <label>${t("Name")}<input name="name" value="${esc(USER.name)}" placeholder="${t("Your name")}"></label>
-        <label>${t("Email")}<input name="email" type="email" value="${esc(USER.email)}" placeholder="you@example.com"></label>
+        <div class="avatar-manage-actions">
+          <button type="button" class="btn primary small" id="avatarUploadBtn">${t("Upload photo")}</button>
+          ${USER.avatar ? `<a href="#" class="link" id="avatarRemoveBtn">${t("Remove photo")}</a>` : ""}
+        </div>
       </div>
       <div class="form-grid">
+        <label>${t("Name")}<input name="name" value="${esc(USER.name)}" placeholder="${t("Your name")}"></label>
+        <label>${t("Email")}<input name="email" type="email" value="${esc(USER.email)}" placeholder="you@example.com"></label>
         <label>${t("Investing since")}<input name="joined" type="date" value="${esc(USER.joined)}"></label>
       </div>
       <div class="form-actions"><button class="btn primary" type="submit">${t("Save profile")}</button></div>
@@ -4790,12 +4793,14 @@ function pageProfile() {
       const fileInput = $("#avatarFileInput");
       const openPicker = () => fileInput.click();
       $("#avatarEditBtn").addEventListener("click", openPicker);
+      $("#avatarUploadBtn").addEventListener("click", openPicker);
       const preview = $("#profileAvatarPreview");
       preview.addEventListener("click", openPicker);
       preview.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPicker(); } });
       fileInput.addEventListener("change", (e) => { if (e.target.files[0]) handleAvatarFile(e.target.files[0]); e.target.value = ""; });
       const removeBtn = $("#avatarRemoveBtn");
-      if (removeBtn) removeBtn.addEventListener("click", () => {
+      if (removeBtn) removeBtn.addEventListener("click", (e) => {
+        e.preventDefault();
         USER.avatar = ""; saveStore(); toast(t("Profile photo removed")); render();
       });
       if (typeof mountAccountSyncPanel === "function") mountAccountSyncPanel();
