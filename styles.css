@@ -853,14 +853,26 @@ input[type="date"] { cursor: pointer; }
 .mc-value { font-size: 21px; font-weight: 720; margin-top: 6px; letter-spacing: -.02em; }
 .mc-sub { font-size: 11.5px; margin-top: 4px; line-height: 1.35; }
 
-/* ---- Profile page hero card ---- */
-.profile-hero { display: flex; align-items: center; gap: 16px; }
-.profile-hero .brand-mark.lg { width: 60px; height: 60px; border-radius: 16px; font-size: 21px; flex: none; }
-.profile-hero .brand-mark.lg .icon { width: 26px; height: 26px; }
-.profile-hero-info { min-width: 0; }
-.profile-hero-info h2 { font-size: 19px; margin: 0 0 3px; }
-.profile-hero-info p { margin: 0; font-size: 13px; }
-.profile-hero-sub { margin-top: 6px !important; }
+/* ---- Profile page: avatar + name + email merged into one row ---- */
+.profile-avatar-row { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.profile-avatar-row label { flex: 1 1 180px; min-width: 0; }
+.avatar-upload { position: relative; flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.avatar-upload .brand-mark.lg { width: 60px; height: 60px; border-radius: 16px; font-size: 21px; cursor: pointer; }
+.avatar-upload .brand-mark.lg .icon { width: 26px; height: 26px; }
+.brand-mark img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.avatar-edit-btn {
+  position: absolute; right: -4px; top: 38px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
+  display: grid; place-items: center; cursor: pointer; color: var(--text); padding: 0;
+}
+.avatar-edit-btn .icon { width: 13px; height: 13px; }
+.avatar-edit-btn:hover { background: var(--surface-2); }
+.avatar-remove-btn {
+  border: 0; background: transparent; color: var(--muted); font-size: 11px; font-weight: 600;
+  cursor: pointer; padding: 0; font-family: inherit;
+}
+.avatar-remove-btn:hover { color: var(--neg); text-decoration: underline; }
 /* Cash tab summary — one inline ledger strip instead of a grid of cards. Sits inside
  * the Transactions panel itself (above the table, so it never scrolls out of view as
  * the list grows), so it's a plain row with a bottom divider rather than its own

@@ -55,6 +55,7 @@ const USER = {
   email: "",
   baseCurrency: "MYR",
   joined: "",
+  avatar: "",   // data URL of a resized/compressed profile photo, or "" for no photo
 };
 
 /* Full transactions ledger — deposits, withdrawals, buys, sells, dividends
