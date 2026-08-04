@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Divz" />
-  <link rel="stylesheet" href="styles.css?v=283" />
+  <link rel="stylesheet" href="styles.css?v=284" />
 </head>
 <body>
 
@@ -37,6 +37,7 @@
     <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h2.6l1.7-2.2h7.4L17.4 8H20a1 1 0 0 1 1 1v10.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="14" r="3.4"/></symbol>
     <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="6.6" y2="6.6"/><line x1="17.4" y1="17.4" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="6.6" y2="17.4"/><line x1="17.4" y1="6.6" x2="19.1" y2="4.9"/></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.5a8.5 8.5 0 1 1-9-13 7 7 0 0 0 9 13z"/></symbol>
+    <symbol id="i-collapse" viewBox="0 0 24 24"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></symbol>
   </svg>
 
   <div class="app">
@@ -66,8 +67,11 @@
       </nav>
 
       <div class="sidebar-foot">
-        <div class="brand-sig"><span class="brand-mark-sm">D</span>Divz</div>
-        <div class="base-pill"><span data-i18n="Base currency">Base currency</span><strong id="baseCurrency">MYR</strong></div>
+        <div class="base-pill" id="sidebarBasePill"><span data-i18n="Base currency">Base currency</span><strong id="baseCurrency">MYR</strong></div>
+        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
+          <svg class="icon"><use href="#i-collapse"/></svg>
+          <span class="sidebar-toggle-label" data-i18n="Collapse">Collapse</span>
+        </button>
       </div>
     </aside>
 
@@ -75,9 +79,13 @@
     <main class="main">
       <!-- Topbar -->
       <header class="topbar">
-        <div class="topbar-title">
+        <div class="topbar-title sr-only">
           <h1 id="pageTitle">Dashboard</h1>
-          <p class="muted" id="pageSubtitle">Welcome back — here is your portfolio at a glance.</p>
+          <p id="pageSubtitle">Welcome back — here is your portfolio at a glance.</p>
+        </div>
+        <div class="topbar-brand" aria-hidden="true">
+          <span class="brand-mark">D</span>
+          <span class="brand-name">Divz</span>
         </div>
         <div class="topbar-actions">
           <a class="btn primary" href="#/add" id="topAddBtn"><span class="btn-ico">＋</span><span data-i18n="Add">Add</span></a>
@@ -176,9 +184,9 @@
     </div>
   </div>
 
-  <script type="module" src="supabase-client.js?v=283"></script>
-  <script src="data.js?v=283"></script>
-  <script src="app.js?v=283"></script>
-  <script src="sync.js?v=283"></script>
+  <script type="module" src="supabase-client.js?v=284"></script>
+  <script src="data.js?v=284"></script>
+  <script src="app.js?v=284"></script>
+  <script src="sync.js?v=284"></script>
 </body>
 </html>

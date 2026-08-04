@@ -126,6 +126,7 @@ const ZH = {
   "Your identity, and how this app is set up for you.": "您的身份信息，以及本应用为您所做的设置。",
   "Currency, appearance and data.": "货币、外观与数据。",
   "Name, email & cloud sync": "姓名、邮箱与云同步",
+  "Collapse": "收起", "Collapse sidebar": "收起侧边栏", "Expand sidebar": "展开侧边栏",
   "Change photo": "更换照片", "Remove photo": "移除照片", "Upload photo": "上传照片",
   "Profile photo updated": "头像已更新", "Profile photo removed": "头像已移除",
   "Please choose an image file.": "请选择一个图片文件。", "Couldn't read that image.": "无法读取该图片。",
@@ -620,6 +621,12 @@ function setLang(l) {
 function applyStaticI18n() {
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     el.textContent = t(el.getAttribute("data-i18n"));
+  });
+  // Native hover tooltips so a collapsed (icon-only) sidebar nav item still
+  // identifies itself — harmless, always-on extra on the expanded sidebar too.
+  document.querySelectorAll(".nav-item[data-page]").forEach((el) => {
+    const label = el.querySelector("[data-i18n]");
+    if (label) el.title = label.textContent;
   });
 }
 
@@ -6281,6 +6288,17 @@ function setTheme(theme) {
   const use = document.getElementById("themeBtnUse");
   if (use) use.setAttribute("href", theme === "dark" ? "#i-moon" : "#i-sun");
 }
+
+function setSidebarCollapsed(collapsed) {
+  const el = document.getElementById("sidebar");
+  const btn = document.getElementById("sidebarToggle");
+  if (!el || !btn) return;
+  el.classList.toggle("collapsed", collapsed);
+  const label = collapsed ? t("Expand sidebar") : t("Collapse sidebar");
+  btn.setAttribute("aria-label", label);
+  btn.setAttribute("title", label);
+  try { localStorage.setItem("il-sidebar-collapsed", collapsed ? "1" : "0"); } catch (e) {}
+}
 let toastTimer;
 function toast(msg) {
   const el = $("#toast");
@@ -6438,6 +6456,11 @@ function init() {
   setLang(LANG);            // sets <html lang> from the persisted choice
   applyStaticI18n();        // translate nav / topbar / bottom-nav labels
   updateLangBtn();
+
+  try { setSidebarCollapsed(localStorage.getItem("il-sidebar-collapsed") === "1"); } catch (e) {}
+  $("#sidebarToggle").addEventListener("click", () => {
+    setSidebarCollapsed(!document.getElementById("sidebar").classList.contains("collapsed"));
+  });
 
   $("#langBtn").addEventListener("click", () => {
     setLang(LANG === "en" ? "zh" : "en");
