@@ -1677,6 +1677,13 @@ function panel(title, body, extra = "") {
   return `<section class="panel"><div class="panel-head"><h2>${title}</h2>${extra}</div>${body}</section>`;
 }
 
+/* Neutral explanatory notice (not a warning) — the same brand-tinted card +
+ * circle-i marker already used for decorative info icons in warn-card/info-card
+ * lists (HOW_ICON_SVG), so every "info" callout in the app reads as one visual language. */
+function infoNote(text, opts = {}) {
+  return `<p class="info-card"${opts.style ? ` style="${opts.style}"` : ""}><span class="w-ico">${HOW_ICON_SVG}</span><span class="w-body">${text}</span></p>`;
+}
+
 function emptyState(msg) {
   return `<div class="empty" style="padding:40px 12px">${msg}</div>`;
 }
@@ -4843,9 +4850,13 @@ function pageSettings() {
     ${panel(t("Currency & Exchange Rates"), `<div class="setting-rows">
       ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
       </div>
-      <p class="muted" style="margin:10px 0 14px">${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}</p>
-      <div id="fxRows">${fxRows()}</div>
-      <div class="fx-add">
+      ${infoNote(`${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}`, { style: "margin:14px 0" })}
+      ${table([
+        { label: t("Currency"), style: "width:30%;text-align:left" },
+        { label: t("Rate"), style: "width:50%;text-align:left" },
+        { label: "", style: "width:20%;text-align:left" },
+      ], fxRows())}
+      <div class="fx-add" style="margin-top:14px">
         <input list="ccyList" id="newCcy" class="fx-input" placeholder="${t("Currency code")} (e.g. JPY)" maxlength="3" autocomplete="off" />
         <datalist id="ccyList">${[...new Set(COMMON_CCY)].map((c) => `<option value="${c}"></option>`).join("")}</datalist>
         <input type="number" step="any" id="newRate" class="fx-input" placeholder="${t("Rate to")} ${ccyLabel(FX.base)}" />
@@ -4865,17 +4876,17 @@ function pageSettings() {
       ], SETTINGS.returnMode === "price" ? "price" : "total", { id: "returnModeSel" })}</div>`)}
       ${settingRow(t("Cost basis method"), `<div style="width:200px">${styledSelect("costBasis", [{ value: "average", label: t("Average Cost") }], "average", { id: "costBasis" })}</div>`)}
       ${settingRow(t("Show reconciliation on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
-      ${settingRow(t("Reconciliation tolerance"), `<div class="input-prefix"><span class="input-prefix-tag">${esc(FX.base)}</span><input type="number" step="any" id="reconTol" value="${SETTINGS.reconTolerance}"></div>`)}
       ${settingRow(t("Show Ex-Dividend Screener on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
       </div>
-      <p class="muted" style="margin:12px 0 0">${t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update.")}</p>`)}
+      ${infoNote(t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update."), { style: "margin-top:14px" })}`)}
 
     ${panel(t("Data & Backup"), `
-      <p class="muted info-card" style="margin:-2px 0 14px">${
+      ${infoNote(
         (typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER)
           ? t("Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.")
-          : t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.")
-      }</p>
+          : t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly."),
+        { style: "margin:0 0 14px" }
+      )}
       <div class="form-actions">
         <button class="btn primary" id="expJson">⭳ ${t("Export full backup (JSON)")}</button>
         <button class="btn" id="impJsonBtn">⭱ ${t("Import backup (JSON)")}</button>
@@ -4946,15 +4957,10 @@ function pageSettings() {
         Object.keys(FX.rates).forEach((c) => { FX.rates[c] = +(FX.rates[c] / div).toFixed(6); });
         FX.base = nb; saveStore(); toast(`${t("Base currency set to")} ${nb}`); render();
       });
-      // Reconciliation: visibility toggle + tolerance
+      // Reconciliation: visibility toggle (tolerance uses a fixed default — see data.js)
       $("#showRecon").addEventListener("change", (e) => {
         SETTINGS.showReconciliation = e.target.checked;
         saveStore(); toast(t("Preferences saved"));
-      });
-      $("#reconTol").addEventListener("change", (e) => {
-        const v = parseFloat(e.target.value);
-        SETTINGS.reconTolerance = isNaN(v) ? 0 : Math.abs(v);
-        saveStore(); toast(t("Tolerance saved"));
       });
       // Ex-Dividend Screener: visibility toggle
       $("#showExDivScreener").addEventListener("change", (e) => {
@@ -5069,13 +5075,13 @@ function loadDemoData() {
 /* Build the editable exchange-rate rows. */
 function fxRows() {
   return Object.entries(FX.rates).map(([c, r]) => `
-    <div class="fx-row">
-      <span class="fx-code">${c}</span>
+    <tr>
+      <td class="dcc-c">${c}</td>
       ${c === FX.base
-        ? `<span class="fx-base-tag">1.00 · ${t("base")}</span>`
-        : `<input class="fx-input fx-rate" type="number" step="any" data-ccy="${c}" value="${r}" />
-           <button class="icon-btn fx-del" data-del="${c}" title="${t("Remove")}" aria-label="${t("Remove")}">✕</button>`}
-    </div>`).join("");
+        ? `<td class="dcc-c muted">1.00 · ${t("base")}</td><td class="dcc-c"></td>`
+        : `<td class="dcc-c"><input class="fx-input fx-rate" type="number" step="any" data-ccy="${c}" value="${r}" /></td>
+           <td class="dcc-c"><button class="icon-btn fx-del" data-del="${c}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></td>`}
+    </tr>`).join("");
 }
 
 /* Wire the exchange-rate controls: edit, delete, add (with live auto-fill), refresh. */
@@ -6272,6 +6278,8 @@ function commitImport() {
 function setTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   try { localStorage.setItem("il-theme", theme); } catch (e) {}
+  const use = document.getElementById("themeBtnUse");
+  if (use) use.setAttribute("href", theme === "dark" ? "#i-moon" : "#i-sun");
 }
 let toastTimer;
 function toast(msg) {
