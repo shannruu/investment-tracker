@@ -139,7 +139,6 @@ const ZH = {
   "Exchange Rates": "汇率", "Data Import / Export": "数据导入 / 导出", "Danger Zone": "危险操作",
   "Data Safety & Backup": "数据安全与备份",
   "Or export just one part, as CSV": "或仅导出其中一部分（CSV 格式）",
-  "Trying the app out?": "还在试用本应用？",
   "Just want to reset the Dashboard chart, not your data?": "只想重置仪表盘图表，而不清除数据？",
   "Clear chart history": "清除图表历史",
   "Choose your theme. Dark mode uses a true-black background; light mode is the default design.": "选择您的主题。深色模式使用纯黑背景；浅色模式为默认设计。",
@@ -202,7 +201,7 @@ const ZH = {
   // Exchange-rate controls
   "Rates convert each currency to your base.": "汇率将每种货币换算为您的基准货币。",
   "Pull today's market rate or type your own.": "可拉取今日市场汇率，或自行输入。",
-  "Currency code": "货币代码", "Rate to": "汇率对", "Add currency": "添加货币",
+  "Currency code": "货币代码", "Rate to": "汇率对",
   "Refresh live rates": "刷新实时汇率", "base": "基准", "Remove": "移除",
   "Fetching…": "获取中…", "Fetching live rates…": "正在获取实时汇率…",
   "Live rates as of": "实时汇率截至", "added": "已添加", "exported": "已导出",
@@ -289,8 +288,6 @@ const ZH = {
   "Tolerance saved": "容差已保存",
   "Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.": "您的投资数据仅保存在本设备的此浏览器中。清除浏览器数据可能会将其删除。请定期导出 JSON 备份。",
   "Export full backup (JSON)": "导出完整备份 (JSON)", "Import backup (JSON)": "导入备份 (JSON)",
-  "Load demo data": "加载演示数据", "Demo data loaded": "已加载演示数据",
-  "This will replace your current data with demo data. Continue?": "这将用演示数据替换您当前的数据。是否继续？",
   "This replaces your current data with this backup file. Export your current data first if you want to keep it. Continue?": "此操作将用该备份文件替换您当前的数据。如需保留当前数据，请先导出备份。是否继续？",
   "That file isn't valid JSON.": "该文件不是有效的 JSON。", "Backup restored": "备份已恢复",
   "Type DELETE to confirm": "输入 DELETE 确认", "Type DELETE to confirm.": "请输入 DELETE 确认。",
@@ -365,6 +362,7 @@ const ZH = {
   "Pattern detected": "已侦测到规律", "from market dividend history": "来自市场股息历史",
   "from your logged dividends": "来自您记录的股息", "Record at least 2 dividends for this holding to enable pattern-based estimates.": "请为此持仓至少录入 2 次股息，以启用规律预测。",
   "dividend cut": "股息遭削减", "dividend suspended": "股息已暂停",
+  "dividends suspended": "项股息已暂停", "dividend cuts detected": "项股息遭削减",
   "Dividend cut detected": "侦测到股息削减", "Dividend suspended": "股息已暂停",
   "Dividend cut detected for": "侦测到股息削减", "Dividend appears suspended for": "股息似乎已暂停",
   "the forecast has been adjusted down; see the Dividends page.": "预测已相应下调；详见股息页面。",
@@ -1689,6 +1687,12 @@ async function fetchAllLivePrices() {
  * ========================================================================== */
 function panel(title, body, extra = "") {
   return `<section class="panel"><div class="panel-head"><h2>${title}</h2>${extra}</div>${body}</section>`;
+}
+
+/* Settings-page-only variant of panel(): no card (no surface/border/shadow) —
+ * the page reads as one continuous list of sections, separated by a soft rule. */
+function settingsSection(title, body, extra = "") {
+  return `<section class="settings-section"><div class="settings-section-head"><h2>${title}</h2>${extra}</div>${body}</section>`;
 }
 
 /* Small hover/tap info icon — the app's one standard tooltip affordance
@@ -3100,12 +3104,12 @@ function portfolioSummaryCalc(key) {
     return { title: "Unrealized P/L", rows: [
       { op: "", label: "Market Value", val: money(mv) },
       { op: "−", label: "Cost Basis", val: money(costBasis) },
-    ], total: unrealized, totalFmt: `${moneySigned(unrealized)}  ·  ${pctTxt(unrealizedPct)}` };
+    ], total: unrealized, totalFmt: moneySigned(unrealized), pctFmt: pctTxt(unrealizedPct) };
   }
   return { title: "Total Return", rows: [
     { op: "+", label: "Unrealized P/L", val: moneySigned(unrealized) },
     { op: "+", label: "Realized P/L, dividends & interest, minus fees", val: moneySigned(totalReturn - unrealized) },
-  ], total: totalReturn, totalFmt: `${moneySigned(totalReturn)}  ·  ${pctTxt(totalReturnPct)}` };
+  ], total: totalReturn, totalFmt: moneySigned(totalReturn), pctFmt: pctTxt(totalReturnPct) };
 }
 function mountPortfolioSummaryClicks() {
   $$("#pfSummary [data-card]").forEach((el) => {
@@ -3197,6 +3201,13 @@ function portfolioTable() {
  * PAGE: TRANSACTIONS  (list + working Add Transaction form)
  * ========================================================================== */
 let editingTxId = null;  // P0.1: id of the transaction currently being edited
+// True while the add/edit drawer owns the current route (opened via #/add — see
+// pageAdd()); false when it's just an overlay on top of another page (opened via
+// openAddDrawerFresh()). Deciding how to leave the drawer (exitAddDrawer()) can't
+// just check location.hash — switching type inside the drawer updates the hash via
+// history.replaceState (to stay deep-linkable) without actually re-routing, so the
+// hash alone no longer reliably says which page is rendered underneath.
+let addDrawerOwnsRoute = false;
 
 /* =============================================================================
  * PAGE: RECORDS — unified ledger (Transactions + Cash + Dividend history)
@@ -3241,11 +3252,13 @@ function pageRecords() {
   const cashFilterSel = recordsTab === "cash" ? `<div style="width:150px">${styledSelect("cashSubFilter",
     CASH_SUBFILTERS.map(([k, lbl]) => ({ value: k, label: t(lbl) })), cashSubFilter, { id: "cashSubFilterSel" })}</div>` : "";
   const list = ALL_TRANSACTIONS.filter((x) => recordMatchesTab(x, recordsTab) && matchesCashSubFilter(x));
-  const addBtn = BROKERS.length ? `<a class="btn primary" href="#/add">＋ ${t("Add")}</a>` : "";
+  // No local "Add" button or record-count badge here — the global +Add in the
+  // topbar already covers this, and a second one right above the table it opens
+  // over was redundant clutter (plus sat right against the table's own edge/rule).
   const html = `<section class="panel add-panel">
       ${nav}
       <div class="add-sep"></div>
-      <div class="panel-head"><h2>${t("Transactions")}</h2><div class="panel-head-actions">${cashFilterSel}<span class="badge subtle">${list.length} ${t("records")}</span>${addBtn}</div></div>
+      <div class="panel-head"><h2>${t("Transactions")}</h2><div class="panel-head-actions">${cashFilterSel}</div></div>
       ${recordsTab === "cash" ? cashExtrasHTML(list) : ""}
       <div id="recBody">${recordsTable(list)}</div>
     </section>`;
@@ -3371,7 +3384,7 @@ function typeSelectorHTML(activeType) {
 function pageAdd() {
   const rec = pageRecords();
   return { title: rec.title, subtitle: rec.subtitle, html: rec.html,
-    mount() { rec.mount(); openAddDrawer(); } };
+    mount() { rec.mount(); addDrawerOwnsRoute = true; openAddDrawer(); } };
 }
 
 /* Open (or refresh) the add/edit drawer. Reads edit target from editingTxId and the
@@ -3403,13 +3416,20 @@ function renderAddDrawerBody(type, editing) {
   if (!body) return;
   body.innerHTML = `${selector}${formContent}`;
   if (hasActiveBroker) mountAddForm(type, editing);
-  // Type switch is drawer-local: re-render the body and reflect the type in the URL via
-  // replaceState (NOT a hash change — that would re-run the router). Keeping the slug in
-  // the URL means a post-save render() reopens the drawer on the same type for rapid entry.
+  // Type switch is drawer-local: re-render the body and, ONLY when the drawer owns
+  // the route, reflect the type in the URL via replaceState (NOT a hash change —
+  // that would re-run the router). Keeping the slug in the URL means a post-save
+  // render() reopens the drawer on the same type for rapid entry. When the drawer
+  // is just an overlay on another page (addDrawerOwnsRoute false), skip this —
+  // rewriting the hash would make it LOOK like the /add route is active, which
+  // would fool exitAddDrawer()'s render() fallback into rendering Records instead
+  // of the page the drawer is actually sitting over.
   body.querySelectorAll("[data-drawer-type]").forEach((b) => b.addEventListener("click", (ev) => {
     ev.preventDefault();
     const s = b.dataset.drawerType;
-    try { history.replaceState(null, "", `#/add/${s}`); } catch (e) { /* ignore */ }
+    if (addDrawerOwnsRoute) {
+      try { history.replaceState(null, "", `#/add/${s}`); } catch (e) { /* ignore */ }
+    }
     renderAddDrawerBody(ADD_SLUGS[s], null);
   }));
   // "Other" trigger opens/closes its dropdown menu (click-outside-to-close is wired once
@@ -3440,6 +3460,36 @@ function closeDrawer(dr) {
 }
 
 function closeAddDrawer() { closeDrawer($("#addDrawer")); }
+
+/* Open the add/edit drawer as an overlay OVER whatever page is currently showing,
+ * without navigating to #/add — used by the global +Add button (topbar + mobile
+ * nav) so clicking it from e.g. Dashboard doesn't switch you to the Records page.
+ * (openAddDrawer(), by contrast, is only ever invoked as a side effect of the
+ * #/add route itself and reads type/edit state from the URL — see pageAdd().) */
+function openAddDrawerFresh() {
+  editingTxId = null;
+  addDrawerOwnsRoute = false;
+  renderAddDrawerBody("Buy", null);
+  const dr = $("#addDrawer");
+  if (dr) { dr.classList.remove("closing"); dr.hidden = false; }
+}
+
+/* Every "leave the add drawer" action (×, backdrop, Cancel, Escape, save success)
+ * funnels through here: if the drawer owns the current route (#/add), leaving it
+ * means navigating back to Records, same as before. If it's just an overlay on
+ * top of some other page (opened via openAddDrawerFresh()), leaving it means
+ * closing the drawer and refreshing that page in place — the URL never changed,
+ * so render() re-renders the SAME page (picking up whatever was just saved)
+ * instead of jumping to Records. render() already closes the drawer itself as
+ * part of its own "leaving /add" guard, so there's nothing else to call here.
+ * Uses addDrawerOwnsRoute rather than checking location.hash directly, because
+ * switching type inside the drawer rewrites the hash via history.replaceState
+ * (see renderAddDrawerBody) without actually re-routing — the hash alone can't
+ * be trusted to say which page is really rendered underneath. */
+function exitAddDrawer() {
+  if (addDrawerOwnsRoute) location.hash = "#/records";
+  else render();
+}
 
 /* The focused per-type form. Field NAMES match wireTxSubmit so one submit path serves all. */
 function addForm2(type, editing) {
@@ -3605,11 +3655,12 @@ function mountAddForm(type, editing) {
     form.addEventListener("change", syncDraft);
     syncDraft();
   }
-  // Cancel closes the drawer (navigating to Records re-renders without it).
+  // Cancel closes the drawer — back to Records if the drawer owns the route,
+  // or just closes over whatever page it was opened on top of (exitAddDrawer()).
   const cancelBtn = $("#addCancel");
   if (cancelBtn) cancelBtn.addEventListener("click", () => {
     editingTxId = null; addDraft = {};
-    location.hash = "#/records";
+    exitAddDrawer();
   });
   // Notes toggle: collapsed by default, expands on click, collapses on blur-when-empty
   const noteToggle = form.querySelector("#noteToggle"), noteField = form.querySelector("#noteField"),
@@ -3832,7 +3883,7 @@ function wireTxSubmit(form) {
       editingTxId = null;
       saveStore();
       toast(t("Saved ✓"));
-      location.hash = "#/records";
+      exitAddDrawer();
       return;
     }
 
@@ -3896,7 +3947,7 @@ function wireTxSubmit(form) {
     } else {
       toast(t("Saved ✓"));
     }
-    location.hash = "#/records";
+    exitAddDrawer();
   });
 }
 
@@ -4403,9 +4454,15 @@ function pageDividends() {
   const dash = `<span class="muted" style="font-size:22px;line-height:1">—</span>`;
   const tickerEntries = Object.entries(fc.tickerInfo || {});
   const alertTickers = tickerEntries.filter(([, info]) => info.alert);
+  // Counts only, not which specific holdings — the badge is a portfolio-wide
+  // heads-up; the affected tickers are named right below in "Pattern detected for".
+  const suspendedCount = alertTickers.filter(([, info]) => info.alert === "suspended").length;
+  const cutCount = alertTickers.filter(([, info]) => info.alert === "cut").length;
   const alertLine = alertTickers.length
-    ? `<p style="margin:6px 0 0;font-size:12px">${alertTickers.map(([tk, info]) =>
-        `<span class="badge neg" style="margin-right:6px">${esc(tk)} ${info.alert === "suspended" ? t("dividend suspended") : t("dividend cut")}</span>`).join("")}</p>`
+    ? `<p style="margin:6px 0 0;font-size:12px">
+        ${suspendedCount ? `<span class="badge neg" style="margin-right:6px">${suspendedCount > 1 ? `${suspendedCount} ${t("dividends suspended")}` : t("dividend suspended")}</span>` : ""}
+        ${cutCount ? `<span class="badge neg" style="margin-right:6px">${cutCount > 1 ? `${cutCount} ${t("dividend cuts detected")}` : t("dividend cut")}</span>` : ""}
+      </p>`
     : "";
   const tickerSummary = tickerEntries.length
     ? tickerEntries.map(([tk, info]) => {
@@ -4726,14 +4783,16 @@ function pageBrokers() {
       { op: "+", label: "Net Dividends", val: moneySigned(divSum) },
       ...(intSum ? [{ op: "+", label: "Interest Received", val: moneySigned(intSum) }] : []),
       { op: "−", label: "Total Fees", val: fmt(feeSum) },
-    ], total: totalReturn, totalFmt: `${moneySigned(totalReturn)}  ·  ${pctTxt(totalReturnPct)}` };
+    ], total: totalReturn, totalFmt: moneySigned(totalReturn), pctFmt: pctTxt(totalReturnPct) };
   };
 
   const archToggle = archived.length
     ? `<button class="btn ghost" id="toggleArchived">${showArchivedBrokers ? t("Hide archived") : `${t("Show archived")} (${archived.length})`}</button>` : "";
-  const addBtn = `<button type="button" class="btn primary" id="openBrokerDrawer">＋ ${t("Add Broker")}</button>`;
+  // "+ Add Broker" now lives in the topbar (shown only on this page — see
+  // #topAddBrokerBtn, wired once in init()), alongside the global +Add button,
+  // instead of a second local button here.
 
-  const html = `${summary}<div class="panel-head" style="margin-bottom:14px"><h2>${t("Your Brokers")}</h2><div class="panel-head-actions">${archToggle}${addBtn}</div></div>
+  const html = `${summary}<div class="panel-head" style="margin-bottom:14px"><h2>${t("Your Brokers")}</h2><div class="panel-head-actions">${archToggle}</div></div>
     ${cards ? `<div class="broker-grid">${cards}</div>` : emptyState(`${t("No brokers yet — every transaction and holding needs one.")}<div class="form-actions" style="margin-top:14px;justify-content:center"><button type="button" class="btn primary" id="emptyAddBroker">＋ ${t("Add Broker")}</button></div>`)}
     ${showArchivedBrokers && archivedCards ? `<div class="broker-grid" style="margin-top:14px">${archivedCards}</div>` : ""}
     ${BROKERS.length ? brokerCashPanelsHTML() : ""}`;
@@ -4742,8 +4801,6 @@ function pageBrokers() {
       ? `已连接 ${active.length} 个投资平台。`
       : `${active.length} investment apps connected.`, html,
     mount() {
-      const openBtn = $("#openBrokerDrawer");
-      if (openBtn) openBtn.addEventListener("click", () => openBrokerDrawer());
       const emptyAddBtn = $("#emptyAddBroker");
       if (emptyAddBtn) emptyAddBtn.addEventListener("click", () => openBrokerDrawer());
       const brokersReturnCard = $("[data-brokers-return]");
@@ -4925,27 +4982,28 @@ function pageProfile() {
  * ========================================================================== */
 function pageSettings() {
   const html = `
-    ${panel(`${t("Currency & Exchange Rates")}${infoTip(`${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}`)}`, `
+    ${settingsSection(`${t("Currency & Exchange Rates")}${infoTip(`${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}`)}`, `
       <div class="fx-base-row">
         ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
       </div>
-      ${table([
+      <div class="fx-table">${table([
         { label: t("Currency"), style: "width:30%;text-align:left" },
         { label: t("Rate"), style: "width:50%;text-align:left" },
         { label: "", style: "width:20%;text-align:left" },
-      ], fxRows())}
-      <div class="fx-add-row">
-        <input list="ccyList" id="newCcy" class="fx-input" placeholder="${t("Currency code")} (e.g. JPY)" maxlength="3" autocomplete="off" />
-        <datalist id="ccyList">${[...new Set(COMMON_CCY)].map((c) => `<option value="${c}"></option>`).join("")}</datalist>
-        <input type="number" step="any" id="newRate" class="fx-input" placeholder="${t("Rate to")} ${ccyLabel(FX.base)}" />
-        <button class="btn primary" id="addCcyBtn">${t("Add currency")}</button>
-      </div>
+      ], fxRows() + `
+      <tr class="fx-add-tr">
+        <td><input list="ccyList" id="newCcy" class="fx-input" placeholder="${t("Currency code")}" maxlength="3" autocomplete="off" style="width:100%;max-width:160px;text-transform:uppercase" />
+          <datalist id="ccyList">${[...new Set(COMMON_CCY)].map((c) => `<option value="${c}"></option>`).join("")}</datalist>
+        </td>
+        <td><input type="number" step="any" id="newRate" class="fx-input fx-rate" placeholder="${t("Rate to")} ${ccyLabel(FX.base)}" /></td>
+        <td><button class="btn primary small" id="addCcyBtn">${t("Add")}</button></td>
+      </tr>`)}</div>
       <div class="fx-foot">
         <button class="btn ghost small" id="refreshFx">↻ ${t("Refresh live rates")}</button>
         <span class="muted fx-status" id="fxStatus">${FX_STATUS}</span>
       </div>`)}
 
-    ${panel(`${t("Preferences")}${infoTip(t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update."))}`, `<div class="setting-rows">
+    ${settingsSection(`${t("Preferences")}${infoTip(t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update."))}`, `<div class="setting-rows">
       ${settingRow(t("Date format"), `<div style="width:200px">${styledSelect("dateFmt", DATE_FORMATS.map((f) => ({ value: f.k, label: f.label })), SETTINGS.dateFormat, { id: "dateFmt" })}</div>`)}
       ${settingRow(t("Time zone"), `<div style="width:200px">${styledSelect("tzSel", [{ value: "", label: t("Device local") }, ...TIME_ZONES.map((z) => ({ value: z, label: z }))], SETTINGS.timeZone || "", { id: "tzSel" })}</div>`)}
       ${settingRow(t("Default return view"), `<div style="width:200px">${styledSelect("returnMode", [
@@ -4961,48 +5019,41 @@ function pageSettings() {
       const dataTip = (typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER)
         ? t("Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.")
         : t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.");
-      return panel(`${t("Data & Backup")}${infoTip(dataTip)}`, `
+      return settingsSection(`${t("Data & Backup")}${infoTip(dataTip)}`, `
       <div class="form-actions">
-        <button class="btn primary" id="expJson">⭳ ${t("Export full backup (JSON)")}</button>
-        <button class="btn" id="impJsonBtn">⭱ ${t("Import backup (JSON)")}</button>
+        <button class="btn" id="expJson">${t("Export full backup (JSON)")}</button>
+        <button class="btn" id="impJsonBtn">${t("Import backup (JSON)")}</button>
         <input type="file" id="impJsonFile" accept="application/json,.json" hidden>
       </div>
       <p class="muted" style="margin:16px 0 8px;font-size:12.5px">${t("Or export just one part, as CSV")}:</p>
       <div class="form-actions">
-        <button class="btn small" id="setExpTx">⭳ ${t("Transactions")}</button>
-        <button class="btn small" id="setExpCash">⭳ ${t("Cash")}</button>
-        <button class="btn small" id="setExpDiv">⭳ ${t("Dividends")}</button>
+        <button class="btn small" id="setExpTx">${t("Transactions")}</button>
+        <button class="btn small" id="setExpCash">${t("Cash")}</button>
+        <button class="btn small" id="setExpDiv">${t("Dividends")}</button>
       </div>
 
-      <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border)">
+      <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border-soft)">
         <div class="sub-head">${t("Import from CSV")}${infoTip(t("Bulk-add transactions (deposits, withdrawals, buys, sells, dividends) from a spreadsheet. Download the template, fill it in, then upload to preview before anything is saved."))}</div>
         <div class="form-actions">
-          <button class="btn" id="dlTemplate">⭳ ${t("Download CSV template")}</button>
-          <button class="btn primary" id="impCsvBtn">⭱ ${t("Upload CSV")}</button>
+          <button class="btn" id="dlTemplate">${t("Download CSV template")}</button>
+          <button class="btn" id="impCsvBtn">${t("Upload CSV")}</button>
           <input type="file" id="impCsvFile" accept=".csv,text/csv" hidden>
         </div>
         <div id="csvPreview">${importPreviewHTML()}</div>
-      </div>
-
-      <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border)">
-        <p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("Trying the app out?")}</p>
-        <div class="form-actions">
-          <button class="btn ghost small" id="loadDemo">${t("Load demo data")}</button>
-        </div>
       </div>`);
     })()}
 
-    <details class="panel addhold" id="importHoldings"${decodeURIComponent((location.hash.split("/")[2] || "")) === "holdings" ? " open" : ""}>
+    <details class="settings-section addhold" id="importHoldings"${decodeURIComponent((location.hash.split("/")[2] || "")) === "holdings" ? " open" : ""}>
       <summary><span class="addhold-head"><span class="addhold-title">${t("Import existing holdings")}</span><span class="addhold-sub">${t("Positions you held before tracking — click to open")}</span></span></summary>
       <div class="addhold-body">${openingHoldingFormHTML()}</div></details>
 
-    ${panel(t("Danger Zone"), `
+    ${settingsSection(t("Danger Zone"), `
       <p class="muted" style="margin:-2px 0 12px">${t("Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.")}</p>
-      <div class="fx-add">
+      <div class="form-actions">
         <input type="text" id="clearConfirm" class="fx-input" placeholder="${t("Type DELETE to confirm")}" autocomplete="off" style="width:220px">
-        <button class="btn danger" id="clearData">${t("Clear all data")}</button>
+        <button class="btn primary" id="clearData">${t("Clear all data")}</button>
       </div>
-      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border-soft)">
         <p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("Just want to reset the Dashboard chart, not your data?")}</p>
         <button class="btn ghost small" id="clearPvHistory">${t("Clear chart history")}</button>
       </div>`)}`;
@@ -5050,12 +5101,6 @@ function pageSettings() {
       $("#expJson").addEventListener("click", exportBackupJSON);
       $("#impJsonBtn").addEventListener("click", () => $("#impJsonFile").click());
       $("#impJsonFile").addEventListener("change", (e) => importBackupJSON(e.target.files[0]));
-      $("#loadDemo").addEventListener("click", async () => {
-        if (ALL_TRANSACTIONS.length || BROKERS.length) {
-          if (!(await showConfirmModal(t("This will replace your current data with demo data. Continue?"), { danger: true }))) return;
-        }
-        loadDemoData(); saveStore(); toast(t("Demo data loaded")); render();
-      });
       const cpvhBtn = $("#clearPvHistory");
       if (cpvhBtn) cpvhBtn.addEventListener("click", async () => {
         if (!(await showConfirmModal(t("Clear the Portfolio Value Over Time chart? All chart data points will be permanently deleted."), { danger: true }))) return;
@@ -5106,8 +5151,9 @@ function importBackupJSON(file) {
   };
   reader.readAsText(file);
 }
-/* Demo data (only loaded on demand from Settings). Shows the core flows:
- * deposit → buy → manual price, dividend with withholding tax, multi-currency FX. */
+/* Demo/dev data — no UI entry point; call from the console when testing.
+ * Shows the core flows: deposit → buy → manual price, dividend with
+ * withholding tax, multi-currency FX. */
 function loadDemoData() {
   const today = todayISO();
   applySnapshot({
@@ -5896,8 +5942,13 @@ function showCalc(calc) {
   modalResolve = null;   // defensive: opening a different modal abandons any pending confirm
   $("#modalTitle").textContent = t(calc.title);
   const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span> ${t(r.label)}${r.hint ? ` <span class="col-info tip-down" data-tip="${r.hint}">${COL_INFO_ICON_SVG}</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`).join("");
+  // Percentage (when present) sits on its own line under the amount, not beside it on
+  // the same row — the row's <span class="cr-val"> becomes a small flex column instead
+  // of adding a second row with its own label.
+  const totalVal = calc.totalFmt != null ? calc.totalFmt : money(calc.total);
+  const pctVal = calc.pctFmt != null ? `<span class="cr-pct">${calc.pctFmt}</span>` : "";
   $("#modalBody").innerHTML = `${calc.intro ? `<p class="muted" style="margin:0 0 14px;font-size:13px">${t(calc.intro)}</p>` : ""}${rows}
-    <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${calc.totalFmt != null ? calc.totalFmt : money(calc.total)}</span></div>
+    <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${totalVal}${pctVal}</span></div>
     <p class="muted" style="margin:14px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
   $("#modal").hidden = false;
 }
@@ -6559,6 +6610,8 @@ function render() {
     el.classList.toggle("active", p === key || (key === "add" && (p === "records" || p === "add")));
   });
   const mb = $("#moreBtn"); if (mb) mb.classList.toggle("active", secondary.includes(key));
+  // "+Add Broker" only makes sense in the topbar while looking at the Brokers page.
+  const topAddBrokerBtn = $("#topAddBrokerBtn"); if (topAddBrokerBtn) topAddBrokerBtn.hidden = key !== "brokers";
   closeMoreSheet();
   renderSidebarAccount();
   renderNotifications();
@@ -6610,12 +6663,29 @@ function init() {
   if (staleDismiss) staleDismiss.addEventListener("click", hideStaleDataWarning);
   window.addEventListener("storage", (e) => { if (e.key === STORE_KEY) showStaleDataWarning(); });
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
-  // Add/edit drawer: close button + backdrop click navigate to Records (which re-renders
-  // without the drawer), so the URL always reflects whether the drawer is open.
+  // Add/edit drawer: close button + backdrop click leave via exitAddDrawer() —
+  // back to Records if the drawer owns the route (#/add), or just closes over
+  // whatever page it was opened on top of otherwise.
   const addDrawerClose = $("#addDrawerClose");
-  if (addDrawerClose) addDrawerClose.addEventListener("click", () => { location.hash = "#/records"; });
+  if (addDrawerClose) addDrawerClose.addEventListener("click", () => exitAddDrawer());
   const addDrawerEl = $("#addDrawer");
-  if (addDrawerEl) addDrawerEl.addEventListener("click", (e) => { if (e.target.id === "addDrawer") location.hash = "#/records"; });
+  if (addDrawerEl) addDrawerEl.addEventListener("click", (e) => { if (e.target.id === "addDrawer") exitAddDrawer(); });
+  // Global "+Add" (topbar + mobile nav): open the add drawer as an overlay over
+  // whatever page is currently showing, instead of switching to Records first.
+  const openAddFresh = (e) => {
+    if (currentPageKey() === "add") return;   // already there via the route — default nav is a same-hash no-op
+    e.preventDefault();
+    openAddDrawerFresh();
+  };
+  const topAddBtn = $("#topAddBtn");
+  if (topAddBtn) topAddBtn.addEventListener("click", openAddFresh);
+  const bnAddBtn = $("#bnAddBtn");
+  if (bnAddBtn) bnAddBtn.addEventListener("click", openAddFresh);
+  // "+Add Broker" — shown only on the Brokers page (see render()), sits in the
+  // same topbar container as the global +Add rather than a second button on
+  // the page itself.
+  const topAddBrokerBtn = $("#topAddBrokerBtn");
+  if (topAddBrokerBtn) topAddBrokerBtn.addEventListener("click", () => openBrokerDrawer());
   // Broker drawer: no route change involved (Add/Edit Broker always lived on #/brokers),
   // so close/backdrop just hide it directly instead of navigating.
   const brokerDrawerClose = $("#brokerDrawerClose");
@@ -6637,7 +6707,7 @@ function init() {
     // in-progress form. Only close the drawer when nothing smaller is open.
     if (document.querySelector(".sel.open")) return;
     const dr = $("#addDrawer");
-    if (dr && !dr.hidden) { location.hash = "#/records"; return; }
+    if (dr && !dr.hidden) { exitAddDrawer(); return; }
     const bdr = $("#brokerDrawer");
     if (bdr && !bdr.hidden) { closeBrokerDrawer(); return; }
     closeModal(); closeMoreSheet();

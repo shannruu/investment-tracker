@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Divz" />
-  <link rel="stylesheet" href="styles.css?v=288" />
+  <link rel="stylesheet" href="styles.css?v=289" />
 </head>
 <body>
 
@@ -85,6 +85,7 @@
           <p class="muted" id="pageSubtitle">Welcome back — here is your portfolio at a glance.</p>
         </div>
         <div class="topbar-actions">
+          <button type="button" class="btn secondary" id="topAddBrokerBtn" hidden><span class="btn-ico">＋</span><span data-i18n="Add Broker">Add Broker</span></button>
           <a class="btn primary" href="#/add" id="topAddBtn"><span class="btn-ico">＋</span><span data-i18n="Add">Add</span></a>
           <button class="btn ghost" id="langBtn" title="切换语言 / Switch language">EN / 中文</button>
           <button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle dark / light"><svg class="icon"><use id="themeBtnUse" href="#i-sun"/></svg></button>
@@ -118,7 +119,7 @@
   <nav class="bottom-nav" aria-label="Mobile">
     <a class="bn-item" href="#/dashboard" data-page="dashboard"><span class="bn-ico"><svg class="icon"><use href="#i-dashboard"/></svg></span><span data-i18n="Dashboard">Dashboard</span></a>
     <a class="bn-item" href="#/portfolio" data-page="portfolio"><span class="bn-ico"><svg class="icon"><use href="#i-portfolio"/></svg></span><span data-i18n="Portfolio">Portfolio</span></a>
-    <a class="bn-item add" href="#/add" data-page="add"><span class="bn-ico"><svg class="icon"><use href="#i-add"/></svg></span><span data-i18n="Add">Add</span></a>
+    <a class="bn-item add" href="#/add" data-page="add" id="bnAddBtn"><span class="bn-ico"><svg class="icon"><use href="#i-add"/></svg></span><span data-i18n="Add">Add</span></a>
     <a class="bn-item" href="#/dividends" data-page="dividends"><span class="bn-ico"><svg class="icon"><use href="#i-dividends"/></svg></span><span data-i18n="Dividends">Dividends</span></a>
     <button class="bn-item" id="moreBtn" type="button"><span class="bn-ico"><svg class="icon"><use href="#i-more"/></svg></span><span data-i18n="More">More</span></button>
   </nav>
@@ -190,9 +191,9 @@
     </div>
   </div>
 
-  <script type="module" src="supabase-client.js?v=288"></script>
-  <script src="data.js?v=288"></script>
-  <script src="app.js?v=288"></script>
-  <script src="sync.js?v=288"></script>
+  <script type="module" src="supabase-client.js?v=289"></script>
+  <script src="data.js?v=289"></script>
+  <script src="app.js?v=289"></script>
+  <script src="sync.js?v=289"></script>
 </body>
 </html>
