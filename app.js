@@ -4967,17 +4967,14 @@ function pageSettings() {
         ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
       </div>
       <div class="fx-list">
-        <div class="fx-row fx-row-head">
-          <span class="fx-col-label">${t("Currency")}</span>
-          <span class="fx-col-label">${t("Rate")}</span>
-          <span></span>
-        </div>
         ${fxRows()}
         <div class="fx-row fx-row-add">
-          <input list="ccyList" id="newCcy" class="fx-input" placeholder="${t("Currency code")}" maxlength="3" autocomplete="off" style="text-transform:uppercase" />
+          <input list="ccyList" id="newCcy" class="fx-input fx-ccy-input" placeholder="${t("Currency code")}" maxlength="3" autocomplete="off" style="text-transform:uppercase" />
           <datalist id="ccyList">${[...new Set(COMMON_CCY)].map((c) => `<option value="${c}"></option>`).join("")}</datalist>
-          <input type="number" step="any" id="newRate" class="fx-input fx-rate" placeholder="${t("Rate to")} ${ccyLabel(FX.base)}" />
-          <button class="btn primary small" id="addCcyBtn">${t("Add")}</button>
+          <span class="fx-row-controls">
+            <input type="number" step="any" id="newRate" class="fx-input fx-rate" placeholder="${t("Rate to")} ${ccyLabel(FX.base)}" />
+            <button class="btn primary small" id="addCcyBtn">${t("Add")}</button>
+          </span>
         </div>
       </div>
       <div class="fx-foot">
@@ -5172,9 +5169,11 @@ function fxRows() {
     <div class="fx-row">
       <span class="fx-ccy">${c}</span>
       ${c === FX.base
-        ? `<span class="fx-rate-static">1.00 · ${t("base")}</span><span></span>`
-        : `<input class="fx-input fx-rate" type="number" step="any" data-ccy="${c}" value="${r}" />
-           <button class="icon-btn fx-del" data-del="${c}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button>`}
+        ? `<span class="fx-rate-static">1.00 · ${t("base")}</span>`
+        : `<span class="fx-row-controls">
+             <input class="fx-input fx-rate" type="number" step="any" data-ccy="${c}" value="${r}" />
+             <button class="icon-btn fx-del" data-del="${c}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button>
+           </span>`}
     </div>`).join("");
 }
 

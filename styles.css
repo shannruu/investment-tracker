@@ -127,6 +127,10 @@ a { color: inherit; text-decoration: none; }
    clicking the icon button collapses the rail. */
 .sidebar-top { display: flex; align-items: center; gap: 4px; margin: 0 0 14px; }
 .sidebar-top .icon-btn { flex: none; }
+/* Bare icon, no button box — quieter than the other icon-btns since it sits
+   right next to the account switcher, not off on its own like a toolbar action. */
+#sidebarToggle { border: none; background: transparent; }
+#sidebarToggle:hover { background: var(--surface-2); }
 /* Chevron points toward the action: left to collapse, mirrored to point right
    (toward the rail) to expand — one icon, no separate collapsed/expanded symbols. */
 #sidebarToggle svg { transition: transform .15s; }
@@ -1106,15 +1110,17 @@ input[type="date"] { cursor: pointer; }
    apart, no rule underneath (see .fx-list below for why the list itself dropped
    its row dividers too). */
 .fx-base-row { padding-bottom: 12px; }
-/* A plain list, not a table — rows read as separate through padding and the
-   input/button's own box, not a horizontal rule under every single one; that
-   read as "a page full of lines" at just 2-3 currencies. */
+/* A plain list, not a table — rows read as separate through padding, not a
+   horizontal rule under every single one. Each row is label-left / control-right
+   (matching .setting-row elsewhere on this page), NOT stretched across the full
+   card width — a wide grid with a fixed-width input inside a flexible column
+   left a huge dead gap between the input and the delete button. */
 .fx-list { display: flex; flex-direction: column; }
-.fx-row { display: grid; grid-template-columns: 30% 1fr auto; align-items: center; gap: 16px; padding: 9px 0; }
-.fx-row-head { padding: 0 0 8px; }
-.fx-col-label { color: var(--text-soft); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+.fx-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 9px 0; }
 .fx-ccy { font-weight: 600; }
 .fx-rate-static { color: var(--muted); font-size: 13px; }
+.fx-row-controls { display: flex; align-items: center; gap: 10px; flex: none; }
+.fx-ccy-input { width: 140px; }
 .fx-row-add { padding-top: 10px; }
 .fx-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
 .fx-status { font-size: 12px; }
