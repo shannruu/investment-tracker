@@ -361,8 +361,6 @@ const ZH = {
   "Pattern detected for": "已侦测到规律", "payment": "次派息",
   "Pattern detected": "已侦测到规律", "from market dividend history": "来自市场股息历史",
   "from your logged dividends": "来自您记录的股息", "Record at least 2 dividends for this holding to enable pattern-based estimates.": "请为此持仓至少录入 2 次股息，以启用规律预测。",
-  "dividend cut": "股息遭削减", "dividend suspended": "股息已暂停",
-  "dividends suspended": "项股息已暂停", "dividend cuts detected": "项股息遭削减",
   "Dividend cut detected": "侦测到股息削减", "Dividend suspended": "股息已暂停",
   "Dividend cut detected for": "侦测到股息削减", "Dividend appears suspended for": "股息似乎已暂停",
   "the forecast has been adjusted down; see the Dividends page.": "预测已相应下调；详见股息页面。",
@@ -1687,12 +1685,6 @@ async function fetchAllLivePrices() {
  * ========================================================================== */
 function panel(title, body, extra = "") {
   return `<section class="panel"><div class="panel-head"><h2>${title}</h2>${extra}</div>${body}</section>`;
-}
-
-/* Settings-page-only variant of panel(): no card (no surface/border/shadow) —
- * the page reads as one continuous list of sections, separated by a soft rule. */
-function settingsSection(title, body, extra = "") {
-  return `<section class="settings-section"><div class="settings-section-head"><h2>${title}</h2>${extra}</div>${body}</section>`;
 }
 
 /* Small hover/tap info icon — the app's one standard tooltip affordance
@@ -4453,17 +4445,6 @@ function pageDividends() {
 
   const dash = `<span class="muted" style="font-size:22px;line-height:1">—</span>`;
   const tickerEntries = Object.entries(fc.tickerInfo || {});
-  const alertTickers = tickerEntries.filter(([, info]) => info.alert);
-  // Counts only, not which specific holdings — the badge is a portfolio-wide
-  // heads-up; the affected tickers are named right below in "Pattern detected for".
-  const suspendedCount = alertTickers.filter(([, info]) => info.alert === "suspended").length;
-  const cutCount = alertTickers.filter(([, info]) => info.alert === "cut").length;
-  const alertLine = alertTickers.length
-    ? `<p style="margin:6px 0 0;font-size:12px">
-        ${suspendedCount ? `<span class="badge neg" style="margin-right:6px">${suspendedCount > 1 ? `${suspendedCount} ${t("dividends suspended")}` : t("dividend suspended")}</span>` : ""}
-        ${cutCount ? `<span class="badge neg" style="margin-right:6px">${cutCount > 1 ? `${cutCount} ${t("dividend cuts detected")}` : t("dividend cut")}</span>` : ""}
-      </p>`
-    : "";
   const tickerSummary = tickerEntries.length
     ? tickerEntries.map(([tk, info]) => {
         const growth = info.growthPct ? `, ${info.growthPct > 0 ? "+" : ""}${fmt(info.growthPct, { maximumFractionDigits: 1 })}%/${t("payment")}` : "";
@@ -4476,13 +4457,12 @@ function pageDividends() {
     : "";
   const forecastBody = fc.hasProjections
     ? `<p class="muted" style="margin:-4px 0 12px">${t("Based on payment patterns and upcoming dividends.")} ${t("Estimate only — not a guarantee.")}${fc.ttm > 0 ? ` ${t("Received TTM")}: <strong>${money(fc.ttm)}</strong>.` : ""}</p>
-      ${alertLine}
       <div class="mini-cards">
         ${miniCard(t("Next Month"), fc.nextMonth > 0 ? money(fc.nextMonth) : dash)}
         ${miniCard(t("Next Year"), fc.nextYear > 0 ? money(fc.nextYear) : dash)}${multiYearCards}</div>
       ${patternLine}
       <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`
-    : `${alertLine}<div class="div-fc-empty"><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}<div class="form-actions" style="margin-top:10px"><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a></div></div></div>
+    : `<div class="div-fc-empty"><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}<div class="form-actions" style="margin-top:10px"><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a></div></div></div>
       <p class="muted" style="margin:10px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
 
   // Ex-Dividend Screener — market-wide upcoming ex-dividend dates, distinct from the
@@ -4923,12 +4903,6 @@ function pageProfile() {
     ? `<span class="badge ${idn.signedIn ? "pos" : "subtle"}">${idn.signedIn ? t("Synced") : t("Local only")}</span>`
     : `<span class="badge subtle">${t("Set up your profile")}</span>`;
   const html = `
-    ${panel(t("Overview"), `<div class="cash-strip" style="margin:-4px 0 -4px;padding-bottom:0;border-bottom:0">
-      <a class="cash-item" href="#/brokers"><span class="cash-k">${t("Brokers")}</span><span class="cash-v">${BROKERS.length}</span></a>
-      <a class="cash-item" href="#/portfolio"><span class="cash-k">${t("Holdings")}</span><span class="cash-v">${T.holdings.length}</span></a>
-      <a class="cash-item" href="#/records"><span class="cash-k">${t("Transactions")}</span><span class="cash-v">${ALL_TRANSACTIONS.length}</span></a>
-    </div>`)}
-
     ${panel(t("Profile"), `<form id="profileForm" class="form" autocomplete="off">
       <div class="avatar-manage-row">
         <div class="avatar-upload">
@@ -4949,7 +4923,13 @@ function pageProfile() {
       <div class="form-actions"><button class="btn primary" type="submit">${t("Save profile")}</button></div>
     </form>`, badge)}
 
-    ${typeof accountSyncPanelHTML === "function" ? accountSyncPanelHTML() : ""}`;
+    ${typeof accountSyncPanelHTML === "function" ? accountSyncPanelHTML() : ""}
+
+    ${panel(t("Overview"), `<div class="cash-strip" style="margin:-4px 0 -4px;padding-bottom:0;border-bottom:0">
+      <a class="cash-item" href="#/brokers"><span class="cash-k">${t("Brokers")}</span><span class="cash-v">${BROKERS.length}</span></a>
+      <a class="cash-item" href="#/portfolio"><span class="cash-k">${t("Holdings")}</span><span class="cash-v">${T.holdings.length}</span></a>
+      <a class="cash-item" href="#/records"><span class="cash-k">${t("Transactions")}</span><span class="cash-v">${ALL_TRANSACTIONS.length}</span></a>
+    </div>`)}`;
 
   return { title: "Profile", subtitle: "Your identity, and how this app is set up for you.", html,
     mount() {
@@ -4982,7 +4962,7 @@ function pageProfile() {
  * ========================================================================== */
 function pageSettings() {
   const html = `
-    ${settingsSection(`${t("Currency & Exchange Rates")}${infoTip(`${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}`)}`, `
+    ${panel(`${t("Currency & Exchange Rates")}${infoTip(`${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}`)}`, `
       <div class="fx-base-row">
         ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
       </div>
@@ -5003,7 +4983,7 @@ function pageSettings() {
         <span class="muted fx-status" id="fxStatus">${FX_STATUS}</span>
       </div>`)}
 
-    ${settingsSection(`${t("Preferences")}${infoTip(t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update."))}`, `<div class="setting-rows">
+    ${panel(`${t("Preferences")}${infoTip(t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update."))}`, `<div class="setting-rows">
       ${settingRow(t("Date format"), `<div style="width:200px">${styledSelect("dateFmt", DATE_FORMATS.map((f) => ({ value: f.k, label: f.label })), SETTINGS.dateFormat, { id: "dateFmt" })}</div>`)}
       ${settingRow(t("Time zone"), `<div style="width:200px">${styledSelect("tzSel", [{ value: "", label: t("Device local") }, ...TIME_ZONES.map((z) => ({ value: z, label: z }))], SETTINGS.timeZone || "", { id: "tzSel" })}</div>`)}
       ${settingRow(t("Default return view"), `<div style="width:200px">${styledSelect("returnMode", [
@@ -5019,7 +4999,7 @@ function pageSettings() {
       const dataTip = (typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER)
         ? t("Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.")
         : t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.");
-      return settingsSection(`${t("Data & Backup")}${infoTip(dataTip)}`, `
+      return panel(`${t("Data & Backup")}${infoTip(dataTip)}`, `
       <div class="form-actions">
         <button class="btn" id="expJson">${t("Export full backup (JSON)")}</button>
         <button class="btn" id="impJsonBtn">${t("Import backup (JSON)")}</button>
@@ -5043,11 +5023,11 @@ function pageSettings() {
       </div>`);
     })()}
 
-    <details class="settings-section addhold" id="importHoldings"${decodeURIComponent((location.hash.split("/")[2] || "")) === "holdings" ? " open" : ""}>
+    <details class="panel addhold" id="importHoldings"${decodeURIComponent((location.hash.split("/")[2] || "")) === "holdings" ? " open" : ""}>
       <summary><span class="addhold-head"><span class="addhold-title">${t("Import existing holdings")}</span><span class="addhold-sub">${t("Positions you held before tracking — click to open")}</span></span></summary>
       <div class="addhold-body">${openingHoldingFormHTML()}</div></details>
 
-    ${settingsSection(t("Danger Zone"), `
+    ${panel(t("Danger Zone"), `
       <p class="muted" style="margin:-2px 0 12px">${t("Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.")}</p>
       <div class="form-actions">
         <input type="text" id="clearConfirm" class="fx-input" placeholder="${t("Type DELETE to confirm")}" autocomplete="off" style="width:220px">
