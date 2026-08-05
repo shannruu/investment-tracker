@@ -1687,9 +1687,10 @@ function panel(title, body, extra = "") {
 /* Small hover/tap info icon — the app's one standard tooltip affordance
  * (.col-info + COL_INFO_ICON_SVG, delegated once in mountColInfoTaps()), used
  * everywhere else a hint explains something without taking permanent space.
- * Meant to be appended right after a heading/label, e.g. panel(`${t("X")}${infoTip(...)}`, ...). */
+ * Pass as panel()'s 3rd (extra) argument — .panel-head floats it flush right
+ * of the title, exactly like the Dashboard's stat-head label+icon layout. */
 function infoTip(text) {
-  return ` <span class="col-info" data-tip="${esc(text)}">${COL_INFO_ICON_SVG}</span>`;
+  return `<span class="col-info" data-tip="${esc(text)}">${COL_INFO_ICON_SVG}</span>`;
 }
 
 function emptyState(msg) {
@@ -4839,7 +4840,7 @@ function pageSettings() {
       <div class="mini-card"><div class="mc-label">${t("Transactions")}</div><div class="mc-value">${ALL_TRANSACTIONS.length}</div></div>
     </div>
 
-    ${panel(`${t("Currency & Exchange Rates")}${infoTip(`${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}`)}`, `<div class="setting-rows">
+    ${panel(t("Currency & Exchange Rates"), `<div class="setting-rows">
       ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
       </div>
       <div style="margin-top:14px">${table([
@@ -4856,9 +4857,9 @@ function pageSettings() {
       <div class="fx-foot">
         <button class="btn" id="refreshFx">↻ ${t("Refresh live rates")}</button>
         <span class="muted fx-status" id="fxStatus">${FX_STATUS}</span>
-      </div>`)}
+      </div>`, infoTip(`${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}`))}
 
-    ${panel(`${t("Preferences")}${infoTip(t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update."))}`, `<div class="setting-rows">
+    ${panel(t("Preferences"), `<div class="setting-rows">
       ${settingRow(t("Date format"), `<div style="width:200px">${styledSelect("dateFmt", DATE_FORMATS.map((f) => ({ value: f.k, label: f.label })), SETTINGS.dateFormat, { id: "dateFmt" })}</div>`)}
       ${settingRow(t("Time zone"), `<div style="width:200px">${styledSelect("tzSel", [{ value: "", label: t("Device local") }, ...TIME_ZONES.map((z) => ({ value: z, label: z }))], SETTINGS.timeZone || "", { id: "tzSel" })}</div>`)}
       ${settingRow(t("Default return view"), `<div style="width:200px">${styledSelect("returnMode", [
@@ -4868,13 +4869,13 @@ function pageSettings() {
       ${settingRow(t("Cost basis method"), `<div style="width:200px">${styledSelect("costBasis", [{ value: "average", label: t("Average Cost") }], "average", { id: "costBasis" })}</div>`)}
       ${settingRow(t("Show reconciliation on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
       ${settingRow(t("Show Ex-Dividend Screener on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
-      </div>`)}
+      </div>`, infoTip(t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update.")))}
 
     ${(() => {
       const dataTip = (typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER)
         ? t("Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.")
         : t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.");
-      return panel(`${t("Data & Backup")}${infoTip(dataTip)}`, `
+      return panel(t("Data & Backup"), `
       <div class="form-actions">
         <button class="btn primary" id="expJson">⭳ ${t("Export full backup (JSON)")}</button>
         <button class="btn" id="impJsonBtn">⭱ ${t("Import backup (JSON)")}</button>
@@ -4902,7 +4903,7 @@ function pageSettings() {
         <div class="form-actions">
           <button class="btn ghost small" id="loadDemo">${t("Load demo data")}</button>
         </div>
-      </div>`);
+      </div>`, infoTip(dataTip));
     })()}
 
     <details class="panel addhold" id="importHoldings"${decodeURIComponent((location.hash.split("/")[2] || "")) === "holdings" ? " open" : ""}>

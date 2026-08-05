@@ -101,16 +101,19 @@ a { color: inherit; text-decoration: none; }
 .sidebar.collapsed .acct-info,
 .sidebar.collapsed .acct-chev,
 .sidebar.collapsed .nav-item > span:last-child,
-.sidebar.collapsed .sidebar-toggle-label {
+.sidebar.collapsed .sidebar-brand-name {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
 }
+.sidebar.collapsed .sidebar-top,
 .sidebar.collapsed .acct-switch,
-.sidebar.collapsed .nav-item,
-.sidebar.collapsed .sidebar-toggle { justify-content: center; }
-.sidebar.collapsed #sidebarBasePill,
-.sidebar.collapsed #sidebarBrandSig { display: none; }
-.sidebar.collapsed .sidebar-toggle .icon { transform: rotate(180deg); }
+.sidebar.collapsed .nav-item { justify-content: center; }
+.sidebar.collapsed #sidebarBasePill { display: none; }
+
+/* Top-of-sidebar row: collapse toggle + brand name, no logo mark. */
+.sidebar-top { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; padding: 0 8px; }
+.sidebar-brand-name { font-weight: 700; font-size: 15px; color: var(--text); }
+
 .brand-mark {
   width: 34px; height: 34px; border-radius: 9px;
   background: linear-gradient(135deg, #6d5efc, #4a3ed9);
@@ -134,17 +137,6 @@ a { color: inherit; text-decoration: none; }
 .acct-sub { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acct-chev { flex: none; color: var(--muted); font-size: 17px; font-family: var(--icon-font); }
 
-/* Small, quiet brand signature at the foot of the sidebar. */
-.brand-sig {
-  display: flex; align-items: center; gap: 6px;
-  padding: 0 8px 10px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .2px;
-}
-.brand-mark-sm {
-  width: 16px; height: 16px; border-radius: 5px; flex: none;
-  background: linear-gradient(135deg, #6d5efc, #4a3ed9);
-  display: grid; place-items: center; color: #fff; font-size: 9px; font-weight: 800;
-}
-
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .nav-item {
   display: flex; align-items: center; gap: 11px;
@@ -165,17 +157,6 @@ a { color: inherit; text-decoration: none; }
   font-size: 12px; color: var(--muted);
 }
 .base-pill strong { color: var(--text); font-size: 13px; }
-
-/* Collapse/expand handle for the sidebar — a plain full-width row so it reads as
-   part of the sidebar chrome, not a floating control. */
-.sidebar-toggle {
-  display: flex; align-items: center; gap: 8px; width: 100%;
-  margin-top: 10px; padding: 8px 11px; border-radius: var(--radius-sm);
-  background: transparent; border: 1px solid var(--border); cursor: pointer;
-  color: var(--text-soft); font-family: inherit; font-size: 12.5px; font-weight: 600;
-}
-.sidebar-toggle:hover { background: var(--surface-2); color: var(--text); }
-.sidebar-toggle .icon { width: 15px; height: 15px; flex: none; transition: transform .15s; }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
@@ -305,7 +286,7 @@ a { color: inherit; text-decoration: none; }
 }
 .panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
 .panel-head h2 { font-size: 15px; }
-.panel-head .link, .panel-head .badge, .panel-head .seg, .panel-head small { margin-left: auto; }
+.panel-head .link, .panel-head .badge, .panel-head .seg, .panel-head small, .panel-head .col-info { margin-left: auto; }
 .panel-head-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 
 /* ---- Column visibility panel ---- */
