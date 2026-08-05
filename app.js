@@ -4966,18 +4966,20 @@ function pageSettings() {
       <div class="fx-base-row">
         ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
       </div>
-      <div class="fx-table">${table([
-        { label: t("Currency"), style: "width:30%;text-align:left" },
-        { label: t("Rate"), style: "width:50%;text-align:left" },
-        { label: "", style: "width:20%;text-align:left" },
-      ], fxRows() + `
-      <tr class="fx-add-tr">
-        <td><input list="ccyList" id="newCcy" class="fx-input" placeholder="${t("Currency code")}" maxlength="3" autocomplete="off" style="width:100%;max-width:160px;text-transform:uppercase" />
+      <div class="fx-list">
+        <div class="fx-row fx-row-head">
+          <span class="fx-col-label">${t("Currency")}</span>
+          <span class="fx-col-label">${t("Rate")}</span>
+          <span></span>
+        </div>
+        ${fxRows()}
+        <div class="fx-row fx-row-add">
+          <input list="ccyList" id="newCcy" class="fx-input" placeholder="${t("Currency code")}" maxlength="3" autocomplete="off" style="text-transform:uppercase" />
           <datalist id="ccyList">${[...new Set(COMMON_CCY)].map((c) => `<option value="${c}"></option>`).join("")}</datalist>
-        </td>
-        <td><input type="number" step="any" id="newRate" class="fx-input fx-rate" placeholder="${t("Rate to")} ${ccyLabel(FX.base)}" /></td>
-        <td><button class="btn primary small" id="addCcyBtn">${t("Add")}</button></td>
-      </tr>`)}</div>
+          <input type="number" step="any" id="newRate" class="fx-input fx-rate" placeholder="${t("Rate to")} ${ccyLabel(FX.base)}" />
+          <button class="btn primary small" id="addCcyBtn">${t("Add")}</button>
+        </div>
+      </div>
       <div class="fx-foot">
         <button class="btn ghost small" id="refreshFx">↻ ${t("Refresh live rates")}</button>
         <span class="muted fx-status" id="fxStatus">${FX_STATUS}</span>
@@ -5167,13 +5169,13 @@ function loadDemoData() {
 /* Build the editable exchange-rate rows. */
 function fxRows() {
   return Object.entries(FX.rates).map(([c, r]) => `
-    <tr>
-      <td class="dcc-c">${c}</td>
+    <div class="fx-row">
+      <span class="fx-ccy">${c}</span>
       ${c === FX.base
-        ? `<td class="dcc-c muted">1.00 · ${t("base")}</td><td class="dcc-c"></td>`
-        : `<td class="dcc-c"><input class="fx-input fx-rate" type="number" step="any" data-ccy="${c}" value="${r}" /></td>
-           <td class="dcc-c"><button class="icon-btn fx-del" data-del="${c}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></td>`}
-    </tr>`).join("");
+        ? `<span class="fx-rate-static">1.00 · ${t("base")}</span><span></span>`
+        : `<input class="fx-input fx-rate" type="number" step="any" data-ccy="${c}" value="${r}" />
+           <button class="icon-btn fx-del" data-del="${c}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button>`}
+    </div>`).join("");
 }
 
 /* Wire the exchange-rate controls: edit, delete, add (with live auto-fill), refresh. */

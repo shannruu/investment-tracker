@@ -127,6 +127,10 @@ a { color: inherit; text-decoration: none; }
    clicking the icon button collapses the rail. */
 .sidebar-top { display: flex; align-items: center; gap: 4px; margin: 0 0 14px; }
 .sidebar-top .icon-btn { flex: none; }
+/* Chevron points toward the action: left to collapse, mirrored to point right
+   (toward the rail) to expand — one icon, no separate collapsed/expanded symbols. */
+#sidebarToggle svg { transition: transform .15s; }
+.sidebar.collapsed #sidebarToggle svg { transform: scaleX(-1); }
 .acct-switch {
   display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
   padding: 8px; border-radius: var(--radius-sm);
@@ -1098,12 +1102,20 @@ input[type="date"] { cursor: pointer; }
 .fx-rate { width: 140px; }
 .fx-input:focus { outline: none; border-color: var(--brand); }
 .fx-del { width: 32px; height: 32px; font-size: 13px; }
-/* Base currency sits above the rate table as its own row, visually separated —
-   it's the one setting here, everything below is the rate list + how to grow it. */
-.fx-base-row { padding-bottom: 16px; margin-bottom: 4px; border-bottom: 1px solid var(--border-soft); }
-/* Scoped to the Settings currency table only — a plain .data-table td/th border
-   change would also affect Portfolio/Records/Brokers tables, which weren't asked for. */
-.fx-table .data-table th, .fx-table .data-table td { border-bottom-color: var(--border-soft); }
+/* Base currency sits above the rate list as its own row — spacing alone sets it
+   apart, no rule underneath (see .fx-list below for why the list itself dropped
+   its row dividers too). */
+.fx-base-row { padding-bottom: 12px; }
+/* A plain list, not a table — rows read as separate through padding and the
+   input/button's own box, not a horizontal rule under every single one; that
+   read as "a page full of lines" at just 2-3 currencies. */
+.fx-list { display: flex; flex-direction: column; }
+.fx-row { display: grid; grid-template-columns: 30% 1fr auto; align-items: center; gap: 16px; padding: 9px 0; }
+.fx-row-head { padding: 0 0 8px; }
+.fx-col-label { color: var(--text-soft); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+.fx-ccy { font-weight: 600; }
+.fx-rate-static { color: var(--muted); font-size: 13px; }
+.fx-row-add { padding-top: 10px; }
 .fx-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
 .fx-status { font-size: 12px; }
 
