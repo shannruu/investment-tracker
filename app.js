@@ -124,7 +124,7 @@ const ZH = {
   "Your Account": "您的账户", "Set up your profile": "设置您的个人资料",
   "Synced": "已同步", "Local only": "仅本地",
   "Your identity, and how this app is set up for you.": "您的身份信息，以及本应用为您所做的设置。",
-  "Currency, appearance and data.": "货币、外观与数据。",
+  "Currency, preferences and data.": "货币、偏好设置与数据。",
   "Name, email & cloud sync": "姓名、邮箱与云同步",
   "Collapse": "收起", "Collapse sidebar": "收起侧边栏", "Expand sidebar": "展开侧边栏",
   "Change photo": "更换照片", "Remove photo": "移除照片", "Upload photo": "上传照片",
@@ -1684,11 +1684,12 @@ function panel(title, body, extra = "") {
   return `<section class="panel"><div class="panel-head"><h2>${title}</h2>${extra}</div>${body}</section>`;
 }
 
-/* Neutral explanatory notice (not a warning) — the same brand-tinted card +
- * circle-i marker already used for decorative info icons in warn-card/info-card
- * lists (HOW_ICON_SVG), so every "info" callout in the app reads as one visual language. */
-function infoNote(text, opts = {}) {
-  return `<p class="info-card"${opts.style ? ` style="${opts.style}"` : ""}><span class="w-ico">${HOW_ICON_SVG}</span><span class="w-body">${text}</span></p>`;
+/* Small hover/tap info icon — the app's one standard tooltip affordance
+ * (.col-info + COL_INFO_ICON_SVG, delegated once in mountColInfoTaps()), used
+ * everywhere else a hint explains something without taking permanent space.
+ * Meant to be appended right after a heading/label, e.g. panel(`${t("X")}${infoTip(...)}`, ...). */
+function infoTip(text) {
+  return ` <span class="col-info" data-tip="${esc(text)}">${COL_INFO_ICON_SVG}</span>`;
 }
 
 function emptyState(msg) {
@@ -4838,31 +4839,14 @@ function pageSettings() {
       <div class="mini-card"><div class="mc-label">${t("Transactions")}</div><div class="mc-value">${ALL_TRANSACTIONS.length}</div></div>
     </div>
 
-    ${panel(t("Appearance"), `
-      <p class="muted" style="margin:-4px 0 14px">${t("Choose your theme. Dark mode uses a true-black background; light mode is the default design.")}</p>
-      <div class="theme-options" id="themeOptions">
-        <button class="theme-card" data-theme-choice="light">
-          <span class="tc-swatch light"><span></span><span></span><span></span></span>
-          <span class="tc-label">${t("Light")} <span class="tc-check">✓</span></span>
-          <span class="sub">${t("Default design")}</span></button>
-        <button class="theme-card" data-theme-choice="dark">
-          <span class="tc-swatch dark"><span></span><span></span><span></span></span>
-          <span class="tc-label">${t("Dark")} <span class="tc-check">✓</span></span>
-          <span class="sub">${t("True black")}</span></button>
-      </div>
-      <div class="setting-rows" style="margin-top:18px">
-        ${settingRow(t("Language"), `<div style="width:200px">${styledSelect("lang", [{ value: "en", label: "English" }, { value: "zh", label: "中文" }], LANG, { id: "langSel" })}</div>`)}
-      </div>`)}
-
-    ${panel(t("Currency & Exchange Rates"), `<div class="setting-rows">
+    ${panel(`${t("Currency & Exchange Rates")}${infoTip(`${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}`)}`, `<div class="setting-rows">
       ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
       </div>
-      ${infoNote(`${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}`, { style: "margin:14px 0" })}
-      ${table([
+      <div style="margin-top:14px">${table([
         { label: t("Currency"), style: "width:30%;text-align:left" },
         { label: t("Rate"), style: "width:50%;text-align:left" },
         { label: "", style: "width:20%;text-align:left" },
-      ], fxRows())}
+      ], fxRows())}</div>
       <div class="fx-add" style="margin-top:14px">
         <input list="ccyList" id="newCcy" class="fx-input" placeholder="${t("Currency code")} (e.g. JPY)" maxlength="3" autocomplete="off" />
         <datalist id="ccyList">${[...new Set(COMMON_CCY)].map((c) => `<option value="${c}"></option>`).join("")}</datalist>
@@ -4874,7 +4858,7 @@ function pageSettings() {
         <span class="muted fx-status" id="fxStatus">${FX_STATUS}</span>
       </div>`)}
 
-    ${panel(t("Preferences"), `<div class="setting-rows">
+    ${panel(`${t("Preferences")}${infoTip(t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update."))}`, `<div class="setting-rows">
       ${settingRow(t("Date format"), `<div style="width:200px">${styledSelect("dateFmt", DATE_FORMATS.map((f) => ({ value: f.k, label: f.label })), SETTINGS.dateFormat, { id: "dateFmt" })}</div>`)}
       ${settingRow(t("Time zone"), `<div style="width:200px">${styledSelect("tzSel", [{ value: "", label: t("Device local") }, ...TIME_ZONES.map((z) => ({ value: z, label: z }))], SETTINGS.timeZone || "", { id: "tzSel" })}</div>`)}
       ${settingRow(t("Default return view"), `<div style="width:200px">${styledSelect("returnMode", [
@@ -4884,16 +4868,13 @@ function pageSettings() {
       ${settingRow(t("Cost basis method"), `<div style="width:200px">${styledSelect("costBasis", [{ value: "average", label: t("Average Cost") }], "average", { id: "costBasis" })}</div>`)}
       ${settingRow(t("Show reconciliation on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
       ${settingRow(t("Show Ex-Dividend Screener on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
-      </div>
-      ${infoNote(t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update."), { style: "margin-top:14px" })}`)}
+      </div>`)}
 
-    ${panel(t("Data & Backup"), `
-      ${infoNote(
-        (typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER)
-          ? t("Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.")
-          : t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly."),
-        { style: "margin:0 0 14px" }
-      )}
+    ${(() => {
+      const dataTip = (typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER)
+        ? t("Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.")
+        : t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.");
+      return panel(`${t("Data & Backup")}${infoTip(dataTip)}`, `
       <div class="form-actions">
         <button class="btn primary" id="expJson">⭳ ${t("Export full backup (JSON)")}</button>
         <button class="btn" id="impJsonBtn">⭱ ${t("Import backup (JSON)")}</button>
@@ -4921,7 +4902,8 @@ function pageSettings() {
         <div class="form-actions">
           <button class="btn ghost small" id="loadDemo">${t("Load demo data")}</button>
         </div>
-      </div>`)}
+      </div>`);
+    })()}
 
     <details class="panel addhold" id="importHoldings"${decodeURIComponent((location.hash.split("/")[2] || "")) === "holdings" ? " open" : ""}>
       <summary><span class="addhold-head"><span class="addhold-title">${t("Import existing holdings")}</span><span class="addhold-sub">${t("Positions you held before tracking — click to open")}</span></span></summary>
@@ -4938,24 +4920,14 @@ function pageSettings() {
         <button class="btn ghost small" id="clearPvHistory">${t("Clear chart history")}</button>
       </div>`)}`;
 
-  return { title: "Settings", subtitle: "Currency, appearance and data.", html,
+  return { title: "Settings", subtitle: "Currency, preferences and data.", html,
     mount() {
-      reflectThemeChoice();
-      $$("#themeOptions .theme-card").forEach((btn) => {
-        btn.addEventListener("click", () => { setTheme(btn.dataset.themeChoice); reflectThemeChoice(); toast(btn.dataset.themeChoice === "dark" ? t("Dark theme applied") : t("Light theme applied")); });
-      });
       mountOpeningHoldingForm();   // "Import existing holdings" form
       // Deep-linked from the Portfolio empty state → reveal + scroll to the import section.
       if (decodeURIComponent((location.hash.split("/")[2] || "")) === "holdings") {
         const ih = $("#importHoldings");
         if (ih) setTimeout(() => ih.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
       }
-      // Language — same setLang + applyStaticI18n + updateLangBtn + render sequence as the
-      // topbar's quick-toggle button, just as an explicit dropdown here (same duplication
-      // pattern as Appearance/theme, which also has both a topbar toggle and a Settings panel).
-      $("#langSel").addEventListener("change", (e) => {
-        setLang(e.target.value); applyStaticI18n(); updateLangBtn(); render();
-      });
       // Change base currency — re-base every stored rate so values stay correct
       $("#baseCcy").addEventListener("change", (e) => {
         const nb = e.target.value;
@@ -5143,10 +5115,6 @@ function mountFxControls() {
 }
 function settingRow(label, value) {
   return `<div class="setting-row"><span class="sr-label">${label}</span><span class="sr-value">${value}</span></div>`;
-}
-function reflectThemeChoice() {
-  const cur = document.documentElement.getAttribute("data-theme");
-  $$("#themeOptions .theme-card").forEach((b) => b.classList.toggle("selected", b.dataset.themeChoice === cur));
 }
 
 /* =============================================================================
@@ -6472,7 +6440,6 @@ function init() {
   $("#themeBtn").addEventListener("click", () => {
     const cur = document.documentElement.getAttribute("data-theme");
     setTheme(cur === "dark" ? "light" : "dark");
-    if (currentPageKey() === "settings") reflectThemeChoice();
   });
   $("#exportBtn").addEventListener("click", exportCashCSV);
   $("#modalClose").addEventListener("click", closeModal);

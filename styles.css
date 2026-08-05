@@ -81,14 +81,6 @@ a { color: inherit; text-decoration: none; }
 .link { color: var(--brand-ink); font-weight: 650; font-size: 13px; }
 .link:hover { text-decoration: underline; }
 
-/* Visually hidden but still announced by screen readers — used where the
-   visible UI has replaced text with an icon/brand mark but the semantic
-   heading should still exist for assistive tech. */
-.sr-only {
-  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
-}
-
 /* ===================== Layout ===================== */
 .app { display: flex; min-height: 100vh; }
 
@@ -116,7 +108,8 @@ a { color: inherit; text-decoration: none; }
 .sidebar.collapsed .acct-switch,
 .sidebar.collapsed .nav-item,
 .sidebar.collapsed .sidebar-toggle { justify-content: center; }
-.sidebar.collapsed #sidebarBasePill { display: none; }
+.sidebar.collapsed #sidebarBasePill,
+.sidebar.collapsed #sidebarBrandSig { display: none; }
 .sidebar.collapsed .sidebar-toggle .icon { transform: rotate(180deg); }
 .brand-mark {
   width: 34px; height: 34px; border-radius: 9px;
@@ -140,6 +133,17 @@ a { color: inherit; text-decoration: none; }
 .acct-name { font-weight: 700; font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acct-sub { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acct-chev { flex: none; color: var(--muted); font-size: 17px; font-family: var(--icon-font); }
+
+/* Small, quiet brand signature at the foot of the sidebar. */
+.brand-sig {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 8px 10px; color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .2px;
+}
+.brand-mark-sm {
+  width: 16px; height: 16px; border-radius: 5px; flex: none;
+  background: linear-gradient(135deg, #6d5efc, #4a3ed9);
+  display: grid; place-items: center; color: #fff; font-size: 9px; font-weight: 800;
+}
 
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .nav-item {
@@ -184,12 +188,6 @@ a { color: inherit; text-decoration: none; }
 }
 .topbar-title h1 { font-size: 19px; }
 .topbar-title p { margin: 2px 0 0; font-size: 12.5px; }
-/* The topbar shows brand identity, not the page name — which page you're on
-   reads from the highlighted sidebar item instead. #pageTitle/#pageSubtitle
-   stay in the DOM (see .sr-only) so render() and screen readers still get them. */
-.topbar-brand { display: flex; align-items: center; gap: 10px; }
-.topbar-brand .brand-mark { width: 30px; height: 30px; border-radius: 8px; font-size: 12px; }
-.topbar-brand .brand-name { font-weight: 700; font-size: 16px; }
 .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
 .content { padding: 22px 26px 90px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1320px; margin: 0 auto; align-self: center; }
@@ -1066,25 +1064,6 @@ input[type="date"] { cursor: pointer; }
 .fx-add #newRate { width: 150px; }
 .fx-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
 .fx-status { font-size: 12px; }
-
-.theme-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,150px)); gap: 10px; }
-.theme-card {
-  text-align: left; cursor: pointer; font-family: inherit;
-  background: var(--surface-2); border: 2px solid var(--border);
-  border-radius: var(--radius-sm); padding: 9px; display: flex; flex-direction: column; gap: 5px;
-  transition: border-color .12s, transform .05s;
-}
-.theme-card:hover { transform: translateY(-1px); }
-.theme-card.selected { border-color: var(--brand); }
-.theme-card .tc-label { font-weight: 700; font-size: 12.5px; color: var(--text); display: flex; align-items: center; gap: 5px; }
-.theme-card .tc-check { color: var(--brand); opacity: 0; }
-.theme-card.selected .tc-check { opacity: 1; }
-.tc-swatch { display: flex; gap: 4px; padding: 7px; border-radius: 8px; border: 1px solid var(--border); }
-.tc-swatch span { width: 100%; height: 15px; border-radius: 4px; }
-.tc-swatch.light { background: #f4f6fb; }
-.tc-swatch.light span:nth-child(1){ background:#ffffff;border:1px solid #e4e8f0 } .tc-swatch.light span:nth-child(2){ background:#5b54e8 } .tc-swatch.light span:nth-child(3){ background:#0f9d6b }
-.tc-swatch.dark { background: #000; }
-.tc-swatch.dark span:nth-child(1){ background:#0c0c0e;border:1px solid #242427 } .tc-swatch.dark span:nth-child(2){ background:#8b80ff } .tc-swatch.dark span:nth-child(3){ background:#2bd18a }
 
 /* ---- Help ---- */
 .help-list { display: flex; flex-direction: column; gap: 10px; }
