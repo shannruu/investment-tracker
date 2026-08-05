@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Divz" />
-  <link rel="stylesheet" href="styles.css?v=286" />
+  <link rel="stylesheet" href="styles.css?v=287" />
 </head>
 <body>
 
@@ -38,6 +38,7 @@
     <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4.2" y1="4.2" x2="5.9" y2="5.9"/><line x1="18.1" y1="18.1" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="5.9" y2="18.1"/><line x1="18.1" y1="5.9" x2="19.8" y2="4.2"/></g></symbol>
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.5a8.5 8.5 0 1 1-9-13 7 7 0 0 0 9 13z" fill="currentColor" stroke="none"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 15 18 9z"/><path d="M10.5 20.5a1.7 1.7 0 0 0 3 0"/></symbol>
   </svg>
 
   <div class="app">
@@ -88,9 +89,18 @@
         </div>
         <div class="topbar-actions">
           <a class="btn primary" href="#/add" id="topAddBtn"><span class="btn-ico">＋</span><span data-i18n="Add">Add</span></a>
-          <button class="btn ghost" id="exportBtn"><span class="btn-ico">⭳</span><span data-i18n="Export CSV">Export CSV</span></button>
           <button class="btn ghost" id="langBtn" title="切换语言 / Switch language">EN / 中文</button>
           <button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle dark / light"><svg class="icon"><use id="themeBtnUse" href="#i-sun"/></svg></button>
+          <div class="notif-wrap">
+            <button class="icon-btn" id="notifBtn" aria-haspopup="true" aria-expanded="false" aria-label="Notifications" title="Notifications">
+              <svg class="icon"><use href="#i-bell"/></svg>
+              <span class="notif-badge" id="notifBadge" hidden>0</span>
+            </button>
+            <div class="notif-pop" id="notifPop" hidden>
+              <div class="notif-head"><strong data-i18n="Notifications">Notifications</strong></div>
+              <div class="notif-body" id="notifBody"></div>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -183,9 +193,9 @@
     </div>
   </div>
 
-  <script type="module" src="supabase-client.js?v=286"></script>
-  <script src="data.js?v=286"></script>
-  <script src="app.js?v=286"></script>
-  <script src="sync.js?v=286"></script>
+  <script type="module" src="supabase-client.js?v=287"></script>
+  <script src="data.js?v=287"></script>
+  <script src="app.js?v=287"></script>
+  <script src="sync.js?v=287"></script>
 </body>
 </html>

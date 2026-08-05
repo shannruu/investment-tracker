@@ -55,6 +55,10 @@ const COL_INFO_ICON_SVG = `<svg viewBox="0 0 24 24" width="11" height="11" fill=
  * its own inline style and placement. */
 const CLOCK_ICON_SVG = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
 const SAVED_ICON_SVG = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="8 12.5 10.5 15 16 9"/></svg>`;
+/* The one warning-triangle icon, reused anywhere something needs attention but
+ * isn't a full-page error (a low-cash flag, a negative-balance pill, an alert
+ * in the notification list) — sized/colored by whatever wraps it via currentColor. */
+const WARN_TRIANGLE_ICON_SVG = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`;
 const metaNote = (svg, text) => `<span class="meta-note">${svg}<span>${text}</span></span>`;
 
 const fmt = (n, opts = {}) => {
@@ -124,6 +128,8 @@ const ZH = {
   "Your Account": "您的账户", "Set up your profile": "设置您的个人资料",
   "Synced": "已同步", "Local only": "仅本地",
   "Your identity, and how this app is set up for you.": "您的身份信息，以及本应用为您所做的设置。",
+  "Notifications": "通知", "Announcements": "公告", "Alerts": "提醒",
+  "You're all caught up.": "暂无新通知。",
   "Currency, preferences and data.": "货币、偏好设置与数据。",
   "Name, email & cloud sync": "姓名、邮箱与云同步",
   "Collapse": "收起", "Collapse sidebar": "收起侧边栏", "Expand sidebar": "展开侧边栏",
@@ -952,7 +958,8 @@ function computeTotals() {
   return { totalDeposits, totalWithdrawals, netCapitalInvested, portfolioValue,
     netDividends, totalInterest, unrealizedPL, realizedPL, totalFees, priceUnrealizedPL, fxUnrealizedPL, priceReturn, totalReturn, totalReturnPct,
     holdings, brokerCash, brokerCashByCcy, oversells, missingPrices, negativeCash, xirr: xirrValue, totalCash,
-    depositsByBroker, withdrawalsByBroker, dividendsByBroker, realizedByBroker, unrealizedByBroker, totalReturnByBroker };
+    depositsByBroker, withdrawalsByBroker, dividendsByBroker, realizedByBroker, unrealizedByBroker, totalReturnByBroker,
+    interestByBroker, feesByBroker };
 }
 
 /* Shares actually held in a ticker+broker lot as of a given date — replays the opening
@@ -2316,7 +2323,7 @@ function pageDashboard() {
       </div>
     </article>
     <article class="stat" data-card="cash" tabindex="0" role="button" aria-label="${t("Available Cash")}, show calculation">
-      ${statHead(`${t("Available Cash")}${cashLow ? ' <svg class="warn-ico" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--warn);vertical-align:middle;margin-left:3px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' : ""}`, howHint)}
+      ${statHead(`${t("Available Cash")}${cashLow ? `<span style="color:var(--warn);vertical-align:middle;margin-left:3px;display:inline-flex">${WARN_TRIANGLE_ICON_SVG}</span>` : ""}`, howHint)}
       <div class="stat-value${cashLow ? " warn-val" : ""}">${money(T.totalCash || 0)}</div>
       <div class="stat-sub${cashLow ? " warn-val" : " muted"}">${t("Across all brokers")}</div>
     </article>
@@ -2339,7 +2346,6 @@ function pageDashboard() {
   const html = `
     ${isEmpty ? onboardingHTML() : ""}
     ${metrics}
-    <section class="warn-wrap">${warningsHTML(dashFc)}</section>
     <section class="grid-2 dash-charts">
       ${(() => {
         const hasTxn = ALL_TRANSACTIONS.some((x) => x.type === "Buy" || x.type === "Deposit") || HOLDINGS.length > 0;
@@ -2457,7 +2463,11 @@ function onboardingHTML() {
     <p class="muted" style="margin:8px 0 0;font-size:12.5px">${done} / ${steps.length} ${t("steps done")}</p>`);
 }
 
-function warningsHTML(dashFc) {
+/* Data-driven alerts (reconciliation issues, stale prices/FX, oversells, dividend
+ * cut/suspension) — shown in the notification bell (every page) instead of a fixed
+ * spot on one page. Self-contained: computes its own dividend forecast rather than
+ * requiring a caller to pass one in, since it now needs to run from the global topbar. */
+function systemAlertItems() {
   const items = [];
   // Reconciliation differences beyond tolerance
   Object.keys(RECON_CHECKS).forEach((bid) => {
@@ -2479,15 +2489,16 @@ function warningsHTML(dashFc) {
   // Stale FX
   if (FX.updated && daysSince(FX.updated) > 30) items.push({ level: "warn", html: `${t("Exchange rates were last updated")} ${daysSince(FX.updated)} ${t("days ago — refresh them in Settings.")}` });
   // Dividend cut/suspension detected in the forecast pattern
-  if (dashFc && dashFc.tickerInfo) {
-    const alerted = Object.entries(dashFc.tickerInfo).filter(([, info]) => info.alert);
+  const upcoming = allUpcomingDivs();
+  const fc = dividendForecast(ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status !== "Expected"), upcoming);
+  if (fc && fc.tickerInfo) {
+    const alerted = Object.entries(fc.tickerInfo).filter(([, info]) => info.alert);
     const suspended = alerted.filter(([, info]) => info.alert === "suspended").map(([tk]) => tk);
     const cut = alerted.filter(([, info]) => info.alert === "cut").map(([tk]) => tk);
     if (suspended.length) items.push({ level: "warn", html: `${t("Dividend appears suspended for")}: ${suspended.join(", ")} — ${t("no payment near its usual schedule; see the Dividends page.")}` });
     if (cut.length) items.push({ level: "warn", html: `${t("Dividend cut detected for")}: ${cut.join(", ")} — ${t("the forecast has been adjusted down; see the Dividends page.")}` });
   }
-  return items.map((it) => `<div class="warn-card ${it.level === "crit" ? "crit" : ""}">
-    <span class="w-ico">${it.level === "crit" ? "⚠️" : HOW_ICON_SVG}</span><div class="w-body">${it.html}</div></div>`).join("");
+  return items;
 }
 
 /* =============================================================================
@@ -4561,10 +4572,26 @@ let showArchivedBrokers = false;     // P1.6
 
 let _brokerMenuCloseHandler = null;
 
+/* Same breakdown shape/formula as totalReturnByBroker itself — click-to-see-calculation,
+ * same pattern as the Dashboard's stat cards (showCalc()). */
+function brokerReturnCalc(b) {
+  const unrealized = T.unrealizedByBroker[b.id] || 0;
+  const realized = T.realizedByBroker[b.id] || 0;
+  const dividends = T.dividendsByBroker[b.id] || 0;
+  const interest = T.interestByBroker[b.id] || 0;
+  const fees = T.feesByBroker[b.id] || 0;
+  return { title: "Total Return", rows: [
+    { op: "+", label: "Unrealized P/L", val: moneySigned(unrealized) },
+    { op: "+", label: "Realized P/L", val: moneySigned(realized) },
+    { op: "+", label: "Net Dividends", val: moneySigned(dividends) },
+    ...(interest ? [{ op: "+", label: "Interest Received", val: moneySigned(interest) }] : []),
+    { op: "−", label: "Total Fees", val: fmt(fees) },
+  ], total: T.totalReturnByBroker[b.id] || 0 };
+}
+
 function brokerCard(b) {
   const holdings = T.holdings.filter((h) => h.brokerId === b.id);
   const value = holdings.reduce((s, h) => s + h.marketValue, 0);
-  const costBasis = holdings.reduce((s, h) => s + h.costBasis, 0);
   const calc = T.brokerCash[b.id] || 0;
   const chk = RECON_CHECKS[b.id];
   const hasActual = chk && chk.actual != null;
@@ -4583,8 +4610,8 @@ function brokerCard(b) {
   const negTip = negBalances.map((n) =>
     `${ccyLabel(n.currency)} ${t("balance is negative")} (${ccyLabel(n.currency)} ${fmt(Math.abs(n.amount))}) — ${t("a buy, fee, or withdrawal has no matching")} ${ccyLabel(n.currency)} ${t("deposit. Record one to balance this.")}`
   ).join(" ");
-  const negLabel = LANG === "zh" ? `⚠ ${negBalances.length}个问题` : `⚠ ${negBalances.length} ${negBalances.length === 1 ? "issue" : "issues"}`;
-  const negPill = negBalances.length ? ` <span class="col-info warn-pill" data-tip="${esc(negTip)}">${negLabel}</span>` : "";
+  const negLabel = LANG === "zh" ? `${negBalances.length}个问题` : `${negBalances.length} ${negBalances.length === 1 ? "issue" : "issues"}`;
+  const negPill = negBalances.length ? ` <span class="col-info warn-pill" data-tip="${esc(negTip)}">${WARN_TRIANGLE_ICON_SVG}${negLabel}</span>` : "";
 
   // How this broker has performed, not just where it stands right now:
   // money in/out, current value, gain/loss, income — the full story per broker.
@@ -4592,7 +4619,6 @@ function brokerCard(b) {
   const withdrawals = T.withdrawalsByBroker[b.id] || 0;
   const unrealized = T.unrealizedByBroker[b.id] || 0;
   const totalReturn = T.totalReturnByBroker[b.id] || 0;
-  const totalReturnPct = costBasis ? (totalReturn / costBasis) * 100 : 0;
   const dividends = T.dividendsByBroker[b.id] || 0;
   const holdingsLabel = LANG === "zh" ? `${holdings.length} 个持仓` : plural(holdings.length, "holding", "holdings");
 
@@ -4611,9 +4637,9 @@ function brokerCard(b) {
 
       <div class="bc-hero">
         <div><span class="bc-hero-label">${t("Market Value")}</span><span class="bc-hero-value">${money(value)}</span></div>
-        <div class="bc-hero-return ${cls(totalReturn)}">
+        <div class="bc-hero-return ${cls(totalReturn)}" data-broker-return="${b.id}" tabindex="0" role="button" aria-label="${t("Total Return")}, show calculation">
           <span class="bc-hero-return-amt">${moneySigned(totalReturn)}</span>
-          <span class="bc-hero-return-pct">${costBasis ? `${pctTxt(totalReturnPct)} ` : ""}${t("Total Return")}</span>
+          <span class="bc-hero-return-pct">${t("Total Return")} ${HOW_ICON_SVG}</span>
         </div>
       </div>
 
@@ -4704,6 +4730,14 @@ function pageBrokers() {
         if (editingBrokerId === id) editingBrokerId = null;
         saveStore(); toast(t("Broker removed")); render();
       }));
+      $$("[data-broker-return]").forEach((el) => {
+        const open = () => {
+          const b = BROKERS.find((x) => x.id === el.dataset.brokerReturn);
+          if (b) showCalc(brokerReturnCalc(b));
+        };
+        el.addEventListener("click", open);
+        el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+      });
       mountBrokerCashPanels();
     } };
 }
@@ -6369,6 +6403,69 @@ function handleAvatarFile(file) {
   reader.readAsDataURL(file);
 }
 
+/* =============================================================================
+ * NOTIFICATION BELL — developer announcements (DEV_NOTICES, data.js) + live
+ * system alerts (systemAlertItems()), in one popover instead of a separate page.
+ * ========================================================================== */
+function getSeenNoticeIds() {
+  try { return new Set(JSON.parse(localStorage.getItem("il-notif-seen") || "[]")); } catch (e) { return new Set(); }
+}
+function markDevNoticesSeen() {
+  try { localStorage.setItem("il-notif-seen", JSON.stringify(DEV_NOTICES.map((n) => n.id))); } catch (e) {}
+}
+
+function notifBodyHTML(alerts) {
+  const devHTML = DEV_NOTICES.slice().reverse().map((n) => `
+    <div class="notif-item">
+      <span class="notif-item-ico">${HOW_ICON_SVG}</span>
+      <div class="w-body">
+        <div class="notif-item-title">${esc(n.title)}</div>
+        <div>${esc(n.body)}</div>
+        <div class="notif-item-date muted">${fmtDate(n.date)}</div>
+      </div>
+    </div>`).join("");
+  const alertsHTML = alerts.map((it) => `
+    <div class="notif-item ${it.level === "crit" ? "crit" : ""}">
+      <span class="notif-item-ico">${it.level === "crit" ? WARN_TRIANGLE_ICON_SVG : HOW_ICON_SVG}</span>
+      <div class="w-body">${it.html}</div>
+    </div>`).join("");
+
+  const sections = [];
+  if (devHTML) sections.push(`<div class="notif-section"><div class="notif-section-title">${t("Announcements")}</div>${devHTML}</div>`);
+  if (alertsHTML) sections.push(`<div class="notif-section"><div class="notif-section-title">${t("Alerts")}</div>${alertsHTML}</div>`);
+  if (!sections.length) return `<div class="notif-empty muted">${t("You're all caught up.")}</div>`;
+  return sections.join("");
+}
+
+function renderNotifications() {
+  const body = $("#notifBody"), badge = $("#notifBadge");
+  if (!body || !badge) return;
+  const alerts = systemAlertItems();
+  body.innerHTML = notifBodyHTML(alerts);
+  const seen = getSeenNoticeIds();
+  const unseenDevCount = DEV_NOTICES.filter((n) => !seen.has(n.id)).length;
+  const total = unseenDevCount + alerts.length;
+  badge.textContent = total > 9 ? "9+" : String(total);
+  badge.hidden = total === 0;
+}
+
+/* Mounted once at bootstrap (this bell lives in the topbar, outside the
+ * per-page render() cycle) — same delegated-listener shape as mountColInfoTaps(). */
+function mountNotifBell() {
+  const btn = $("#notifBtn"), pop = $("#notifPop");
+  if (!btn || !pop) return;
+  const close = () => { pop.hidden = true; btn.setAttribute("aria-expanded", "false"); };
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const willOpen = pop.hidden;
+    pop.hidden = !pop.hidden;
+    btn.setAttribute("aria-expanded", String(willOpen));
+    if (willOpen) { markDevNoticesSeen(); renderNotifications(); }
+  });
+  document.addEventListener("click", (e) => { if (!pop.hidden && !e.target.closest(".notif-wrap")) close(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !pop.hidden) close(); });
+}
+
 function render() {
   const key = currentPageKey();
   const isNavigation = location.hash !== lastRenderedHash;
@@ -6404,6 +6501,7 @@ function render() {
   const mb = $("#moreBtn"); if (mb) mb.classList.toggle("active", secondary.includes(key));
   closeMoreSheet();
   renderSidebarAccount();
+  renderNotifications();
 }
 
 /* =============================================================================
@@ -6430,6 +6528,7 @@ function init() {
   $("#sidebarToggle").addEventListener("click", () => {
     setSidebarCollapsed(!document.getElementById("sidebar").classList.contains("collapsed"));
   });
+  mountNotifBell();
 
   $("#langBtn").addEventListener("click", () => {
     setLang(LANG === "en" ? "zh" : "en");
@@ -6442,7 +6541,6 @@ function init() {
     const cur = document.documentElement.getAttribute("data-theme");
     setTheme(cur === "dark" ? "light" : "dark");
   });
-  $("#exportBtn").addEventListener("click", exportCashCSV);
   $("#modalClose").addEventListener("click", closeModal);
   const saveErrDismiss = $("#saveErrorDismiss");
   if (saveErrDismiss) saveErrDismiss.addEventListener("click", hideSaveError);

@@ -106,5 +106,15 @@ const SETTINGS = {
  * "Portfolio Value Over Time" chart (market value, not cost). */
 const PV_HISTORY = [];
 
+/* Announcements shown in the notification bell (top right) — this is how YOU,
+ * the developer, message yourself: add an entry here and redeploy whenever you
+ * want a note to show up (e.g. "New feature: X", "Heads up: Y changed"). Not
+ * user data — lives in code, not localStorage, so it's the same for every
+ * device until you ship a change. `id` must be unique and stable (once a
+ * notice has an id, don't reuse that id for something else) — it's how the
+ * app remembers which notices you've already seen.
+ * Example: { id: "2026-08-05-welcome", date: "2026-08-05", title: "Welcome to Divz", body: "Thanks for using the app!" } */
+const DEV_NOTICES = [];
+
 /* When the data was last saved on this device (ISO string). */
 let LAST_SAVED = "";
