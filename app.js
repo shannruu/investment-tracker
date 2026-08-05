@@ -124,7 +124,7 @@ const ZH = {
   "Profit / Loss by Holding": "按持仓盈亏", "Profit / Loss by Broker": "按券商盈亏",
   "Dividend Income by Year": "按年度股息收入",
   "Currency Gain / Loss": "汇率盈亏", "Export": "导出", "Add Broker": "添加券商", "Your Brokers": "您的券商",
-  "Profile": "个人资料", "Appearance": "外观", "Base Currency": "基准货币",
+  "Profile": "个人资料", "Overview": "概览", "Appearance": "外观", "Base Currency": "基准货币",
   "Your Account": "您的账户", "Set up your profile": "设置您的个人资料",
   "Synced": "已同步", "Local only": "仅本地",
   "Your identity, and how this app is set up for you.": "您的身份信息，以及本应用为您所做的设置。",
@@ -1694,10 +1694,11 @@ function panel(title, body, extra = "") {
 /* Small hover/tap info icon — the app's one standard tooltip affordance
  * (.col-info + COL_INFO_ICON_SVG, delegated once in mountColInfoTaps()), used
  * everywhere else a hint explains something without taking permanent space.
- * Pass as panel()'s 3rd (extra) argument — .panel-head floats it flush right
- * of the title, exactly like the Dashboard's stat-head label+icon layout. */
+ * Append directly to a panel's title string, e.g. panel(`${t("X")}${infoTip(...)}`,
+ * ...) — same spot + spacing as the Broker Cash Reconciliation panel's own hint,
+ * not flush right against the panel edge. */
 function infoTip(text) {
-  return `<span class="col-info" data-tip="${esc(text)}">${COL_INFO_ICON_SVG}</span>`;
+  return `<span class="col-info tip-down" style="margin-left:10px" data-tip="${esc(text)}">${COL_INFO_ICON_SVG}</span>`;
 }
 
 function emptyState(msg) {
@@ -2476,18 +2477,18 @@ function systemAlertItems() {
     const calc = T.brokerCash[bid] || 0;
     const diff = calc - (+chk.actual);
     if (Math.abs(diff) > (SETTINGS.reconTolerance || 0)) {
-      items.push({ level: "crit", html: `<strong>${t("Cash difference")} — ${esc(brokerName(bid))}.</strong> ${t("Calculated")} ${money(calc)} ${t("vs actual")} ${money(+chk.actual)} (${t("difference")} ${money(Math.abs(diff))}). ${t("Check for a missing fee, dividend or transfer.")}` });
+      items.push({ level: "crit", href: "#/brokers", html: `<strong>${t("Cash difference")} — ${esc(brokerName(bid))}.</strong> ${t("Calculated")} ${money(calc)} ${t("vs actual")} ${money(+chk.actual)} (${t("difference")} ${money(Math.abs(diff))}). ${t("Check for a missing fee, dividend or transfer.")}` });
     }
   });
   // Missing current prices
-  if (T.missingPrices > 0) items.push({ level: "warn", html: `${T.missingPrices} ${t("holding(s) have no current price set — portfolio value uses cost as a placeholder.")}` });
+  if (T.missingPrices > 0) items.push({ level: "warn", href: "#/portfolio", html: `${T.missingPrices} ${t("holding(s) have no current price set — portfolio value uses cost as a placeholder.")}` });
   // Stale live prices (fetched > 2 days ago)
   const staleLive = T.holdings.filter((h) => h.priceSource === "live" && daysSince(h.priceFetchedAt) > 2);
-  if (staleLive.length) items.push({ level: "warn", html: `${t("Live prices are over 2 days old for")} ${staleLive.map((h) => h.ticker).join(", ")} — ${t("refresh them on the Portfolio page.")}` });
+  if (staleLive.length) items.push({ level: "warn", href: "#/portfolio", html: `${t("Live prices are over 2 days old for")} ${staleLive.map((h) => h.ticker).join(", ")} — ${t("refresh them on the Portfolio page.")}` });
   // Oversell flags
-  if (T.oversells && T.oversells.length) items.push({ level: "crit", html: `${t("A sell exceeds shares held for")}: ${[...new Set(T.oversells.map((o) => o.ticker))].join(", ")}. ${t("Use the oversell override if intentional.")}` });
+  if (T.oversells && T.oversells.length) items.push({ level: "crit", href: "#/records", html: `${t("A sell exceeds shares held for")}: ${[...new Set(T.oversells.map((o) => o.ticker))].join(", ")}. ${t("Use the oversell override if intentional.")}` });
   // Stale FX
-  if (FX.updated && daysSince(FX.updated) > 30) items.push({ level: "warn", html: `${t("Exchange rates were last updated")} ${daysSince(FX.updated)} ${t("days ago — refresh them in Settings.")}` });
+  if (FX.updated && daysSince(FX.updated) > 30) items.push({ level: "warn", href: "#/settings", html: `${t("Exchange rates were last updated")} ${daysSince(FX.updated)} ${t("days ago — refresh them in Settings.")}` });
   // Dividend cut/suspension detected in the forecast pattern
   const upcoming = allUpcomingDivs();
   const fc = dividendForecast(ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status !== "Expected"), upcoming);
@@ -2495,8 +2496,8 @@ function systemAlertItems() {
     const alerted = Object.entries(fc.tickerInfo).filter(([, info]) => info.alert);
     const suspended = alerted.filter(([, info]) => info.alert === "suspended").map(([tk]) => tk);
     const cut = alerted.filter(([, info]) => info.alert === "cut").map(([tk]) => tk);
-    if (suspended.length) items.push({ level: "warn", html: `${t("Dividend appears suspended for")}: ${suspended.join(", ")} — ${t("no payment near its usual schedule; see the Dividends page.")}` });
-    if (cut.length) items.push({ level: "warn", html: `${t("Dividend cut detected for")}: ${cut.join(", ")} — ${t("the forecast has been adjusted down; see the Dividends page.")}` });
+    if (suspended.length) items.push({ level: "warn", href: "#/dividends", html: `${t("Dividend appears suspended for")}: ${suspended.join(", ")} — ${t("no payment near its usual schedule; see the Dividends page.")}` });
+    if (cut.length) items.push({ level: "warn", href: "#/dividends", html: `${t("Dividend cut detected for")}: ${cut.join(", ")} — ${t("the forecast has been adjusted down; see the Dividends page.")}` });
   }
   return items;
 }
@@ -2922,7 +2923,9 @@ function pagePortfolio() {
       const apply = () => {
         const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioTable();
         const sm = $("#pfSummary"); if (sm) sm.innerHTML = portfolioSummaryHTML();
+        mountPortfolioSummaryClicks();
       };
+      mountPortfolioSummaryClicks();
       const onFilter = (id, key) => { const el = $(id); if (el) el.addEventListener("change", (e) => { portfolioFilters[key] = e.target.value; apply(); }); };
       onFilter("#fBroker", "broker"); onFilter("#fMarket", "market"); onFilter("#fCurrency", "currency"); onFilter("#fSort", "sort");
       const fr = $("#fReset");
@@ -3072,16 +3075,44 @@ function filteredHoldings() {
 function portfolioSummaryHTML() {
   const rows = filteredHoldings();
   const mv = rows.reduce((s, h) => s + h.marketValue, 0);
+  const unrealized = rows.reduce((s, h) => s + h.unrealized, 0);
+  const totalReturn = rows.reduce((s, h) => s + h.totalReturn, 0);
+  return `<div class="mini-cards" style="margin-bottom:16px">
+    <div class="mini-card"><div class="mc-label">${t("Market Value")}</div><div class="mc-value">${money(mv)}</div></div>
+    <div class="mini-card" role="button" tabindex="0" data-card="pfUnrealized" aria-label="${t("Unrealized P/L")}, show calculation"><div class="mc-label">${t("Unrealized P/L")}</div><div class="mc-value ${cls(unrealized)}">${moneySigned(unrealized)}</div></div>
+    <div class="mini-card" role="button" tabindex="0" data-card="pfTotalReturn" aria-label="${t("Total Return")}, show calculation"><div class="mc-label">${t("Total Return")}</div><div class="mc-value ${cls(totalReturn)}">${moneySigned(totalReturn)}</div></div>
+  </div>`;
+}
+
+/* Fresh-computed at click time (not baked in at render) since #pfSummary can be
+ * regenerated by a filter change without a full page render() — percentage now
+ * lives here, in the same calc-breakdown modal as the Dashboard's stat cards,
+ * instead of a permanently-visible subtitle on the card. */
+function portfolioSummaryCalc(key) {
+  const rows = filteredHoldings();
+  const mv = rows.reduce((s, h) => s + h.marketValue, 0);
   const costBasis = rows.reduce((s, h) => s + h.costBasis, 0);
   const unrealized = rows.reduce((s, h) => s + h.unrealized, 0);
   const totalReturn = rows.reduce((s, h) => s + h.totalReturn, 0);
   const unrealizedPct = costBasis ? (unrealized / costBasis) * 100 : 0;
   const totalReturnPct = costBasis ? (totalReturn / costBasis) * 100 : 0;
-  return `<div class="mini-cards" style="margin-bottom:16px">
-    <div class="mini-card"><div class="mc-label">${t("Market Value")}</div><div class="mc-value">${money(mv)}</div></div>
-    <div class="mini-card"><div class="mc-label">${t("Unrealized P/L")}</div><div class="mc-value ${cls(unrealized)}">${moneySigned(unrealized)}</div><div class="mc-sub ${cls(unrealizedPct)}">${pctTxt(unrealizedPct)}</div></div>
-    <div class="mini-card"><div class="mc-label">${t("Total Return")}</div><div class="mc-value ${cls(totalReturn)}">${moneySigned(totalReturn)}</div><div class="mc-sub ${cls(totalReturnPct)}">${pctTxt(totalReturnPct)}</div></div>
-  </div>`;
+  if (key === "pfUnrealized") {
+    return { title: "Unrealized P/L", rows: [
+      { op: "", label: "Market Value", val: money(mv) },
+      { op: "−", label: "Cost Basis", val: money(costBasis) },
+    ], total: unrealized, totalFmt: `${moneySigned(unrealized)}  ·  ${pctTxt(unrealizedPct)}` };
+  }
+  return { title: "Total Return", rows: [
+    { op: "+", label: "Unrealized P/L", val: moneySigned(unrealized) },
+    { op: "+", label: "Realized P/L, dividends & interest, minus fees", val: moneySigned(totalReturn - unrealized) },
+  ], total: totalReturn, totalFmt: `${moneySigned(totalReturn)}  ·  ${pctTxt(totalReturnPct)}` };
+}
+function mountPortfolioSummaryClicks() {
+  $$("#pfSummary [data-card]").forEach((el) => {
+    const open = () => showCalc(portfolioSummaryCalc(el.dataset.card));
+    el.addEventListener("click", open);
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+  });
 }
 
 function portfolioTable() {
@@ -4681,8 +4712,22 @@ function pageBrokers() {
   const summary = active.length ? `<div class="mini-cards" style="margin-bottom:16px">
       <div class="mini-card"><div class="mc-label">${t("Market Value")}</div><div class="mc-value">${money(totalValue)}</div></div>
       <div class="mini-card"><div class="mc-label">${t("Available Cash")}</div><div class="mc-value">${money(totalCash)}</div></div>
-      <div class="mini-card"><div class="mc-label">${t("Total Return")}</div><div class="mc-value ${cls(totalReturn)}">${moneySigned(totalReturn)}</div><div class="mc-sub ${cls(totalReturnPct)}">${pctTxt(totalReturnPct)}</div></div>
+      <div class="mini-card" role="button" tabindex="0" data-brokers-return aria-label="${t("Total Return")}, show calculation"><div class="mc-label">${t("Total Return")}</div><div class="mc-value ${cls(totalReturn)}">${moneySigned(totalReturn)}</div></div>
     </div>` : "";
+  const allBrokersReturnCalc = () => {
+    const unrealizedSum = active.reduce((s, b) => s + (T.unrealizedByBroker[b.id] || 0), 0);
+    const realizedSum = active.reduce((s, b) => s + (T.realizedByBroker[b.id] || 0), 0);
+    const divSum = active.reduce((s, b) => s + (T.dividendsByBroker[b.id] || 0), 0);
+    const intSum = active.reduce((s, b) => s + (T.interestByBroker[b.id] || 0), 0);
+    const feeSum = active.reduce((s, b) => s + (T.feesByBroker[b.id] || 0), 0);
+    return { title: "Total Return", rows: [
+      { op: "+", label: "Unrealized P/L", val: moneySigned(unrealizedSum) },
+      { op: "+", label: "Realized P/L", val: moneySigned(realizedSum) },
+      { op: "+", label: "Net Dividends", val: moneySigned(divSum) },
+      ...(intSum ? [{ op: "+", label: "Interest Received", val: moneySigned(intSum) }] : []),
+      { op: "−", label: "Total Fees", val: fmt(feeSum) },
+    ], total: totalReturn, totalFmt: `${moneySigned(totalReturn)}  ·  ${pctTxt(totalReturnPct)}` };
+  };
 
   const archToggle = archived.length
     ? `<button class="btn ghost" id="toggleArchived">${showArchivedBrokers ? t("Hide archived") : `${t("Show archived")} (${archived.length})`}</button>` : "";
@@ -4701,6 +4746,12 @@ function pageBrokers() {
       if (openBtn) openBtn.addEventListener("click", () => openBrokerDrawer());
       const emptyAddBtn = $("#emptyAddBroker");
       if (emptyAddBtn) emptyAddBtn.addEventListener("click", () => openBrokerDrawer());
+      const brokersReturnCard = $("[data-brokers-return]");
+      if (brokersReturnCard) {
+        const open = () => showCalc(allBrokersReturnCalc());
+        brokersReturnCard.addEventListener("click", open);
+        brokersReturnCard.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+      }
       const tog = $("#toggleArchived");
       if (tog) tog.addEventListener("click", () => { showArchivedBrokers = !showArchivedBrokers; render(); });
 
@@ -4815,6 +4866,12 @@ function pageProfile() {
     ? `<span class="badge ${idn.signedIn ? "pos" : "subtle"}">${idn.signedIn ? t("Synced") : t("Local only")}</span>`
     : `<span class="badge subtle">${t("Set up your profile")}</span>`;
   const html = `
+    ${panel(t("Overview"), `<div class="cash-strip" style="margin:-4px 0 -4px;padding-bottom:0;border-bottom:0">
+      <a class="cash-item" href="#/brokers"><span class="cash-k">${t("Brokers")}</span><span class="cash-v">${BROKERS.length}</span></a>
+      <a class="cash-item" href="#/portfolio"><span class="cash-k">${t("Holdings")}</span><span class="cash-v">${T.holdings.length}</span></a>
+      <a class="cash-item" href="#/records"><span class="cash-k">${t("Transactions")}</span><span class="cash-v">${ALL_TRANSACTIONS.length}</span></a>
+    </div>`)}
+
     ${panel(t("Profile"), `<form id="profileForm" class="form" autocomplete="off">
       <div class="avatar-manage-row">
         <div class="avatar-upload">
@@ -4868,32 +4925,27 @@ function pageProfile() {
  * ========================================================================== */
 function pageSettings() {
   const html = `
-    <div class="mini-cards" style="margin-bottom:16px">
-      <div class="mini-card"><div class="mc-label">${t("Brokers")}</div><div class="mc-value">${BROKERS.length}</div></div>
-      <div class="mini-card"><div class="mc-label">${t("Holdings")}</div><div class="mc-value">${T.holdings.length}</div></div>
-      <div class="mini-card"><div class="mc-label">${t("Transactions")}</div><div class="mc-value">${ALL_TRANSACTIONS.length}</div></div>
-    </div>
-
-    ${panel(t("Currency & Exchange Rates"), `<div class="setting-rows">
-      ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
+    ${panel(`${t("Currency & Exchange Rates")}${infoTip(`${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}`)}`, `
+      <div class="fx-base-row">
+        ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
       </div>
-      <div style="margin-top:14px">${table([
+      ${table([
         { label: t("Currency"), style: "width:30%;text-align:left" },
         { label: t("Rate"), style: "width:50%;text-align:left" },
         { label: "", style: "width:20%;text-align:left" },
-      ], fxRows())}</div>
-      <div class="fx-add" style="margin-top:14px">
+      ], fxRows())}
+      <div class="fx-add-row">
         <input list="ccyList" id="newCcy" class="fx-input" placeholder="${t("Currency code")} (e.g. JPY)" maxlength="3" autocomplete="off" />
         <datalist id="ccyList">${[...new Set(COMMON_CCY)].map((c) => `<option value="${c}"></option>`).join("")}</datalist>
         <input type="number" step="any" id="newRate" class="fx-input" placeholder="${t("Rate to")} ${ccyLabel(FX.base)}" />
-        <button class="btn" id="addCcyBtn">${t("Add currency")}</button>
+        <button class="btn primary" id="addCcyBtn">${t("Add currency")}</button>
       </div>
       <div class="fx-foot">
-        <button class="btn" id="refreshFx">↻ ${t("Refresh live rates")}</button>
+        <button class="btn ghost small" id="refreshFx">↻ ${t("Refresh live rates")}</button>
         <span class="muted fx-status" id="fxStatus">${FX_STATUS}</span>
-      </div>`, infoTip(`${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}`))}
+      </div>`)}
 
-    ${panel(t("Preferences"), `<div class="setting-rows">
+    ${panel(`${t("Preferences")}${infoTip(t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update."))}`, `<div class="setting-rows">
       ${settingRow(t("Date format"), `<div style="width:200px">${styledSelect("dateFmt", DATE_FORMATS.map((f) => ({ value: f.k, label: f.label })), SETTINGS.dateFormat, { id: "dateFmt" })}</div>`)}
       ${settingRow(t("Time zone"), `<div style="width:200px">${styledSelect("tzSel", [{ value: "", label: t("Device local") }, ...TIME_ZONES.map((z) => ({ value: z, label: z }))], SETTINGS.timeZone || "", { id: "tzSel" })}</div>`)}
       ${settingRow(t("Default return view"), `<div style="width:200px">${styledSelect("returnMode", [
@@ -4903,13 +4955,13 @@ function pageSettings() {
       ${settingRow(t("Cost basis method"), `<div style="width:200px">${styledSelect("costBasis", [{ value: "average", label: t("Average Cost") }], "average", { id: "costBasis" })}</div>`)}
       ${settingRow(t("Show reconciliation on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
       ${settingRow(t("Show Ex-Dividend Screener on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
-      </div>`, infoTip(t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update.")))}
+      </div>`)}
 
     ${(() => {
       const dataTip = (typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER)
         ? t("Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.")
         : t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.");
-      return panel(t("Data & Backup"), `
+      return panel(`${t("Data & Backup")}${infoTip(dataTip)}`, `
       <div class="form-actions">
         <button class="btn primary" id="expJson">⭳ ${t("Export full backup (JSON)")}</button>
         <button class="btn" id="impJsonBtn">⭱ ${t("Import backup (JSON)")}</button>
@@ -4923,7 +4975,7 @@ function pageSettings() {
       </div>
 
       <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border)">
-        <p class="muted" style="margin:0 0 12px;font-size:12.5px">${t("Bulk-add transactions (deposits, withdrawals, buys, sells, dividends) from a spreadsheet. Download the template, fill it in, then upload to preview before anything is saved.")}</p>
+        <div class="sub-head">${t("Import from CSV")}${infoTip(t("Bulk-add transactions (deposits, withdrawals, buys, sells, dividends) from a spreadsheet. Download the template, fill it in, then upload to preview before anything is saved."))}</div>
         <div class="form-actions">
           <button class="btn" id="dlTemplate">⭳ ${t("Download CSV template")}</button>
           <button class="btn primary" id="impCsvBtn">⭱ ${t("Upload CSV")}</button>
@@ -4937,7 +4989,7 @@ function pageSettings() {
         <div class="form-actions">
           <button class="btn ghost small" id="loadDemo">${t("Load demo data")}</button>
         </div>
-      </div>`, infoTip(dataTip));
+      </div>`);
     })()}
 
     <details class="panel addhold" id="importHoldings"${decodeURIComponent((location.hash.split("/")[2] || "")) === "holdings" ? " open" : ""}>
@@ -6424,11 +6476,15 @@ function notifBodyHTML(alerts) {
         <div class="notif-item-date muted">${fmtDate(n.date)}</div>
       </div>
     </div>`).join("");
-  const alertsHTML = alerts.map((it) => `
-    <div class="notif-item ${it.level === "crit" ? "crit" : ""}">
+  const alertsHTML = alerts.map((it) => {
+    const tag = it.href ? "a" : "div";
+    const hrefAttr = it.href ? ` href="${esc(it.href)}"` : "";
+    return `
+    <${tag} class="notif-item ${it.level === "crit" ? "crit" : ""}"${hrefAttr}>
       <span class="notif-item-ico">${it.level === "crit" ? WARN_TRIANGLE_ICON_SVG : HOW_ICON_SVG}</span>
       <div class="w-body">${it.html}</div>
-    </div>`).join("");
+    </${tag}>`;
+  }).join("");
 
   const sections = [];
   if (devHTML) sections.push(`<div class="notif-section"><div class="notif-section-title">${t("Announcements")}</div>${devHTML}</div>`);
@@ -6462,7 +6518,11 @@ function mountNotifBell() {
     btn.setAttribute("aria-expanded", String(willOpen));
     if (willOpen) { markDevNoticesSeen(); renderNotifications(); }
   });
-  document.addEventListener("click", (e) => { if (!pop.hidden && !e.target.closest(".notif-wrap")) close(); });
+  document.addEventListener("click", (e) => {
+    if (pop.hidden) return;
+    if (e.target.closest(".notif-item[href]")) { close(); return; }   // let the navigation happen, just tidy up
+    if (!e.target.closest(".notif-wrap")) close();
+  });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !pop.hidden) close(); });
 }
 

@@ -99,20 +99,14 @@ a { color: inherit; text-decoration: none; }
 }
 .sidebar.collapsed { width: var(--sidebar-w-collapsed); flex-basis: var(--sidebar-w-collapsed); padding-left: 10px; padding-right: 10px; }
 .sidebar.collapsed .acct-info,
-.sidebar.collapsed .acct-chev,
-.sidebar.collapsed .nav-item > span:last-child,
-.sidebar.collapsed .sidebar-brand-name {
+.sidebar.collapsed .nav-item > span:last-child {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
 }
-.sidebar.collapsed .sidebar-top,
 .sidebar.collapsed .acct-switch,
 .sidebar.collapsed .nav-item { justify-content: center; }
+.sidebar.collapsed .sidebar-top { flex-direction: column; gap: 8px; }
 .sidebar.collapsed #sidebarBasePill { display: none; }
-
-/* Top-of-sidebar row: collapse toggle + brand name, no logo mark. */
-.sidebar-top { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; padding: 0 8px; }
-.sidebar-brand-name { font-weight: 700; font-size: 15px; color: var(--text); }
 
 .brand-mark {
   width: 34px; height: 34px; border-radius: 9px;
@@ -122,11 +116,14 @@ a { color: inherit; text-decoration: none; }
   display: grid; place-items: center; letter-spacing: .5px;
 }
 
-/* Sidebar account switcher — replaces static branding as the primary top-of-sidebar
-   slot; clicking it opens Settings → Profile. */
+/* Top-of-sidebar row, Notion-style: account switcher + collapse toggle share one
+   row instead of stacked separately — clicking the switcher opens Profile,
+   clicking the icon button collapses the rail. */
+.sidebar-top { display: flex; align-items: center; gap: 4px; margin: 0 0 14px; }
+.sidebar-top .icon-btn { flex: none; }
 .acct-switch {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px; margin: 0 0 16px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+  padding: 8px; border-radius: var(--radius-sm);
   text-decoration: none; color: inherit; transition: background .12s;
 }
 .acct-switch:hover { background: var(--surface-2); }
@@ -135,7 +132,6 @@ a { color: inherit; text-decoration: none; }
 .acct-info { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
 .acct-name { font-weight: 700; font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acct-sub { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.acct-chev { flex: none; color: var(--muted); font-size: 17px; font-family: var(--icon-font); }
 
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .nav-item {
@@ -285,9 +281,13 @@ a { color: inherit; text-decoration: none; }
   padding: 16px 18px 18px;
 }
 .panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
-.panel-head h2 { font-size: 15px; }
-.panel-head .link, .panel-head .badge, .panel-head .seg, .panel-head small, .panel-head .col-info { margin-left: auto; }
+.panel-head h2 { font-size: 15px; display: flex; align-items: center; }
+.panel-head .link, .panel-head .badge, .panel-head .seg, .panel-head small { margin-left: auto; }
 .panel-head-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+/* A smaller heading for a sub-section within a panel (e.g. "Import from CSV"
+   inside Data & Backup) — same info-icon spacing convention as a panel title. */
+.sub-head { display: flex; align-items: center; font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 12px; }
 
 /* ---- Column visibility panel ---- */
 .col-panel-wrap { position: relative; }
@@ -501,6 +501,8 @@ a { color: inherit; text-decoration: none; }
 .notif-section + .notif-section { border-top: 1px solid var(--border); }
 .notif-section-title { padding: 12px 16px 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .notif-item { display: flex; gap: 10px; padding: 10px 16px; font-size: 12.5px; line-height: 1.55; }
+a.notif-item { cursor: pointer; transition: background-color .12s; }
+a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
 .notif-item-ico { flex: none; margin-top: 2px; color: var(--muted); }
 .notif-item.crit .notif-item-ico { color: var(--neg); }
 .notif-item .w-body { font-size: 12.5px; color: var(--text-soft); }
@@ -887,6 +889,12 @@ input[type="date"] { cursor: pointer; }
 .mc-label .col-info { flex: none; }
 .mc-value { font-size: 21px; font-weight: 720; margin-top: 6px; letter-spacing: -.02em; }
 .mc-sub { font-size: 11.5px; margin-top: 4px; line-height: 1.35; }
+/* A mini-card that opens a calc breakdown on click (same interaction as the
+   Dashboard's stat cards) — percentage/detail lives in the modal, not a
+   permanently-visible subtitle. */
+.mini-card[role="button"] { cursor: pointer; transition: border-color .12s, transform .08s; }
+.mini-card[role="button"]:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); }
+.mini-card[role="button"]:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 /* ---- Profile page: large circular avatar + Upload/Remove controls above the form ---- */
 .avatar-manage-row { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
@@ -1081,10 +1089,21 @@ input[type="date"] { cursor: pointer; }
 .fx-rate { width: 140px; }
 .fx-input:focus { outline: none; border-color: var(--brand); }
 .fx-del { width: 32px; height: 32px; font-size: 13px; }
-.fx-add { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 4px; }
-.fx-add #newCcy { width: 200px; text-transform: uppercase; }
-.fx-add #newRate { width: 150px; }
-.fx-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
+/* Base currency sits above the rate table as its own row, visually separated —
+   it's the one setting here, everything below is the rate list + how to grow it. */
+.fx-base-row { padding-bottom: 16px; margin-bottom: 4px; border-bottom: 1px solid var(--border); }
+/* "Add a currency" reads as a small inline form, not three loose controls —
+   dashed border + tinted surface mark it as "type here to add a row" distinctly
+   from the settled rows in the table above. */
+.fx-add-row {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+  margin: 16px 0 0; padding: 12px; border: 1px dashed var(--border);
+  border-radius: var(--radius-sm); background: var(--surface-2);
+}
+.fx-add-row .fx-input { flex: 1 1 140px; min-width: 0; background: var(--surface); }
+.fx-add-row #newCcy { text-transform: uppercase; }
+.fx-add-row .btn { flex: none; }
+.fx-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
 .fx-status { font-size: 12px; }
 
 /* ---- Help ---- */

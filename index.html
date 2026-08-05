@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Divz" />
-  <link rel="stylesheet" href="styles.css?v=287" />
+  <link rel="stylesheet" href="styles.css?v=288" />
 </head>
 <body>
 
@@ -46,20 +46,17 @@
     <!-- ===================== SIDEBAR (desktop) — 5-item primary nav ===================== -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-top">
+        <a class="acct-switch" href="#/profile" id="sidebarAccount" aria-label="Account settings">
+          <span class="brand-mark" id="sidebarAcctAvatar" aria-hidden="true"></span>
+          <span class="acct-info">
+            <span class="acct-name" id="sidebarAcctName"></span>
+            <span class="acct-sub" id="sidebarAcctSub"></span>
+          </span>
+        </a>
         <button class="icon-btn" id="sidebarToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
           <svg class="icon"><use href="#i-menu"/></svg>
         </button>
-        <span class="sidebar-brand-name" id="sidebarBrandName">Divz</span>
       </div>
-
-      <a class="acct-switch" href="#/profile" id="sidebarAccount" aria-label="Account settings">
-        <span class="brand-mark" id="sidebarAcctAvatar" aria-hidden="true"></span>
-        <span class="acct-info">
-          <span class="acct-name" id="sidebarAcctName"></span>
-          <span class="acct-sub" id="sidebarAcctSub"></span>
-        </span>
-        <span class="acct-chev" aria-hidden="true">&rsaquo;</span>
-      </a>
 
       <nav class="nav" aria-label="Primary">
         <a class="nav-item" href="#/dashboard" data-page="dashboard"><span class="ni-ico"><svg class="icon"><use href="#i-dashboard"/></svg></span><span data-i18n="Dashboard">Dashboard</span></a>
@@ -193,9 +190,9 @@
     </div>
   </div>
 
-  <script type="module" src="supabase-client.js?v=287"></script>
-  <script src="data.js?v=287"></script>
-  <script src="app.js?v=287"></script>
-  <script src="sync.js?v=287"></script>
+  <script type="module" src="supabase-client.js?v=288"></script>
+  <script src="data.js?v=288"></script>
+  <script src="app.js?v=288"></script>
+  <script src="sync.js?v=288"></script>
 </body>
 </html>
