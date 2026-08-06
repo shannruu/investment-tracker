@@ -132,6 +132,10 @@ a { color: inherit; text-decoration: none; }
    while collapsed (matching the avatar and nav icons on the narrow rail). */
 #sidebarToggle {
   border: none; background: none; outline: none; box-shadow: none;
+  /* .icon-btn's default border-radius rounds every corner, including the
+     bottom two — with only a border-bottom (no other border side), that
+     curls its ends into a stray swoosh instead of a straight line. Zero it. */
+  border-radius: 0;
   width: 100%; height: auto;
   padding: 8px 0 10px; margin: 0;
   border-bottom: 1px solid var(--border);
