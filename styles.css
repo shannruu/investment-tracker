@@ -120,13 +120,20 @@ a { color: inherit; text-decoration: none; }
 
 /* Toggle sits above the account switcher — same stacked arrangement whether the
    rail is expanded or collapsed. column-reverse (not column) keeps DOM order
-   as-is (profile link, then toggle) while placing the toggle first visually. */
-.sidebar-top { display: flex; flex-direction: column-reverse; align-items: center; gap: 8px; margin: 0 0 14px; }
-.sidebar-top .icon-btn { flex: none; }
-.sidebar-top .acct-switch { width: 100%; }
-/* Bare icon, no button box — quieter than the other icon-btns since it sits
-   right next to the account switcher, not off on its own like a toolbar action. */
-#sidebarToggle { border: none; background: transparent; }
+   as-is (profile link, then toggle) while placing the toggle first visually.
+   No align-items: center — both children stretch to the rail's full width
+   (default align-items: stretch), so the toggle can be a full-width row with
+   a rule under it, not a small button floating in the middle. */
+.sidebar-top { display: flex; flex-direction: column-reverse; gap: 0; margin: 0 0 14px; }
+.sidebar-top .acct-switch { width: 100%; margin-top: 8px; }
+/* Bare icon, no button box — pinned top-left with a rule underneath separating
+   it from the account switcher, instead of centered above it. */
+#sidebarToggle {
+  border: none; background: transparent; border-radius: var(--radius-sm);
+  width: 100%; height: auto; justify-items: start;
+  padding: 8px 8px 10px; margin: 0;
+  border-bottom: 1px solid var(--border);
+}
 #sidebarToggle:hover { background: var(--surface-2); }
 /* Chevron points toward the action: left to collapse, mirrored to point right
    (toward the rail) to expand — one icon, no separate collapsed/expanded symbols. */
@@ -154,7 +161,6 @@ a { color: inherit; text-decoration: none; }
 .nav-item .ni-ico { width: 18px; text-align: center; opacity: .8; font-size: 14px; font-family: var(--icon-font); }
 .nav-item:hover { background: var(--surface-2); color: var(--text); }
 .nav-item.active { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand-ink); }
-.nav-sep { height: 1px; background: var(--border); margin: 10px 6px; }
 
 .sidebar-foot { margin-top: auto; padding-top: 14px; }
 .base-pill {
@@ -1102,6 +1108,10 @@ input[type="date"] { cursor: pointer; }
 }
 .fx-rate { width: 140px; }
 .fx-input:focus { outline: none; border-color: var(--brand); }
+/* #newCcy's list="ccyList" (datalist) makes Chromium draw its own dropdown-arrow
+   button inside the input — off-center and inconsistent with every other input
+   in the app. Hide it; the datalist suggestions still work without it. */
+.fx-input::-webkit-calendar-picker-indicator { display: none !important; }
 .fx-del { width: 32px; height: 32px; font-size: 13px; }
 /* Base currency sits above the rate list as its own row — spacing alone sets it
    apart, no rule underneath (see .fx-list below for why the list itself dropped
@@ -1122,7 +1132,11 @@ input[type="date"] { cursor: pointer; }
 .fx-rate-static { color: var(--muted); font-size: 13px; }
 .fx-row-controls { display: flex; align-items: center; gap: 10px; flex: none; }
 .fx-ccy-input { width: 140px; }
-.fx-row-add { padding-top: 10px; }
+/* Unlike the read-only rows above (short code vs. right-pinned controls), the
+   add row is all input — code, rate, and button read as one form group, so
+   they sit together on the left instead of space-between splitting them apart
+   with a dead gap in the middle. */
+.fx-row-add { justify-content: flex-start; padding-top: 10px; }
 .fx-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
 .fx-status { font-size: 12px; }
 
