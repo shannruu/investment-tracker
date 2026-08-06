@@ -188,7 +188,10 @@ a { color: inherit; text-decoration: none; }
 }
 .sidebar.collapsed .nav-item > span:last-child { max-width: 0; opacity: 0; }
 .nav-item:hover { background: var(--surface-2); color: var(--text); }
-.nav-item.active { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand-ink); }
+/* IG-style active state: no background pill, just a bolder icon + label —
+   the current page reads as "heavier," not boxed in. */
+.nav-item.active { background: transparent; color: var(--brand-ink); font-weight: 700; }
+.nav-item.active .ni-ico svg { stroke-width: 2.6; }
 
 .sidebar-foot { margin-top: auto; padding-top: 14px; }
 .base-pill {
