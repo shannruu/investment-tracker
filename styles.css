@@ -126,20 +126,19 @@ a { color: inherit; text-decoration: none; }
    a rule under it, not a small button floating in the middle. */
 .sidebar-top { display: flex; flex-direction: column-reverse; gap: 0; margin: 0 0 14px; }
 .sidebar-top .acct-switch { width: 100%; margin-top: 8px; }
-/* Bare icon, no button box — centered to match the avatar and nav icons below
-   it (same center line the whole rail uses), with a rule underneath separating
-   it from the account switcher. */
+/* Bare icon, no button box ever (no fill on hover/focus either) — its row
+   position never changes, only where the icon sits within that row does:
+   left-aligned while expanded (reads as part of the account row), centered
+   while collapsed (matching the avatar and nav icons on the narrow rail). */
 #sidebarToggle {
-  border: none; background: transparent;
-  /* Round only the top corners — rounding all four curved the border-bottom's
-     own ends into a stray swoosh instead of a clean straight line. */
-  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border: none; background: none; outline: none; box-shadow: none;
   width: 100%; height: auto;
   padding: 8px 0 10px; margin: 0;
   border-bottom: 1px solid var(--border);
+  justify-items: start; padding-left: 8px;
 }
-#sidebarToggle:hover { background: var(--surface-2); }
-#sidebarToggle:focus-visible { outline: none; background: var(--surface-2); }
+.sidebar.collapsed #sidebarToggle { justify-items: center; padding-left: 0; }
+#sidebarToggle:hover svg, #sidebarToggle:focus-visible svg { color: var(--brand-ink); }
 /* Chevron points toward the action: left to collapse, mirrored to point right
    (toward the rail) to expand — one icon, no separate collapsed/expanded symbols. */
 #sidebarToggle svg { transition: transform .15s; }
