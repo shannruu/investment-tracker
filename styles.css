@@ -126,15 +126,20 @@ a { color: inherit; text-decoration: none; }
    a rule under it, not a small button floating in the middle. */
 .sidebar-top { display: flex; flex-direction: column-reverse; gap: 0; margin: 0 0 14px; }
 .sidebar-top .acct-switch { width: 100%; margin-top: 8px; }
-/* Bare icon, no button box — pinned top-left with a rule underneath separating
-   it from the account switcher, instead of centered above it. */
+/* Bare icon, no button box — centered to match the avatar and nav icons below
+   it (same center line the whole rail uses), with a rule underneath separating
+   it from the account switcher. */
 #sidebarToggle {
-  border: none; background: transparent; border-radius: var(--radius-sm);
-  width: 100%; height: auto; justify-items: start;
-  padding: 8px 8px 10px; margin: 0;
+  border: none; background: transparent;
+  /* Round only the top corners — rounding all four curved the border-bottom's
+     own ends into a stray swoosh instead of a clean straight line. */
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  width: 100%; height: auto;
+  padding: 8px 0 10px; margin: 0;
   border-bottom: 1px solid var(--border);
 }
 #sidebarToggle:hover { background: var(--surface-2); }
+#sidebarToggle:focus-visible { outline: none; background: var(--surface-2); }
 /* Chevron points toward the action: left to collapse, mirrored to point right
    (toward the rail) to expand — one icon, no separate collapsed/expanded symbols. */
 #sidebarToggle svg { transition: transform .15s; }
@@ -1113,6 +1118,11 @@ input[type="date"] { cursor: pointer; }
    in the app. Hide it; the datalist suggestions still work without it. */
 .fx-input::-webkit-calendar-picker-indicator { display: none !important; }
 .fx-del { width: 32px; height: 32px; font-size: 13px; }
+/* Reveal on row hover, same as the Records table's edit/delete icons (.rec-actions) */
+@media (hover: hover) {
+  .fx-del { opacity: 0; transition: opacity .12s; }
+  .fx-row:hover .fx-del, .fx-row:focus-within .fx-del { opacity: 1; }
+}
 /* Base currency sits above the rate list as its own row — spacing alone sets it
    apart, no rule underneath (see .fx-list below for why the list itself dropped
    its row dividers too). */
@@ -1141,6 +1151,10 @@ input[type="date"] { cursor: pointer; }
 .fx-status { font-size: 12px; }
 
 /* ---- Help ---- */
+/* Each section is a plain heading, not a second card — .help-item below is
+   already its own boxed accordion, so a wrapping panel() was just a box
+   around a stack of boxes. */
+.help-section-title { font-size: 15px; margin: 0 0 14px; }
 .help-list { display: flex; flex-direction: column; gap: 10px; }
 .help-item {
   background: var(--surface); border: 1px solid var(--border);

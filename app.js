@@ -5366,8 +5366,14 @@ function pageHelp() {
     ] },
   ];
   const sections = LANG === "zh" ? sectionsZH : sectionsEN;
-  const html = sections.map((sec) => panel(sec.title, `<div class="help-list">${sec.items.map((it) => `
-    <details class="help-item"><summary>${it.q}</summary><p>${it.a}</p></details>`).join("")}</div>`)).join("");
+  // No outer panel() card per section — each FAQ item is already its own boxed
+  // .help-item, so wrapping a whole section in a second card just double-boxes
+  // it. A plain heading is enough to group them.
+  const html = sections.map((sec) => `<section class="help-section">
+    <h2 class="help-section-title">${sec.title}</h2>
+    <div class="help-list">${sec.items.map((it) => `
+      <details class="help-item"><summary>${it.q}</summary><p>${it.a}</p></details>`).join("")}</div>
+    </section>`).join("");
   return { title: "Help", subtitle: "Getting started, how calculations work, and answers to common questions.", html };
 }
 
