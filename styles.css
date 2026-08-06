@@ -100,14 +100,12 @@ a { color: inherit; text-decoration: none; }
   height: 100vh;
   transition: width .15s, flex-basis .15s;
 }
-.sidebar.collapsed { width: var(--sidebar-w-collapsed); flex-basis: var(--sidebar-w-collapsed); padding-left: 10px; padding-right: 10px; }
-.sidebar.collapsed .acct-info,
-.sidebar.collapsed .nav-item > span:last-child {
-  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
-}
-.sidebar.collapsed .acct-switch,
-.sidebar.collapsed .nav-item { justify-content: center; }
+/* Instagram-style rail: icons sit at a FIXED offset from the left edge in both
+   states (see .nav-item/.acct-switch/#sidebarToggle padding-left below) — only
+   the sidebar's own width and each label's width/opacity animate. Left/right
+   padding stays constant (no collapsed override) so that fixed offset holds;
+   varying it would make the icons visibly jump sideways during the transition. */
+.sidebar.collapsed { width: var(--sidebar-w-collapsed); flex-basis: var(--sidebar-w-collapsed); }
 .sidebar.collapsed #sidebarBasePill { display: none; }
 
 .brand-mark {
@@ -126,10 +124,9 @@ a { color: inherit; text-decoration: none; }
    a rule under it, not a small button floating in the middle. */
 .sidebar-top { display: flex; flex-direction: column-reverse; gap: 0; margin: 0 0 14px; }
 .sidebar-top .acct-switch { width: 100%; margin-top: 8px; }
-/* Bare icon, no button box ever (no fill on hover/focus either) — its row
-   position never changes, only where the icon sits within that row does:
-   left-aligned while expanded (reads as part of the account row), centered
-   while collapsed (matching the avatar and nav icons on the narrow rail). */
+/* Bare icon, no button box ever (no fill on hover/focus either). Same fixed
+   padding-left: 15px as .nav-item, so this icon lines up with all the others
+   and never has to jump sideways between expanded/collapsed. */
 #sidebarToggle {
   border: none; background: none; outline: none; box-shadow: none;
   /* .icon-btn's default border-radius rounds every corner, including the
@@ -137,36 +134,59 @@ a { color: inherit; text-decoration: none; }
      curls its ends into a stray swoosh instead of a straight line. Zero it. */
   border-radius: 0;
   width: 100%; height: auto;
-  padding: 8px 0 10px; margin: 0;
+  padding: 8px 0 10px 15px; margin: 0;
   border-bottom: 1px solid var(--border);
-  justify-items: start; padding-left: 8px;
+  justify-items: start;
 }
-.sidebar.collapsed #sidebarToggle { justify-items: center; padding-left: 0; border-bottom: none; }
+.sidebar.collapsed #sidebarToggle { border-bottom: none; }
 #sidebarToggle:hover svg, #sidebarToggle:focus-visible svg { color: var(--brand-ink); }
 /* Chevron points toward the action: left to collapse, mirrored to point right
    (toward the rail) to expand — one icon, no separate collapsed/expanded symbols. */
 #sidebarToggle svg { transition: transform .15s; }
 .sidebar.collapsed #sidebarToggle svg { transform: scaleX(-1); }
+/* padding-left: 7px centers the 34px avatar exactly within the collapsed
+   rail's 48px content box (76 - 2*14 sidebar padding); gap transitions to 0
+   so no dead space is reserved after the avatar once the label's width is 0. */
 .acct-switch {
   display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
-  padding: 8px; border-radius: var(--radius-sm);
-  text-decoration: none; color: inherit; transition: background .12s;
+  padding: 8px 8px 8px 7px; border-radius: var(--radius-sm);
+  text-decoration: none; color: inherit; transition: background .12s, gap .15s;
 }
+.sidebar.collapsed .acct-switch { gap: 0; }
 .acct-switch:hover { background: var(--surface-2); }
 .acct-switch .brand-mark { flex: none; }
 .acct-switch .brand-mark .icon { width: 17px; height: 17px; }
-.acct-info { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
+/* max-width/opacity (not display:none or the old clip-to-1px hack) so the
+   label animates smoothly in and out as the rail's own width transitions —
+   Instagram-style reveal instead of an instant pop. Screen readers still get
+   the name via each nav-item's title attribute (see applyStaticI18n()), so
+   nothing is lost when this is visually collapsed to zero width. */
+.acct-info {
+  min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px;
+  max-width: 200px; opacity: 1; overflow: hidden;
+  transition: max-width .15s, opacity .1s;
+}
+.sidebar.collapsed .acct-info { max-width: 0; opacity: 0; }
 .acct-name { font-weight: 700; font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .acct-sub { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .nav { display: flex; flex-direction: column; gap: 2px; }
+/* padding-left: 15px centers the 18px icon exactly within the collapsed
+   rail's 48px content box, same math as .acct-switch above — so the icon
+   never has to jump sideways when the rail expands/collapses. */
 .nav-item {
   display: flex; align-items: center; gap: 11px;
-  padding: 9px 11px; border-radius: var(--radius-sm);
+  padding: 9px 11px 9px 15px; border-radius: var(--radius-sm);
   color: var(--text-soft); font-weight: 550; font-size: 14px;
-  transition: background .12s, color .12s;
+  transition: background .12s, color .12s, gap .15s;
 }
+.sidebar.collapsed .nav-item { gap: 0; }
 .nav-item .ni-ico { width: 18px; text-align: center; opacity: .8; font-size: 14px; font-family: var(--icon-font); }
+.nav-item > span:last-child {
+  overflow: hidden; white-space: nowrap; max-width: 160px; opacity: 1;
+  transition: max-width .15s, opacity .1s;
+}
+.sidebar.collapsed .nav-item > span:last-child { max-width: 0; opacity: 0; }
 .nav-item:hover { background: var(--surface-2); color: var(--text); }
 .nav-item.active { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand-ink); }
 
