@@ -106,7 +106,6 @@ a { color: inherit; text-decoration: none; }
    padding stays constant (no collapsed override) so that fixed offset holds;
    varying it would make the icons visibly jump sideways during the transition. */
 .sidebar.collapsed { width: var(--sidebar-w-collapsed); flex-basis: var(--sidebar-w-collapsed); }
-.sidebar.collapsed #sidebarBasePill { display: none; }
 
 .brand-mark {
   width: 34px; height: 34px; border-radius: 9px;
@@ -193,30 +192,40 @@ a { color: inherit; text-decoration: none; }
 .nav-item.active { background: transparent; color: var(--brand-ink); font-weight: 700; }
 .nav-item.active .ni-ico svg { stroke-width: 2.6; }
 
-.sidebar-foot { margin-top: auto; padding-top: 14px; }
-.base-pill {
-  display: flex; justify-content: space-between; align-items: center;
-  background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); padding: 9px 12px;
-  font-size: 12px; color: var(--muted);
+/* +Add (and, on the Brokers page, +Add Broker) — was in the topbar, lives here now.
+   Same fixed left offset and label-collapse behavior as .nav-item, so it lines up
+   with everything else and collapses the same way. */
+.sidebar-add { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 14px; }
+.sidebar-add .btn {
+  justify-content: flex-start; gap: 11px; padding: 9px 11px 9px 15px; width: 100%;
+  transition: background .12s, border-color .12s, transform .05s, gap .15s;
 }
-.base-pill strong { color: var(--text); font-size: 13px; }
+.sidebar.collapsed .sidebar-add .btn { gap: 0; }
+.sidebar-add .btn > span:last-child {
+  overflow: hidden; white-space: nowrap; max-width: 160px; opacity: 1;
+  transition: max-width .15s, opacity .1s;
+}
+.sidebar.collapsed .sidebar-add .btn > span:last-child { max-width: 0; opacity: 0; }
+#topAddBrokerBtn[hidden] { display: none; }   /* beats .btn's own display:inline-flex */
+
+/* Language / theme / notifications — was in the topbar, lives here now. */
+.sidebar-foot { margin-top: auto; padding-top: 14px; }
+.sidebar-utils { display: flex; align-items: center; gap: 8px; }
+.sidebar.collapsed .sidebar-utils { flex-direction: column; }
+.sidebar.collapsed .sidebar-utils .lang-btn { display: none; }   /* a text toggle has no icon-only form */
+/* Anchored to a left-edge sidebar button now, not a right-edge topbar one — open
+   toward the content area instead of off the edge of the rail. The button also
+   sits at the bottom of the viewport now, so open upward instead of downward. */
+.sidebar .notif-pop { left: 0; right: auto; top: auto; bottom: calc(100% + 8px); }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-.topbar {
-  display: flex; align-items: center; gap: 14px;
-  padding: 16px 26px; border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface) 70%, transparent);
-  backdrop-filter: blur(8px);
-  position: sticky; top: 0; z-index: 20;
-}
-.topbar-title h1 { font-size: 19px; }
-.topbar-title p { margin: 2px 0 0; font-size: 12.5px; }
-.topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-#topAddBrokerBtn[hidden] { display: none; }   /* beats .btn's own display:inline-flex */
+/* Page heading — scrolls with the content now, not a sticky bar. */
+.page-head { padding: 22px 26px 0; max-width: 1320px; margin: 0 auto; width: 100%; }
+.page-head h1 { font-size: 19px; }
+.page-head p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
 
-.content { padding: 22px 26px 90px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1320px; margin: 0 auto; align-self: center; }
+.content { padding: 14px 26px 90px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1320px; margin: 0 auto; align-self: center; }
 
 /* ===================== Buttons ===================== */
 /* Fixed height + line-height:1 so the button never changes size when the
@@ -705,10 +714,12 @@ a.onboard-step:hover { background: var(--surface-2); }
     display: flex; position: fixed; z-index: 60; top: 0; left: 0; bottom: 0;
     box-shadow: var(--shadow);
   }
-  .content { padding: 16px 14px 96px; }
-  .topbar { padding: 12px 14px; }
-  /* Redundant on mobile — the bottom nav already has its own prominent Add button. */
-  #topAddBtn { display: none; }
+  .content { padding: 10px 14px 96px; }
+  .page-head { padding: 16px 14px 0; }
+  .page-head h1 { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* The subtitle repeats info that's clear from context once you're on the page —
+     worth the space back on a small screen. */
+  .page-head p { display: none; }
   /* .app-disclaimer is a sibling of .content, rendered after it — it needs the same
      fixed-bottom-nav clearance .content gets, or the nav bar paints over its text
      whenever a page is short enough to end near the bottom of the screen. */
@@ -740,17 +751,6 @@ a.onboard-step:hover { background: var(--surface-2); }
     border-radius: 12px; display: grid; place-items: center; margin-top: -18px;
     box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 45%, transparent); font-weight: 700; font-size: 20px;
   }
-
-  /* Topbar: drop the redundant subtitle, icon-only export, tighter actions. flex-wrap is a
-     safety net — if actions still don't fit next to a long page title, they drop to their
-     own line instead of clipping off the right edge (the actual mobile-audit failure mode). */
-  .topbar { flex-wrap: wrap; row-gap: 8px; }
-  .topbar-title { min-width: 0; }
-  .topbar-title h1 { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .topbar-title p { display: none; }
-  .topbar-actions { gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-  #exportBtn .btn-ico + span { display: none; }
-  .lang-alt { display: none; }
 
   /* Bigger touch targets in the bottom nav */
   .bn-item { min-height: 50px; }
@@ -1320,6 +1320,15 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .more-item.active { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand-ink); }
 .more-item .ni-ico { font-family: var(--icon-font); text-align: center; opacity: .85; }
 .more-item .more-sub { grid-column: 2; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+/* Language + theme — the sidebar's versions of these are unreachable here (the
+   sidebar is display:none below the mobile breakpoint), so this row is their
+   mobile home instead. */
+.more-utils { display: flex; align-items: center; gap: 8px; padding: 4px 8px 14px; }
+/* Notifications shown inline — opening the More sheet already IS "opening" the
+   mobile equivalent of the desktop notif popover, no separate toggle needed. */
+.more-notif { padding: 4px 4px 10px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+.more-notif .notif-section-title { padding: 0 6px 8px; }
+.more-notif .notif-body { max-height: 280px; overflow-y: auto; }
 @media (min-width: 761px) {
   .sheet-backdrop { align-items: center; }
   .more-sheet { border-radius: 16px; }

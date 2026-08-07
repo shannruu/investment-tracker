@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Divz" />
-  <link rel="stylesheet" href="styles.css?v=301" />
+  <link rel="stylesheet" href="styles.css?v=302" />
 </head>
 <body>
 
@@ -35,8 +35,8 @@
     <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></symbol>
     <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c0-4.1 3.4-7 7.5-7s7.5 2.9 7.5 7"/></symbol>
     <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h2.6l1.7-2.2h7.4L17.4 8H20a1 1 0 0 1 1 1v10.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="14" r="3.4"/></symbol>
-    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4.2" y1="4.2" x2="5.9" y2="5.9"/><line x1="18.1" y1="18.1" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="5.9" y2="18.1"/><line x1="18.1" y1="5.9" x2="19.8" y2="4.2"/></g></symbol>
-    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.5a8.5 8.5 0 1 1-9-13 7 7 0 0 0 9 13z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2.5" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="21.5" y2="12"/><line x1="5.1" y1="5.1" x2="6.5" y2="6.5"/><line x1="17.5" y1="17.5" x2="18.9" y2="18.9"/><line x1="5.1" y1="18.9" x2="6.5" y2="17.5"/><line x1="17.5" y1="6.5" x2="18.9" y2="5.1"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></symbol>
     <symbol id="i-sidebar" viewBox="0 0 24 24"><polyline points="14 6 8 12 14 18"/></symbol>
     <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 15 18 9z"/><path d="M10.5 20.5a1.7 1.7 0 0 0 3 0"/></symbol>
   </svg>
@@ -58,6 +58,12 @@
         </button>
       </div>
 
+      <!-- Global "+Add" — was in the topbar; lives here now that the topbar is gone. -->
+      <div class="sidebar-add">
+        <button type="button" class="btn secondary" id="topAddBrokerBtn" hidden><span class="ni-ico"><svg class="icon"><use href="#i-add"/></svg></span><span data-i18n="Add Broker">Add Broker</span></button>
+        <a class="btn primary" href="#/add" id="topAddBtn"><span class="ni-ico"><svg class="icon"><use href="#i-add"/></svg></span><span data-i18n="Add">Add</span></a>
+      </div>
+
       <nav class="nav" aria-label="Primary">
         <a class="nav-item" href="#/dashboard" data-page="dashboard"><span class="ni-ico"><svg class="icon"><use href="#i-dashboard"/></svg></span><span data-i18n="Dashboard">Dashboard</span></a>
         <a class="nav-item" href="#/portfolio" data-page="portfolio"><span class="ni-ico"><svg class="icon"><use href="#i-portfolio"/></svg></span><span data-i18n="Portfolio">Portfolio</span></a>
@@ -69,36 +75,32 @@
         <a class="nav-item" href="#/help" data-page="help"><span class="ni-ico"><svg class="icon"><use href="#i-help"/></svg></span><span data-i18n="Help">Help</span></a>
       </nav>
 
+      <!-- Language / theme / notifications — was in the topbar; lives here now. -->
       <div class="sidebar-foot">
-        <div class="base-pill" id="sidebarBasePill"><span data-i18n="Base currency">Base currency</span><strong id="baseCurrency">MYR</strong></div>
+        <div class="sidebar-utils">
+          <button class="btn ghost small lang-btn" id="langBtn" title="切换语言 / Switch language">EN / 中文</button>
+          <button class="icon-btn theme-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle dark / light"><svg class="icon"><use class="theme-btn-use" id="themeBtnUse" href="#i-sun"/></svg></button>
+          <div class="notif-wrap">
+            <button class="icon-btn" id="notifBtn" aria-haspopup="true" aria-expanded="false" aria-label="Notifications" title="Notifications">
+              <svg class="icon"><use href="#i-bell"/></svg>
+              <span class="notif-badge notif-badge-target" id="notifBadge" hidden>0</span>
+            </button>
+            <div class="notif-pop" id="notifPop" hidden>
+              <div class="notif-head"><strong data-i18n="Notifications">Notifications</strong></div>
+              <div class="notif-body notif-body-target" id="notifBody"></div>
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
 
     <!-- ===================== MAIN ===================== -->
     <main class="main">
-      <!-- Topbar -->
-      <header class="topbar">
-        <div class="topbar-title">
-          <h1 id="pageTitle">Dashboard</h1>
-          <p class="muted" id="pageSubtitle">Welcome back — here is your portfolio at a glance.</p>
-        </div>
-        <div class="topbar-actions">
-          <button type="button" class="btn secondary" id="topAddBrokerBtn" hidden><span class="btn-ico">＋</span><span data-i18n="Add Broker">Add Broker</span></button>
-          <a class="btn primary" href="#/add" id="topAddBtn"><span class="btn-ico">＋</span><span data-i18n="Add">Add</span></a>
-          <button class="btn ghost" id="langBtn" title="切换语言 / Switch language">EN / 中文</button>
-          <button class="icon-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle dark / light"><svg class="icon"><use id="themeBtnUse" href="#i-sun"/></svg></button>
-          <div class="notif-wrap">
-            <button class="icon-btn" id="notifBtn" aria-haspopup="true" aria-expanded="false" aria-label="Notifications" title="Notifications">
-              <svg class="icon"><use href="#i-bell"/></svg>
-              <span class="notif-badge" id="notifBadge" hidden>0</span>
-            </button>
-            <div class="notif-pop" id="notifPop" hidden>
-              <div class="notif-head"><strong data-i18n="Notifications">Notifications</strong></div>
-              <div class="notif-body" id="notifBody"></div>
-            </div>
-          </div>
-        </div>
-      </header>
+      <!-- Page heading — scrolls with the content, not a fixed bar. -->
+      <div class="page-head">
+        <h1 id="pageTitle">Dashboard</h1>
+        <p class="muted" id="pageSubtitle">Welcome back — here is your portfolio at a glance.</p>
+      </div>
 
       <!-- Router renders pages here -->
       <div class="content" id="page"></div>
@@ -126,6 +128,18 @@
   <div class="sheet-backdrop" id="moreSheet" hidden>
     <div class="more-sheet" role="dialog" aria-modal="true" aria-label="More">
       <div class="more-head"><strong data-i18n="More">More</strong><button class="icon-btn" id="moreClose" aria-label="Close">✕</button></div>
+      <!-- Language / theme — the sidebar equivalents are unreachable here (sidebar is
+           hidden at this width), so the More sheet is their mobile home instead. -->
+      <div class="more-utils">
+        <button class="btn ghost small lang-btn" id="moreLangBtn" title="切换语言 / Switch language">EN / 中文</button>
+        <button class="icon-btn theme-btn" id="moreThemeBtn" aria-label="Toggle theme" title="Toggle dark / light"><svg class="icon"><use class="theme-btn-use" href="#i-sun"/></svg></button>
+      </div>
+      <!-- Notifications — shown inline (no separate popover trigger needed, the sheet
+           itself is already the "opened" state) so mobile keeps parity with desktop. -->
+      <div class="more-notif">
+        <div class="notif-section-title" data-i18n="Notifications">Notifications</div>
+        <div class="notif-body notif-body-target" id="moreNotifBody"></div>
+      </div>
       <a class="more-item" href="#/profile" data-page="profile"><span class="ni-ico"><svg class="icon"><use href="#i-user"/></svg></span><span data-i18n="Profile">Profile</span><span class="more-sub" data-i18n="Name, email & cloud sync">Name, email &amp; cloud sync</span></a>
       <a class="more-item" href="#/records" data-page="records"><span class="ni-ico"><svg class="icon"><use href="#i-records"/></svg></span><span data-i18n="Transactions">Transactions</span><span class="more-sub" data-i18n="All transactions, cash & dividends">All transactions, cash &amp; dividends</span></a>
       <a class="more-item" href="#/brokers" data-page="brokers"><span class="ni-ico"><svg class="icon"><use href="#i-brokers"/></svg></span><span data-i18n="Brokers">Brokers</span><span class="more-sub" data-i18n="Accounts & reconciliation">Accounts &amp; reconciliation</span></a>
@@ -189,9 +203,9 @@
     </div>
   </div>
 
-  <script type="module" src="supabase-client.js?v=301"></script>
-  <script src="data.js?v=301"></script>
-  <script src="app.js?v=301"></script>
-  <script src="sync.js?v=301"></script>
+  <script type="module" src="supabase-client.js?v=302"></script>
+  <script src="data.js?v=302"></script>
+  <script src="app.js?v=302"></script>
+  <script src="sync.js?v=302"></script>
 </body>
 </html>

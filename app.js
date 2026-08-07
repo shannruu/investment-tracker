@@ -6378,8 +6378,8 @@ function commitImport() {
 function setTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme);
   try { localStorage.setItem("il-theme", theme); } catch (e) {}
-  const use = document.getElementById("themeBtnUse");
-  if (use) use.setAttribute("href", theme === "dark" ? "#i-moon" : "#i-sun");
+  // Two instances (desktop sidebar + mobile More sheet — see updateLangBtn() for why).
+  document.querySelectorAll(".theme-btn-use").forEach((use) => use.setAttribute("href", theme === "dark" ? "#i-moon" : "#i-sun"));
 }
 
 function setSidebarCollapsed(collapsed) {
@@ -6404,7 +6404,15 @@ function toast(msg) {
  * "MORE" SHEET — secondary navigation (Records, Brokers, Settings, Help)
  * ========================================================================== */
 function closeMoreSheet() { const s = $("#moreSheet"); if (s) s.hidden = true; }
-function toggleMoreSheet() { const s = $("#moreSheet"); if (s) s.hidden = !s.hidden; }
+function toggleMoreSheet() {
+  const s = $("#moreSheet");
+  if (!s) return;
+  const willOpen = s.hidden;
+  s.hidden = !s.hidden;
+  // Mobile's notifications live inline in this sheet (see renderNotifications()) —
+  // opening it is the mobile equivalent of opening the desktop notif popover.
+  if (willOpen) { markDevNoticesSeen(); renderNotifications(); }
+}
 
 /* =============================================================================
  * ROUTER
@@ -6531,16 +6539,23 @@ function notifBodyHTML(alerts) {
   return sections.join("");
 }
 
+/* Two render targets: the sidebar popover's #notifBody/#notifBadge (desktop —
+ * see mountNotifBell()) and the mobile More sheet's #moreNotifBody, shown
+ * inline there since the sidebar (and its popover) is unreachable below the
+ * mobile breakpoint. Both share .notif-body-target / .notif-badge-target. */
 function renderNotifications() {
-  const body = $("#notifBody"), badge = $("#notifBadge");
-  if (!body || !badge) return;
+  const bodies = $$(".notif-body-target");
+  if (!bodies.length) return;
   const alerts = systemAlertItems();
-  body.innerHTML = notifBodyHTML(alerts);
+  const html = notifBodyHTML(alerts);
+  bodies.forEach((body) => { body.innerHTML = html; });
   const seen = getSeenNoticeIds();
   const unseenDevCount = DEV_NOTICES.filter((n) => !seen.has(n.id)).length;
   const total = unseenDevCount + alerts.length;
-  badge.textContent = total > 9 ? "9+" : String(total);
-  badge.hidden = total === 0;
+  $$(".notif-badge-target").forEach((badge) => {
+    badge.textContent = total > 9 ? "9+" : String(total);
+    badge.hidden = total === 0;
+  });
 }
 
 /* Mounted once at bootstrap (this bell lives in the topbar, outside the
@@ -6609,16 +6624,19 @@ function render() {
  * ========================================================================== */
 function updateLangBtn() {
   // Clearly labelled language selector: active language emphasised. The inactive side is
-  // wrapped in .lang-alt so mobile CSS can drop it — full "EN / 中文" is too wide alongside
-  // the title + other topbar buttons at narrow widths, easy overflow otherwise.
-  const el = $("#langBtn");
-  el.innerHTML = LANG === "en" ? `<b>EN</b><span class="lang-alt"> / 中文</span>` : `<span class="lang-alt">EN / </span><b>中文</b>`;
-  el.setAttribute("aria-label", LANG === "en" ? "Language: English. Switch to Chinese" : "语言：中文。切换为英文");
+  // wrapped in .lang-alt so mobile CSS can drop it — full "EN / 中文" is too wide at
+  // narrow widths, easy overflow otherwise.
+  // Two instances: the sidebar is display:none below the mobile breakpoint, so its
+  // #langBtn is unreachable there — .moreLangBtn in the "More" sheet is the mobile
+  // equivalent. Both share the .lang-btn class and get the same update.
+  $$(".lang-btn").forEach((el) => {
+    el.innerHTML = LANG === "en" ? `<b>EN</b><span class="lang-alt"> / 中文</span>` : `<span class="lang-alt">EN / </span><b>中文</b>`;
+    el.setAttribute("aria-label", LANG === "en" ? "Language: English. Switch to Chinese" : "语言：中文。切换为英文");
+  });
 }
 
 function init() {
   try { const saved = localStorage.getItem("il-theme"); if (saved) setTheme(saved); } catch (e) {}
-  $("#baseCurrency").textContent = FX.base;
 
   setLang(LANG);            // sets <html lang> from the persisted choice
   applyStaticI18n();        // translate nav / topbar / bottom-nav labels
@@ -6630,17 +6648,19 @@ function init() {
   });
   mountNotifBell();
 
-  $("#langBtn").addEventListener("click", () => {
+  // .lang-btn / .theme-btn: desktop (sidebar) + mobile (More sheet) instances — see
+  // updateLangBtn()/setTheme() for why there are two of each.
+  $$(".lang-btn").forEach((btn) => btn.addEventListener("click", () => {
     setLang(LANG === "en" ? "zh" : "en");
     applyStaticI18n();
     updateLangBtn();
     render();               // re-render page content in the new language
-  });
+  }));
 
-  $("#themeBtn").addEventListener("click", () => {
+  $$(".theme-btn").forEach((btn) => btn.addEventListener("click", () => {
     const cur = document.documentElement.getAttribute("data-theme");
     setTheme(cur === "dark" ? "light" : "dark");
-  });
+  }));
   $("#modalClose").addEventListener("click", closeModal);
   const saveErrDismiss = $("#saveErrorDismiss");
   if (saveErrDismiss) saveErrDismiss.addEventListener("click", hideSaveError);
