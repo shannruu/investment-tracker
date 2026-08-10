@@ -115,34 +115,20 @@ a { color: inherit; text-decoration: none; }
   display: grid; place-items: center; letter-spacing: .5px;
 }
 
-/* Toggle sits above the account switcher — same stacked arrangement whether the
-   rail is expanded or collapsed. column-reverse (not column) keeps DOM order
-   as-is (profile link, then toggle) while placing the toggle first visually.
-   No align-items: center — both children stretch to the rail's full width
-   (default align-items: stretch), so the toggle can be a full-width row with
-   a rule under it, not a small button floating in the middle. */
-.sidebar-top { display: flex; flex-direction: column-reverse; gap: 0; margin: 0 0 14px; }
-.sidebar-top .brand { width: 100%; margin-top: 8px; }
-/* Bare icon, no button box ever (no fill on hover/focus either). Same fixed
-   padding-left: 15px as .nav-item, so this icon lines up with all the others
-   and never has to jump sideways between expanded/collapsed. */
+/* Brand + collapse toggle share one row now. .brand's own flex:1 (below) fills
+   the row and pushes the toggle to the end, so no justify-content is needed. */
+.sidebar-top { display: flex; align-items: center; gap: 4px; margin: 0 0 14px; }
+/* Collapsed: no room for both the logo and the toggle in a 48px content box —
+   hide the toggle and leave only the logo (see .brand click handling in app.js,
+   which expands the rail again when the logo is clicked while collapsed). */
+.sidebar.collapsed #sidebarToggle { display: none; }
 #sidebarToggle {
-  border: none; background: none; outline: none; box-shadow: none;
-  /* .icon-btn's default border-radius rounds every corner, including the
-     bottom two — with only a border-bottom (no other border side), that
-     curls its ends into a stray swoosh instead of a straight line. Zero it. */
-  border-radius: 0;
-  width: 100%; height: auto;
-  padding: 8px 0 10px 15px; margin: 0;
-  border-bottom: 1px solid var(--border);
-  justify-items: start;
+  flex: none; border: none; background: none; outline: none; box-shadow: none;
+  width: 30px; height: 30px; padding: 0; margin: 0;
+  border-radius: var(--radius-sm); display: grid; place-items: center;
+  color: var(--text-soft); cursor: pointer; transition: background .12s, color .12s;
 }
-.sidebar.collapsed #sidebarToggle { border-bottom: none; }
-#sidebarToggle:hover svg, #sidebarToggle:focus-visible svg { color: var(--brand-ink); }
-/* Chevron points toward the action: left to collapse, mirrored to point right
-   (toward the rail) to expand — one icon, no separate collapsed/expanded symbols. */
-#sidebarToggle svg { transition: transform .15s; }
-.sidebar.collapsed #sidebarToggle svg { transform: scaleX(-1); }
+#sidebarToggle:hover, #sidebarToggle:focus-visible { background: var(--surface-2); color: var(--text); }
 /* padding-left: 7px centers the 34px avatar exactly within the collapsed
    rail's 48px content box (76 - 2*14 sidebar padding); gap transitions to 0
    so no dead space is reserved after the avatar once the label's width is 0. */
@@ -162,7 +148,7 @@ a { color: inherit; text-decoration: none; }
 }
 .sidebar.collapsed .brand-name { max-width: 0; opacity: 0; }
 /* Account moves to the foot of the rail now — same row shape as .brand above. */
-.sidebar-foot { margin-top: auto; padding-top: 10px; }
+.sidebar-foot { padding-top: 10px; }
 .sidebar-foot .acct-switch { width: 100%; }
 /* max-width/opacity (not display:none or the old clip-to-1px hack) so the
    label animates smoothly in and out as the rail's own width transitions —
@@ -231,8 +217,11 @@ a { color: inherit; text-decoration: none; }
 }
 .notif-badge[hidden] { display: none; }
 /* Anchored to a left-edge sidebar row now, not a right-edge topbar button —
-   open toward the content area instead of off the edge of the rail. */
-.sidebar .notif-pop { left: 0; right: auto; }
+   open toward the content area instead of off the edge of the rail. The row
+   also sits near the bottom of the rail now (utility group, above the account
+   footer), so open upward — downward risks running off the bottom of the
+   viewport once there's enough content to approach the popover's max-height. */
+.sidebar .notif-pop { left: 0; right: auto; top: auto; bottom: calc(100% + 8px); }
 /* Collapsed: the row label (and its badge) hides like any other nav-item label,
    so an unread count would otherwise vanish entirely — show a small dot on the
    icon itself instead, same idea as the old corner badge. */
@@ -251,9 +240,11 @@ a { color: inherit; text-decoration: none; }
 }
 .sidebar.collapsed .nav-section-label { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
 
-/* Preferences — a second, lower-priority nav list (Settings/theme/language/help),
-   same row shape as the primary nav just visually separated below it. */
-.sidebar-secondary { display: flex; flex-direction: column; gap: 2px; margin-top: 14px; }
+/* Utility group — notifications/theme/language/settings/help, all together at
+   the bottom of the rail, right above the account footer. margin-top: auto
+   pushes it (and the account footer below it) down regardless of how much
+   primary nav content sits above. */
+.sidebar-secondary { display: flex; flex-direction: column; gap: 2px; margin-top: auto; padding-top: 14px; }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 

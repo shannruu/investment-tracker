@@ -6390,6 +6390,10 @@ function setSidebarCollapsed(collapsed) {
   const label = collapsed ? t("Expand sidebar") : t("Collapse sidebar");
   btn.setAttribute("aria-label", label);
   btn.setAttribute("title", label);
+  // Collapsed, clicking the logo expands rather than navigates (the toggle
+  // button is hidden) — reflect that in its accessible name too.
+  const brand = document.getElementById("sidebarBrand");
+  if (brand) brand.setAttribute("aria-label", collapsed ? label : "Divz");
   try { localStorage.setItem("il-sidebar-collapsed", collapsed ? "1" : "0"); } catch (e) {}
 }
 let toastTimer;
@@ -6649,6 +6653,15 @@ function init() {
   try { setSidebarCollapsed(localStorage.getItem("il-sidebar-collapsed") === "1"); } catch (e) {}
   $("#sidebarToggle").addEventListener("click", () => {
     setSidebarCollapsed(!document.getElementById("sidebar").classList.contains("collapsed"));
+  });
+  // Collapsed, the toggle button is hidden (no room for it beside the logo) — the
+  // logo becomes the only way back to expanded, so clicking it expands instead of
+  // navigating to Dashboard while collapsed.
+  $("#sidebarBrand").addEventListener("click", (e) => {
+    if (document.getElementById("sidebar").classList.contains("collapsed")) {
+      e.preventDefault();
+      setSidebarCollapsed(false);
+    }
   });
   mountNotifBell();
 
