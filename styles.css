@@ -122,7 +122,7 @@ a { color: inherit; text-decoration: none; }
    (default align-items: stretch), so the toggle can be a full-width row with
    a rule under it, not a small button floating in the middle. */
 .sidebar-top { display: flex; flex-direction: column-reverse; gap: 0; margin: 0 0 14px; }
-.sidebar-top .acct-switch { width: 100%; margin-top: 8px; }
+.sidebar-top .brand { width: 100%; margin-top: 8px; }
 /* Bare icon, no button box ever (no fill on hover/focus either). Same fixed
    padding-left: 15px as .nav-item, so this icon lines up with all the others
    and never has to jump sideways between expanded/collapsed. */
@@ -146,15 +146,24 @@ a { color: inherit; text-decoration: none; }
 /* padding-left: 7px centers the 34px avatar exactly within the collapsed
    rail's 48px content box (76 - 2*14 sidebar padding); gap transitions to 0
    so no dead space is reserved after the avatar once the label's width is 0. */
-.acct-switch {
+.acct-switch, .brand {
   display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
   padding: 8px 8px 8px 7px; border-radius: var(--radius-sm);
   text-decoration: none; color: inherit; transition: background .12s, gap .15s;
 }
-.sidebar.collapsed .acct-switch { gap: 0; }
-.acct-switch:hover { background: var(--surface-2); }
-.acct-switch .brand-mark { flex: none; }
+.sidebar.collapsed .acct-switch, .sidebar.collapsed .brand { gap: 0; }
+.acct-switch:hover, .brand:hover { background: var(--surface-2); }
+.acct-switch .brand-mark, .brand .brand-mark { flex: none; }
 .acct-switch .brand-mark .icon { width: 17px; height: 17px; }
+.brand-name {
+  font-weight: 800; font-size: 15px; color: var(--text); letter-spacing: -.01em;
+  overflow: hidden; white-space: nowrap; max-width: 160px; opacity: 1;
+  transition: max-width .15s, opacity .1s;
+}
+.sidebar.collapsed .brand-name { max-width: 0; opacity: 0; }
+/* Account moves to the foot of the rail now — same row shape as .brand above. */
+.sidebar-foot { margin-top: auto; padding-top: 10px; }
+.sidebar-foot .acct-switch { width: 100%; }
 /* max-width/opacity (not display:none or the old clip-to-1px hack) so the
    label animates smoothly in and out as the rail's own width transitions —
    Instagram-style reveal instead of an instant pop. Screen readers still get
@@ -180,6 +189,9 @@ a { color: inherit; text-decoration: none; }
   transition: background .12s, color .12s, gap .15s;
 }
 .sidebar.collapsed .nav-item { gap: 0; }
+/* Some nav-items are <button>s now (notifications/theme/language toggles), not
+   just <a> page links — an existing "button.nav-item" reset further down
+   (REFACTOR section) already undoes the browser's default button chrome. */
 .nav-item .ni-ico { width: 18px; text-align: center; opacity: .8; font-size: 14px; font-family: var(--icon-font); }
 .nav-item > span:last-child {
   overflow: hidden; white-space: nowrap; max-width: 160px; opacity: 1;
@@ -208,15 +220,40 @@ a { color: inherit; text-decoration: none; }
 .sidebar.collapsed .sidebar-add .btn > span:last-child { max-width: 0; opacity: 0; }
 #topAddBrokerBtn[hidden] { display: none; }   /* beats .btn's own display:inline-flex */
 
-/* Language / theme / notifications — was in the topbar, lives here now. */
-.sidebar-foot { margin-top: auto; padding-top: 14px; }
-.sidebar-utils { display: flex; align-items: center; gap: 8px; }
-.sidebar.collapsed .sidebar-utils { flex-direction: column; }
-.sidebar.collapsed .sidebar-utils .lang-btn { display: none; }   /* a text toggle has no icon-only form */
-/* Anchored to a left-edge sidebar button now, not a right-edge topbar one — open
-   toward the content area instead of off the edge of the rail. The button also
-   sits at the bottom of the viewport now, so open upward instead of downward. */
-.sidebar .notif-pop { left: 0; right: auto; top: auto; bottom: calc(100% + 8px); }
+/* Notifications — a nav-item-shaped row (icon + label + trailing count), same
+   collapse behavior as any other nav-item since it shares the class. */
+.notif-wrap { position: relative; margin-bottom: 4px; }
+.notif-row-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 1; min-width: 0; }
+.notif-badge {
+  flex: none; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
+  background: var(--neg); color: #fff; font-size: 10px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+}
+.notif-badge[hidden] { display: none; }
+/* Anchored to a left-edge sidebar row now, not a right-edge topbar button —
+   open toward the content area instead of off the edge of the rail. */
+.sidebar .notif-pop { left: 0; right: auto; }
+/* Collapsed: the row label (and its badge) hides like any other nav-item label,
+   so an unread count would otherwise vanish entirely — show a small dot on the
+   icon itself instead, same idea as the old corner badge. */
+.quick-item .ni-ico { position: relative; }
+.sidebar.collapsed .notif-wrap:has(.notif-badge:not([hidden])) .ni-ico::after {
+  content: ""; position: absolute; top: -2px; right: -2px; width: 8px; height: 8px;
+  border-radius: 999px; background: var(--neg); border: 2px solid var(--surface);
+}
+
+/* "Menu" section label — hides on collapse the same way .nav-item labels do,
+   just vertically (it's a block label, not an icon row) rather than sideways. */
+.nav-section-label {
+  padding: 12px 8px 6px 15px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--muted); line-height: 1.3; overflow: hidden; white-space: nowrap;
+  max-height: 34px; opacity: 1; transition: max-height .15s, opacity .1s, padding .15s;
+}
+.sidebar.collapsed .nav-section-label { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+
+/* Preferences — a second, lower-priority nav list (Settings/theme/language/help),
+   same row shape as the primary nav just visually separated below it. */
+.sidebar-secondary { display: flex; flex-direction: column; gap: 2px; margin-top: 14px; }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
@@ -538,16 +575,10 @@ a { color: inherit; text-decoration: none; }
 .warn-card.crit { border-left-color: var(--neg); }
 .warn-card.crit .w-ico { color: var(--neg); }
 
-/* ===================== Notification bell ===================== */
-.notif-wrap { position: relative; }
-.notif-badge {
-  position: absolute; top: -2px; right: -2px;
-  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
-  background: var(--neg); color: #fff; font-size: 10px; font-weight: 800;
-  display: flex; align-items: center; justify-content: center; line-height: 1;
-  border: 2px solid var(--surface);
-}
-.notif-badge[hidden] { display: none; }
+/* ===================== Notification bell =====================
+   .notif-wrap / .notif-badge live with the sidebar rules near the top of this
+   file now (the bell moved into a nav-item row there) — just the popover
+   itself stays here. */
 .notif-pop {
   position: absolute; right: 0; top: calc(100% + 8px); z-index: 30;
   width: 360px; max-width: calc(100vw - 32px); max-height: 480px; overflow-y: auto;

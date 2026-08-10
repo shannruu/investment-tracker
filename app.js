@@ -93,7 +93,7 @@ const ZH = {
   // Nav / chrome
   "Dashboard": "仪表盘", "Portfolio": "投资组合", "Transactions": "交易记录",
   "Cash Ledger": "现金账本", "Dividends": "股息",
-  "Brokers": "券商", "Settings": "设置", "Help": "帮助",
+  "Brokers": "券商", "Settings": "设置", "Help": "帮助", "Menu": "菜单", "Dark mode": "深色模式",
   "Base currency": "基准货币", "Add": "添加", "Add record": "添加记录", "More": "更多",
   "Export CSV": "导出 CSV", "Add Transaction": "添加交易",
   // Page subtitles (static)
@@ -6628,9 +6628,13 @@ function updateLangBtn() {
   // narrow widths, easy overflow otherwise.
   // Two instances: the sidebar is display:none below the mobile breakpoint, so its
   // #langBtn is unreachable there — .moreLangBtn in the "More" sheet is the mobile
-  // equivalent. Both share the .lang-btn class and get the same update.
+  // equivalent. Both share the .lang-btn class and get the same update. The sidebar
+  // instance is a nav-item row with an icon, so the text goes into its nested
+  // .lang-btn-label instead of overwriting the whole button (which would wipe the icon);
+  // the plain-text mobile button has no such wrapper, so it falls back to itself.
   $$(".lang-btn").forEach((el) => {
-    el.innerHTML = LANG === "en" ? `<b>EN</b><span class="lang-alt"> / 中文</span>` : `<span class="lang-alt">EN / </span><b>中文</b>`;
+    const label = el.querySelector(".lang-btn-label") || el;
+    label.innerHTML = LANG === "en" ? `<b>EN</b><span class="lang-alt"> / 中文</span>` : `<span class="lang-alt">EN / </span><b>中文</b>`;
     el.setAttribute("aria-label", LANG === "en" ? "Language: English. Switch to Chinese" : "语言：中文。切换为英文");
   });
 }

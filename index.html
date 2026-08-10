@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Divz" />
-  <link rel="stylesheet" href="styles.css?v=302" />
+  <link rel="stylesheet" href="styles.css?v=303" />
 </head>
 <body>
 
@@ -39,6 +39,7 @@
     <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a7 7 0 0 0 10.5 10.5z"/></symbol>
     <symbol id="i-sidebar" viewBox="0 0 24 24"><polyline points="14 6 8 12 14 18"/></symbol>
     <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 9a6 6 0 0 0-12 0c0 6-2.5 7.5-2.5 7.5h17S18 15 18 9z"/><path d="M10.5 20.5a1.7 1.7 0 0 0 3 0"/></symbol>
+    <symbol id="i-lang" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><line x1="3" y1="12" x2="21" y2="12"/></symbol>
   </svg>
 
   <div class="app">
@@ -46,12 +47,9 @@
     <!-- ===================== SIDEBAR (desktop) — 5-item primary nav ===================== -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-top">
-        <a class="acct-switch" href="#/profile" id="sidebarAccount" aria-label="Account settings">
-          <span class="brand-mark" id="sidebarAcctAvatar" aria-hidden="true"></span>
-          <span class="acct-info">
-            <span class="acct-name" id="sidebarAcctName"></span>
-            <span class="acct-sub" id="sidebarAcctSub"></span>
-          </span>
+        <a class="brand" href="#/dashboard" aria-label="Divz">
+          <span class="brand-mark" aria-hidden="true">D</span>
+          <span class="brand-name">Divz</span>
         </a>
         <button class="icon-btn" id="sidebarToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
           <svg class="icon"><use href="#i-sidebar"/></svg>
@@ -64,33 +62,52 @@
         <a class="btn primary" href="#/add" id="topAddBtn"><span class="ni-ico"><svg class="icon"><use href="#i-add"/></svg></span><span data-i18n="Add">Add</span></a>
       </div>
 
+      <!-- Notifications — a list row like Quick search/Inbox in the reference layout,
+           not a small corner-badge icon, so it reads at a glance even collapsed-adjacent. -->
+      <div class="notif-wrap">
+        <button class="nav-item quick-item" id="notifBtn" aria-haspopup="true" aria-expanded="false" title="Notifications">
+          <span class="ni-ico"><svg class="icon"><use href="#i-bell"/></svg></span>
+          <span class="notif-row-label"><span data-i18n="Notifications">Notifications</span><span class="notif-badge notif-badge-target" id="notifBadge" hidden>0</span></span>
+        </button>
+        <div class="notif-pop" id="notifPop" hidden>
+          <div class="notif-head"><strong data-i18n="Notifications">Notifications</strong></div>
+          <div class="notif-body notif-body-target" id="notifBody"></div>
+        </div>
+      </div>
+
+      <div class="nav-section-label" data-i18n="Menu">Menu</div>
       <nav class="nav" aria-label="Primary">
         <a class="nav-item" href="#/dashboard" data-page="dashboard"><span class="ni-ico"><svg class="icon"><use href="#i-dashboard"/></svg></span><span data-i18n="Dashboard">Dashboard</span></a>
         <a class="nav-item" href="#/portfolio" data-page="portfolio"><span class="ni-ico"><svg class="icon"><use href="#i-portfolio"/></svg></span><span data-i18n="Portfolio">Portfolio</span></a>
         <a class="nav-item" href="#/dividends" data-page="dividends"><span class="ni-ico"><svg class="icon"><use href="#i-dividends"/></svg></span><span data-i18n="Dividends">Dividends</span></a>
-
         <a class="nav-item" href="#/records" data-page="records"><span class="ni-ico"><svg class="icon"><use href="#i-records"/></svg></span><span data-i18n="Transactions">Transactions</span></a>
         <a class="nav-item" href="#/brokers" data-page="brokers"><span class="ni-ico"><svg class="icon"><use href="#i-brokers"/></svg></span><span data-i18n="Brokers">Brokers</span></a>
-        <a class="nav-item" href="#/settings" data-page="settings"><span class="ni-ico"><svg class="icon"><use href="#i-settings"/></svg></span><span data-i18n="Settings">Settings</span></a>
-        <a class="nav-item" href="#/help" data-page="help"><span class="ni-ico"><svg class="icon"><use href="#i-help"/></svg></span><span data-i18n="Help">Help</span></a>
       </nav>
 
-      <!-- Language / theme / notifications — was in the topbar; lives here now. -->
+      <!-- Preferences — a second, lower-priority list, same shape as the reference's
+           Preferences/Dark mode/Themes/Help group below its "Upgrade to Pro" card. -->
+      <div class="sidebar-secondary">
+        <a class="nav-item" href="#/settings" data-page="settings"><span class="ni-ico"><svg class="icon"><use href="#i-settings"/></svg></span><span data-i18n="Settings">Settings</span></a>
+        <button class="nav-item theme-btn" id="themeBtn" title="Toggle dark / light">
+          <span class="ni-ico"><svg class="icon"><use class="theme-btn-use" id="themeBtnUse" href="#i-sun"/></svg></span>
+          <span data-i18n="Dark mode">Dark mode</span>
+        </button>
+        <button class="nav-item lang-btn" id="langBtn" title="切换语言 / Switch language">
+          <span class="ni-ico"><svg class="icon"><use href="#i-lang"/></svg></span>
+          <span class="lang-btn-label"></span>
+        </button>
+        <a class="nav-item" href="#/help" data-page="help"><span class="ni-ico"><svg class="icon"><use href="#i-help"/></svg></span><span data-i18n="Help">Help</span></a>
+      </div>
+
+      <!-- Account — pinned to the very bottom, like the reference's account row. -->
       <div class="sidebar-foot">
-        <div class="sidebar-utils">
-          <button class="btn ghost small lang-btn" id="langBtn" title="切换语言 / Switch language">EN / 中文</button>
-          <button class="icon-btn theme-btn" id="themeBtn" aria-label="Toggle theme" title="Toggle dark / light"><svg class="icon"><use class="theme-btn-use" id="themeBtnUse" href="#i-sun"/></svg></button>
-          <div class="notif-wrap">
-            <button class="icon-btn" id="notifBtn" aria-haspopup="true" aria-expanded="false" aria-label="Notifications" title="Notifications">
-              <svg class="icon"><use href="#i-bell"/></svg>
-              <span class="notif-badge notif-badge-target" id="notifBadge" hidden>0</span>
-            </button>
-            <div class="notif-pop" id="notifPop" hidden>
-              <div class="notif-head"><strong data-i18n="Notifications">Notifications</strong></div>
-              <div class="notif-body notif-body-target" id="notifBody"></div>
-            </div>
-          </div>
-        </div>
+        <a class="acct-switch" href="#/profile" id="sidebarAccount" aria-label="Account settings">
+          <span class="brand-mark" id="sidebarAcctAvatar" aria-hidden="true"></span>
+          <span class="acct-info">
+            <span class="acct-name" id="sidebarAcctName"></span>
+            <span class="acct-sub" id="sidebarAcctSub"></span>
+          </span>
+        </a>
       </div>
     </aside>
 
@@ -203,9 +220,9 @@
     </div>
   </div>
 
-  <script type="module" src="supabase-client.js?v=302"></script>
-  <script src="data.js?v=302"></script>
-  <script src="app.js?v=302"></script>
-  <script src="sync.js?v=302"></script>
+  <script type="module" src="supabase-client.js?v=303"></script>
+  <script src="data.js?v=303"></script>
+  <script src="app.js?v=303"></script>
+  <script src="sync.js?v=303"></script>
 </body>
 </html>
