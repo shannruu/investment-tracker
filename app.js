@@ -4768,9 +4768,8 @@ function pageBrokers() {
 
   const archToggle = archived.length
     ? `<button class="btn ghost" id="toggleArchived">${showArchivedBrokers ? t("Hide archived") : `${t("Show archived")} (${archived.length})`}</button>` : "";
-  // "+ Add Broker" now lives in the topbar (shown only on this page — see
-  // #topAddBrokerBtn, wired once in init()), alongside the global +Add button,
-  // instead of a second local button here.
+  // The global "+Add" button opens the broker drawer while on this page (see
+  // openAddFresh() in init()) — no separate local button needed here.
 
   const html = `${summary}<div class="panel-head" style="margin-bottom:14px"><h2>${t("Your Brokers")}</h2><div class="panel-head-actions">${archToggle}</div></div>
     ${cards ? `<div class="broker-grid">${cards}</div>` : emptyState(`${t("No brokers yet — every transaction and holding needs one.")}<div class="form-actions" style="margin-top:14px;justify-content:center"><button type="button" class="btn primary" id="emptyAddBroker">＋ ${t("Add Broker")}</button></div>`)}
@@ -6616,8 +6615,20 @@ function render() {
     el.classList.toggle("active", p === key || (key === "add" && (p === "records" || p === "add")));
   });
   const mb = $("#moreBtn"); if (mb) mb.classList.toggle("active", secondary.includes(key));
-  // "+Add Broker" only makes sense in the topbar while looking at the Brokers page.
-  const topAddBrokerBtn = $("#topAddBrokerBtn"); if (topAddBrokerBtn) topAddBrokerBtn.hidden = key !== "brokers";
+  // The global "+Add" doubles as "+Add Broker" while on the Brokers page (see
+  // openAddFresh() in init()) — swap the sidebar button's label to match so it's
+  // not a surprise. The mobile bottom-nav "+" stays labelled "Add" (no room for
+  // "Add Broker" to wrap cleanly in that narrow a column) but behaves the same.
+  const topAddLabel = $("#topAddBtn > span:last-child");
+  if (topAddLabel) {
+    const addLabel = key === "brokers" ? "Add Broker" : "Add";
+    topAddLabel.setAttribute("data-i18n", addLabel);
+    topAddLabel.textContent = t(addLabel);
+    // Also a title, so the collapsed (icon-only) sidebar still tells you what it
+    // does now that its meaning changes with the page — same idea as .nav-item's
+    // own title tooltips a couple lines up in applyStaticI18n().
+    $("#topAddBtn").title = t(addLabel);
+  }
   closeMoreSheet();
   renderSidebarAccount();
   renderNotifications();
@@ -6694,9 +6705,12 @@ function init() {
   if (addDrawerClose) addDrawerClose.addEventListener("click", () => exitAddDrawer());
   const addDrawerEl = $("#addDrawer");
   if (addDrawerEl) addDrawerEl.addEventListener("click", (e) => { if (e.target.id === "addDrawer") exitAddDrawer(); });
-  // Global "+Add" (topbar + mobile nav): open the add drawer as an overlay over
+  // Global "+Add" (sidebar + mobile nav): open the add drawer as an overlay over
   // whatever page is currently showing, instead of switching to Records first.
+  // On the Brokers page it opens the broker drawer instead — one button, no
+  // separate "+Add Broker" control (see render() for the sidebar label swap).
   const openAddFresh = (e) => {
+    if (currentPageKey() === "brokers") { e.preventDefault(); openBrokerDrawer(); return; }
     if (currentPageKey() === "add") return;   // already there via the route — default nav is a same-hash no-op
     e.preventDefault();
     openAddDrawerFresh();
@@ -6705,11 +6719,6 @@ function init() {
   if (topAddBtn) topAddBtn.addEventListener("click", openAddFresh);
   const bnAddBtn = $("#bnAddBtn");
   if (bnAddBtn) bnAddBtn.addEventListener("click", openAddFresh);
-  // "+Add Broker" — shown only on the Brokers page (see render()), sits in the
-  // same topbar container as the global +Add rather than a second button on
-  // the page itself.
-  const topAddBrokerBtn = $("#topAddBrokerBtn");
-  if (topAddBrokerBtn) topAddBrokerBtn.addEventListener("click", () => openBrokerDrawer());
   // Broker drawer: no route change involved (Add/Edit Broker always lived on #/brokers),
   // so close/backdrop just hide it directly instead of navigating.
   const brokerDrawerClose = $("#brokerDrawerClose");

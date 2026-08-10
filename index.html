@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Divz" />
-  <link rel="stylesheet" href="styles.css?v=305" />
+  <link rel="stylesheet" href="styles.css?v=306" />
 </head>
 <body>
 
@@ -58,9 +58,10 @@
         </button>
       </div>
 
-      <!-- Global "+Add" — was in the topbar; lives here now that the topbar is gone. -->
+      <!-- Global "+Add" — was in the topbar; lives here now that the topbar is gone.
+           On the Brokers page this opens the broker drawer instead of the transaction
+           drawer (see openAddFresh() in init()); its label swaps to match (see render()). -->
       <div class="sidebar-add">
-        <button type="button" class="btn secondary" id="topAddBrokerBtn" hidden><span class="ni-ico"><svg class="icon"><use href="#i-add"/></svg></span><span data-i18n="Add Broker">Add Broker</span></button>
         <a class="btn primary" href="#/add" id="topAddBtn"><span class="ni-ico"><svg class="icon"><use href="#i-add"/></svg></span><span data-i18n="Add">Add</span></a>
       </div>
 
@@ -219,9 +220,9 @@
     </div>
   </div>
 
-  <script type="module" src="supabase-client.js?v=305"></script>
-  <script src="data.js?v=305"></script>
-  <script src="app.js?v=305"></script>
-  <script src="sync.js?v=305"></script>
+  <script type="module" src="supabase-client.js?v=306"></script>
+  <script src="data.js?v=306"></script>
+  <script src="app.js?v=306"></script>
+  <script src="sync.js?v=306"></script>
 </body>
 </html>

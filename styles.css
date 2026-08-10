@@ -204,7 +204,6 @@ a { color: inherit; text-decoration: none; }
   transition: max-width .15s, opacity .1s;
 }
 .sidebar.collapsed .sidebar-add .btn > span:last-child { max-width: 0; opacity: 0; }
-#topAddBrokerBtn[hidden] { display: none; }   /* beats .btn's own display:inline-flex */
 
 /* Notifications — a nav-item-shaped row (icon + label + trailing count), same
    collapse behavior as any other nav-item since it shares the class. */
