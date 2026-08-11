@@ -94,7 +94,7 @@ a { color: inherit; text-decoration: none; }
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  padding: 36px 14px;
+  padding: 46px 14px;
   position: sticky;
   top: 0;
   height: 100vh;
@@ -250,7 +250,7 @@ button.brand { border: none; background: none; font: inherit; cursor: pointer; t
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-.content { padding: 40px 26px 90px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1320px; margin: 0 auto; align-self: center; }
+.content { padding: 52px 26px 90px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1320px; margin: 0 auto; align-self: center; }
 
 /* ===================== Buttons ===================== */
 /* Fixed height + line-height:1 so the button never changes size when the
@@ -733,7 +733,7 @@ a.onboard-step:hover { background: var(--surface-2); }
     display: flex; position: fixed; z-index: 60; top: 0; left: 0; bottom: 0;
     box-shadow: var(--shadow);
   }
-  .content { padding: 30px 14px 96px; }
+  .content { padding: 38px 14px 96px; }
   /* .app-disclaimer is a sibling of .content, rendered after it — it needs the same
      fixed-bottom-nav clearance .content gets, or the nav bar paints over its text
      whenever a page is short enough to end near the bottom of the screen. */
