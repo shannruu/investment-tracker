@@ -115,33 +115,46 @@ a { color: inherit; text-decoration: none; }
   display: grid; place-items: center; letter-spacing: .5px;
 }
 
-/* Brand + collapse toggle share one row now. .brand's own flex:1 (below) fills
-   the row and pushes the toggle to the end, so no justify-content is needed. */
-.sidebar-top { display: flex; align-items: center; gap: 4px; margin: 0 0 14px; }
+/* Brand + collapse toggle share one row AND now one hover box — they're two
+   triggers for the exact same action (see app.js), so a single shared
+   highlight reads better than two separate boxes side by side. .brand's own
+   flex:1 (below) fills the row and pushes the toggle to the end. */
+.sidebar-top {
+  display: flex; align-items: center; gap: 4px; margin: 0 0 14px;
+  padding: 8px 8px 8px 7px; border-radius: var(--radius-sm);
+  transition: background .12s;
+}
+.sidebar-top:hover { background: var(--surface-2); }
 /* Collapsed: no room for both the logo and the toggle in a 48px content box —
    hide the toggle and leave only the logo (see .brand click handling in app.js,
-   which expands the rail again when the logo is clicked while collapsed). */
+   which expands the rail again when the logo is clicked while collapsed).
+   The row's own right padding only exists to clear the toggle, so drop it too. */
 .sidebar.collapsed #sidebarToggle { display: none; }
+.sidebar.collapsed .sidebar-top { padding-right: 0; }
 #sidebarToggle {
   flex: none; border: none; background: none; outline: none; box-shadow: none;
   width: 30px; height: 30px; padding: 0; margin: 0;
-  border-radius: var(--radius-sm); display: grid; place-items: center;
-  color: var(--text-soft); cursor: pointer; transition: background .12s, color .12s;
+  display: grid; place-items: center; color: var(--text-soft); cursor: pointer;
+  transition: color .12s;
 }
-#sidebarToggle:hover, #sidebarToggle:focus-visible { background: var(--surface-2); color: var(--text); }
-/* padding-left: 7px centers the 34px avatar exactly within the collapsed
-   rail's 48px content box (76 - 2*14 sidebar padding); gap transitions to 0
-   so no dead space is reserved after the avatar once the label's width is 0. */
-.acct-switch, .brand {
+.sidebar-top:hover #sidebarToggle { color: var(--text); }
+.acct-switch {
   display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
   padding: 8px 8px 8px 7px; border-radius: var(--radius-sm);
   text-decoration: none; color: inherit; transition: background .12s, gap .15s;
 }
+/* padding-left: 7px centers the 34px avatar exactly within the collapsed
+   rail's 48px content box (76 - 2*14 sidebar padding); gap transitions to 0
+   so no dead space is reserved after the avatar once the label's width is 0. */
+.brand {
+  display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
+  text-decoration: none; color: inherit; transition: gap .15s;
+}
 /* .brand is a <button> now (it toggles the sidebar, same as #sidebarToggle) —
    undo default button chrome. .acct-switch stays a real <a> to Profile. */
-button.brand { border: none; background: none; font: inherit; cursor: pointer; text-align: left; }
+button.brand { border: none; background: none; padding: 0; font: inherit; cursor: pointer; text-align: left; }
 .sidebar.collapsed .acct-switch, .sidebar.collapsed .brand { gap: 0; }
-.acct-switch:hover, .brand:hover { background: var(--surface-2); }
+.acct-switch:hover { background: var(--surface-2); }
 .acct-switch .brand-mark, .brand .brand-mark { flex: none; }
 .acct-switch .brand-mark .icon { width: 17px; height: 17px; }
 .brand-name {

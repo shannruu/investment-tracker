@@ -4924,7 +4924,7 @@ function pageProfile() {
 
     ${typeof accountSyncPanelHTML === "function" ? accountSyncPanelHTML() : ""}
 
-    ${panel(t("Overview"), `<div class="cash-strip" style="margin:-4px 0 -4px;padding-bottom:0;border-bottom:0">
+    ${panel(t("Overview"), `<div class="cash-strip" style="margin:-4px 0 0;padding-bottom:0;border-bottom:0">
       <a class="cash-item" href="#/brokers"><span class="cash-k">${t("Brokers")}</span><span class="cash-v">${BROKERS.length}</span></a>
       <a class="cash-item" href="#/portfolio"><span class="cash-k">${t("Holdings")}</span><span class="cash-v">${T.holdings.length}</span></a>
       <a class="cash-item" href="#/records"><span class="cash-k">${t("Transactions")}</span><span class="cash-v">${ALL_TRANSACTIONS.length}</span></a>
