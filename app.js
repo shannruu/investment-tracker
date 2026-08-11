@@ -567,6 +567,7 @@ const ZH = {
   "added at the live rate": "已按实时汇率添加", "added — set its rate in Settings": "已添加 — 请在设置中设定其汇率",
   "Buys (incl. fees & tax)": "买入（含费用与税）", "Sells (net of fees)": "卖出（扣除费用）",
   "Net dividends received": "已收净股息", "Standalone fees": "独立费用",
+  "Currency exchange fees": "货币兑换手续费",
   "FX revaluation of foreign cash": "外币现金的汇率重估",
   "Holdings": "持仓", "Principal Invested": "已投入本金", "Dividends YTD": "今年至今股息",
   "By market value": "按市值", "Calendar": "日历", "View all": "查看全部", "Recent Activity": "近期活动",
@@ -5851,8 +5852,14 @@ function availableCashCalc() {
     interest: flowSum((x) => x.type === "Interest / cash yield" || x.type === "Interest", (x) => +x.gross || 0),
     fees: flowSum((x) => x.type === "Fee", (x) => +x.gross || 0),
     taxes: flowSum((x) => x.type === "Tax withholding", (x) => +x.gross || 0),
+    // A Currency Exchange/FX conversion moves cash between two buckets at the
+    // entered amounts (net zero by itself, see computeTotals()) but its fee is
+    // a real cash outflow — omitting it here left that amount misattributed to
+    // "FX gain/loss on cash" below, even for a same-currency exchange with no
+    // actual FX exposure at all.
+    exchangeFees: flowSum((x) => x.type === "FX conversion" || x.type === "Currency Exchange", (x) => +x.fee || 0),
   };
-  const flow = cf.deposits - cf.withdrawals - cf.buys + cf.sells + cf.divs + cf.interest - cf.fees - cf.taxes;
+  const flow = cf.deposits - cf.withdrawals - cf.buys + cf.sells + cf.divs + cf.interest - cf.fees - cf.taxes - cf.exchangeFees;
   const fxAdj = (T.totalCash || 0) - flow;
   const mfmt = (n) => `${ccyLabel(FX.base)} ${fmt(n)}`;
   let rows = [
@@ -5864,6 +5871,7 @@ function availableCashCalc() {
     { on: cf.interest, op: "+", label: "Interest / cash yield", val: mfmt(cf.interest) },
     { on: cf.fees, op: "−", label: "Standalone fees", val: mfmt(cf.fees) },
     { on: cf.taxes, op: "−", label: "Tax withholding", val: mfmt(cf.taxes) },
+    { on: cf.exchangeFees, op: "−", label: "Currency exchange fees", val: mfmt(cf.exchangeFees) },
     { on: Math.abs(fxAdj) > 0.005, op: fxAdj >= 0 ? "+" : "−", label: "FX gain/loss on cash", hint: "Your foreign cash balance is worth more or less in RM depending on the exchange rate stored when you deposited vs. today's rate.", val: mfmt(Math.abs(fxAdj)) },
   ].filter((r) => r.on).map(({ op, label, val }) => ({ op, label, val }));
   // Fallback so the breakdown is never blank: only brokers that actually hold cash, else a plain note.
@@ -6128,8 +6136,12 @@ function parseCSV(text) {
 }
 
 /* Signature used for duplicate detection: same broker + date + type + ticker + amount + ccy. */
-function txSignature(brokerId, date, type, ticker, gross, currency) {
-  return [brokerId, date, type, (ticker || "—").toUpperCase(), (+gross || 0).toFixed(2), currency].join("|");
+// qty is included so two Buy/Sell rows with the same total gross but different
+// qty x price (e.g. 100 @ RM10 vs. 50 @ RM20, both gross RM1000) don't collide
+// and get wrongly skipped as duplicates on import. Types without a qty (Deposit,
+// Dividend, ...) pass qty=null on both sides, so this is a no-op for them.
+function txSignature(brokerId, date, type, ticker, gross, currency, qty) {
+  return [brokerId, date, type, (ticker || "—").toUpperCase(), (+gross || 0).toFixed(2), currency, qty != null ? (+qty).toFixed(4) : ""].join("|");
 }
 
 function importTxFromCSV(text) {
@@ -6151,7 +6163,7 @@ function importTxFromCSV(text) {
 
   const brokerByName = {}; BROKERS.forEach((b) => (brokerByName[b.name.trim().toLowerCase()] = b.id));
   // Existing-ledger signatures + a per-batch set, so dupes inside the file are caught too.
-  const existing = new Set(ALL_TRANSACTIONS.map((x) => txSignature(x.brokerId, x.date, x.type, x.ticker, x.gross, x.currency)));
+  const existing = new Set(ALL_TRANSACTIONS.map((x) => txSignature(x.brokerId, x.date, x.type, x.ticker, x.gross, x.currency, x.qty)));
   const batchSeen = new Set();
   const unknownBrokers = [];
 
@@ -6221,7 +6233,7 @@ function importTxFromCSV(text) {
     let dup = false;
     if (!needsBroker && !errors.length) {
       const sigType = type === "DRIP / Reinvested" ? "Dividend" : type;
-      const sig = txSignature(brokerId, date, sigType, ticker, gross, currency);
+      const sig = txSignature(brokerId, date, sigType, ticker, gross, currency, qty);
       if (existing.has(sig) || batchSeen.has(sig)) dup = true;
       else batchSeen.add(sig);
     }
