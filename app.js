@@ -136,8 +136,7 @@ const ZH = {
   "Change photo": "更换照片", "Remove photo": "移除照片", "Upload photo": "上传照片",
   "Profile photo updated": "头像已更新", "Profile photo removed": "头像已移除",
   "Please choose an image file.": "请选择一个图片文件。", "Couldn't read that image.": "无法读取该图片。",
-  "Exchange Rates": "汇率", "Data Import / Export": "数据导入 / 导出", "Danger Zone": "危险操作",
-  "Data Safety & Backup": "数据安全与备份",
+  "Danger Zone": "危险操作",
   "Or export just one part, as CSV": "或仅导出其中一部分（CSV 格式）",
   "Just want to reset the Dashboard chart, not your data?": "只想重置仪表盘图表，而不清除数据？",
   "Clear chart history": "清除图表历史",
@@ -213,8 +212,6 @@ const ZH = {
   // Data entry — brokers / holdings / transactions
   "Broker name": "券商名称", "Default currency": "默认货币", "Broker added": "已添加券商",
   "Broker removed": "已移除券商", "This broker still has records. Remove it anyway?": "该券商仍有记录，仍要移除吗？",
-  "Add a broker first (Brokers page), then you can add holdings.": "请先在「券商」页面添加券商，然后才能添加持仓。",
-  "Add a broker first (Brokers page), then you can record transactions.": "请先在「券商」页面添加券商，然后才能记录交易。",
   "Company Name": "公司名称", "Add Holding": "添加持仓",
   "Holding added": "已添加持仓", "Holding removed": "已移除持仓",
   "records": "条记录", "Transaction added": "已添加交易",
@@ -526,15 +523,13 @@ const ZH = {
   "Asset type saved": "资产类型已保存",
   "Pick a type, then fill only what's needed.": "先选择类型，然后只填写所需字段。",
   "Pick what to record": "选择要记录的内容", "Change type": "更改类型", "Withdraw": "取款",
-  "Fees, taxes & details": "费用、税费与明细", "Go to Brokers": "前往券商",
-  "Add a broker first (More → Brokers), then you can record transactions.": "请先添加券商（更多 → 券商），然后才能记录交易。",
+  "Fees, taxes & details": "费用、税费与明细",
   "Add a transaction": "添加交易", "Edit": "编辑", "Record a transaction": "记录一笔交易",
   "All your transactions, cash and dividends in one ledger.": "所有交易、现金和股息集中在一个账本中。",
   "Pick a type, then fill only what's needed.": "先选择类型，然后只填写所需字段。",
   // Dashboard hero
   "Net Worth": "净资产", "Total P/L": "总盈亏", "Price P/L": "价格盈亏", "how": "如何计算",
   "Total": "总计", "Price": "价格", "Across all brokers": "所有券商合计", "Deposits − Withdrawals": "存款 − 取款",
-  "Open Brokers and add your investment app first — every transaction belongs to a broker.": "先打开「券商」添加您的投资平台 — 每笔交易都属于某个券商。",
   // Dashboard table headers + empty states (full EN/中文 coverage)
   "Days": "距今天数", "Ex-Date": "除息日", "Payment": "付款日", "Expected Net": "预期净额",
   "Holding": "持仓", "Market": "市场", "Net Div": "净股息", "Current Price": "现价",
@@ -554,13 +549,12 @@ const ZH = {
   "What you own": "持有内容", "Where & how much": "账户与数量", "Cost basis": "成本基础",
   "As-of date": "截至日期", "Current price": "现价", "optional — for instant P/L": "可选 — 用于即时盈亏",
   "No holdings yet. Record a Buy in Records, or add an opening holding below.": "暂无持仓。在「记录」中记一笔买入，或在下方添加期初持仓。",
-  "Add a broker first (More → Brokers), then record a Buy or add an opening holding.": "请先添加券商（更多 → 券商），然后记录买入或添加期初持仓。",
   "Import existing holdings": "导入现有持仓",
   "Positions you held before tracking — click to open": "开始记录前已持有的仓位 — 点击展开",
   "No holdings yet — record a Buy on the Add page and it appears here automatically.": "暂无持仓 — 在「添加」页记录一笔买入，它会自动出现在此。",
   "Record your first Buy": "记录首笔买入",
-  "Add a broker first (More → Brokers), then record a Buy and it appears here.": "请先添加券商（更多 → 券商），然后记录买入，它会出现在此。",
-  "Add a broker first (More → Brokers), then you can import holdings.": "请先添加券商（更多 → 券商），然后即可导入持仓。",
+  "Add a broker first, then record a Buy and it appears here.": "请先添加券商，然后记录买入，它会出现在此。",
+  "Add a broker first, then you can import holdings.": "请先添加券商，然后即可导入持仓。",
   "Add a broker": "添加券商",
   "You need a broker before you can record transactions — every transaction belongs to a broker.": "记录交易前需要先添加券商 — 每笔交易都属于某个券商。",
   "Your only broker is archived. Add (or restore) an active broker to record transactions.": "您唯一的券商已归档。请添加（或恢复）一个有效券商以记录交易。",
@@ -619,7 +613,7 @@ function setLang(l) {
   document.documentElement.setAttribute("lang", l === "zh" ? "zh-CN" : "en");
 }
 
-/* Translate any static element carrying a data-i18n attribute (nav, topbar…). */
+/* Translate any static element carrying a data-i18n attribute (nav, sidebar…). */
 function applyStaticI18n() {
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     el.textContent = t(el.getAttribute("data-i18n"));
@@ -2463,7 +2457,7 @@ function onboardingHTML() {
 /* Data-driven alerts (reconciliation issues, stale prices/FX, oversells, dividend
  * cut/suspension) — shown in the notification bell (every page) instead of a fixed
  * spot on one page. Self-contained: computes its own dividend forecast rather than
- * requiring a caller to pass one in, since it now needs to run from the global topbar. */
+ * requiring a caller to pass one in, since it now needs to run from the global sidebar. */
 function systemAlertItems() {
   const items = [];
   // Reconciliation differences beyond tolerance
@@ -2658,7 +2652,7 @@ function plural(n, one, many) { return `${n} ${n === 1 ? one : many}`; }
  * "add a stock" flow, which is a Buy transaction on the Add page.
  * ========================================================================== */
 function openingHoldingFormHTML() {
-  if (!BROKERS.length) return `<p class="muted">${t("Add a broker first (More → Brokers), then you can import holdings.")}</p><div class="form-actions" style="margin-top:14px"><a class="btn primary" href="#/brokers">${t("Add a broker")} →</a></div>`;
+  if (!BROKERS.length) return `<p class="muted">${t("Add a broker first, then you can import holdings.")}</p><div class="form-actions" style="margin-top:14px"><a class="btn primary" href="#/brokers">${t("Add a broker")} →</a></div>`;
   const ccyItems = currencyItems();
   const brokerItems = BROKERS.filter((b) => !b.archived).map((b) => ({ value: b.id, label: b.name }));
   return `<form id="holdingForm" class="form opening-form" autocomplete="off">
@@ -2891,8 +2885,8 @@ function pagePortfolio() {
          <a class="btn primary" href="#/add"><svg class="icon" aria-hidden="true" style="width:14px;height:14px;flex:none"><use href="#i-add"/></svg>${t("Record your first Buy")}</a>
        </div>`
     : `<div class="portfolio-empty">
-         <p class="pe-msg">${t("Add a broker first (More → Brokers), then record a Buy and it appears here.")}</p>
-         <a class="btn ghost" href="#/brokers">${t("Go to Brokers")}</a>
+         <p class="pe-msg">${t("Add a broker first, then record a Buy and it appears here.")}</p>
+         <a class="btn ghost" href="#/brokers">${t("Add a broker")} →</a>
        </div>`;
 
   const latestFetch = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();
@@ -3245,7 +3239,7 @@ function pageRecords() {
     CASH_SUBFILTERS.map(([k, lbl]) => ({ value: k, label: t(lbl) })), cashSubFilter, { id: "cashSubFilterSel" })}</div>` : "";
   const list = ALL_TRANSACTIONS.filter((x) => recordMatchesTab(x, recordsTab) && matchesCashSubFilter(x));
   // No local "Add" button or record-count badge here — the global +Add in the
-  // topbar already covers this, and a second one right above the table it opens
+  // sidebar already covers this, and a second one right above the table it opens
   // over was redundant clutter (plus sat right against the table's own edge/rule).
   const html = `<section class="panel add-panel">
       ${nav}
@@ -3454,7 +3448,7 @@ function closeDrawer(dr) {
 function closeAddDrawer() { closeDrawer($("#addDrawer")); }
 
 /* Open the add/edit drawer as an overlay OVER whatever page is currently showing,
- * without navigating to #/add — used by the global +Add button (topbar + mobile
+ * without navigating to #/add — used by the global +Add button (sidebar + mobile
  * nav) so clicking it from e.g. Dashboard doesn't switch you to the Records page.
  * (openAddDrawer(), by contrast, is only ever invoked as a side effect of the
  * #/add route itself and reads type/edit state from the URL — see pageAdd().) */
@@ -5385,7 +5379,7 @@ function pagePrivacy() {
       "Divz is an independent, personal, non-commercial project — not a company or a registered service. This page explains, plainly, what data the app touches and where it goes.",
     ] },
     { title: "Your data lives on your device, by default", body: [
-      "Every broker, holding, transaction, and setting you enter is stored only in your browser's localStorage, on your own device. It is never sent to any server for storage unless you deliberately turn on Cloud Sync (below). Clearing your browser's site data will remove it — export a JSON backup regularly (Settings → Data Safety & Backup) if you want a copy elsewhere.",
+      "Every broker, holding, transaction, and setting you enter is stored only in your browser's localStorage, on your own device. It is never sent to any server for storage unless you deliberately turn on Cloud Sync (below). Clearing your browser's site data will remove it — export a JSON backup regularly (Settings → Data & Backup) if you want a copy elsewhere.",
     ] },
     { title: "Live market data lookups", body: [
       "Looking up a stock price, a dividend history, or browsing the Ex-Dividend Screener sends a request through this app's own server functions to third-party public market data sources (Yahoo Finance, Nasdaq, TradingView). Only the ticker symbol or date range you're asking about is sent — never your portfolio, your holdings, or any other personal financial data.",
@@ -5412,7 +5406,7 @@ function pagePrivacy() {
       "Divz 是一个独立的个人非商业项目——并非一家公司或注册服务。本页面将直白地说明本应用会接触哪些数据，以及这些数据会流向何处。",
     ] },
     { title: "您的数据默认保存在您的设备上", body: [
-      "您输入的每一个券商、持仓、交易和设置，都只保存在您浏览器的 localStorage 中，位于您自己的设备上。除非您主动开启云同步（见下文），否则这些数据绝不会被发送到任何服务器进行存储。清除浏览器的网站数据会将其删除——如果您希望在别处保留一份副本，请定期导出 JSON 备份（设置 → 数据安全与备份）。",
+      "您输入的每一个券商、持仓、交易和设置，都只保存在您浏览器的 localStorage 中，位于您自己的设备上。除非您主动开启云同步（见下文），否则这些数据绝不会被发送到任何服务器进行存储。清除浏览器的网站数据会将其删除——如果您希望在别处保留一份副本，请定期导出 JSON 备份（设置 → 数据与备份）。",
     ] },
     { title: "实时市场数据查询", body: [
       "查询股票价格、股息历史，或浏览除息股筛选器时，会通过本应用自身的服务器功能向第三方公开市场数据来源（Yahoo Finance、Nasdaq、TradingView）发出请求。只有您所查询的股票代码或日期范围会被发送——绝不会发送您的投资组合、持仓或任何其他个人财务数据。",
@@ -6560,7 +6554,7 @@ function renderNotifications() {
   });
 }
 
-/* Mounted once at bootstrap (this bell lives in the topbar, outside the
+/* Mounted once at bootstrap (this bell lives in the sidebar, outside the
  * per-page render() cycle) — same delegated-listener shape as mountColInfoTaps(). */
 function mountNotifBell() {
   const btn = $("#notifBtn"), pop = $("#notifPop");
@@ -6606,7 +6600,7 @@ function render() {
   // active nav state — sidebar items highlight directly; mobile "More" highlights on secondary pages.
   // The add drawer renders over Transactions (key "add" → route #/records), so with it open
   // both the Transactions item and the mobile quick-add "+" read as active.
-  const secondary = ["records", "brokers", "settings", "help"];
+  const secondary = ["records", "brokers", "settings", "help", "profile"];
   $$("[data-page]").forEach((el) => {
     const p = el.dataset.page;
     el.classList.toggle("active", p === key || (key === "add" && (p === "records" || p === "add")));
@@ -6655,7 +6649,7 @@ function init() {
   try { const saved = localStorage.getItem("il-theme"); if (saved) setTheme(saved); } catch (e) {}
 
   setLang(LANG);            // sets <html lang> from the persisted choice
-  applyStaticI18n();        // translate nav / topbar / bottom-nav labels
+  applyStaticI18n();        // translate nav / sidebar / bottom-nav labels
   updateLangBtn();
 
   try { setSidebarCollapsed(localStorage.getItem("il-sidebar-collapsed") === "1"); } catch (e) {}

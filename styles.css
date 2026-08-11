@@ -263,7 +263,11 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-.content { padding: 40px 26px 90px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1320px; margin: 0 auto; align-self: center; }
+/* min-width: 0 — without it, a flex item's default min-width:auto lets a wide
+   descendant (e.g. a data table) force this wider than the viewport, even
+   though the table's own .table-wrap scrolls internally. Same fix needed on
+   .panel below, since that's the direct flex-item ancestor of .table-wrap. */
+.content { padding: 40px 26px 90px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1320px; min-width: 0; margin: 0 auto; align-self: center; }
 
 /* ===================== Buttons ===================== */
 /* Fixed height + line-height:1 so the button never changes size when the
@@ -374,7 +378,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 .panel {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); box-shadow: var(--shadow);
-  padding: 16px 18px 18px;
+  padding: 16px 18px 18px; min-width: 0;
 }
 .panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
 .panel-head h2 { font-size: 15px; display: flex; align-items: center; }
@@ -742,11 +746,18 @@ a.onboard-step:hover { background: var(--surface-2); }
 
 @media (max-width: 760px) {
   .sidebar { display: none; }
-  .sidebar.open {
-    display: flex; position: fixed; z-index: 60; top: 0; left: 0; bottom: 0;
-    box-shadow: var(--shadow);
-  }
   .content { padding: 28px 14px 96px; }
+  /* .broker-grid's minmax(340px,1fr) columns are correct on desktop but have
+     no shrink floor below 340px — on any phone narrower than ~368px CSS width
+     that overflows the page instead of just stacking to one column. */
+  .broker-grid { grid-template-columns: 1fr; }
+  /* Settings → Currency & Exchange Rates "add currency" row: two fixed-140px
+     inputs plus a button in one non-wrapping flex row overflow narrow phones —
+     wrap the rate+button onto their own line and let both inputs shrink. */
+  .fx-row-add { flex-wrap: wrap; row-gap: 8px; }
+  .fx-row-add .fx-ccy-input { flex: 1; min-width: 70px; width: auto; }
+  .fx-row-controls { flex: 1 1 100%; min-width: 0; }
+  .fx-row-controls .fx-rate { flex: 1; min-width: 0; width: auto; }
   /* .app-disclaimer is a sibling of .content, rendered after it — it needs the same
      fixed-bottom-nav clearance .content gets, or the nav bar paints over its text
      whenever a page is short enough to end near the bottom of the screen. */
@@ -816,7 +827,11 @@ a.onboard-step:hover { background: var(--surface-2); }
   padding: 5px 9px; border-radius: 5px; width: max-content; max-width: 260px; z-index: 9999; line-height: 1.5;
   box-shadow: 0 2px 8px rgba(0,0,0,.14); pointer-events: none; white-space: normal; text-align: left;
 }
-.pv-clock-note { display: flex; align-items: center; font-size: 11px; margin-top: 6px; gap: 0; }
+/* .meta-note defaults to white-space:nowrap (right for its usual short "Prices
+   as of ..." usages) but this one sentence is much longer and needs to wrap,
+   or it overflows the viewport on mobile instead of just going to a 2nd line. */
+.pv-clock-note { display: flex; align-items: flex-start; font-size: 11px; margin-top: 6px; gap: 0; }
+.pv-clock-note .meta-note { white-space: normal; }
 th[data-col-id="shares"] { min-width: 80px; }
 .filters select, .form select, .form input, .setting-rows select, .setting-rows input:not([type="checkbox"]), .panel-head-actions input[type="search"] {
   font-family: inherit; font-size: 13px; color: var(--text);
@@ -1234,9 +1249,12 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .nav-item .ni-ico { opacity: .85; }
 .nav-item.active .ni-ico { opacity: 1; }
 .more-item .ni-ico { opacity: .9; }
-.bn-item .bn-ico { display: inline-flex; }
+.bn-item .bn-ico { display: inline-flex; position: relative; }
 .bn-item .icon { width: 23px; height: 23px; }
 .bn-item.add .bn-ico .icon { width: 22px; height: 22px; stroke: #fff; }
+/* Desktop's notification count lives inline in a sidebar row; mobile's only
+   gateway to it is the "More" button, which had no unread indicator at all. */
+.bn-notif-badge { position: absolute; top: -4px; right: -8px; border: 2px solid var(--surface); }
 
 /* --- Dashboard metrics: 3-up top row + 2 wide cards below, even gaps --- */
 .metrics { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
