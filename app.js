@@ -6389,10 +6389,9 @@ function setSidebarCollapsed(collapsed) {
   const label = collapsed ? t("Expand sidebar") : t("Collapse sidebar");
   btn.setAttribute("aria-label", label);
   btn.setAttribute("title", label);
-  // Collapsed, clicking the logo expands rather than navigates (the toggle
-  // button is hidden) — reflect that in its accessible name too.
+  // The logo is a second trigger for the same toggle (see init()) — same label.
   const brand = document.getElementById("sidebarBrand");
-  if (brand) brand.setAttribute("aria-label", collapsed ? label : "Divz");
+  if (brand) { brand.setAttribute("aria-label", label); brand.title = label; }
   try { localStorage.setItem("il-sidebar-collapsed", collapsed ? "1" : "0"); } catch (e) {}
 }
 let toastTimer;
@@ -6591,8 +6590,6 @@ function render() {
   const root = $("#page");
   try {
     const page = PAGES[key]();
-    $("#pageTitle").textContent = t(page.title);
-    $("#pageSubtitle").textContent = t(page.subtitle);
     root.innerHTML = page.html;
     if (isNavigation) { root.scrollTop = 0; window.scrollTo(0, 0); }
     if (page.mount) page.mount();
@@ -6662,18 +6659,12 @@ function init() {
   updateLangBtn();
 
   try { setSidebarCollapsed(localStorage.getItem("il-sidebar-collapsed") === "1"); } catch (e) {}
-  $("#sidebarToggle").addEventListener("click", () => {
-    setSidebarCollapsed(!document.getElementById("sidebar").classList.contains("collapsed"));
-  });
-  // Collapsed, the toggle button is hidden (no room for it beside the logo) — the
-  // logo becomes the only way back to expanded, so clicking it expands instead of
-  // navigating to Dashboard while collapsed.
-  $("#sidebarBrand").addEventListener("click", (e) => {
-    if (document.getElementById("sidebar").classList.contains("collapsed")) {
-      e.preventDefault();
-      setSidebarCollapsed(false);
-    }
-  });
+  // The logo is a second trigger for the same toggle as #sidebarToggle — collapsed,
+  // the arrow button is hidden entirely (no room for it beside the logo), so the
+  // logo is the only way back to expanded; expanded, clicking it collapses again.
+  const toggleSidebar = () => setSidebarCollapsed(!document.getElementById("sidebar").classList.contains("collapsed"));
+  $("#sidebarToggle").addEventListener("click", toggleSidebar);
+  $("#sidebarBrand").addEventListener("click", toggleSidebar);
   mountNotifBell();
 
   // .lang-btn / .theme-btn: desktop (sidebar) + mobile (More sheet) instances — see

@@ -137,6 +137,9 @@ a { color: inherit; text-decoration: none; }
   padding: 8px 8px 8px 7px; border-radius: var(--radius-sm);
   text-decoration: none; color: inherit; transition: background .12s, gap .15s;
 }
+/* .brand is a <button> now (it toggles the sidebar, same as #sidebarToggle) —
+   undo default button chrome. .acct-switch stays a real <a> to Profile. */
+button.brand { border: none; background: none; font: inherit; cursor: pointer; text-align: left; }
 .sidebar.collapsed .acct-switch, .sidebar.collapsed .brand { gap: 0; }
 .acct-switch:hover, .brand:hover { background: var(--surface-2); }
 .acct-switch .brand-mark, .brand .brand-mark { flex: none; }
@@ -247,12 +250,7 @@ a { color: inherit; text-decoration: none; }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-/* Page heading — scrolls with the content now, not a sticky bar. */
-.page-head { padding: 22px 26px 0; max-width: 1320px; margin: 0 auto; width: 100%; }
-.page-head h1 { font-size: 19px; }
-.page-head p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
-
-.content { padding: 14px 26px 90px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1320px; margin: 0 auto; align-self: center; }
+.content { padding: 22px 26px 90px; display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 1320px; margin: 0 auto; align-self: center; }
 
 /* ===================== Buttons ===================== */
 /* Fixed height + line-height:1 so the button never changes size when the
@@ -735,12 +733,7 @@ a.onboard-step:hover { background: var(--surface-2); }
     display: flex; position: fixed; z-index: 60; top: 0; left: 0; bottom: 0;
     box-shadow: var(--shadow);
   }
-  .content { padding: 10px 14px 96px; }
-  .page-head { padding: 16px 14px 0; }
-  .page-head h1 { font-size: 17px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  /* The subtitle repeats info that's clear from context once you're on the page —
-     worth the space back on a small screen. */
-  .page-head p { display: none; }
+  .content { padding: 16px 14px 96px; }
   /* .app-disclaimer is a sibling of .content, rendered after it — it needs the same
      fixed-bottom-nav clearance .content gets, or the nav bar paints over its text
      whenever a page is short enough to end near the bottom of the screen. */

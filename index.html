@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Divz" />
-  <link rel="stylesheet" href="styles.css?v=306" />
+  <link rel="stylesheet" href="styles.css?v=307" />
 </head>
 <body>
 
@@ -46,13 +46,13 @@
 
     <!-- ===================== SIDEBAR (desktop) — 5-item primary nav ===================== -->
     <aside class="sidebar" id="sidebar">
-      <!-- Same row as the collapse arrow — collapsed hides the arrow entirely (no room for
-           both), so the logo alone remains, and clicking it then expands the rail back. -->
+      <!-- Same row as the collapse arrow, and the same toggle function — collapsed hides
+           the arrow entirely (no room for both), so the logo alone remains as the toggle. -->
       <div class="sidebar-top">
-        <a class="brand" href="#/dashboard" id="sidebarBrand" aria-label="Divz">
+        <button type="button" class="brand" id="sidebarBrand" aria-label="Collapse sidebar" title="Collapse sidebar">
           <span class="brand-mark" aria-hidden="true">D</span>
           <span class="brand-name">Divz</span>
-        </a>
+        </button>
         <button class="icon-btn" id="sidebarToggle" aria-label="Collapse sidebar" title="Collapse sidebar">
           <svg class="icon"><use href="#i-sidebar"/></svg>
         </button>
@@ -113,12 +113,6 @@
 
     <!-- ===================== MAIN ===================== -->
     <main class="main">
-      <!-- Page heading — scrolls with the content, not a fixed bar. -->
-      <div class="page-head">
-        <h1 id="pageTitle">Dashboard</h1>
-        <p class="muted" id="pageSubtitle">Welcome back — here is your portfolio at a glance.</p>
-      </div>
-
       <!-- Router renders pages here -->
       <div class="content" id="page"></div>
       <footer class="app-disclaimer">
@@ -220,9 +214,9 @@
     </div>
   </div>
 
-  <script type="module" src="supabase-client.js?v=306"></script>
-  <script src="data.js?v=306"></script>
-  <script src="app.js?v=306"></script>
-  <script src="sync.js?v=306"></script>
+  <script type="module" src="supabase-client.js?v=307"></script>
+  <script src="data.js?v=307"></script>
+  <script src="app.js?v=307"></script>
+  <script src="sync.js?v=307"></script>
 </body>
 </html>
