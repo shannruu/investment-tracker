@@ -503,6 +503,7 @@ const ZH = {
   "Shares": "股数", "Avg Cost": "平均成本", "Market Value": "市值", "Unrealized": "未实现",
   "Date": "日期", "Type": "类型", "Ticker": "代码", "Broker": "券商",
   "on net capital": "占净投入资本", "money-weighted": "资金加权", "on cost": "占成本",
+  "no capital invested yet": "尚无投入资本",
   "Portfolio Value Over Time": "投资组合市值随时间变化",
   "Captured once per day when you use the app.": "每次使用应用时每日记录一次。",
   "Record your first deposit or Buy to start tracking.": "记录第一笔存款或买入以开始追踪。",
@@ -2069,9 +2070,13 @@ function allocationPanel(title, rows, total) {
 }
 
 /* Trailing-12-month NET dividends in base currency (reused for yield + forecast). */
-function ttmDividends() {
+// tickers is optional — pass a Set to scope the total to just those tickers
+// (used by the yield calc below so a sold-off position's past dividends don't
+// keep inflating a "current portfolio" yield estimate after it's gone; left
+// unscoped by default so a plain call still reports all TTM income received).
+function ttmDividends(tickers) {
   const now = todayDate(); const cutoff = new Date(now); cutoff.setFullYear(now.getFullYear() - 1);
-  return ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status !== "Expected").reduce((s, d) => {
+  return ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status !== "Expected" && (!tickers || tickers.has(x.ticker))).reduce((s, d) => {
     const dt = new Date((d.payDate || d.date) + "T00:00:00");
     return (!isNaN(dt) && dt >= cutoff && dt <= now) ? s + ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1) : s;
   }, 0);
@@ -2108,7 +2113,11 @@ function portfolioHealth() {
   const largest = maxBy(hs, (h) => h.marketValue);
   const winner = maxBy(priced, (h) => h.unrealized);
   const loser = minBy(priced, (h) => h.unrealized);
-  const ttm = ttmDividends();
+  // Scoped to currently-held tickers only — otherwise a position sold mid-year
+  // still contributes its trailing dividends to the numerator while its value
+  // has already left the denominator (pv), overstating the going-forward yield.
+  const heldTickers = new Set(hs.map((h) => h.ticker));
+  const ttm = ttmDividends(heldTickers);
   const yieldEst = pv ? (ttm / pv) * 100 : null;
   const cashAlloc = totalNav ? (T.totalCash / totalNav) * 100 : null;
   // Diversification via Herfindahl-Hirschman index of position weights.
@@ -2209,7 +2218,11 @@ function pageDashboard() {
   // in realized P/L and fees) — otherwise a fully-sold position with no current
   // holdings can still show a large nonzero "Unrealized P/L" from past realized gains.
   const shownReturn = returnIsTotal ? T.totalReturn : T.unrealizedPL;
-  const shownPct = T.netCapitalInvested ? (shownReturn / T.netCapitalInvested) * 100 : 0;
+  // null (not 0) when there's no capital invested to divide by — e.g. a
+  // portfolio funded entirely through DRIP reinvestment with zero deposits.
+  // Showing "0.00%" there reads as "no growth" right next to a real dollar
+  // gain; "—" (same convention as XIRR's own no-data case) is honest instead.
+  const shownPct = T.netCapitalInvested ? (shownReturn / T.netCapitalInvested) * 100 : null;
   const up = shownReturn > 0;
   const dn = shownReturn < 0;
   const yr = todayISO().slice(0, 4);
@@ -2310,8 +2323,8 @@ function pageDashboard() {
       ${statHead(returnIsTotal ? t("Total Return") : t("Unrealized P/L"), `<div class="stat-head-group">${toggle}${howHint}</div>`)}
       <div class="stat-value ${up ? "pos" : dn ? "neg" : ""}">${up ? "▲ " : dn ? "▼ " : ""}${moneySigned(shownReturn)}</div>
       <div class="stat-sub" style="display:flex;align-items:baseline;gap:6px">
-        <span class="${up ? "pos" : dn ? "neg" : "muted"}">${up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%"}</span>
-        <span class="muted" style="font-size:11px">${t("on net capital")}</span>
+        <span class="${shownPct == null ? "muted" : up ? "pos" : dn ? "neg" : "muted"}">${shownPct == null ? "—" : (up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%")}</span>
+        <span class="muted" style="font-size:11px">${shownPct == null ? t("no capital invested yet") : t("on net capital")}</span>
       </div>
     </article>
     <article class="stat" data-card="cash" tabindex="0" role="button" aria-label="${t("Available Cash")}, show calculation">
