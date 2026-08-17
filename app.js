@@ -138,8 +138,6 @@ const ZH = {
   "Please choose an image file.": "请选择一个图片文件。", "Couldn't read that image.": "无法读取该图片。",
   "Danger Zone": "危险操作",
   "Or export just one part, as CSV": "或仅导出其中一部分（CSV 格式）",
-  "Just want to reset the Dashboard chart, not your data?": "只想重置仪表盘图表，而不清除数据？",
-  "Clear chart history": "清除图表历史",
   "Choose your theme. Dark mode uses a true-black background; light mode is the default design.": "选择您的主题。深色模式使用纯黑背景；浅色模式为默认设计。",
   "All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.": "所有交易均保留其原始货币；基准货币金额由已存储的汇率换算得出，绝不会覆盖原始数值。",
   "Language": "语言",
@@ -5066,10 +5064,6 @@ function pageSettings() {
       <p class="muted" style="margin:-2px 0 12px">${t("Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.")}</p>
       <div class="form-actions">
         <button class="btn danger" id="clearData">${t("Clear all data")}</button>
-      </div>
-      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border-soft)">
-        <p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("Just want to reset the Dashboard chart, not your data?")}</p>
-        <button class="btn ghost small" id="clearPvHistory">${t("Clear chart history")}</button>
       </div>`)}`;
 
   return { title: "Settings", subtitle: "Currency, preferences and data.", html,
@@ -5115,12 +5109,6 @@ function pageSettings() {
       $("#expJson").addEventListener("click", exportBackupJSON);
       $("#impJsonBtn").addEventListener("click", () => $("#impJsonFile").click());
       $("#impJsonFile").addEventListener("change", (e) => importBackupJSON(e.target.files[0]));
-      const cpvhBtn = $("#clearPvHistory");
-      if (cpvhBtn) cpvhBtn.addEventListener("click", async () => {
-        if (!(await showConfirmModal(t("Clear the Portfolio Value Over Time chart? All chart data points will be permanently deleted."), { danger: true }))) return;
-        PV_HISTORY.splice(0);
-        saveStore(); toast(t("Chart history cleared.")); render();
-      });
       // Clear all — a popup forces typing DELETE before the button even becomes clickable,
       // rather than an inline field beside the button that's easy to fill in without
       // really registering what it's about to do.
