@@ -1342,6 +1342,12 @@ function myRealPayDate(ticker, exDate) {
   if (!entry || !exDate || entry.exDate !== exDate) return null;
   return entry.payDate;
 }
+/* Market data (Yahoo) only reports the EX-dividend date, never the actual payment date — a
+ * real dividend typically pays out ~2-4 weeks after its ex-date. Used as the last-resort
+ * estimate (ex-date + 14 days) whenever no genuine payment date is available (a manual entry,
+ * or a real Malaysia date via myRealPayDate — see resolvePay()'s priority order in
+ * pageDividends() and allUpcomingDivs()'s "auto" branch, both of which follow this same order). */
+function estPayDate(ds) { const dd = new Date(ds + "T00:00:00"); dd.setDate(dd.getDate() + 14); return dateToISO(dd); }
 
 /* Bursa Malaysia trading symbol (e.g. "CRESNDO" for ticker "6718.KL") — shown under the
  * ticker in the Dashboard/Portfolio holdings tables, matching DivTracker's convention,
@@ -1412,9 +1418,14 @@ function autoSyncDividends() {
     if (!holdingTxs.length) return;
     const earliestTxDate = holdingTxs.reduce((min, x) => (x.date < min ? x.date : min), holdingTxs[0].date);
     const brokerDivs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.brokerId === h.brokerId);
+    // Matched on exDate (the ex-dividend date), not payDate: AUTO_DIV_CACHE's d.date is
+    // always an ex-date, and exDate on an already-logged transaction — auto or manual — is
+    // always an ex-date too (manual entry has its own "Ex-dividend Date" field). payDate is
+    // NOT a safe match key here: for a newly auto-logged entry it's now an estimate/real pay
+    // date that can land weeks after the ex-date, well outside the ±10-day window below.
     const loggedDates = brokerDivs
       .filter((x) => (x.ticker || "").toUpperCase() === h.ticker.toUpperCase())
-      .map((dv) => dv.payDate || dv.date).filter(Boolean).map((ds) => new Date(ds + "T00:00:00").getTime());
+      .map((dv) => dv.exDate || dv.date).filter(Boolean).map((ds) => new Date(ds + "T00:00:00").getTime());
     // Not every broker routes dividends into the trading-account cash balance — some pay
     // straight to a linked bank account instead. An explicit per-broker setting (Brokers page)
     // is the primary source now — the user has directly told us how this broker works. Fall
@@ -1428,8 +1439,14 @@ function autoSyncDividends() {
       .slice().sort((a, b) => ((b.payDate || b.date || "") < (a.payDate || a.date || "") ? -1 : 1))[0];
     const inferredPaidTo = (broker && broker.divPaidTo) || (mostRecentAtBroker ? (mostRecentAtBroker.paidTo || "broker") : "broker");
     marketHist.forEach((d) => {
-      if (d.date < earliestTxDate || d.date > today) return;   // before you held it, or hasn't happened yet
-      const dTime = new Date(d.date + "T00:00:00").getTime();
+      // Eligible once the money would actually have LANDED, not merely once the stock went
+      // ex-dividend — a real payment typically arrives 2-4+ weeks after the ex-date. Same
+      // priority order as allUpcomingDivs()/resolvePay(): a real Malaysia pay date if known,
+      // else the ex-date+14d estimate.
+      const realMyPay = myRealPayDate(h.ticker, d.date);
+      const estPay = realMyPay || estPayDate(d.date);
+      if (d.date < earliestTxDate || estPay > today) return;   // before you held it, or hasn't paid out yet
+      const dTime = new Date(d.date + "T00:00:00").getTime();   // ex-date — the stable match key, see loggedDates above
       if (loggedDates.some((t) => Math.abs(t - dTime) <= 10 * 86400000)) return;   // already logged
       // The app has no historical FX rate history — today's rate is the best available
       // approximation for a dividend paid on a past date. Flagged clearly in the note
@@ -1447,7 +1464,7 @@ function autoSyncDividends() {
         id: uid("t"), date: d.date, brokerId: h.brokerId, type: "Dividend",
         ticker: h.ticker, company: h.company || "", market: h.market || "",
         currency: d.currency, gross, tax, fxRate, myrEquivalent: gross * fxRate,
-        status: "Received", paidTo: inferredPaidTo, exDate: d.date, payDate: d.date,
+        status: "Received", paidTo: inferredPaidTo, exDate: d.date, payDate: estPay, payDateEstimated: !realMyPay,
         notes: t("Auto-logged from market dividend history — review the tax withheld, \"Paid to\", and FX rate (this uses today's rate, not the rate on the payment date)."),
       });
       loggedDates.push(dTime);   // don't double-log within the same pass
@@ -1502,15 +1519,33 @@ function allUpcomingDivs() {
         source: d.source || "manual", _id: d.id };
     });
 
+  // Market data (Yahoo) only ever gives us div.date (the EX-dividend date), never a real
+  // payDate — so a naive `div.payDate || div.date` fallback both (a) excludes a dividend from
+  // "upcoming" the moment its ex-date passes, even though the real payment is typically still
+  // 2-4 weeks away, and (b) reports that same wrong date as the payDate to every consumer.
+  // Same priority order as resolvePay() in pageDividends(): a genuinely distinct real payDate
+  // if the API ever provides one, then a real Malaysia payment date, then the ex-date+14d
+  // estimate — never the raw ex-date.
+  // estimated:false means a genuinely confirmed date (API-provided or a real Malaysia lookup);
+  // estimated:true means the ex-date+14d guess — consumed by pageDividends()'s resolvePay() so
+  // it doesn't re-infer (and mislabel) confidence from payDate/exDate no longer being equal.
+  const resolveAutoPayDate = (ticker, div) => {
+    if (div.payDate && div.date && div.payDate !== div.date) return { payDate: div.payDate, estimated: false };
+    const realMy = myRealPayDate(ticker, div.date);
+    if (realMy) return { payDate: realMy, estimated: false };
+    return { payDate: div.date ? estPayDate(div.date) : div.payDate, estimated: !!div.date };
+  };
   const auto = Object.entries(AUTO_DIV_CACHE).flatMap(([ticker, divs]) =>
-    divs.filter((d) => (d.payDate || d.date) >= today).map((div) => {
-      const h = T.holdings.find((x) => x.ticker === ticker);
-      const ccy = div.currency || "USD";
-      const expectedNet = (div.amount || 0) * (h ? h.shares : 0);
-      return { ticker, brokerId: h ? h.brokerId : "—", exDate: div.date,
-        payDate: div.payDate || div.date, currency: ccy,
-        expectedNet, expectedNetMYR: toMYR(expectedNet, ccy), source: "api" };
-    })
+    divs.map((div) => ({ div, resolved: resolveAutoPayDate(ticker, div) }))
+      .filter(({ resolved }) => resolved.payDate >= today)
+      .map(({ div, resolved }) => {
+        const h = T.holdings.find((x) => x.ticker === ticker);
+        const ccy = div.currency || "USD";
+        const expectedNet = (div.amount || 0) * (h ? h.shares : 0);
+        return { ticker, brokerId: h ? h.brokerId : "—", exDate: div.date,
+          payDate: resolved.payDate, estimated: resolved.estimated, currency: ccy,
+          expectedNet, expectedNetMYR: toMYR(expectedNet, ccy), source: "api" };
+      })
   );
 
   // An "Expected" transaction's gross was frozen against WHATEVER share count was true when
@@ -4356,9 +4391,16 @@ function pageDividends() {
   // ~2-4 weeks AFTER its ex-date). Same honest handling as the Holding Detail calendar:
   // when we have a genuinely distinct real payment date (manually entered, or fetched from
   // TradingView for a Malaysia holding — see myRealPayDate), show it; when we only have the
-  // ex-date, show a clearly-flagged estimate of ex-date + 14 days.
-  const estPayDate = (ds) => { const dd = new Date(ds + "T00:00:00"); dd.setDate(dd.getDate() + 14); return dateToISO(dd); };
-  const resolvePay = (exDate, payDate, ticker) => {
+  // ex-date, show a clearly-flagged estimate of ex-date + 14 days (estPayDate, shared top-level
+  // helper — also used by allUpcomingDivs() to fix the same ex-date-vs-pay-date gap there).
+  // knownEstimated, when passed, comes from a caller that already resolved this exact question
+  // upstream (autoSyncDividends()'s payDateEstimated, or allUpcomingDivs()'s own estimated flag)
+  // — trusted as-is instead of re-inferring from payDate/exDate, since "distinct from exDate"
+  // no longer implies "a real confirmed date" now that auto-sourced entries carry a genuine
+  // (but still estimated) payDate of their own. Manual/legacy entries pass no such flag, so
+  // they still fall through to the original inference below, unchanged.
+  const resolvePay = (exDate, payDate, ticker, knownEstimated) => {
+    if (knownEstimated != null) return { display: payDate, estimated: knownEstimated };
     const realDistinct = payDate && exDate && payDate !== exDate;   // user typed a real, different payment date
     if (realDistinct) return { display: payDate, estimated: false };
     const realMy = ticker ? myRealPayDate(ticker, exDate) : null;
@@ -4371,14 +4413,14 @@ function pageDividends() {
     const amtMYR = ((+d.gross || 0) - (+d.tax || 0)) * (d.fxRate || FX.rates[d.currency] || 1);
     const exDate = d.exDate || d.payDate || d.date, payDate = d.payDate || d.date;
     const perShareAmt = perShareForHistory({ ticker: d.ticker, brokerId: d.brokerId, exDate }, amtMYR);
-    const pay = resolvePay(exDate, payDate, d.ticker);
+    const pay = resolvePay(exDate, payDate, d.ticker, d.payDateEstimated);
     return { ticker: d.ticker, brokerId: d.brokerId, exDate, payDate, payDisplay: pay.display, payEstimated: pay.estimated,
       amtMYR, perShareAmt, yieldPct: yieldFor(d.ticker, perShareAmt), status: "Received" };
   });
   const upcomingEntries = combinedUpcoming.map((d) => {
     const perShareAmt = perShareFor(d.ticker, d.amtMYR);
     const exDate = d.exDate || d.payDate, payDate = d.payDate;
-    const pay = resolvePay(exDate, payDate, d.ticker);
+    const pay = resolvePay(exDate, payDate, d.ticker, d.estimated);
     return { ticker: d.ticker, brokerId: d.brokerId, exDate, payDate, payDisplay: pay.display, payEstimated: pay.estimated,
       amtMYR: d.amtMYR, perShareAmt, yieldPct: yieldFor(d.ticker, perShareAmt),
       status: d.source === "estimated" ? "Estimated" : "Confirmed", _id: d._id };
