@@ -295,6 +295,7 @@ const ZH = {
   "For personal record-keeping only. Not financial, tax, or investment advice.": "仅供个人记录之用。并非财务、税务或投资建议。",
   "Welcome to Divz": "欢迎使用 Divz",
   "steps done": "步已完成",
+  "Finish setting up Divz": "完成 Divz 设置", "Next": "下一步",
   // Live prices
   "Refresh live prices": "刷新实时价格", "Fetch live price": "获取实时价格", "Live": "实时",
   "Fetching prices": "正在获取价格", "prices updated": "个价格已更新", "updated": "已更新",
@@ -2442,14 +2443,21 @@ function pageDashboard() {
     } };
 }
 
-function onboardingHTML() {
-  const steps = [
+/* Shared by onboardingHTML() (the Dashboard welcome panel) and systemAlertItems()
+ * (the notification bell's setup reminder) — one step list, so the two can't
+ * silently drift out of sync with each other. */
+function onboardingSteps() {
+  return [
     { done: BROKERS.length > 0, label: t("Add a broker"), href: "#/brokers" },
     { done: ALL_TRANSACTIONS.some((x) => x.type === "Deposit"), label: t("Record your first deposit"), href: "#/add/deposit" },
     { done: ALL_TRANSACTIONS.some((x) => x.type === "Buy") || HOLDINGS.length > 0, label: t("Record a Buy (or import an existing holding)"), href: "#/add/buy" },
     { done: Object.keys(CURRENT_PRICES).length > 0, label: t("Add a current price"), href: "#/portfolio" },
     { done: ALL_TRANSACTIONS.some((x) => x.type === "Dividend"), label: t("Record a dividend"), href: "#/add/dividend" },
   ];
+}
+
+function onboardingHTML() {
+  const steps = onboardingSteps();
   const done = steps.filter((s) => s.done).length;
   const cloudOn = typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER;
   const privacyNote = cloudOn
@@ -2474,6 +2482,15 @@ function onboardingHTML() {
  * requiring a caller to pass one in, since it now needs to run from the global sidebar. */
 function systemAlertItems() {
   const items = [];
+  // Onboarding not finished — same checklist as the Dashboard's own welcome
+  // panel (onboardingSteps(), shared so the two can't drift apart), just
+  // visible from anywhere in the app via the bell instead of only on Dashboard.
+  const obSteps = onboardingSteps();
+  const obDone = obSteps.filter((s) => s.done).length;
+  if (obDone < obSteps.length) {
+    const next = obSteps.find((s) => !s.done);
+    items.push({ level: "warn", href: next.href, html: `${t("Finish setting up Divz")} — ${obDone}/${obSteps.length} ${t("steps done")}. ${t("Next")}: ${next.label}.` });
+  }
   // Reconciliation differences beyond tolerance
   Object.keys(RECON_CHECKS).forEach((bid) => {
     const chk = RECON_CHECKS[bid];
