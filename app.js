@@ -128,7 +128,7 @@ const ZH = {
   "Your Account": "您的账户", "Set up your profile": "设置您的个人资料",
   "Synced": "已同步", "Local only": "仅本地",
   "Your identity, and how this app is set up for you.": "您的身份信息，以及本应用为您所做的设置。",
-  "Notifications": "通知", "Announcements": "公告", "Alerts": "提醒",
+  "Notifications": "通知", "Announcements": "公告", "Alerts": "警示", "Reminders": "提醒",
   "You're all caught up.": "暂无新通知。",
   "Currency, preferences and data.": "货币、偏好设置与数据。",
   "Name, email & cloud sync": "姓名、邮箱与云同步",
@@ -6538,19 +6538,27 @@ function notifBodyHTML(alerts) {
       <div class="w-body">${it.html}</div>
     </${tag}>`;
   };
+  // Four kinds of notice, most urgent first: Alerts (level:"crit" — something
+  // is actually wrong with the data, e.g. a reconciliation mismatch or an
+  // oversell), Reminders (level:"warn" — worth knowing but nothing's broken,
+  // e.g. a stale price), Getting Started (section:"setup" — onboarding nudges),
+  // Announcements (DEV_NOTICES — app-wide news, not about this user's data).
   const setupItems = alerts.filter((it) => it.section === "setup");
-  const otherItems = alerts.filter((it) => it.section !== "setup");
+  const critItems = alerts.filter((it) => it.section !== "setup" && it.level === "crit");
+  const reminderItems = alerts.filter((it) => it.section !== "setup" && it.level !== "crit");
   const setupHTML = setupItems.map(itemHTML).join("");
-  const alertsHTML = otherItems.map(itemHTML).join("");
+  const critHTML = critItems.map(itemHTML).join("");
+  const reminderHTML = reminderItems.map(itemHTML).join("");
 
   const sections = [];
-  if (devHTML) sections.push(`<div class="notif-section"><div class="notif-section-title">${t("Announcements")}</div>${devHTML}</div>`);
+  if (critHTML) sections.push(`<div class="notif-section"><div class="notif-section-title crit">${t("Alerts")}</div>${critHTML}</div>`);
+  if (reminderHTML) sections.push(`<div class="notif-section"><div class="notif-section-title">${t("Reminders")}</div>${reminderHTML}</div>`);
   if (setupHTML) {
     const total = onboardingSteps().length;
     const done = total - setupItems.length;
     sections.push(`<div class="notif-section"><div class="notif-section-title">${t("Getting Started")} — ${done}/${total}</div>${setupHTML}</div>`);
   }
-  if (alertsHTML) sections.push(`<div class="notif-section"><div class="notif-section-title">${t("Alerts")}</div>${alertsHTML}</div>`);
+  if (devHTML) sections.push(`<div class="notif-section"><div class="notif-section-title">${t("Announcements")}</div>${devHTML}</div>`);
   if (!sections.length) return `<div class="notif-empty muted">${t("You're all caught up.")}</div>`;
   return sections.join("");
 }
