@@ -285,8 +285,9 @@ const ZH = {
   "Export full backup (JSON)": "导出完整备份 (JSON)", "Import backup (JSON)": "导入备份 (JSON)",
   "This replaces your current data with this backup file. Export your current data first if you want to keep it. Continue?": "此操作将用该备份文件替换您当前的数据。如需保留当前数据，请先导出备份。是否继续？",
   "That file isn't valid JSON.": "该文件不是有效的 JSON。", "Backup restored": "备份已恢复",
-  "Type DELETE to confirm": "输入 DELETE 确认", "Type DELETE to confirm.": "请输入 DELETE 确认。",
   "Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.": "清除会删除本浏览器中保存的所有券商、持仓和交易，且无法撤销 — 请先导出备份。",
+  "Type the word": "请输入文字", "to confirm": "以确认",
+  "This permanently deletes every broker, holding and transaction saved in this browser. This cannot be undone.": "这将永久删除本浏览器中保存的所有券商、持仓和交易，且无法撤销。",
   "Backup downloaded": "备份已下载", "Backup restored": "备份已恢复",
   "That file isn't valid JSON.": "该文件不是有效的 JSON。",
   "That doesn't look like a Divz backup.": "这看起来不是 Divz 的备份。",
@@ -5064,8 +5065,7 @@ function pageSettings() {
     ${panel(t("Danger Zone"), `
       <p class="muted" style="margin:-2px 0 12px">${t("Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.")}</p>
       <div class="form-actions">
-        <input type="text" id="clearConfirm" class="fx-input" placeholder="${t("Type DELETE to confirm")}" autocomplete="off" style="width:220px">
-        <button class="btn primary" id="clearData">${t("Clear all data")}</button>
+        <button class="btn danger" id="clearData">${t("Clear all data")}</button>
       </div>
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border-soft)">
         <p class="muted" style="margin:0 0 8px;font-size:12.5px">${t("Just want to reset the Dashboard chart, not your data?")}</p>
@@ -5121,10 +5121,11 @@ function pageSettings() {
         PV_HISTORY.splice(0);
         saveStore(); toast(t("Chart history cleared.")); render();
       });
-      // Clear all — requires typing DELETE
-      $("#clearData").addEventListener("click", () => {
-        const typed = ($("#clearConfirm").value || "").trim().toUpperCase();
-        if (typed !== "DELETE") { toast(t("Type DELETE to confirm.")); return; }
+      // Clear all — a popup forces typing DELETE before the button even becomes clickable,
+      // rather than an inline field beside the button that's easy to fill in without
+      // really registering what it's about to do.
+      $("#clearData").addEventListener("click", async () => {
+        if (!(await showTypeToConfirmModal(t("This permanently deletes every broker, holding and transaction saved in this browser. This cannot be undone."), "DELETE", { title: t("Clear all data"), okLabel: t("Clear all data") }))) return;
         clearAllData(); toast(t("All data cleared")); render();
       });
       mountFxControls();
@@ -6008,6 +6009,45 @@ function showConfirmModal(message, opts = {}) {
     $("#modalConfirmOk").addEventListener("click", () => { modalResolve = null; resolve(true); closeModal(); });
     $("#modalConfirmCancel").addEventListener("click", () => closeModal());
     $("#modalConfirmOk").focus();
+  });
+}
+
+/* Stronger confirmation for the most destructive actions (currently: clearing all data) —
+ * the Confirm button stays disabled until the exact word is typed, so a stray click can't
+ * complete it by itself; typing it out is a deliberate, hard-to-do-by-accident act. A step
+ * up from showConfirmModal()'s plain OK/Cancel, reserved for things that can't be undone
+ * and lose real user data (not every "are you sure" needs this much friction). */
+function showTypeToConfirmModal(message, confirmWord, opts = {}) {
+  modalResolve = null;
+  return new Promise((resolve) => {
+    modalResolve = resolve;
+    $("#modalTitle").textContent = opts.title ? t(opts.title) : t("Confirm");
+    $("#modalBody").innerHTML = `
+      <p style="margin:0 0 14px;font-size:13.5px;line-height:1.5">${esc(message)}</p>
+      <form id="typeConfirmForm" class="form">
+        <label>
+          <span>${t("Type the word")} <strong>${esc(confirmWord)}</strong> ${t("to confirm")}</span>
+          <input type="text" name="confirmInput" autocomplete="off" placeholder="${escAttr(confirmWord)}">
+        </label>
+        <div class="form-actions" style="margin-top:14px">
+          <button type="submit" class="btn danger" id="typeConfirmOk" disabled>${t(opts.okLabel || "Confirm")}</button>
+          <button type="button" class="btn ghost" id="typeConfirmCancel">${t("Cancel")}</button>
+        </div>
+      </form>`;
+    $("#modal").hidden = false;
+    const form = $("#typeConfirmForm");
+    const input = form.querySelector('[name="confirmInput"]');
+    const okBtn = $("#typeConfirmOk");
+    input.addEventListener("input", () => {
+      okBtn.disabled = input.value.trim().toUpperCase() !== confirmWord.toUpperCase();
+    });
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (input.value.trim().toUpperCase() !== confirmWord.toUpperCase()) return;
+      modalResolve = null; resolve(true); closeModal();
+    });
+    $("#typeConfirmCancel").addEventListener("click", () => closeModal());
+    input.focus();
   });
 }
 
