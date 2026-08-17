@@ -178,7 +178,6 @@ const ZH = {
   // Mini cards / dividend summary
   "Gross Dividends (YTD)": "总股息（年初至今）",
   "Gross Dividends": "总股息",
-  "Your data stays on this device and this browser only — nothing is shared or synced. If you're trying this out from a shared link, your entries are private to you and won't affect anyone else's. Opening the app on a different device starts a separate, empty ledger there too.": "您的数据仅保存在此设备和此浏览器中 — 不会被分享或同步。如果您是通过共享链接体验本应用，您输入的内容仅您可见，不会影响他人。在其他设备上打开本应用会是一个全新的空白账本。",
   "Forecast needs more data": "预测数据不足",
   "Investment Return Over Time": "投资回报随时间变化",
   "Incl. Dividends": "含股息",
@@ -232,7 +231,6 @@ const ZH = {
   "Getting started": "开始使用", "Add a broker": "添加券商", "Record your first deposit": "记录第一笔存款",
   "Add your first buy transaction": "添加第一笔买入交易", "Add a current price": "添加当前价格", "Record a dividend": "记录一笔股息",
   "Record a Buy (or import an existing holding)": "记录一笔买入（或导入现有持仓）",
-  "A few things to set up — click any step below to get started.": "还有几项设置待完成 — 点击下方任一步骤即可开始。",
   "Last saved on this device": "本设备最后保存", "Nothing saved yet": "尚未保存",
   // Return modes
   "Return mode": "回报模式", "Price return only": "仅价格回报", "Total return": "总回报",
@@ -293,9 +291,7 @@ const ZH = {
   "That file isn't valid JSON.": "该文件不是有效的 JSON。",
   "That doesn't look like a Divz backup.": "这看起来不是 Divz 的备份。",
   "For personal record-keeping only. Not financial, tax, or investment advice.": "仅供个人记录之用。并非财务、税务或投资建议。",
-  "Welcome to Divz": "欢迎使用 Divz",
-  "steps done": "步已完成",
-  "Finish setting up Divz": "完成 Divz 设置", "Next": "下一步",
+  "Getting Started": "开始使用",
   // Live prices
   "Refresh live prices": "刷新实时价格", "Fetch live price": "获取实时价格", "Live": "实时",
   "Fetching prices": "正在获取价格", "prices updated": "个价格已更新", "updated": "已更新",
@@ -599,7 +595,6 @@ const ZH = {
   "Keep this device, upload it": "保留此设备的数据并上传",
   "Use my account's data": "使用账户中的数据",
   "Your data was updated from another device. Pull the latest before making more changes here, or you'll overwrite it.": "您的数据已在其他设备上更新。请先拉取最新数据，否则继续编辑将覆盖它。",
-  "Cloud Sync is on — your data syncs to your account and is available on any device you sign into.": "云同步已开启 — 您的数据会同步到账户，并可在您登录的任何设备上使用。",
   "Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.": "登录状态下您的数据也会同步到账户，因此清除浏览器数据不会丢失它 — 但仍建议定期导出 JSON 备份。",
   "Local data from a previous account was cleared before syncing this account.": "同步此账户前，已清除上一账户遗留在本设备的数据。",
   "You have a change on this device that hasn't finished syncing yet. Pulling now will discard it. Continue?": "此设备上有一项更改尚未同步完成。现在拉取将丢弃该更改，是否继续？",
@@ -2211,8 +2206,6 @@ function buildDashChartContent() {
 }
 
 function pageDashboard() {
-  const isEmpty = ALL_TRANSACTIONS.length === 0 && HOLDINGS.length === 0;
-
   const netWorth = (T.portfolioValue || 0) + (T.totalCash || 0);
   const returnIsTotal = SETTINGS.returnMode !== "price";
   // "Unrealized" must show pure unrealized P/L, not T.priceReturn (which also mixes
@@ -2350,7 +2343,6 @@ function pageDashboard() {
     panel(title, has ? body : `<p class="empty-line muted">${emptyMsg}</p>`, extra);
 
   const html = `
-    ${isEmpty ? onboardingHTML() : ""}
     ${metrics}
     <section class="grid-2 dash-charts">
       ${(() => {
@@ -2443,9 +2435,9 @@ function pageDashboard() {
     } };
 }
 
-/* Shared by onboardingHTML() (the Dashboard welcome panel) and systemAlertItems()
- * (the notification bell's setup reminder) — one step list, so the two can't
- * silently drift out of sync with each other. */
+/* Onboarding checklist — surfaced only in the notification bell (see
+ * systemAlertItems() below), not as a Dashboard panel, so it's visible from
+ * every page rather than just one. */
 function onboardingSteps() {
   return [
     { done: BROKERS.length > 0, label: t("Add a broker"), href: "#/brokers" },
@@ -2456,41 +2448,18 @@ function onboardingSteps() {
   ];
 }
 
-function onboardingHTML() {
-  const steps = onboardingSteps();
-  const done = steps.filter((s) => s.done).length;
-  const cloudOn = typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER;
-  const privacyNote = cloudOn
-    ? `<span class="w-ico">☁</span><span class="w-body">${t("Cloud Sync is on — your data syncs to your account and is available on any device you sign into.")}</span>`
-    : `<span class="w-ico">💻</span><span class="w-body">${t("Your data stays on this device and this browser only — nothing is shared or synced. If you're trying this out from a shared link, your entries are private to you and won't affect anyone else's. Opening the app on a different device starts a separate, empty ledger there too.")}</span>`;
-  // Each step is a real, clickable destination — the panel is a self-sufficient
-  // onboarding surface on its own, not a summary that points somewhere else.
-  const stepList = `<div class="onboard-list">${steps.map((s) => s.done
-    ? `<span class="onboard-step done"><span class="os-check">✓</span><span class="os-label">${s.label}</span></span>`
-    : `<a class="onboard-step" href="${s.href}"><span class="os-check"></span><span class="os-label">${s.label}</span></a>`
-  ).join("")}</div>`;
-  return panel("Welcome to Divz", `
-    <p class="muted" style="margin:-2px 0 10px">${t("A few things to set up — click any step below to get started.")}</p>
-    <p class="info-card" style="margin:0 0 14px">${privacyNote}</p>
-    ${stepList}
-    <p class="muted" style="margin:8px 0 0;font-size:12.5px">${done} / ${steps.length} ${t("steps done")}</p>`);
-}
-
-/* Data-driven alerts (reconciliation issues, stale prices/FX, oversells, dividend
- * cut/suspension) — shown in the notification bell (every page) instead of a fixed
- * spot on one page. Self-contained: computes its own dividend forecast rather than
- * requiring a caller to pass one in, since it now needs to run from the global sidebar. */
+/* Data-driven alerts (onboarding checklist, reconciliation issues, stale
+ * prices/FX, oversells, dividend cut/suspension) — shown in the notification
+ * bell (every page) instead of a fixed spot on one page. Self-contained:
+ * computes its own dividend forecast rather than requiring a caller to pass
+ * one in, since it now needs to run from the global sidebar. */
 function systemAlertItems() {
   const items = [];
-  // Onboarding not finished — same checklist as the Dashboard's own welcome
-  // panel (onboardingSteps(), shared so the two can't drift apart), just
-  // visible from anywhere in the app via the bell instead of only on Dashboard.
-  const obSteps = onboardingSteps();
-  const obDone = obSteps.filter((s) => s.done).length;
-  if (obDone < obSteps.length) {
-    const next = obSteps.find((s) => !s.done);
-    items.push({ level: "warn", href: next.href, html: `${t("Finish setting up Divz")} — ${obDone}/${obSteps.length} ${t("steps done")}. ${t("Next")}: ${next.label}.` });
-  }
+  // Onboarding not finished — one item per incomplete step, not just the
+  // next one, so the bell shows the full remaining checklist at a glance.
+  onboardingSteps().filter((s) => !s.done).forEach((s) => {
+    items.push({ level: "warn", href: s.href, section: "setup", html: s.label });
+  });
   // Reconciliation differences beyond tolerance
   Object.keys(RECON_CHECKS).forEach((bid) => {
     const chk = RECON_CHECKS[bid];
@@ -6560,7 +6529,7 @@ function notifBodyHTML(alerts) {
         <div class="notif-item-date muted">${fmtDate(n.date)}</div>
       </div>
     </div>`).join("");
-  const alertsHTML = alerts.map((it) => {
+  const itemHTML = (it) => {
     const tag = it.href ? "a" : "div";
     const hrefAttr = it.href ? ` href="${esc(it.href)}"` : "";
     return `
@@ -6568,10 +6537,19 @@ function notifBodyHTML(alerts) {
       <span class="notif-item-ico">${it.level === "crit" ? WARN_TRIANGLE_ICON_SVG : HOW_ICON_SVG}</span>
       <div class="w-body">${it.html}</div>
     </${tag}>`;
-  }).join("");
+  };
+  const setupItems = alerts.filter((it) => it.section === "setup");
+  const otherItems = alerts.filter((it) => it.section !== "setup");
+  const setupHTML = setupItems.map(itemHTML).join("");
+  const alertsHTML = otherItems.map(itemHTML).join("");
 
   const sections = [];
   if (devHTML) sections.push(`<div class="notif-section"><div class="notif-section-title">${t("Announcements")}</div>${devHTML}</div>`);
+  if (setupHTML) {
+    const total = onboardingSteps().length;
+    const done = total - setupItems.length;
+    sections.push(`<div class="notif-section"><div class="notif-section-title">${t("Getting Started")} — ${done}/${total}</div>${setupHTML}</div>`);
+  }
   if (alertsHTML) sections.push(`<div class="notif-section"><div class="notif-section-title">${t("Alerts")}</div>${alertsHTML}</div>`);
   if (!sections.length) return `<div class="notif-empty muted">${t("You're all caught up.")}</div>`;
   return sections.join("");
