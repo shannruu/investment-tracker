@@ -2400,18 +2400,18 @@ function pageDashboard() {
           <button class="seg-btn ${dashAllocMode === "currency" ? "on" : ""}" data-alloc="currency">${t("By currency")}</button>
           <button class="seg-btn ${dashAllocMode === "type" ? "on" : ""}" data-alloc="type">${t("By type")}</button>
         </div>`;
-        return panel("Asset Allocation", `<div id="dashAllocBody" class="panel-body">${dashAllocDonutHTML()}</div>`, allocToggle);
+        return panel(t("Asset Allocation"), `<div id="dashAllocBody" class="panel-body">${dashAllocDonutHTML()}</div>`, allocToggle);
       })()}
     </section>
-    <div id="dashDivSection">${listPanel("Upcoming Dividends", dashUpcoming.length,
-      table([{label:"Holding",style:"width:20%"},{label:"Ex-Date",style:"width:20%"},{label:"Payment",style:"width:20%"},{label:`${t("Expected Net")} (${ccyLabel(FX.base)})`,style:"width:20%"},{label:"Status",style:"width:20%"}], divRows),
+    <div id="dashDivSection">${listPanel(t("Upcoming Dividends"), dashUpcoming.length,
+      table([{label:t("Holding"),style:"width:20%"},{label:t("Ex-Date"),style:"width:20%"},{label:t("Payment"),style:"width:20%"},{label:`${t("Expected Net")} (${ccyLabel(FX.base)})`,style:"width:20%"},{label:t("Status"),style:"width:20%"}], divRows),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
-    ${listPanel("Holdings", T.holdings.length,
-      table([{label:"Holding",style:"width:14.3%"},{label:"Shares",style:"width:14.3%"},{label:"Market Value",style:"width:14.3%"},{label:"Unrealized P/L",style:"width:14.3%"},{label:"P/L %",style:"width:14.3%"},{label:"Total Return",style:"width:14.3%"},{label:"Return %",style:"width:14.2%"}], holdingsRows),
+    ${listPanel(t("Holdings"), T.holdings.length,
+      table([{label:t("Holding"),style:"width:14.3%"},{label:t("Shares"),style:"width:14.3%"},{label:t("Market Value"),style:"width:14.3%"},{label:t("Unrealized P/L"),style:"width:14.3%"},{label:t("P/L %"),style:"width:14.3%"},{label:t("Total Return"),style:"width:14.3%"},{label:t("Return %"),style:"width:14.2%"}], holdingsRows),
       t("No holdings yet — record a Buy on the Add page and it appears here automatically."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${pricesAsOfFmt}`) : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
     ${insightsHTML()}
-    ${listPanel("Recent Activity", ALL_TRANSACTIONS.length,
-      table([{label:"Date",style:"width:20%"},{label:"Type",style:"width:20%"},{label:"Holding",style:"width:20%"},{label:"Broker",style:"width:20%"},{label:"Amount",style:"width:20%"}], recentRows),
+    ${listPanel(t("Recent Activity"), ALL_TRANSACTIONS.length,
+      table([{label:t("Date"),style:"width:20%"},{label:t("Type"),style:"width:20%"},{label:t("Holding"),style:"width:20%"},{label:t("Broker"),style:"width:20%"},{label:t("Amount"),style:"width:20%"}], recentRows),
       t("No activity yet."), `<a class="link" href="#/records">${t("All")} →</a>`)}
     <p class="dash-footnote">${metaNote(SAVED_ICON_SVG, LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet"))}</p>`;
 
@@ -3349,11 +3349,11 @@ function recordsTable(list) {
         <button class="icon-btn rec-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></div></td></tr>`;
   }).join("");
   return table([
-    { label: "Date", style: "width:19%;text-align:left" },
-    { label: "Type", style: "width:19%;text-align:left" },
-    { label: "Holding", style: "width:19%;text-align:left" },
-    { label: "Amount (RM)", style: "width:19%;text-align:left" },
-    { label: "Broker", style: "width:19%;text-align:left" },
+    { label: t("Date"), style: "width:19%;text-align:left" },
+    { label: t("Type"), style: "width:19%;text-align:left" },
+    { label: t("Holding"), style: "width:19%;text-align:left" },
+    { label: `${t("Amount")} (${ccyLabel(FX.base)})`, style: "width:19%;text-align:left" },
+    { label: t("Broker"), style: "width:19%;text-align:left" },
     { label: "" },
   ], rows);
 }
@@ -4072,12 +4072,12 @@ function brokerCashPanelsHTML() {
   // by default — opt in from Settings (SETTINGS.showReconciliation).
   const reconPanel = SETTINGS.showReconciliation
     ? panel(`${t("Broker Cash Reconciliation")}${reconTip}`, table(
-        [{label:"Broker",style:"width:20%"},{label:"Calculated Balance",style:"width:19%"},{label:"Actual Balance",style:"width:19%"},
-         {label:"Difference",style:"width:15%"},{label:"Status",style:"width:14%"},{label:"",style:"width:13%"}], recRows, { fixed: true }))
+        [{label:t("Broker"),style:"width:20%"},{label:t("Calculated Balance"),style:"width:19%"},{label:t("Actual Balance"),style:"width:19%"},
+         {label:t("Difference"),style:"width:15%"},{label:t("Status"),style:"width:14%"},{label:"",style:"width:13%"}], recRows, { fixed: true }))
     : "";
 
   const cashBody = ccyRows
-    ? table([{label:"Broker"},{label:"Balance"},{label:`≈ ${ccyLabel(FX.base)}`}], ccyRows + ccyTotalRow)
+    ? table([{label:t("Broker")},{label:t("Balance")},{label:`≈ ${ccyLabel(FX.base)}`}], ccyRows + ccyTotalRow)
     : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No cash recorded yet.")}</p><a class="btn ghost" href="#/add/deposit">${t("Record a deposit")} →</a>`;
   return `${panel(`${t("Cash Balances by Currency")}`, cashBody)}
     ${reconPanel}`;
@@ -4580,22 +4580,22 @@ function pageDividends() {
   const html = `
     <div class="mini-cards">
       ${miniCard(t("Gross Dividends"), money(grossBase))}
-      ${miniCard("Withholding Tax", money(taxBase), taxBase > 0 ? "neg" : "")}
-      ${miniCard("Net Dividends (Lifetime)", money(grossBase - taxBase), "pos")}</div>
+      ${miniCard(t("Withholding Tax"), money(taxBase), taxBase > 0 ? "neg" : "")}
+      ${miniCard(t("Net Dividends (Lifetime)"), money(grossBase - taxBase), "pos")}</div>
 
-    ${panel("Dividend Forecast", forecastBody)}
+    ${panel(t("Dividend Forecast"), forecastBody)}
 
     <div id="divUpcomingSection">
       ${panel(`${t("Dividend Calendar")}${calendarTitleTip}`,
         allDivEntries.length
           ? table([
-              { label: "Holding", style: "width:14%;text-align:left" },
+              { label: t("Holding"), style: "width:14%;text-align:left" },
               { label: `${t("Ex-Date")}${exDateTip}`, style: "width:14%;text-align:left" },
               { label: `${t("Est. Payment")}${payDateTip}`, style: "width:14%;text-align:left" },
               { label: `${t("Per Share")} (${ccyLabel(FX.base)})`, style: "width:14%;text-align:left" },
-              { label: "Amount (RM)", style: "width:14%;text-align:left" },
-              { label: "Yield", style: "width:14%;text-align:left" },
-              { label: "Status", style: "width:14%;text-align:left" },
+              { label: `${t("Amount")} (${ccyLabel(FX.base)})`, style: "width:14%;text-align:left" },
+              { label: t("Yield"), style: "width:14%;text-align:left" },
+              { label: t("Status"), style: "width:14%;text-align:left" },
               { label: "" },
             ], calendarRows)
           // Genuinely empty now only when there's no logged history AND no declared date
@@ -4612,7 +4612,7 @@ function pageDividends() {
     ${panel(t("Dividend Income"), received.length
         ? table([
             { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
-            { label: "Net (RM)", style: "width:50%;text-align:left" },
+            { label: `${t("Net")} (${ccyLabel(FX.base)})`, style: "width:50%;text-align:left" },
           ], incomeRowsByPeriod[divIncomePeriod] || monthRows, { fixed: true })
         : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
       `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}
@@ -5529,7 +5529,7 @@ function pageHolding() {
   if (!h) {
     return { title: "Holding", subtitle: "", html:
       `<p style="margin:-4px 0 12px"><a class="link" href="#/portfolio">← ${t("Back to Portfolio")}</a></p>
-       ${panel("Holding", emptyState(t("This holding no longer exists (fully sold or deleted). Its realized P/L still counts in your totals.")))}` };
+       ${panel(t("Holding"), emptyState(t("This holding no longer exists (fully sold or deleted). Its realized P/L still counts in your totals.")))}` };
   }
   const meta = STOCK_META[h.ticker] || {};
   const tk = ticker.toUpperCase();
@@ -5697,7 +5697,7 @@ function pageHolding() {
         ? `${stat(t("Year 2"), money(tFc.year2))}${stat(t("Year 3"), tFc.year3 > 0 ? money(tFc.year3) : "—")}` : "";
       const yieldOnCostTip = ` <span class="col-info" data-tip="${esc(t("Based on what you originally paid (your average cost), not today's market value — shows the effective income dividend growth has earned you over time on your original investment."))}">${COL_INFO_ICON_SVG}</span>`;
       const divYieldTtmPct = h.marketValue ? (tFc.ttm / h.marketValue) * 100 : 0;
-      return panel("Dividend Summary", `<div class="plain-stat-row">
+      return panel(t("Dividend Summary"), `<div class="plain-stat-row">
         ${stat(t("Total Dividends Received"), money(totalDivReceived), "pos")}
         ${stat(t("Dividend Yield (TTM)"), h.marketValue ? fmt(divYieldTtmPct, { maximumFractionDigits: 2 }) + "%" : "—")}
         ${stat(`${t("Yield on Cost")}${yieldOnCostTip}`, h.costBasis ? fmt(tFc.ttm / h.costBasis * 100, { maximumFractionDigits: 2 }) + "%" : "—")}
@@ -5796,7 +5796,7 @@ function pageHolding() {
         { label: `${t("Per Share")} (${esc(ccyLabel(perShareCcy))})`, style: "width:16.6%;text-align:left" },
         { label: `${t("Total")} (${esc(ccyLabel(FX.base))})`, style: "width:16.6%;text-align:left" },
         { label: `${t("Yield")}${yieldTip}`, style: "width:16.6%;text-align:left" },
-        { label: "Status", style: "width:16.6%;text-align:left" },
+        { label: t("Status"), style: "width:16.6%;text-align:left" },
       ];
       const titleTip = `<span class="col-info tip-down" style="margin-left:10px" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${COL_INFO_ICON_SVG}</span>`;
       // Only scroll once there's more than 5 rows to show — a short list shouldn't sit
@@ -5834,8 +5834,8 @@ function pageHolding() {
     <details class="panel addhold">
       <summary><span class="addhold-head"><span class="addhold-title">${t("Transactions")} (${txs.length})</span><span class="addhold-sub">${t("Full trade history for this holding")}</span></span></summary>
       <div class="addhold-body">${txRows ? table([
-        {label:"Date", style:"width:16.6%"},{label:"Type", style:"width:16.6%"},{label:"Qty", style:"width:16.6%"},
-        {label:"Price", style:"width:16.6%"},{label:"Gross", style:"width:16.6%"},{label:"Fee", style:"width:16.6%"},
+        {label:t("Date"), style:"width:16.6%"},{label:t("Type"), style:"width:16.6%"},{label:t("Qty"), style:"width:16.6%"},
+        {label:t("Price"), style:"width:16.6%"},{label:t("Gross"), style:"width:16.6%"},{label:t("Fee"), style:"width:16.6%"},
       ], txRows) : emptyState(t("No transactions for this holding."))}</div>
     </details>`;
 
