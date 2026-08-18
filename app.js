@@ -698,6 +698,20 @@ function daysSince(iso) {
   if (isNaN(dt)) return Infinity;
   return Math.floor((Date.now() - dt.getTime()) / 86400000);
 }
+// How often FX rates, stock prices, and dividend schedules auto-refresh in the
+// background, without the user needing to click a manual "Refresh" button — once a
+// day keeps live data current for normal daily use while staying well under the
+// "stale" warning thresholds elsewhere (2 days for prices, 30 for FX), so those
+// warnings should rarely fire for anyone who opens the app at least that often.
+// daysSince() truncates to whole days (right for "X days ago" display text) — too
+// coarse to gate an actual refresh decision on, hence a separate ms-precision check.
+const LIVE_REFRESH_HOURS = 24;
+function hoursSince(iso) {
+  if (!iso) return Infinity;
+  const dt = new Date(iso);
+  if (isNaN(dt)) return Infinity;
+  return (Date.now() - dt.getTime()) / 3600000;
+}
 
 /* =============================================================================
  * XIRR — money-weighted return on dated EXTERNAL cash flows.
@@ -1241,6 +1255,24 @@ async function fetchRatesAgainstBase(base) {
 // Convert "X per base" map into "base per X" (the rate we store).
 const perBaseToRate = (perBase) => (perBase ? +(1 / perBase).toFixed(4) : null);
 
+/* Fetches and applies fresh rates to FX.rates in place — shared by the manual
+ * "Refresh live rates" button and the automatic daily refresh, so both stay in sync
+ * and neither duplicates the other's conversion logic. Caller is responsible for
+ * saveStore()/render() (the manual button also has status text to update first). */
+let FX_AUTO_REFRESH_IN_FLIGHT = false;   // guards the daily auto-refresh against firing twice if Dashboard mounts again before the first call resolves — the manual button has its own btn.disabled guard, this is just for the automatic path
+async function refreshFxRates() {
+  const d = await fetchRatesAgainstBase(FX.base);
+  if (!d) return { ok: false };
+  let updated = 0;
+  Object.keys(FX.rates).forEach((c) => {
+    if (c === FX.base) return;
+    const rate = perBaseToRate(d.rates[c]);
+    if (rate) { FX.rates[c] = rate; updated++; }
+  });
+  FX.updated = new Date().toISOString();
+  return { ok: true, updated, date: d.date, source: d.source };
+}
+
 /* =============================================================================
  * LIVE STOCK QUOTES (via our /api/quote Vercel function → Yahoo Finance)
  * Returns { price, currency, time, source } or null. Throws-safe.
@@ -1276,6 +1308,7 @@ async function searchSymbols(q) {
 // a confirmed upcoming payment (allUpcomingDivs).
 let AUTO_DIV_CACHE = {};
 let AUTO_DIV_CACHE_FETCHED = false;  // prevent the fetch→render→mount→fetch infinite loop
+let AUTO_DIV_CACHE_FETCHED_AT = 0;   // ms timestamp of that fetch — lets it go stale, see fetchAllDivSchedules()
 
 /* Returns { ok, divs } — ok distinguishes "fetched cleanly, ticker just has no
  * dividend history" from "the request itself failed", so callers can surface a
@@ -1489,8 +1522,15 @@ function autoSyncDividends() {
  * user a schedule check actually failed instead of quietly showing "nothing
  * upcoming" either way. */
 async function fetchAllDivSchedules() {
-  if (AUTO_DIV_CACHE_FETCHED) return { fetched: false, hadError: false };  // already fresh — skip to avoid render loop
+  // "Already fresh" now means genuinely recent, not just "fetched at some point this
+  // session" — so a tab left open for a day+ still gets a real daily refresh instead
+  // of staying on whatever was cached at first mount. saveStore() resetting the flag
+  // outright (holdings may have changed) still short-circuits this to a normal retry.
+  if (AUTO_DIV_CACHE_FETCHED && (Date.now() - AUTO_DIV_CACHE_FETCHED_AT) < LIVE_REFRESH_HOURS * 3600000) {
+    return { fetched: false, hadError: false };
+  }
   AUTO_DIV_CACHE_FETCHED = true;              // set before await so concurrent calls short-circuit
+  AUTO_DIV_CACHE_FETCHED_AT = Date.now();
   const tickers = [...new Set(T.holdings.map((h) => h.ticker))];
   let hadError = false;
   await Promise.all(tickers.map(async (ticker) => {
@@ -1709,15 +1749,17 @@ async function refreshLivePrice(ticker) {
   return true;
 }
 
-/* Tickers already auto-refreshed this session — NOT a single all-or-nothing flag like
- * AUTO_DIV_CACHE_FETCHED, because that pattern relies on saveStore() resetting it, and
- * refreshing prices always has new data to persist (unlike dividends, which only save
- * when something new was auto-logged) — an unconditional save-then-reset here would
- * refetch on every single render, forever. A per-ticker set sidesteps that entirely:
- * once a ticker's been attempted this session it's never retried automatically again
- * (the user's own "Live" button still works anytime), and a newly added holding's
- * ticker naturally isn't in the set yet, so it still gets picked up next mount. */
-const LIVE_PRICE_ATTEMPTED = new Set();
+/* Tickers auto-refreshed this session, and WHEN — not a single all-or-nothing flag
+ * like AUTO_DIV_CACHE_FETCHED, because refreshing prices always has new data to
+ * persist (unlike dividends, which only save when something new was auto-logged) —
+ * an unconditional save-then-reset here would refetch on every single render,
+ * forever. A per-ticker map of last-attempt time sidesteps that: a ticker is only
+ * retried once LIVE_REFRESH_HOURS has genuinely passed (so a tab left open for days
+ * still gets a daily refresh, not "attempted once, ever, this session"), a ticker
+ * that keeps failing still isn't hammered every render within that window, and a
+ * newly added holding's ticker naturally has no entry yet, so it's picked up right
+ * away. The user's own "Live" button still works anytime regardless of this gate. */
+const LIVE_PRICE_ATTEMPTED_AT = new Map();
 
 /* Auto-refresh prices without the user needing to click "Live" — only for holdings that
  * are either unpriced yet or already live-sourced; a holding you deliberately set to
@@ -1725,11 +1767,13 @@ const LIVE_PRICE_ATTEMPTED = new Set();
  * { fetched } so callers know whether to re-render. */
 async function fetchAllLivePrices() {
   if (!LIVE_ENABLED) return { fetched: false };
+  const now = Date.now();
   const tickers = [...new Set(T.holdings
-    .filter((h) => (!h.hasPrice || h.priceSource === "live") && !LIVE_PRICE_ATTEMPTED.has(h.ticker))
+    .filter((h) => (!h.hasPrice || h.priceSource === "live")
+      && (now - (LIVE_PRICE_ATTEMPTED_AT.get(h.ticker) || 0)) >= LIVE_REFRESH_HOURS * 3600000)
     .map((h) => h.ticker))];
   if (!tickers.length) return { fetched: false };
-  tickers.forEach((tk) => LIVE_PRICE_ATTEMPTED.add(tk));  // mark before awaiting — guards concurrent calls
+  tickers.forEach((tk) => LIVE_PRICE_ATTEMPTED_AT.set(tk, now));  // mark before awaiting — guards concurrent calls
   const results = await Promise.all(tickers.map((ticker) => refreshLivePrice(ticker)));
   const anyOk = results.some(Boolean);
   if (anyOk) saveStore();
@@ -2499,6 +2543,17 @@ function pageDashboard() {
           if (fetched && document.getElementById("dashDivSection")) render();
         });
         fetchAllMySymbols().then((found) => { if (found && document.getElementById("dashDivSection")) render(); });
+        // Exchange rates get the same daily auto-refresh as prices/dividends — no
+        // manual "Refresh live rates" click needed for normal day-to-day use.
+        if (!FX_AUTO_REFRESH_IN_FLIGHT && hoursSince(FX.updated) >= LIVE_REFRESH_HOURS) {
+          FX_AUTO_REFRESH_IN_FLIGHT = true;
+          refreshFxRates().then((r) => {
+            FX_AUTO_REFRESH_IN_FLIGHT = false;
+            if (!r.ok) return;
+            saveStore();
+            if (document.getElementById("dashDivSection")) render();
+          });
+        }
       }
     } };
 }
@@ -5313,17 +5368,10 @@ function mountFxControls() {
   $("#refreshFx").addEventListener("click", async () => {
     const btn = $("#refreshFx");
     btn.disabled = true; FX_STATUS = t("Fetching live rates…"); $("#fxStatus").textContent = FX_STATUS;
-    const d = await fetchRatesAgainstBase(FX.base);
-    if (!d) { FX_STATUS = t("Couldn't reach the rate service — check your connection."); $("#fxStatus").textContent = FX_STATUS; btn.disabled = false; return; }
-    let updated = 0;
-    Object.keys(FX.rates).forEach((c) => {
-      if (c === FX.base) return;
-      const rate = perBaseToRate(d.rates[c]);
-      if (rate) { FX.rates[c] = rate; updated++; }
-    });
-    FX.updated = new Date().toISOString();
+    const r = await refreshFxRates();
+    if (!r.ok) { FX_STATUS = t("Couldn't reach the rate service — check your connection."); $("#fxStatus").textContent = FX_STATUS; btn.disabled = false; return; }
     saveStore();
-    FX_STATUS = `${t("Live rates as of")} ${d.date} · ${d.source} · ${updated} ${t("updated")}`;
+    FX_STATUS = `${t("Live rates as of")} ${r.date} · ${r.source} · ${r.updated} ${t("updated")}`;
     render();
   });
 }
