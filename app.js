@@ -179,6 +179,8 @@ const ZH = {
   "Forecast needs more data": "预测数据不足",
   "Investment Return Over Time": "投资回报随时间变化",
   "Incl. Dividends": "含股息",
+  "Market value vs. what you paid — the gap is your gain or loss.": "市值与您所支付金额的对比 — 两者之间的差距即为您的盈亏。",
+  "Prices as of today will appear here tomorrow — check back after your next visit.": "今天的价格将于明天显示在此处 — 请在下次访问时查看。",
   "All stocks": "所有股票", "Default order": "默认顺序", "Edit columns": "编辑列",
   "Dividend Income": "股息收入",
   // Settings
@@ -2402,7 +2404,7 @@ function pageDashboard() {
       })()}
     </section>
     <div id="dashDivSection">${listPanel("Upcoming Dividends", dashUpcoming.length,
-      table([{label:"Holding",style:"width:20%"},{label:"Ex-Date",style:"width:20%"},{label:"Payment",style:"width:20%"},{label:"Expected Net (RM)",style:"width:20%"},{label:"Status",style:"width:20%"}], divRows),
+      table([{label:"Holding",style:"width:20%"},{label:"Ex-Date",style:"width:20%"},{label:"Payment",style:"width:20%"},{label:`${t("Expected Net")} (${ccyLabel(FX.base)})`,style:"width:20%"},{label:"Status",style:"width:20%"}], divRows),
       t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
     ${listPanel("Holdings", T.holdings.length,
       table([{label:"Holding",style:"width:14.3%"},{label:"Shares",style:"width:14.3%"},{label:"Market Value",style:"width:14.3%"},{label:"Unrealized P/L",style:"width:14.3%"},{label:"P/L %",style:"width:14.3%"},{label:"Total Return",style:"width:14.3%"},{label:"Return %",style:"width:14.2%"}], holdingsRows),
@@ -4849,6 +4851,13 @@ function pageBrokers() {
         if (used && !(await showConfirmModal(t("This broker still has records. Remove it anyway? (Consider Archive instead.)"), { danger: true, okLabel: "Remove" }))) return;
         const i = BROKERS.findIndex((b) => b.id === id);
         if (i >= 0) BROKERS.splice(i, 1);
+        // A force-delete (the "still has records" path above) must take those records
+        // with it — otherwise they keep counting toward every total forever with a
+        // brokerId that no longer resolves to anything, and a lingering RECON_CHECKS
+        // entry becomes a permanently stuck alert with no broker row left to clear it from.
+        for (let j = ALL_TRANSACTIONS.length - 1; j >= 0; j--) { if (ALL_TRANSACTIONS[j].brokerId === id) ALL_TRANSACTIONS.splice(j, 1); }
+        for (let j = HOLDINGS.length - 1; j >= 0; j--) { if (HOLDINGS[j].brokerId === id) HOLDINGS.splice(j, 1); }
+        delete RECON_CHECKS[id];
         if (editingBrokerId === id) editingBrokerId = null;
         saveStore(); toast(t("Broker removed")); render();
       }));
