@@ -476,7 +476,9 @@ const ZH = {
   "Bulk-add transactions (deposits, withdrawals, buys, sells, dividends) from a spreadsheet. Download the template, fill it in, then upload to preview before anything is saved.": "从电子表格批量添加交易（存款、取款、买入、卖出、股息）。下载模板填写后上传，保存前可先预览。",
   "The file has no data rows.": "文件没有数据行。",
   "Missing required columns: Date, Broker and Type.": "缺少必填列：日期、券商和类型。",
-  "Date must be YYYY-MM-DD": "日期必须为 YYYY-MM-DD", "Unknown broker": "未知券商",
+  "Date must be YYYY-MM-DD": "日期必须为 YYYY-MM-DD",
+  "Ex-Date must be YYYY-MM-DD": "除息日必须为 YYYY-MM-DD", "Pay Date must be YYYY-MM-DD": "付款日必须为 YYYY-MM-DD",
+  "Unknown broker": "未知券商",
   "Unsupported type": "不支持的类型", "No FX rate for": "没有汇率：",
   "Quantity required": "需要数量", "Price required": "需要价格", "Ticker required": "需要代码",
   "Amount required": "需要金额", "Could not read that file.": "无法读取该文件。",
@@ -974,6 +976,13 @@ function sharesAsOf(ticker, brokerId, date) {
     else if (tx.type === "Stock split") shares *= (q || 1);
   });
   return Math.max(0, shares);
+}
+/* Total shares held for a ticker TODAY, across every broker — T.holdings is keyed by
+ * brokerId|ticker (see ensureLot()), so the same stock held at two brokers is two separate
+ * entries there. A portfolio-wide dividend forecast needs the combined total, not whichever
+ * broker's lot happens to come first in T.holdings. */
+function sharesHeldForTicker(ticker) {
+  return T.holdings.filter((x) => x.ticker === ticker).reduce((s, x) => s + (x.shares || 0), 0);
 }
 /* =============================================================================
  * PERSISTENCE — saves everything to the browser (localStorage) so your data
@@ -1495,6 +1504,11 @@ async function fetchAllDivSchedules() {
     saveStore();
     toast(`${autoLogged} ${t("dividends auto-logged from market history")}`);
   }
+  // A genuine failure shouldn't permanently block every retry for the rest of the
+  // session — only saveStore() resets this guard otherwise, which won't happen again
+  // until the user makes an unrelated edit. Let a failed fetch try again on the next
+  // mount instead of silently looking identical to "no dividends" everywhere, forever.
+  if (hadError) AUTO_DIV_CACHE_FETCHED = false;
   return { fetched: true, hadError };
 }
 
@@ -1512,9 +1526,13 @@ function allUpcomingDivs() {
   const manual = UPCOMING_DIVIDENDS
     .filter((d) => (d.status || "upcoming") === "upcoming")
     .map((d) => {
-      const h = T.holdings.find((x) => x.ticker === d.ticker);
+      // A manual entry carries its own brokerId when it's tied to a specific position —
+      // use that lot's shares, not just whichever broker happens to hold the ticker first.
+      const shares = d.brokerId
+        ? (T.holdings.find((x) => x.ticker === d.ticker && x.brokerId === d.brokerId) || {}).shares || 0
+        : sharesHeldForTicker(d.ticker);
       const perShare = d.estimatedAmount || d.amtPerShare || 0;
-      const expectedNet = perShare * (h ? h.shares : 0);
+      const expectedNet = perShare * shares;
       return { ticker: d.ticker, brokerId: d.brokerId, exDate: d.exDate, payDate: d.payDate,
         currency: d.currency, expectedNet, expectedNetMYR: toMYR(expectedNet, d.currency),
         source: d.source || "manual", _id: d.id };
@@ -1540,9 +1558,12 @@ function allUpcomingDivs() {
     divs.map((div) => ({ div, resolved: resolveAutoPayDate(ticker, div) }))
       .filter(({ resolved }) => resolved.payDate >= today)
       .map(({ div, resolved }) => {
+        // Total across every broker holding this ticker — AUTO_DIV_CACHE is keyed by
+        // ticker alone (live market data has no concept of broker), so a single-lot
+        // lookup would silently drop shares held at any other broker.
         const h = T.holdings.find((x) => x.ticker === ticker);
         const ccy = div.currency || "USD";
-        const expectedNet = (div.amount || 0) * (h ? h.shares : 0);
+        const expectedNet = (div.amount || 0) * sharesHeldForTicker(ticker);
         return { ticker, brokerId: h ? h.brokerId : "—", exDate: div.date,
           payDate: resolved.payDate, estimated: resolved.estimated, currency: ccy,
           expectedNet, expectedNetMYR: toMYR(expectedNet, ccy), source: "api" };
@@ -1558,7 +1579,9 @@ function allUpcomingDivs() {
   // date, then rescale to TODAY's shares, same treatment `manual`/`auto` already get.
   const legacy = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status === "Expected")
     .map((x) => {
-      const h = T.holdings.find((hh) => hh.ticker === x.ticker);
+      // This record's own brokerId names the exact lot it belongs to — use that lot's
+      // current shares, not whichever broker's holding of this ticker comes first.
+      const h = T.holdings.find((hh) => hh.ticker === x.ticker && hh.brokerId === x.brokerId);
       const rawNet = (+x.gross || 0) - (+x.tax || 0);
       const sharesThen = sharesAsOf(x.ticker, x.brokerId, x.date);
       const expectedNet = (sharesThen && h && h.shares) ? (rawNet / sharesThen) * h.shares : rawNet;
@@ -1631,6 +1654,11 @@ async function autofillFromTicker(form, statusEl, opts = {}) {
   const symbol = normalizeSymbol(raw);
   if (statusEl) { statusEl.textContent = `${t("Looking up…")} (${symbol})`; statusEl.className = "lookup-status muted"; }
   const q = await fetchQuote(symbol);
+  // Discard a stale response: if the ticker field no longer holds what was looked up
+  // (the user retyped it, or picked a different autocomplete suggestion, while this
+  // request was still in flight), a slower response for the OLD ticker must not
+  // silently overwrite the form with a different stock's data than what's now typed.
+  if (tEl.value.trim() !== raw) return;
   if (!q) { if (statusEl) { statusEl.innerHTML = `⚠️ ${t("Couldn't fetch")} ${esc(symbol)} — ${t("check the code, or that /api is deployed on Vercel.")}`; statusEl.className = "lookup-status warn"; } return; }
 
   tEl.value = q.symbol || symbol;                       // normalise to the resolved symbol
@@ -2460,8 +2488,12 @@ function pageDashboard() {
       }));
       // Auto-fetch dividend schedules for all holdings; re-render if still here
       if (LIVE_ENABLED) {
-        fetchAllDivSchedules().then(({ fetched }) => {
+        fetchAllDivSchedules().then(({ fetched, hadError }) => {
           if (fetched && document.getElementById("dashDivSection")) render();
+          // Only the Dividends page's own status line surfaced this before — a failure
+          // reached from the Dashboard just looked identical to "no upcoming dividends",
+          // with no indicator anywhere that the fetch itself had failed.
+          if (hadError && document.getElementById("dashDivSection")) toast(t("Couldn't check some dividend schedules — try again later."));
         });
         fetchAllLivePrices().then(({ fetched }) => {
           if (fetched && document.getElementById("dashDivSection")) render();
@@ -2510,9 +2542,9 @@ function systemAlertItems() {
   if (T.missingPrices > 0) items.push({ level: "warn", href: "#/portfolio", html: `${T.missingPrices} ${t("holding(s) have no current price set — portfolio value uses cost as a placeholder.")}` });
   // Stale live prices (fetched > 2 days ago)
   const staleLive = T.holdings.filter((h) => h.priceSource === "live" && daysSince(h.priceFetchedAt) > 2);
-  if (staleLive.length) items.push({ level: "warn", href: "#/portfolio", html: `${t("Live prices are over 2 days old for")} ${staleLive.map((h) => h.ticker).join(", ")} — ${t("refresh them on the Portfolio page.")}` });
+  if (staleLive.length) items.push({ level: "warn", href: "#/portfolio", html: `${t("Live prices are over 2 days old for")} ${esc(staleLive.map((h) => h.ticker).join(", "))} — ${t("refresh them on the Portfolio page.")}` });
   // Oversell flags
-  if (T.oversells && T.oversells.length) items.push({ level: "crit", href: "#/records", html: `${t("A sell exceeds shares held for")}: ${[...new Set(T.oversells.map((o) => o.ticker))].join(", ")}. ${t("Use the oversell override if intentional.")}` });
+  if (T.oversells && T.oversells.length) items.push({ level: "crit", href: "#/records", html: `${t("A sell exceeds shares held for")}: ${esc([...new Set(T.oversells.map((o) => o.ticker))].join(", "))}. ${t("Use the oversell override if intentional.")}` });
   // Stale FX
   if (FX.updated && daysSince(FX.updated) > 30) items.push({ level: "warn", href: "#/settings", html: `${t("Exchange rates were last updated")} ${daysSince(FX.updated)} ${t("days ago — refresh them in Settings.")}` });
   // Dividend cut/suspension detected in the forecast pattern
@@ -2522,8 +2554,8 @@ function systemAlertItems() {
     const alerted = Object.entries(fc.tickerInfo).filter(([, info]) => info.alert);
     const suspended = alerted.filter(([, info]) => info.alert === "suspended").map(([tk]) => tk);
     const cut = alerted.filter(([, info]) => info.alert === "cut").map(([tk]) => tk);
-    if (suspended.length) items.push({ level: "warn", href: "#/dividends", html: `${t("Dividend appears suspended for")}: ${suspended.join(", ")} — ${t("no payment near its usual schedule; see the Dividends page.")}` });
-    if (cut.length) items.push({ level: "warn", href: "#/dividends", html: `${t("Dividend cut detected for")}: ${cut.join(", ")} — ${t("the forecast has been adjusted down; see the Dividends page.")}` });
+    if (suspended.length) items.push({ level: "warn", href: "#/dividends", html: `${t("Dividend appears suspended for")}: ${esc(suspended.join(", "))} — ${t("no payment near its usual schedule; see the Dividends page.")}` });
+    if (cut.length) items.push({ level: "warn", href: "#/dividends", html: `${t("Dividend cut detected for")}: ${esc(cut.join(", "))} — ${t("the forecast has been adjusted down; see the Dividends page.")}` });
   }
   return items;
 }
@@ -2562,12 +2594,12 @@ function currencyItems() {
 function styledSelect(name, items, value, o = {}) {
   const cur = items.find((i) => i.value === value) || items[0] || { value: "", label: o.placeholder || "" };
   const opts = items.map((i) =>
-    `<button type="button" class="sel-opt${i.value === cur.value ? " on" : ""}" role="option" data-val="${escAttr(i.value)}">${i.label}</button>`).join("");
+    `<button type="button" class="sel-opt${i.value === cur.value ? " on" : ""}" role="option" data-val="${escAttr(i.value)}">${esc(i.label)}</button>`).join("");
   const more = o.more === "currency" ? `<button type="button" class="sel-more">${t("More currencies…")}</button>` : "";
   const comboClass = o.combo === "left" ? " sel-combo-l" : (o.combo ? " sel-combo" : "");
   return `<div class="sel${comboClass}"${o.more ? ` data-more="${o.more}"` : ""}>
     <input type="hidden"${o.id ? ` id="${o.id}"` : ""} name="${name}" value="${escAttr(cur.value)}">
-    <button type="button" class="sel-trigger"><span class="sel-val">${cur.label}</span><span class="sel-caret" aria-hidden="true">▾</span></button>
+    <button type="button" class="sel-trigger"><span class="sel-val">${esc(cur.label)}</span><span class="sel-caret" aria-hidden="true">▾</span></button>
     <div class="sel-pop" role="listbox" hidden><div class="sel-list">${opts}</div>${more}</div>
   </div>`;
 }
@@ -2578,7 +2610,7 @@ function closeSel(s) { s.classList.remove("open"); const p = s.querySelector(".s
 function rebuildCurrencyPop(sel, value) {
   const pop = sel.querySelector(".sel-pop");
   const opts = currencyItems().map((i) =>
-    `<button type="button" class="sel-opt${i.value === value ? " on" : ""}" role="option" data-val="${escAttr(i.value)}">${i.label}</button>`).join("");
+    `<button type="button" class="sel-opt${i.value === value ? " on" : ""}" role="option" data-val="${escAttr(i.value)}">${esc(i.label)}</button>`).join("");
   pop.innerHTML = `<div class="sel-list">${opts}</div><button type="button" class="sel-more">${t("More currencies…")}</button>`;
 }
 function worldCurrencyOptions(q) {
@@ -3310,6 +3342,16 @@ function pageRecords() {
         const i = ALL_TRANSACTIONS.findIndex((x) => x.id === b.dataset.delTx);
         if (i >= 0) ALL_TRANSACTIONS.splice(i, 1);
         if (editingTxId === b.dataset.delTx) editingTxId = null;
+        // A Dividend transaction can carry a linked UPCOMING_DIVIDENDS entry
+        // (status:"confirmed", confirmedTransactionId pointing at it) — deleting the
+        // transaction without unlinking would leave that entry orphaned: excluded from
+        // every "upcoming" view forever (nothing lists confirmed entries) yet still
+        // occupying a ticker+ex-date slot, so re-recording the same dividend later
+        // creates a second ghost instead of reusing it. Revert it to "upcoming" so it's
+        // visible and manageable again, same as before it was ever confirmed.
+        UPCOMING_DIVIDENDS.forEach((u) => {
+          if (u.confirmedTransactionId === b.dataset.delTx) { u.status = "upcoming"; u.confirmedTransactionId = undefined; }
+        });
         pruneOrphans();
         saveStore(); toast(t("Transaction removed")); render();
       });
@@ -4199,8 +4241,7 @@ function dividendForecast(received, upcoming, tickerScope) {
     // Fall back to real market dividend history when you haven't logged ≥2
     // payments yourself — per-share amounts scaled to your current shares.
     if (sorted.length < 2 && AUTO_DIV_CACHE[ticker] && AUTO_DIV_CACHE[ticker].length >= 2) {
-      const h = T.holdings.find((x) => x.ticker === ticker);
-      const shares = h ? h.shares : 0;
+      const shares = sharesHeldForTicker(ticker);
       sorted = AUTO_DIV_CACHE[ticker]
         .map((d) => ({ net: (d.amount || 0) * shares * (FX.rates[d.currency] || 1), ds: d.date }))
         .filter((d) => d.ds && d.ds < today)
@@ -4370,8 +4411,8 @@ function pageDividends() {
   // Per-payment yield always uses TODAY's price (a yield is meaningful relative to what the
   // stock costs to buy now, regardless of when the dividend itself was paid).
   const perShareFor = (ticker, amtMYR) => {
-    const h = T.holdings.find((x) => x.ticker === ticker);
-    return (h && h.shares) ? amtMYR / h.shares : null;
+    const shares = sharesHeldForTicker(ticker);
+    return shares ? amtMYR / shares : null;
   };
   // Past dividends use the shares actually held ON THAT PAYMENT'S ex-date (sharesAsOf), not
   // today's count — otherwise a position that's grown or shrunk since makes an old dividend's
@@ -4659,6 +4700,11 @@ function pageDividends() {
         if (exDivMarketEl) exDivMarketEl.addEventListener("change", () => { exDivMarket = exDivMarketEl.value; exDivSearch = ""; render(); });
         if (LIVE_ENABLED && !exDivData) {
           fetchExDividendCalendar(exDivMarket, exDivFrom, exDivTo).then((d) => {
+            // Same page-still-active guard as the other live fetches in this mount() —
+            // without it, resolving after the user has navigated away (e.g. into the
+            // Add-transaction overlay, which doesn't change location.hash) triggers an
+            // unconditional render() that silently closes/wipes whatever they were doing.
+            if (!document.getElementById("divUpcomingSection")) return;
             if (d) { render(); return; }
             const results = document.getElementById("exDivResults");
             if (results) results.innerHTML = `<p class="muted" style="margin:0;font-size:13px">${t("Couldn't load the ex-dividend calendar — try again later.")}</p>`;
@@ -4847,7 +4893,10 @@ function pageBrokers() {
       }));
       $$("[data-del-broker]").forEach((btn) => btn.addEventListener("click", async () => {
         const id = btn.dataset.delBroker;
-        const used = HOLDINGS.some((h) => h.brokerId === id) || ALL_TRANSACTIONS.some((x) => x.brokerId === id);
+        // toBrokerId matters too — a broker that's only ever the DESTINATION of a
+        // "Transfer between brokers" transaction (never its own brokerId) still has a
+        // real record pointing at it and needs the same warning + cleanup.
+        const used = HOLDINGS.some((h) => h.brokerId === id) || ALL_TRANSACTIONS.some((x) => x.brokerId === id || x.toBrokerId === id);
         if (used && !(await showConfirmModal(t("This broker still has records. Remove it anyway? (Consider Archive instead.)"), { danger: true, okLabel: "Remove" }))) return;
         const i = BROKERS.findIndex((b) => b.id === id);
         if (i >= 0) BROKERS.splice(i, 1);
@@ -4857,6 +4906,10 @@ function pageBrokers() {
         // entry becomes a permanently stuck alert with no broker row left to clear it from.
         for (let j = ALL_TRANSACTIONS.length - 1; j >= 0; j--) { if (ALL_TRANSACTIONS[j].brokerId === id) ALL_TRANSACTIONS.splice(j, 1); }
         for (let j = HOLDINGS.length - 1; j >= 0; j--) { if (HOLDINGS[j].brokerId === id) HOLDINGS.splice(j, 1); }
+        // A transfer TO the deleted broker isn't owned by it (the source broker still
+        // exists and keeps the transaction) — clearing toBrokerId turns it into a plain
+        // outflow instead of crediting a cash bucket under an id nothing points to anymore.
+        ALL_TRANSACTIONS.forEach((x) => { if (x.toBrokerId === id) x.toBrokerId = undefined; });
         delete RECON_CHECKS[id];
         if (editingBrokerId === id) editingBrokerId = null;
         saveStore(); toast(t("Broker removed")); render();
@@ -5083,12 +5136,26 @@ function pageSettings() {
         const ih = $("#importHoldings");
         if (ih) setTimeout(() => ih.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
       }
-      // Change base currency — re-base every stored rate so values stay correct
+      // Change base currency — re-base every stored rate so values stay correct. FX.rates
+      // alone isn't enough: every past transaction froze its own fxRate/myrEquivalent
+      // relative to the OLD base at the time it was recorded (computeTotals()'s histFx()
+      // prefers that frozen value over a fresh FX.rates lookup), an opening holding can
+      // freeze its own openingFxRate the same way, and a broker's reconciliation "actual
+      // balance" is entered in base-currency terms too — all of them need the identical
+      // /div rescale FX.rates itself gets below, or they silently read as old-base amounts
+      // misinterpreted as new-base ones from this point on.
       $("#baseCcy").addEventListener("change", (e) => {
         const nb = e.target.value;
         const div = FX.rates[nb];
         if (!div) { toast(t("Add a rate for that currency first.")); setSelectValue(document, "baseCcy", FX.base); return; }
         Object.keys(FX.rates).forEach((c) => { FX.rates[c] = +(FX.rates[c] / div).toFixed(6); });
+        ALL_TRANSACTIONS.forEach((tx) => {
+          if (tx.fxRate == null || tx.fxRate === "") return;
+          tx.fxRate = +(+tx.fxRate / div).toFixed(6);
+          if (tx.myrEquivalent != null) tx.myrEquivalent = +((+tx.gross || 0) * tx.fxRate).toFixed(2);
+        });
+        HOLDINGS.forEach((h) => { if (h.openingFxRate) h.openingFxRate = +(h.openingFxRate / div).toFixed(6); });
+        Object.values(RECON_CHECKS).forEach((chk) => { if (chk.actual != null) chk.actual = +(+chk.actual / div).toFixed(2); });
         FX.base = nb; saveStore(); toast(`${t("Base currency set to")} ${nb}`); render();
       });
       // Reconciliation: visibility toggle (tolerance uses a fixed default — see data.js)
@@ -5762,7 +5829,6 @@ function pageHolding() {
       // of when the money would actually show up (Est. Payment). For a Malaysia holding,
       // myRealPayDate() substitutes TradingView's actual reported date when one's available
       // instead of guessing — see its definition for how that's sourced.
-      const estPayDate = (ds) => { const dd = new Date(ds + "T00:00:00"); dd.setDate(dd.getDate() + 14); return dateToISO(dd); };
       const rows = filtered.map((r) => {
         const yieldPct = (h.hasPrice && h.currentPrice > 0 && r.perShareAmt != null) ? (r.perShareAmt / h.currentPrice * 100) : null;
         const isNext = nextIdx >= 0 && r === allRows[nextIdx];
@@ -5846,10 +5912,16 @@ function pageHolding() {
       const lv = $("#dtlLive");
       if (lv) lv.addEventListener("click", async () => {
         if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
+        // Same re-entry guard as Portfolio's refresh button (pfRefreshBtn) — without it, a
+        // second click before the first fetch resolves fires a concurrent duplicate
+        // request; whichever settles second still runs its own saveStore()/toast()/render()
+        // against a `lv` closure that render() may have already replaced with a fresh node.
+        if (lv.disabled) return;
+        lv.disabled = true;
         lv.classList.add("spin");
         const ok = await refreshLivePrice(h.ticker);
         if (ok) { saveStore(); toast(`${h.ticker} ${t("updated")}`); render(); }
-        else { lv.classList.remove("spin"); toast(`${t("Couldn't fetch")} ${h.ticker}`); }
+        else { lv.disabled = false; lv.classList.remove("spin"); toast(`${t("Couldn't fetch")} ${h.ticker}`); }
       });
       const dcf = $("#divCalFilterSel");
       if (dcf) dcf.addEventListener("change", () => { holdingDivFilter = dcf.value; render(); });
@@ -5863,8 +5935,9 @@ function pageHolding() {
       // nothing to re-fetch it, hiding the Dividend Calendar even though the underlying
       // holding data was fine. Fetch it here too, same pattern as that page.
       if (LIVE_ENABLED) {
-        fetchAllDivSchedules().then(({ fetched }) => {
+        fetchAllDivSchedules().then(({ fetched, hadError }) => {
           if (fetched && document.getElementById("dtlPrice")) render();
+          if (hadError && document.getElementById("dtlPrice")) toast(t("Couldn't check some dividend schedules — try again later."));
         });
         fetchAllLivePrices().then(({ fetched }) => {
           if (fetched && document.getElementById("dtlPrice")) render();
@@ -5968,7 +6041,7 @@ let modalResolve = null;   // pending Promise resolver for showConfirmModal, if 
 function showCalc(calc) {
   modalResolve = null;   // defensive: opening a different modal abandons any pending confirm
   $("#modalTitle").textContent = t(calc.title);
-  const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span> ${t(r.label)}${r.hint ? ` <span class="col-info tip-down" data-tip="${r.hint}">${COL_INFO_ICON_SVG}</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`).join("");
+  const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span> ${esc(t(r.label))}${r.hint ? ` <span class="col-info tip-down" data-tip="${escAttr(r.hint)}">${COL_INFO_ICON_SVG}</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`).join("");
   // Percentage (when present) sits on its own line under the amount, not beside it on
   // the same row — the row's <span class="cr-val"> becomes a small flex column instead
   // of adding a second row with its own label.
@@ -6262,6 +6335,13 @@ function importTxFromCSV(text) {
     const status = g(col.status), exDate = g(col.exDate), payDate = g(col.payDate);
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) errors.push(t("Date must be YYYY-MM-DD"));
+    // exDate/payDate are stored verbatim and then compared lexicographically as ISO
+    // strings everywhere downstream (allUpcomingDivs, the dividend calendar's past/
+    // upcoming split, several .sort() calls) — an unpadded or malformed date here
+    // silently breaks that ordering with no error ever surfaced, unlike the main Date
+    // column above.
+    if (exDate && !/^\d{4}-\d{2}-\d{2}$/.test(exDate)) errors.push(t("Ex-Date must be YYYY-MM-DD"));
+    if (payDate && !/^\d{4}-\d{2}-\d{2}$/.test(payDate)) errors.push(t("Pay Date must be YYYY-MM-DD"));
     const brokerId = brokerByName[brokerRaw.toLowerCase()];
     let needsBroker = false;
     if (!brokerId) {
