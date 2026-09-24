@@ -1196,6 +1196,22 @@ input[type="date"] { cursor: pointer; }
 .fx-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
 .fx-status { font-size: 12px; }
 
+/* ---- Price Alerts ---- */
+.alert-push-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 0 0 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border-soft);
+  font-size: 13px; color: var(--text-soft);
+}
+.alert-list { display: flex; flex-direction: column; }
+.alert-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  padding: 11px 0; border-bottom: 1px solid var(--border-soft); flex-wrap: wrap;
+}
+.alert-row:last-child { border-bottom: 0; }
+.alert-row-main { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.alert-row-main .ticker { font-weight: 700; }
+.alert-row-meta { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; justify-content: flex-end; }
+
 /* ---- Help ---- */
 /* Each section is a plain heading, not a second card — .help-item below is
    already its own boxed accordion, so a wrapping panel() was just a box

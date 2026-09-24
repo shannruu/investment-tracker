@@ -1,0 +1,10 @@
+{
+  "name": "divz",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Server-side dependencies for Divz's Vercel serverless functions (api/check-alerts.js). The site itself is a zero-build static deploy — see DEPLOY.md — this file exists only so Vercel can install web-push and @supabase/supabase-js for that one function.",
+  "dependencies": {
+    "@supabase/supabase-js": "2.45.4",
+    "web-push": "3.6.7"
+  }
+}

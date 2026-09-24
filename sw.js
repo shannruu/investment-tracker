@@ -1,9 +1,12 @@
 /* =============================================================================
  * Divz — service worker
  * -----------------------------------------------------------------------------
- * Two jobs: makes the app installable ("Add to Home Screen") and lets the app
+ * Three jobs: makes the app installable ("Add to Home Screen"), lets the app
  * shell load when offline — the app's actual data already lives in localStorage,
- * not here, so this is purely about the HTML/JS/CSS shell being available.
+ * not here, so this is purely about the HTML/JS/CSS shell being available —
+ * and (new) receives and displays Web Push notifications for price alerts,
+ * which is the whole reason push needs to arrive here: this file runs even
+ * when no Divz tab/window is open at all.
  *
  * Caching strategy deliberately follows the app's existing ?v=N cache-busting
  * scheme rather than fighting it:
@@ -16,7 +19,7 @@
  *    the shell stays current online, falling back to the last cached copy only
  *    when there's no connection at all.
  * ========================================================================== */
-const CACHE_NAME = "il-shell-v1";
+const CACHE_NAME = "il-shell-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -53,5 +56,34 @@ self.addEventListener("fetch", (e) => {
       caches.open(CACHE_NAME).then((c) => c.put(req, copy));
       return res;
     }).catch(() => caches.match(req))
+  );
+});
+
+/* ===================== Price alert push notifications ===================== */
+// Payload shape (set by api/check-alerts.js): { title, body, url, tag }.
+// `tag` is the alert's own id, so a repeat trigger of the same alert replaces
+// the earlier notification instead of stacking a new one.
+self.addEventListener("push", (e) => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch (err) { /* malformed payload — show a generic fallback below */ }
+  e.waitUntil(self.registration.showNotification(data.title || "Divz price alert", {
+    body: data.body || "",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    tag: data.tag,
+    data: { url: data.url || "/#/alerts" },
+  }));
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || "/#/alerts";
+  e.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ("focus" in c) { if ("navigate" in c) c.navigate(url); return c.focus(); }
+      }
+      return clients.openWindow(url);
+    })
   );
 });
