@@ -1339,6 +1339,13 @@ async function searchSymbols(q) {
 let AUTO_DIV_CACHE = {};
 let AUTO_DIV_CACHE_FETCHED = false;  // prevent the fetch→render→mount→fetch infinite loop
 let AUTO_DIV_CACHE_FETCHED_AT = 0;   // ms timestamp of that fetch — lets it go stale, see fetchAllDivSchedules()
+// How long that guard holds. Normally a full refresh cycle; after a FAILED fetch it
+// drops to DIV_RETRY_COOLDOWN_MS so the retry happens minutes later rather than on the
+// very next mount — clearing the guard outright (as this used to) reopened exactly the
+// fetch→render→mount→fetch loop it exists to prevent, because a failed fetch still
+// returned fetched:true and every caller re-renders on that.
+let AUTO_DIV_CACHE_TTL = LIVE_REFRESH_HOURS * 3600000;
+const DIV_RETRY_COOLDOWN_MS = 5 * 60000;
 
 /* Returns { ok, divs } — ok distinguishes "fetched cleanly, ticker just has no
  * dividend history" from "the request itself failed", so callers can surface a
@@ -1347,6 +1354,11 @@ async function fetchDivHistory(ticker) {
   if (!LIVE_ENABLED) return { ok: true, divs: null };
   try {
     const r = await fetch(`/api/dividend?symbol=${encodeURIComponent(ticker)}`);
+    // 404 = Yahoo simply doesn't cover this symbol (unlisted holding, private/custom
+    // asset, delisted ticker). That's a definitive answer, not a failure: reporting it
+    // as an error made one such holding raise "couldn't check some dividend schedules"
+    // on every single mount, forever, with no retry that could ever succeed.
+    if (r.status === 404) return { ok: true, divs: [] };
     if (!r.ok) return { ok: false, divs: null };
     const data = await r.json();
     if (!Array.isArray(data)) return { ok: false, divs: null };
@@ -1556,18 +1568,21 @@ async function fetchAllDivSchedules() {
   // session" — so a tab left open for a day+ still gets a real daily refresh instead
   // of staying on whatever was cached at first mount. saveStore() resetting the flag
   // outright (holdings may have changed) still short-circuits this to a normal retry.
-  if (AUTO_DIV_CACHE_FETCHED && (Date.now() - AUTO_DIV_CACHE_FETCHED_AT) < LIVE_REFRESH_HOURS * 3600000) {
+  if (AUTO_DIV_CACHE_FETCHED && (Date.now() - AUTO_DIV_CACHE_FETCHED_AT) < AUTO_DIV_CACHE_TTL) {
     return { fetched: false, hadError: false };
   }
   AUTO_DIV_CACHE_FETCHED = true;              // set before await so concurrent calls short-circuit
   AUTO_DIV_CACHE_FETCHED_AT = Date.now();
+  AUTO_DIV_CACHE_TTL = LIVE_REFRESH_HOURS * 3600000;
   const tickers = [...new Set(T.holdings.map((h) => h.ticker))];
-  let hadError = false;
+  let hadError = false, changed = false;
   await Promise.all(tickers.map(async (ticker) => {
     const res = await fetchDivHistory(ticker);
-    if (!res.ok) hadError = true;
-    if (res.divs && res.divs.length) AUTO_DIV_CACHE[ticker] = res.divs;
-    else delete AUTO_DIV_CACHE[ticker];
+    // A failed request leaves whatever was already cached in place. Deleting it meant one
+    // transient network blip emptied a schedule that had loaded fine moments earlier.
+    if (!res.ok) { hadError = true; return; }
+    if (res.divs && res.divs.length) { AUTO_DIV_CACHE[ticker] = res.divs; changed = true; }
+    else if (AUTO_DIV_CACHE[ticker]) { delete AUTO_DIV_CACHE[ticker]; changed = true; }
   }));
   const autoLogged = autoSyncDividends();
   if (autoLogged) {
@@ -1576,10 +1591,13 @@ async function fetchAllDivSchedules() {
   }
   // A genuine failure shouldn't permanently block every retry for the rest of the
   // session — only saveStore() resets this guard otherwise, which won't happen again
-  // until the user makes an unrelated edit. Let a failed fetch try again on the next
-  // mount instead of silently looking identical to "no dividends" everywhere, forever.
-  if (hadError) AUTO_DIV_CACHE_FETCHED = false;
-  return { fetched: true, hadError };
+  // until the user makes an unrelated edit. Shorten the guard instead of clearing it, so
+  // the retry lands on a later mount rather than on the re-render this same call triggers.
+  if (hadError) AUTO_DIV_CACHE_TTL = DIV_RETRY_COOLDOWN_MS;
+  // fetched now means "the cache actually changed, so a re-render shows something new".
+  // Returning true unconditionally re-rendered even when every request had failed, and
+  // that render re-entered this function — the loop that froze the whole app.
+  return { fetched: changed, hadError };
 }
 
 /* Merge all upcoming dividend sources into one sorted list.
