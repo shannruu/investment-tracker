@@ -386,7 +386,12 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 .panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
 .panel-head h2 { font-size: 15px; display: flex; align-items: center; }
 .panel-head .link, .panel-head .badge, .panel-head .seg, .panel-head small { margin-left: auto; }
-.panel-head-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+/* flex-shrink:0 plus a long text child (the Dividends page's fetch-status line) had no
+   way to give: one sentence widened the whole document to ~490px on a 360px phone, so
+   every panel shifted and clipped and the fixed bottom nav stretched off-screen. It may
+   shrink and wrap now; the controls inside keep their own width via .phs-ctl. */
+.panel-head-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; min-width: 0; }
+.panel-head-actions > * { min-width: 0; }
 
 /* A smaller heading for a sub-section within a panel (e.g. "Import from CSV"
    inside Data & Backup) — same info-icon spacing convention as a panel title. */
@@ -523,6 +528,8 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
    width and .table-wrap's overflow-x:auto (already in place, with the swipe-hint fade
    below) provides real horizontal scroll, the same tradeoff table-layout:auto columns get
    for free from their own content-based minimum width. */
+/* The 640px floor is the fallback for a fixed table rendered without one; table() sets a
+   per-table min-width inline, scaled to how many columns it actually has. */
 .data-table-fixed { table-layout: fixed; min-width: 640px; }
 .data-table th {
   text-align: left; color: var(--text-soft); font-weight: 700; font-size: 12px;
@@ -679,7 +686,16 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
   background: var(--text); color: var(--surface);
   padding: 11px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
-  z-index: 200; box-shadow: var(--shadow);
+  z-index: 200; box-shadow: var(--shadow); max-width: min(420px, calc(100vw - 32px));
+}
+/* On phones bottom:24px put the toast ON TOP of the fixed bottom nav — it covered the
+   Add / Dividends / More buttons, and the add drawer's own Save button, for 2.4s every
+   time. Lift it clear of the nav (and of the home-indicator inset below it). */
+@media (max-width: 760px) {
+  .toast {
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    left: 16px; right: 16px; transform: none; max-width: none; text-align: center;
+  }
 }
 
 /* Persistent alert banners (save failure, stale cross-tab data) — unlike
@@ -724,11 +740,18 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
 
 @media (max-width: 760px) {
   .sidebar { display: none; }
-  .content { padding: 28px 14px 96px; }
-  /* .broker-grid's minmax(340px,1fr) columns are correct on desktop but have
-     no shrink floor below 340px — on any phone narrower than ~368px CSS width
-     that overflows the page instead of just stacking to one column. */
-  .broker-grid { grid-template-columns: 1fr; }
+  /* The safe-area insets are all 0 unless the viewport meta opts in with
+     viewport-fit=cover (it now does) — on a notched phone in standalone/PWA mode the
+     top of the page sat under the status bar, and in landscape the nav ran under the
+     rounded corners. They stay 0 on every device without insets, so nothing else moves. */
+  .content {
+    padding: calc(28px + env(safe-area-inset-top, 0px))
+             calc(14px + env(safe-area-inset-right, 0px))
+             96px
+             calc(14px + env(safe-area-inset-left, 0px));
+  }
+  /* (The broker-card narrow-width rules live down with .broker-grid itself — a media
+     query adds no specificity, so an override up here loses to the later base rule.) */
   /* Settings → Currency & Exchange Rates "add currency" row: two fixed-140px
      inputs plus a button in one non-wrapping flex row overflow narrow phones —
      wrap the rate+button onto their own line and let both inputs shrink. */
@@ -740,6 +763,10 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
      fixed-bottom-nav clearance .content gets, or the nav bar paints over its text
      whenever a page is short enough to end near the bottom of the screen. */
   .app-disclaimer { padding-bottom: 96px; }
+
+  /* A status/note line in a panel head gets its own row on a phone and wraps there,
+     rather than sitting beside the controls and pushing them off the screen. */
+  .panel-head-actions > small { flex: 1 1 100%; white-space: normal; line-height: 1.35; }
 
   /* A wide table clipped by .table-wrap's overflow-x had no visual cue that swiping
      reveals more columns — a soft edge fade hints there's content past the boundary. */
@@ -753,7 +780,7 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
   .bottom-nav {
     display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     background: var(--surface); border-top: 1px solid var(--border);
-    padding: 6px 4px env(safe-area-inset-bottom);
+    padding: 6px calc(4px + env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) calc(4px + env(safe-area-inset-left, 0px));
   }
   .bn-item {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
@@ -1049,7 +1076,14 @@ input[type="date"] { cursor: pointer; }
 .form input, .form select { min-width: 0; }
 .field-invalid { border-color: var(--neg) !important; }
 .field-err { font-size: 12px; color: var(--neg); margin: -4px 0 4px; line-height: 1.4; }
-.form-grid .field-err { grid-column: 1 / -1; }
+/* The normal case: fieldErr() appends the message inside the field's own label, which is a
+   flex column with its own 6px gap — no extra margin needed, and it stays in that label's
+   grid cell so a neighbouring field never gets pushed onto the next row. */
+.form label > .field-err { margin: 0; }
+/* Direct child only — a message sitting in the grid itself (rather than inside a label)
+   still spans the full width. Left unscoped this also matched the in-label messages above,
+   where grid-column is meaningless anyway. */
+.form-grid > .field-err { grid-column: 1 / -1; }
 .form-note {
   background: var(--warn-bg); border: 1px solid var(--warn-bd);
   border-radius: var(--radius-sm); padding: 10px 13px; font-size: 12.5px; margin: 0;
@@ -1082,7 +1116,13 @@ input[type="date"] { cursor: pointer; }
 .fx-rate-info .fx-rate-val { font-weight: 650; color: var(--text); }
 
 /* ---- Brokers ---- */
-.broker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px,1fr)); gap: 16px; }
+/* min(340px, 100%) is the shrink floor a bare minmax(340px,1fr) lacks: below ~368px of
+   CSS width the 340px track was wider than the container, so the card hung off the right
+   edge and took the page with it. The ≤760px override that was meant to fix this never
+   applied — it sat earlier in the file than this rule, and a media query adds no
+   specificity of its own. */
+.broker-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 16px; }
+.broker-card { min-width: 0; }
 .broker-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow);
@@ -1107,6 +1147,14 @@ input[type="date"] { cursor: pointer; }
 .bc-hero-return-amt { display: block; font-weight: 700; font-size: 14.5px; font-variant-numeric: tabular-nums; }
 .bc-hero-return-pct { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 .bc-hero-return-pct svg { flex: none; }
+/* Market value and total return sit side by side; neither shrinks (both are unbreakable
+   tabular numbers), so on a narrow phone they have to wrap onto separate lines instead. */
+@media (max-width: 420px) {
+  .bc-hero { flex-wrap: wrap; gap: 6px; }
+  .bc-hero > * { min-width: 0; }
+  .bc-hero-return { text-align: left; margin-left: -6px; margin-right: 0; }
+  .bc-hero-return-pct { justify-content: flex-start; }
+}
 
 .bc-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 10px; margin: 0; }
 .bc-list > div { display: flex; flex-direction: column; }
@@ -1334,8 +1382,37 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
   .stat, .stat.wide { grid-column: auto; }
   .metrics .stat:last-child:nth-child(odd) { grid-column: 1 / -1; }  /* lone last card → full width, no orphan */
 }
+/* One card per row meant ~460px of scrolling before any actual content on a phone.
+   Two per row instead; the two headline cards (Net Worth, and the P/L card whose header
+   carries the Total Return / Unrealized toggle) stay full width, and a lone last card
+   spans both columns rather than leaving a hole. */
 @media (max-width: 560px) {
-  .metrics { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .metrics .stat { padding: 13px 14px; }
+  .metrics .stat-value { font-size: 20px; }
+  .metrics .stat-sub { font-size: 11px; }
+  .metrics .stat.net, .metrics .stat.pl { grid-column: 1 / -1; }
+  .metrics .stat.net .stat-value { font-size: 28px; }
+  .metrics .stat.pl .stat-value { font-size: 26px; }
+  .metrics .stat:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+  /* Same one-per-row problem, same fix, for the other stat strips. */
+  .mini-cards { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .mini-card { padding: 13px 14px; }
+  .mc-value { font-size: 18px; }
+  .mini-cards .mini-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+  .ph-row, .plain-stat-row { grid-template-columns: repeat(2, 1fr); }
+  .ph-stat { padding: 10px 10px; }
+  .ph-stat-value { font-size: 18px; }
+  /* Side by side, a one-line label ("XIRR") and a two-line one ("Diversification Score")
+     pushed their values to different heights. Reserve two lines for every label. */
+  .ph-stat-head { min-height: 34px; align-items: flex-start; }
+  /* The vertical rule between .plain-stat columns only reads correctly on one row —
+     wrapped to a grid it has to become a row divider plus a single column divider. */
+  .plain-stat { padding: 10px 12px; border-left: 0; border-top: 1px solid var(--border); }
+  .plain-stat:nth-child(-n+2) { border-top: 0; }
+  .plain-stat:nth-child(even) { border-left: 1px solid var(--border); }
 }
 
 /* --- "More" overlay sheet — identical on desktop and mobile --- */

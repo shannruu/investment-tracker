@@ -2,7 +2,10 @@
 <html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- viewport-fit=cover: without it every env(safe-area-inset-*) resolves to 0, so the
+       insets already written into .content / .bottom-nav / .toast did nothing on a
+       notched phone. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Divz - Portfolio & Dividend Tracker</title>
   <meta name="description" content="Track investments across multiple brokers in one place." />
   <link rel="manifest" href="manifest.json" />
@@ -11,7 +14,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Divz" />
-  <link rel="stylesheet" href="styles.css?v=327" />
+  <link rel="stylesheet" href="styles.css?v=328" />
 </head>
 <body>
 
@@ -216,10 +219,10 @@
     </div>
   </div>
 
-  <script type="module" src="supabase-client.js?v=327"></script>
-  <script src="data.js?v=327"></script>
-  <script src="app.js?v=327"></script>
-  <script src="sync.js?v=327"></script>
-  <script src="alerts.js?v=327"></script>
+  <script type="module" src="supabase-client.js?v=328"></script>
+  <script src="data.js?v=328"></script>
+  <script src="app.js?v=328"></script>
+  <script src="sync.js?v=328"></script>
+  <script src="alerts.js?v=328"></script>
 </body>
 </html>

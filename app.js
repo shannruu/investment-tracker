@@ -384,6 +384,7 @@ const ZH = {
   "What data this app touches, and where it goes.": "本应用会接触哪些数据，以及这些数据会流向何处。",
   "Please read before relying on this app for real financial decisions.": "在依赖本应用做出实际财务决策之前，请先阅读本页内容。",
   "Couldn't load the ex-dividend calendar — try again later.": "无法加载除息日历 — 请稍后重试。",
+  "No dividend data for": "找不到股息资料：", "No market data for": "找不到市场资料：", "check the stock code (e.g. 1155.KL, not 1155).": "请检查股票代码（例如 1155.KL，而非 1155）。",
   "Show on Dividends page": "在股息页面显示",
   "Off by default. When enabled, browse upcoming ex-dividend dates across the whole market — not just your own holdings.": "默认关闭。启用后可浏览整个市场即将到来的除息日期，而不仅限于您持有的股票。",
   // Holding detail
@@ -1346,6 +1347,17 @@ let AUTO_DIV_CACHE_FETCHED_AT = 0;   // ms timestamp of that fetch — lets it g
 // returned fetched:true and every caller re-renders on that.
 let AUTO_DIV_CACHE_TTL = LIVE_REFRESH_HOURS * 3600000;
 const DIV_RETRY_COOLDOWN_MS = 5 * 60000;
+// The tickers whose last schedule check failed. Kept at module scope (not local to
+// fetchAllDivSchedules) so a short-circuited "already fresh" call still reports the same
+// failures the real fetch found — otherwise the Dividends page's status line cleared
+// itself on the very next mount and the problem looked like it had fixed itself.
+let DIV_FETCH_FAILED = [];
+// Tickers the market-data provider has never heard of (a 404, not a failure). Almost
+// always a stock code that was mistyped or saved before the lookup resolved — "MAYBANK"
+// or "1155" instead of "1155.KL". Surfaced as a standing notification-bell warning
+// (systemAlertItems) rather than a toast, because it's permanent until the user edits
+// the record, and silence here means no live price and no dividends with no explanation.
+let DIV_UNKNOWN_SYMBOLS = [];
 
 /* Returns { ok, divs } — ok distinguishes "fetched cleanly, ticker just has no
  * dividend history" from "the request itself failed", so callers can surface a
@@ -1358,7 +1370,7 @@ async function fetchDivHistory(ticker) {
     // asset, delisted ticker). That's a definitive answer, not a failure: reporting it
     // as an error made one such holding raise "couldn't check some dividend schedules"
     // on every single mount, forever, with no retry that could ever succeed.
-    if (r.status === 404) return { ok: true, divs: [] };
+    if (r.status === 404) return { ok: true, divs: [], unknown: true };
     if (!r.ok) return { ok: false, divs: null };
     const data = await r.json();
     if (!Array.isArray(data)) return { ok: false, divs: null };
@@ -1569,24 +1581,34 @@ async function fetchAllDivSchedules() {
   // of staying on whatever was cached at first mount. saveStore() resetting the flag
   // outright (holdings may have changed) still short-circuits this to a normal retry.
   if (AUTO_DIV_CACHE_FETCHED && (Date.now() - AUTO_DIV_CACHE_FETCHED_AT) < AUTO_DIV_CACHE_TTL) {
-    return { fetched: false, hadError: false };
+    return { fetched: false, hadError: DIV_FETCH_FAILED.length > 0, failed: DIV_FETCH_FAILED.slice(), fresh: false };
   }
   AUTO_DIV_CACHE_FETCHED = true;              // set before await so concurrent calls short-circuit
   AUTO_DIV_CACHE_FETCHED_AT = Date.now();
   AUTO_DIV_CACHE_TTL = LIVE_REFRESH_HOURS * 3600000;
   const tickers = [...new Set(T.holdings.map((h) => h.ticker))];
-  let hadError = false, changed = false;
+  const failed = [], unknown = [];
+  let changed = false;
   await Promise.all(tickers.map(async (ticker) => {
     const res = await fetchDivHistory(ticker);
     // A failed request leaves whatever was already cached in place. Deleting it meant one
     // transient network blip emptied a schedule that had loaded fine moments earlier.
-    if (!res.ok) { hadError = true; return; }
+    if (!res.ok) { failed.push(ticker); return; }
+    if (res.unknown) unknown.push(ticker);
     if (res.divs && res.divs.length) { AUTO_DIV_CACHE[ticker] = res.divs; changed = true; }
     else if (AUTO_DIV_CACHE[ticker]) { delete AUTO_DIV_CACHE[ticker]; changed = true; }
   }));
+  DIV_FETCH_FAILED = failed;
+  DIV_UNKNOWN_SYMBOLS = unknown;
+  const hadError = failed.length > 0;
   const autoLogged = autoSyncDividends();
   if (autoLogged) {
     saveStore();
+    // saveStore() clears the guard on the assumption holdings changed — but the only thing
+    // that changed here is the dividends this very call just logged. Re-arm it, or the
+    // caller's re-render re-enters and refetches every ticker a second time for nothing.
+    AUTO_DIV_CACHE_FETCHED = true;
+    AUTO_DIV_CACHE_FETCHED_AT = Date.now();
     toast(`${autoLogged} ${t("dividends auto-logged from market history")}`);
   }
   // A genuine failure shouldn't permanently block every retry for the rest of the
@@ -1597,7 +1619,22 @@ async function fetchAllDivSchedules() {
   // fetched now means "the cache actually changed, so a re-render shows something new".
   // Returning true unconditionally re-rendered even when every request had failed, and
   // that render re-entered this function — the loop that froze the whole app.
-  return { fetched: changed, hadError };
+  // The bell is the only place an unknown symbol is reported, and this fetch may not
+  // have changed anything renderable — refresh it directly instead of waiting for the
+  // next navigation to redraw it.
+  renderNotifications();
+  return { fetched: changed, hadError, failed, unknown, fresh: true };
+}
+
+/* One wording for every place a dividend-schedule check fails, naming the tickers that
+ * actually failed. "Couldn't check some dividend schedules" told you nothing about which
+ * holding was at fault, and read as a transient outage when by far the commonest cause is
+ * permanent: a stock code the market-data provider doesn't recognise, because a Bursa name
+ * or bare code ("MAYBANK", "1155") got saved instead of the full symbol ("1155.KL"). */
+function divFetchWarning(failed) {
+  if (!failed || !failed.length) return t("Couldn't check some dividend schedules — try again later.");
+  const shown = failed.slice(0, 3).join(", ") + (failed.length > 3 ? ` +${failed.length - 3}` : "");
+  return `${t("No dividend data for")} ${shown} — ${t("check the stock code (e.g. 1155.KL, not 1155).")}`;
 }
 
 /* Merge all upcoming dividend sources into one sorted list.
@@ -1867,7 +1904,15 @@ function table(headers, rows, opts = {}) {
   // around between columns instead of collecting them in one. Capping the table's own
   // width lets any leftover space sit as plain trailing space to the right of the table,
   // which reads as normal instead of as broken alignment.
-  const style = opts.maxWidth ? ` style="max-width:${opts.maxWidth}px"` : "";
+  // .data-table-fixed's min-width used to be a flat 640px for every fixed table, however
+  // few columns it had — which forced a plain two-column table (Dividend Income: period +
+  // amount) to scroll horizontally on a phone to reveal its second column. Scale the floor
+  // to the column count instead, so a table only scrolls when it genuinely needs to.
+  const minW = opts.fixed ? Math.min(640, Math.max(220, headers.length * 120)) : 0;
+  const styles = [];
+  if (opts.maxWidth) styles.push(`max-width:${opts.maxWidth}px`);
+  if (minW) styles.push(`min-width:${minW}px`);
+  const style = styles.length ? ` style="${styles.join(";")}"` : "";
   return `<div class="table-wrap"><table class="data-table${opts.fixed ? " data-table-fixed" : ""}"${style}>${thead}<tbody>${body}</tbody></table></div>`;
 }
 
@@ -2580,12 +2625,14 @@ function pageDashboard() {
       }));
       // Auto-fetch dividend schedules for all holdings; re-render if still here
       if (LIVE_ENABLED) {
-        fetchAllDivSchedules().then(({ fetched, hadError }) => {
+        fetchAllDivSchedules().then(({ fetched, hadError, failed, fresh }) => {
           if (fetched && document.getElementById("dashDivSection")) render();
           // Only the Dividends page's own status line surfaced this before — a failure
           // reached from the Dashboard just looked identical to "no upcoming dividends",
           // with no indicator anywhere that the fetch itself had failed.
-          if (hadError && document.getElementById("dashDivSection")) toast(t("Couldn't check some dividend schedules — try again later."));
+          // Only on a real attempt (fresh) — a short-circuited "already fresh" call still
+          // reports the same old failure, and toasting that on every mount is pure noise.
+          if (fresh && hadError && document.getElementById("dashDivSection")) toast(divFetchWarning(failed));
         });
         fetchAllLivePrices().then(({ fetched }) => {
           if (fetched && document.getElementById("dashDivSection")) render();
@@ -2646,6 +2693,9 @@ function systemAlertItems() {
   // Stale live prices (fetched > 2 days ago)
   const staleLive = T.holdings.filter((h) => h.priceSource === "live" && daysSince(h.priceFetchedAt) > 2);
   if (staleLive.length) items.push({ level: "warn", href: "#/portfolio", html: `${t("Live prices are over 2 days old for")} ${esc(staleLive.map((h) => h.ticker).join(", "))} — ${t("refresh them on the Portfolio page.")}` });
+  // A stock code the market-data provider doesn't recognise — no live price, no
+  // dividend history, no forecast, and until now no explanation of why.
+  if (DIV_UNKNOWN_SYMBOLS.length) items.push({ level: "warn", href: "#/records", html: `${t("No market data for")}: ${esc(DIV_UNKNOWN_SYMBOLS.join(", "))} — ${t("check the stock code (e.g. 1155.KL, not 1155).")}` });
   // Oversell flags
   if (T.oversells && T.oversells.length) items.push({ level: "crit", href: "#/records", html: `${t("A sell exceeds shares held for")}: ${esc([...new Set(T.oversells.map((o) => o.ticker))].join(", "))}. ${t("Use the oversell override if intentional.")}` });
   // Stale FX
@@ -3946,7 +3996,11 @@ function wireTxSubmit(form) {
     let price = d.price ? parseFloat(d.price) : null;
     let gross = parseFloat(d.amount) || 0;
     if (type === "Dividend" || type === "DRIP / Reinvested") gross = parseFloat(d.divGross) || 0;
-    const ticker = (d.ticker || "").trim().toUpperCase();
+    // normalizeSymbol, not a bare trim/uppercase: a bare Bursa code ("1155") becomes the
+    // full symbol ("1155.KL"). Typing one and tapping Save before the ticker lookup
+    // finished — normal speed on a phone — used to store the unresolvable code verbatim,
+    // and then every live price and dividend check for that holding failed forever.
+    const ticker = normalizeSymbol(d.ticker);
     if (type === "Buy" || type === "Sell") gross = (qty || 0) * (price || 0);
     if (type === "Stock split") qty = parseFloat(d.splitRatio) || 1;
 
@@ -4780,10 +4834,10 @@ function pageDividends() {
       if (LIVE_ENABLED) {
         const statusEl = document.getElementById("divFetchStatus");
         if (statusEl) statusEl.textContent = t("Checking dividend schedules…");
-        fetchAllDivSchedules().then(({ fetched, hadError }) => {
+        fetchAllDivSchedules().then(({ fetched, hadError, failed }) => {
           if (fetched && document.getElementById("divUpcomingSection")) render();
           const s = document.getElementById("divFetchStatus");
-          if (s) s.textContent = hadError ? t("Couldn't check some dividend schedules — try again later.") : "";
+          if (s) s.textContent = hadError ? divFetchWarning(failed) : "";
         });
         // Real Malaysia payment dates (see myRealPayDate) — silent, only re-renders if it
         // actually found something to correct an estimate with.
@@ -6031,9 +6085,9 @@ function pageHolding() {
       // nothing to re-fetch it, hiding the Dividend Calendar even though the underlying
       // holding data was fine. Fetch it here too, same pattern as that page.
       if (LIVE_ENABLED) {
-        fetchAllDivSchedules().then(({ fetched, hadError }) => {
+        fetchAllDivSchedules().then(({ fetched, hadError, failed, fresh }) => {
           if (fetched && document.getElementById("dtlPrice")) render();
-          if (hadError && document.getElementById("dtlPrice")) toast(t("Couldn't check some dividend schedules — try again later."));
+          if (fresh && hadError && document.getElementById("dtlPrice")) toast(divFetchWarning(failed));
         });
         fetchAllLivePrices().then(({ fetched }) => {
           if (fetched && document.getElementById("dtlPrice")) render();
@@ -6903,7 +6957,11 @@ function render() {
     // own title tooltips a couple lines up in applyStaticI18n().
     $("#topAddBtn").title = t(addLabel);
   }
-  closeMoreSheet();
+  // Only on a real navigation. render() also runs from background refreshes (prices,
+  // dividend schedules, FX) that land a second or two after the page loads — closing the
+  // sheet on those made the whole mobile secondary menu (Records, Brokers, Settings,
+  // Help, theme, language) snap shut on its own right after you opened it.
+  if (isNavigation) closeMoreSheet();
   renderSidebarAccount();
   renderNotifications();
 }
