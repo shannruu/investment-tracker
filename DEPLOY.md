@@ -145,7 +145,14 @@ for each row execute function set_updated_at();
 
 ### 2. Enable email sign-in
 In the Supabase dashboard, under **Authentication → Providers**, make sure **Email** is
-enabled (this app only uses passwordless magic links — no password to configure).
+enabled. The app uses ordinary email + password sign-up/sign-in (not a magic link) — a
+magic-link email opens in Safari on iOS rather than the installed app it was sent from, so
+the session never reaches the standalone PWA. Password sign-in is a same-context API call
+with no redirect, so it works from the installed app every time.
+
+If **Confirm email** is on for the project (Authentication → Providers → Email), a new
+account needs one confirmation-email click before its first sign-in — after that, sign-in
+is password-only, no email involved.
 
 ### 3. Add your project's keys
 In **Settings → API**, copy the **Project URL** and the **anon / public key**. Open

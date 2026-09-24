@@ -12,13 +12,21 @@
  * zero effect on the rest of the app — Settings just shows "not configured."
  *
  * v1 scope, by design (see the plan doc for the full reasoning):
- *   - passwordless email magic link only, no password/OAuth
+ *   - email + password only, no OAuth
  *   - whole-blob sync (reuses snapshot()/applySnapshot() as-is), not diffed
  *   - last-write-wins by server timestamp, no field-level merge
+ *
+ * Password, not a magic link: a magic-link email opens in Safari on iOS, not
+ * the installed standalone PWA it was sent from — the session lands in the
+ * wrong browsing context and the app never sees it signed in. signInWithPassword()
+ * is a same-context API call with no redirect, so it works from the installed
+ * app every time. (Sign-up may still need one email confirmation, depending on
+ * the Supabase project's settings — but that's once, not every sign-in.)
  * ========================================================================== */
 
 let SYNC_USER = null;          // { id, email, ... } | null
 let SYNC_STATUS = "idle";      // idle | needs-reconciliation
+let SYNC_FORM_MODE = "signin"; // signin | signup — which form the signed-out panel shows
 let LAST_SYNCED = (() => { try { return localStorage.getItem("il-last-synced") || ""; } catch (e) { return ""; } })();
 let _pushTimer = null;
 let _syncBusy = false;
@@ -235,8 +243,12 @@ function hideCloudStaleWarning() {
   if (el) el.hidden = true;
 }
 
-async function signInWithMagicLink(email) {
-  return SUPABASE.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
+function mapAuthError(error, mode) {
+  const msg = ((error && error.message) || "").toLowerCase();
+  if (msg.includes("already registered") || msg.includes("already exists")) return t("That email's already registered — sign in instead.");
+  if (msg.includes("password")) return t("Password must be at least 6 characters.");
+  if (mode === "signup") return t("Couldn't create that account — try again.");
+  return t("Incorrect email or password.");
 }
 
 async function signOutCloud() {
@@ -263,13 +275,16 @@ function accountSyncPanelHTML() {
       ${SYNC_STATUS === "needs-reconciliation"
         ? `<p class="muted" style="margin:12px 0 0"><a class="link" href="#" id="reopenReconcile">${t("Finish choosing which data to keep")}</a></p>` : ""}`;
   } else {
+    const isSignup = SYNC_FORM_MODE === "signup";
     body = `<form id="signInForm" class="form" autocomplete="off">
       <div class="form-grid">
         <label>${t("Email")}<input name="email" type="email" placeholder="you@example.com" required></label>
+        <label>${t("Password")}<input name="password" type="password" placeholder="••••••••" minlength="6" required autocomplete="${isSignup ? "new-password" : "current-password"}"></label>
       </div>
-      <div class="form-actions"><button class="btn primary" type="submit">${t("Send magic link")}</button></div>
+      <div class="form-actions"><button class="btn primary" type="submit">${isSignup ? t("Create account") : t("Sign in")}</button></div>
     </form>
-    <p class="muted" id="signInStatus" style="margin:10px 0 0;font-size:12.5px"></p>`;
+    <p class="muted" style="margin:10px 0 0;font-size:12.5px">${isSignup ? t("Already have an account?") : t("New here?")} <button type="button" class="link" id="toggleSyncMode">${isSignup ? t("Sign in instead") : t("Create an account")}</button></p>
+    <p class="muted" id="signInStatus" style="margin:6px 0 0;font-size:12.5px"></p>`;
   }
   return panel(t("Account & Cloud Sync"), body);
 }
@@ -279,21 +294,41 @@ function mountAccountSyncPanel() {
   if (form) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const email = new FormData(e.target).get("email");
+      const fd = new FormData(e.target);
+      const email = fd.get("email");
+      const password = fd.get("password");
       const statusEl = $("#signInStatus");
       const btn = form.querySelector("button[type=submit]");
       btn.disabled = true;
       try {
-        const { error } = await signInWithMagicLink(email);
-        if (statusEl) statusEl.textContent = error
-          ? t("Couldn't send the link — try again.")
-          : `${t("Check")} ${email} ${t("for a sign-in link.")}`;
+        if (SYNC_FORM_MODE === "signup") {
+          const { data, error } = await SUPABASE.auth.signUp({ email, password });
+          if (error) {
+            if (statusEl) statusEl.textContent = mapAuthError(error, "signup");
+          } else if (!data.session) {
+            // "Confirm email" is on for this project — signUp() created the
+            // account but issued no session. onAuthStateChange only fires on
+            // an actual sign-in, so nothing else here transitions the panel.
+            if (statusEl) statusEl.textContent = t("Account created — check your email to confirm it, then sign in.");
+            SYNC_FORM_MODE = "signin";
+          }
+          // else: session came back immediately (confirmation off) — the
+          // onAuthStateChange listener in initSync() takes it from here.
+        } else {
+          const { error } = await SUPABASE.auth.signInWithPassword({ email, password });
+          if (error && statusEl) statusEl.textContent = mapAuthError(error, "signin");
+        }
       } catch (err) {
-        if (statusEl) statusEl.textContent = t("Couldn't send the link — try again.");
+        if (statusEl) statusEl.textContent = t("Something went wrong — try again.");
       }
       btn.disabled = false;
     });
   }
+  const toggleModeBtn = $("#toggleSyncMode");
+  if (toggleModeBtn) toggleModeBtn.addEventListener("click", () => {
+    SYNC_FORM_MODE = SYNC_FORM_MODE === "signup" ? "signin" : "signup";
+    render();
+  });
   const syncNowBtn = $("#syncNowBtn");
   if (syncNowBtn) syncNowBtn.addEventListener("click", async () => {
     syncNowBtn.disabled = true;
