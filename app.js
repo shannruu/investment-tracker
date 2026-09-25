@@ -633,6 +633,11 @@ const ZH = {
   "Enter a ticker.": "请输入代码。",
   "Enter a target price greater than 0.": "请输入大于 0 的目标价格。",
   "Couldn't add that alert — try again.": "无法添加该提醒 — 请重试。",
+  "Couldn't remove that alert — try again.": "无法移除该提醒 — 请重试。",
+  "transaction": "笔交易", "transactions": "笔交易", "holding": "个持仓", "holdings": "个持仓",
+  "transfer": "笔转账", "transfers": "笔转账",
+  "This will permanently delete": "这将永久删除", "This cannot be undone. Consider Archive instead, which keeps everything and can be reversed.": "此操作无法撤销。建议改用「封存」，可保留所有记录且可随时恢复。",
+  "Delete permanently": "永久删除",
   "Alert added.": "提醒已添加。",
   "Remove this alert?": "确定要移除此提醒吗？",
   "On": "已开启",
@@ -4091,6 +4096,15 @@ function wireTxSubmit(form) {
       if ((qty || 0) > held + 1e-9) return void fieldErr("qty", `${t("You only hold")} ${fmt(held, { maximumFractionDigits: 4 })} ${t("shares — tick the override to sell more.")}`);
     }
 
+    // Re-entry guard. closeDrawer()'s CSS close animation keeps this button tappable for
+    // up to ~260ms after a successful submit — a second tap landing in that window ran
+    // this whole handler again and created a duplicate transaction (a duplicate PAIR for
+    // DRIP, which builds two records per submit). Every validation above already returned
+    // early, so nothing legitimate is blocked by disabling only past this point.
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn && submitBtn.disabled) return;
+    if (submitBtn) submitBtn.disabled = true;
+
     // A DRIP submission is always a CREATE of two ordinary, independently-editable records
     // (a Dividend with cash suppressed + the Buy it funds) — never a single "DRIP"-typed
     // row, so it takes its own build+push path and returns early instead of falling into
@@ -5077,8 +5091,21 @@ function pageBrokers() {
         // toBrokerId matters too — a broker that's only ever the DESTINATION of a
         // "Transfer between brokers" transaction (never its own brokerId) still has a
         // real record pointing at it and needs the same warning + cleanup.
-        const used = HOLDINGS.some((h) => h.brokerId === id) || ALL_TRANSACTIONS.some((x) => x.brokerId === id || x.toBrokerId === id);
-        if (used && !(await showConfirmModal(t("This broker still has records. Remove it anyway? (Consider Archive instead.)"), { danger: true, okLabel: "Remove" }))) return;
+        const ownTx = ALL_TRANSACTIONS.filter((x) => x.brokerId === id);
+        const destTx = ALL_TRANSACTIONS.filter((x) => x.toBrokerId === id && x.brokerId !== id);
+        const brokerHoldings = T.holdings.filter((h) => h.brokerId === id);
+        const used = brokerHoldings.length > 0 || ownTx.length > 0 || destTx.length > 0;
+        if (used) {
+          // Names exactly what is about to be destroyed — a bare "still has records" told
+          // the user nothing about scale, and this cascade is permanent (see below: it
+          // removes every transaction, not just archives the broker).
+          const mv = brokerHoldings.reduce((sum, h) => sum + (h.marketValue || 0), 0);
+          const parts = [`${ownTx.length} ${ownTx.length === 1 ? t("transaction") : t("transactions")}`];
+          if (brokerHoldings.length) parts.push(`${brokerHoldings.length} ${brokerHoldings.length === 1 ? t("holding") : t("holdings")} (${money(mv)})`);
+          if (destTx.length) parts.push(`${destTx.length} ${destTx.length === 1 ? t("transfer") : t("transfers")} into it`);
+          const msg = `${t("This will permanently delete")} ${parts.join(", ")}. ${t("This cannot be undone. Consider Archive instead, which keeps everything and can be reversed.")}`;
+          if (!(await showConfirmModal(msg, { danger: true, okLabel: t("Delete permanently") }))) return;
+        }
         const i = BROKERS.findIndex((b) => b.id === id);
         if (i >= 0) BROKERS.splice(i, 1);
         // A force-delete (the "still has records" path above) must take those records
@@ -5147,8 +5174,14 @@ function renderBrokerDrawerBody() {
   body.innerHTML = brokerFormHTML(editing);
   body.querySelector("#brokerForm").addEventListener("submit", (ev) => {
     ev.preventDefault();
+    // Re-entry guard — same closeDrawer() animation window as the transaction form (see
+    // wireTxSubmit): an EDIT closes over ~260ms while still tappable, and a second tap in
+    // that window ran this handler again and re-applied the edit a second time.
+    const brokerSubmitBtn = ev.target.querySelector('button[type="submit"]');
+    if (brokerSubmitBtn && brokerSubmitBtn.disabled) return;
     const d = Object.fromEntries(new FormData(ev.target).entries());
     if (!d.name.trim()) { toast(t("Enter a broker name.")); return; }
+    if (brokerSubmitBtn) brokerSubmitBtn.disabled = true;
     const divTaxRate = Math.max(0, Math.min(100, parseFloat(d.divTaxRate) || 0));
     if (editingBrokerId) {
       const b = BROKERS.find((x) => x.id === editingBrokerId);
@@ -5249,7 +5282,7 @@ function pageSettings() {
           <input list="ccyList" id="newCcy" class="fx-input fx-ccy-input" placeholder="${t("Currency code")}" maxlength="3" autocomplete="off" style="text-transform:uppercase" />
           <datalist id="ccyList">${[...new Set(COMMON_CCY)].map((c) => `<option value="${c}"></option>`).join("")}</datalist>
           <span class="fx-row-controls">
-            <input type="number" step="any" id="newRate" class="fx-input fx-rate" placeholder="${t("Rate to")} ${ccyLabel(FX.base)}" />
+            <input type="number" step="any" id="newRate" class="fx-input" placeholder="${t("Rate to")} ${ccyLabel(FX.base)}" />
             <button class="btn primary small" id="addCcyBtn">${t("Add")}</button>
           </span>
         </div>
@@ -5460,12 +5493,18 @@ function fxRows() {
 
 /* Wire the exchange-rate controls: edit, delete, add (with live auto-fill), refresh. */
 function mountFxControls() {
-  // Edit an existing rate
-  $$(".fx-rate").forEach((inp) => inp.addEventListener("change", (e) => {
+  // Edit an existing rate. Scoped to inputs that actually carry a currency code —
+  // #newRate used to share this ".fx-rate" class with nothing to key off, so typing a
+  // rate and tabbing away wrote FX.rates[undefined] (coerced to the property key
+  // "undefined") into the live table before "Add" was ever pressed.
+  $$(".fx-rate[data-ccy]").forEach((inp) => inp.addEventListener("change", (e) => {
     const v = parseFloat(e.target.value);
     if (v > 0) { FX.rates[e.target.dataset.ccy] = v; saveStore(); }
     else { toast(t("Enter a rate greater than 0.")); e.target.value = FX.rates[e.target.dataset.ccy] || ""; }
   }));
+  // Defensive cleanup: an "undefined" entry from before this fix may already be sitting
+  // in a saved snapshot. Never treat it as a real currency.
+  if ("undefined" in FX.rates) { delete FX.rates.undefined; if (FX.base === "undefined") FX.base = "MYR"; saveStore(); }
   // Delete a currency
   $$(".fx-del").forEach((btn) => btn.addEventListener("click", () => {
     const c = btn.dataset.del;

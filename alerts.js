@@ -35,13 +35,18 @@ let ALERTS_CACHE = [];
 let ALERTS_LOADED = false;
 let PUSH_SUBSCRIBED = null;   // null = not checked yet, else true/false
 
+/* Returns { ok, rows } — ok distinguishes "fetched cleanly, no alerts yet" from "the
+ * request itself failed", the same shape fetchDivHistory() uses and for the same reason:
+ * without it, one failed fetch looked identical to "no alerts" and ALERTS_LOADED stayed
+ * true for the rest of the session, so it never got a chance to retry even after the
+ * network recovered. */
 async function fetchMyAlerts() {
-  if (!syncAvailable() || !SYNC_USER) return [];
+  if (!syncAvailable() || !SYNC_USER) return { ok: true, rows: [] };
   try {
     const { data, error } = await SUPABASE.from("price_alerts")
       .select("*").eq("user_id", SYNC_USER.id).order("created_at", { ascending: false });
-    return error ? [] : (data || []);
-  } catch (e) { return []; }
+    return error ? { ok: false, rows: [] } : { ok: true, rows: data || [] };
+  } catch (e) { return { ok: false, rows: [] }; }
 }
 
 async function checkPushSubscribed() {
@@ -192,7 +197,12 @@ function pageAlerts() {
       $$("[data-del-alert]").forEach((btn) => btn.addEventListener("click", async () => {
         const id = btn.dataset.delAlert;
         if (!(await showConfirmModal(t("Remove this alert?"), { danger: true, okLabel: "Remove" }))) return;
-        await SUPABASE.from("price_alerts").delete().eq("id", id);
+        // The result was previously discarded — a failed delete (network drop, RLS
+        // rejection) still removed the row from ALERTS_CACHE and re-rendered as if it had
+        // succeeded, so the alert silently reappeared on the next real fetch with no
+        // explanation of what happened to the "Remove" the user just did.
+        const { error } = await SUPABASE.from("price_alerts").delete().eq("id", id);
+        if (error) { toast(t("Couldn't remove that alert — try again.")); return; }
         ALERTS_CACHE = ALERTS_CACHE.filter((a) => a.id !== id);
         render();
       }));
@@ -206,7 +216,13 @@ function pageAlerts() {
       // Dashboard's own background fetches already use.
       if (!ALERTS_LOADED) {
         ALERTS_LOADED = true;
-        fetchMyAlerts().then((rows2) => { ALERTS_CACHE = rows2; if (currentPageKey() === "alerts") render(); });
+        fetchMyAlerts().then(({ ok, rows }) => {
+          // A failed fetch leaves whatever was already cached in place (never overwrite a
+          // good cache with an empty one on a blip) and clears the guard so the next mount
+          // gets a real retry instead of "No alerts yet." for the rest of the session.
+          if (ok) ALERTS_CACHE = rows; else ALERTS_LOADED = false;
+          if (currentPageKey() === "alerts") render();
+        });
       }
       if (PUSH_SUBSCRIBED === null) {
         checkPushSubscribed().then(() => { if (currentPageKey() === "alerts") render(); });

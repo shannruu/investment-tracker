@@ -43,6 +43,21 @@ function setLocalOwner(id) { try { localStorage.setItem(LOCAL_OWNER_KEY, id); } 
 
 function syncAvailable() { return !!window.SUPABASE; }
 
+/* Every per-account cache that lives OUTSIDE the local snapshot()/applySnapshot() blob
+ * (Price Alerts today; anything else account-scoped added later) must be cleared here, on
+ * every sign-in AND sign-out. Without this, switching accounts on a shared device kept
+ * showing the previous user's data: alerts.js's ALERTS_LOADED guard, once true, was never
+ * reset by anything, so a second account's mount() saw "already loaded" and never
+ * re-fetched — user B saw user A's alerts, and user B's own were invisible until a hard
+ * reload happened to reset the module state by accident. alerts.js loads after this file
+ * but shares its top-level scope (same pattern as this file sharing app.js's), so its
+ * globals exist by the time this ever actually runs (a real event callback, not synchronous
+ * script evaluation) — typeof-guarded anyway in case that file is ever removed. */
+function resetPerAccountCaches() {
+  if (typeof ALERTS_LOADED !== "undefined") { ALERTS_LOADED = false; ALERTS_CACHE = []; }
+  if (typeof PUSH_SUBSCRIBED !== "undefined") PUSH_SUBSCRIBED = null;
+}
+
 /* Called once from app.js's init(), fire-and-forget (never awaited there) so
  * it can't delay first paint. */
 async function initSync() {
@@ -70,10 +85,12 @@ async function initSync() {
   SUPABASE.auth.onAuthStateChange(async (event, session) => {
     if (event === "SIGNED_IN" && session && (!SYNC_USER || SYNC_USER.id !== session.user.id)) {
       SYNC_USER = session.user;
+      resetPerAccountCaches();
       await reconcileOnSignIn();
       render();
     } else if (event === "SIGNED_OUT") {
       SYNC_USER = null;
+      resetPerAccountCaches();
       render();
     }
   });
