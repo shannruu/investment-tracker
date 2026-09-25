@@ -505,6 +505,7 @@ const ZH = {
   "Date": "日期", "Type": "类型", "Ticker": "代码", "Broker": "券商",
   "on net capital": "占净投入资本", "money-weighted": "资金加权", "on cost": "占成本",
   "no capital invested yet": "尚无投入资本",
+  "more withdrawn than invested": "提取金额已超过投入本金",
   "Portfolio Value Over Time": "投资组合市值随时间变化",
   "Captured once per day when you use the app.": "每次使用应用时每日记录一次。",
   "Record your first deposit or Buy to start tracking.": "记录第一笔存款或买入以开始追踪。",
@@ -1538,14 +1539,22 @@ function autoSyncDividends() {
     if (!holdingTxs.length) return;
     const earliestTxDate = holdingTxs.reduce((min, x) => (x.date < min ? x.date : min), holdingTxs[0].date);
     const brokerDivs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.brokerId === h.brokerId);
-    // Matched on exDate (the ex-dividend date), not payDate: AUTO_DIV_CACHE's d.date is
-    // always an ex-date, and exDate on an already-logged transaction — auto or manual — is
-    // always an ex-date too (manual entry has its own "Ex-dividend Date" field). payDate is
-    // NOT a safe match key here: for a newly auto-logged entry it's now an estimate/real pay
-    // date that can land weeks after the ex-date, well outside the ±10-day window below.
-    const loggedDates = brokerDivs
-      .filter((x) => (x.ticker || "").toUpperCase() === h.ticker.toUpperCase())
-      .map((dv) => dv.exDate || dv.date).filter(Boolean).map((ds) => new Date(ds + "T00:00:00").getTime());
+    // Two separate match keys, not one blended list. An entry that carries a real exDate
+    // (every auto-logged entry, plus any manual entry where the user filled in "Ex-dividend
+    // Date") is matched EXACTLY against the market event's own ex-date — these should be
+    // byte-for-byte identical when it's truly the same dividend, and a tolerance window
+    // here risked mistaking two distinct, closely-declared dividends (a special payment a
+    // few days from a regular one — common enough that the pattern detector below already
+    // has to filter out `days > 20` gaps) for duplicates of each other. A manual entry with
+    // NO exDate — very natural to create, since the generic "Date" field is the only one
+    // every OTHER transaction type also uses — can't be matched against ex-dates at all: for
+    // a dividend the user typed in by hand, that "Date" is realistically the day they got
+    // PAID, not the ex-date, and can land 2-4+ weeks away from it. Those are matched instead
+    // with a tolerance window against each market event's own estimated/real PAY date
+    // (computed below as `estPay`), which is what that field is actually describing.
+    const loggedTicker = brokerDivs.filter((x) => (x.ticker || "").toUpperCase() === h.ticker.toUpperCase());
+    const loggedExDates = new Set(loggedTicker.map((dv) => dv.exDate).filter(Boolean).map((ds) => new Date(ds + "T00:00:00").getTime()));
+    const loggedPayOnlyDates = loggedTicker.filter((dv) => !dv.exDate).map((dv) => dv.date).filter(Boolean).map((ds) => new Date(ds + "T00:00:00").getTime());
     // Not every broker routes dividends into the trading-account cash balance — some pay
     // straight to a linked bank account instead. An explicit per-broker setting (Brokers page)
     // is the primary source now — the user has directly told us how this broker works. Fall
@@ -1566,8 +1575,10 @@ function autoSyncDividends() {
       const realMyPay = myRealPayDate(h.ticker, d.date);
       const estPay = realMyPay || estPayDate(d.date);
       if (d.date < earliestTxDate || estPay > today) return;   // before you held it, or hasn't paid out yet
-      const dTime = new Date(d.date + "T00:00:00").getTime();   // ex-date — the stable match key, see loggedDates above
-      if (loggedDates.some((t) => Math.abs(t - dTime) <= 10 * 86400000)) return;   // already logged
+      const dTime = new Date(d.date + "T00:00:00").getTime();   // ex-date — the stable match key, see loggedExDates above
+      if (loggedExDates.has(dTime)) return;   // already logged, exact ex-date match
+      const payTime = new Date(estPay + "T00:00:00").getTime();
+      if (loggedPayOnlyDates.some((t) => Math.abs(t - payTime) <= 10 * 86400000)) return;   // already logged, as a manual date-only entry near this event's pay date
       // The app has no historical FX rate history — today's rate is the best available
       // approximation for a dividend paid on a past date. Flagged clearly in the note
       // below so the user knows to correct it manually if the FX drift since then matters.
@@ -1587,7 +1598,7 @@ function autoSyncDividends() {
         status: "Received", paidTo: inferredPaidTo, exDate: d.date, payDate: estPay, payDateEstimated: !realMyPay,
         notes: t("Auto-logged from market dividend history — review the tax withheld, \"Paid to\", and FX rate (this uses today's rate, not the rate on the payment date)."),
       });
-      loggedDates.push(dTime);   // don't double-log within the same pass
+      loggedExDates.add(dTime);   // don't double-log within the same pass — new entries always carry exDate: d.date, so they match exactly on any later pass too
       added++;
     });
   });
@@ -2436,11 +2447,17 @@ function pageDashboard() {
   // in realized P/L and fees) — otherwise a fully-sold position with no current
   // holdings can still show a large nonzero "Unrealized P/L" from past realized gains.
   const shownReturn = returnIsTotal ? T.totalReturn : T.unrealizedPL;
-  // null (not 0) when there's no capital invested to divide by — e.g. a
-  // portfolio funded entirely through DRIP reinvestment with zero deposits.
-  // Showing "0.00%" there reads as "no growth" right next to a real dollar
-  // gain; "—" (same convention as XIRR's own no-data case) is honest instead.
-  const shownPct = T.netCapitalInvested ? (shownReturn / T.netCapitalInvested) * 100 : null;
+  // null (not 0) whenever the ratio would be meaningless — no capital invested yet
+  // (a portfolio funded entirely through DRIP reinvestment with zero deposits), OR net
+  // capital invested has gone NEGATIVE (lifetime withdrawals exceeding lifetime deposits
+  // — a normal outcome for anyone who periodically sweeps profits/dividends back to a
+  // bank account). A negative denominator flips shownPct's sign independently of
+  // shownReturn's, so a genuinely profitable portfolio (shownReturn > 0, green "up" arrow)
+  // could show a green, "positive"-styled percentage that nonetheless reads "-200.00%" —
+  // self-contradictory and, for anyone who only scans the percentage, alarming. "—" (same
+  // convention as XIRR's own no-data case) is honest for both cases instead of a
+  // sign-flipped or misleadingly-zero number.
+  const shownPct = T.netCapitalInvested > 0 ? (shownReturn / T.netCapitalInvested) * 100 : null;
   const up = shownReturn > 0;
   const dn = shownReturn < 0;
   const yr = todayISO().slice(0, 4);
@@ -2542,7 +2559,7 @@ function pageDashboard() {
       <div class="stat-value ${up ? "pos" : dn ? "neg" : ""}">${up ? "▲ " : dn ? "▼ " : ""}${moneySigned(shownReturn)}</div>
       <div class="stat-sub" style="display:flex;align-items:baseline;gap:6px">
         <span class="${shownPct == null ? "muted" : up ? "pos" : dn ? "neg" : "muted"}">${shownPct == null ? "—" : (up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%")}</span>
-        <span class="muted" style="font-size:11px">${shownPct == null ? t("no capital invested yet") : t("on net capital")}</span>
+        <span class="muted" style="font-size:11px">${shownPct != null ? t("on net capital") : T.netCapitalInvested < 0 ? t("more withdrawn than invested") : t("no capital invested yet")}</span>
       </div>
     </article>
     <article class="stat" data-card="cash" tabindex="0" role="button" aria-label="${t("Available Cash")}, show calculation">
@@ -3391,7 +3408,7 @@ function portfolioTable() {
     marketValue: 110, netDiv: 110,
   };
   const body = rows.map((h) => {
-    const totalReturnPct = h.costBasis > 0 ? (h.totalReturn / h.costBasis) * 100 : 0;
+    const totalReturnPct = h.costBasis > 0 ? (h.totalReturn / h.costBasis) * 100 : null;
     const cellMap = {
       broker:         `<td class="dcc-c"><div class="broker-pills">${(h._brokerNames || [brokerName(h.brokerId)]).map((n) => `<span class="chip chip-pill">${esc(n)}</span>`).join("")}</div></td>`,
       shares:         `<td class="dcc-c">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>`,
@@ -3401,7 +3418,7 @@ function portfolioTable() {
       unrealizedAmt:  `<td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? moneySigned(h.unrealized) : `<span class="muted">—</span>`}</td>`,
       unrealizedPct:  `<td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? pctTxt(h.unrealizedPct) : `<span class="muted">—</span>`}</td>`,
       totalReturnAmt: `<td class="dcc-c ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</td>`,
-      totalReturnPct: `<td class="dcc-c ${cls(h.totalReturn)}">${pctTxt(totalReturnPct)}</td>`,
+      totalReturnPct: `<td class="dcc-c ${cls(h.totalReturn)}">${totalReturnPct == null ? `<span class="muted">-</span>` : pctTxt(totalReturnPct)}</td>`,
       marketValue:    `<td class="dcc-c">${h.hasPrice ? money(h.marketValue) : `<span class="muted">—</span>`}</td>`,
       netDiv:         `<td class="dcc-c">${h.netDividends ? money(h.netDividends) : `<span class="muted">—</span>`}</td>`,
     };
@@ -4025,7 +4042,7 @@ function wireTxSubmit(form) {
     // and then every live price and dividend check for that holding failed forever.
     const ticker = normalizeSymbol(d.ticker);
     if (type === "Buy" || type === "Sell") gross = (qty || 0) * (price || 0);
-    if (type === "Stock split") qty = parseFloat(d.splitRatio) || 1;
+    if (type === "Stock split") qty = parseFloat(d.splitRatio);   // no `|| 1` fallback here — let a blank/zero ratio fail the qty>0 check below instead of silently becoming a real, passing 1x "split"
 
     // fieldErr: highlight a field and show an error message directly below it
     const fieldErr = (fieldName, msg) => {
@@ -4073,6 +4090,7 @@ function wireTxSubmit(form) {
     } else if (type === "Dividend") {
       if (!ticker) return void fieldErr("ticker", t("Enter a ticker."));
       if (!(gross > 0)) return void fieldErr("divGross", t("Enter a gross dividend greater than 0."));
+      if (!(gross - tax > 0)) return void fieldErr("tax", t("Withholding tax can't exceed the gross dividend."));
     } else if (type === "DRIP / Reinvested") {
       if (!ticker) return void fieldErr("ticker", t("Enter a ticker."));
       if (!(gross > 0)) return void fieldErr("divGross", t("Enter a gross dividend greater than 0."));
@@ -4081,6 +4099,7 @@ function wireTxSubmit(form) {
     } else if (type === "Currency Exchange") {
       /* validated below */
     } else if (type === "Stock split") {
+      if (!ticker) return void fieldErr("ticker", t("Enter a ticker."));
       if (!(qty > 0)) return void fieldErr("splitRatio", t("Enter a split ratio greater than 0."));
     } else {
       if (type === "Transfer between brokers") {
@@ -4473,7 +4492,17 @@ function dividendForecast(received, upcoming, tickerScope) {
       }
       if (seasonGrowths.length) {
         const avgSeasonGrowth = seasonGrowths.reduce((s, v) => s + v, 0) / seasonGrowths.length;
-        growthPerPayment = Math.max(-0.25, Math.min(0.25, Math.pow(1 + avgSeasonGrowth, 1 / paymentsPerYear) - 1));
+        // avgSeasonGrowth IS already an annual rate (this season vs the same season one
+        // year back) — clamp IT to a sane ±25%/year before converting to a per-payment
+        // rate, not the per-payment rate after conversion. Clamping after conversion let a
+        // monthly payer's rate (already the 12th root of the annual figure) hit the same
+        // ±25% ceiling PER PAYMENT, which then compounds 36 times over a 3-year projection:
+        // (1.25)^36 ≈ 3,822x — an obviously implausible multi-year total from what can be a
+        // single noisy 2-cycle estimate. Clamping the annual rate first keeps the
+        // projection's cumulative growth bounded to (1.25)^3 ≈ 1.95x over 3 years at the
+        // ±25%/year extreme, regardless of how often the ticker actually pays.
+        const clampedAnnualGrowth = Math.max(-0.25, Math.min(0.25, avgSeasonGrowth));
+        growthPerPayment = Math.pow(1 + clampedAnnualGrowth, 1 / paymentsPerYear) - 1;
       }
     } else if (sorted.length >= 6) {
       const recent3 = sorted.slice(-3), prior3 = sorted.slice(-6, -3);
