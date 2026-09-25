@@ -636,6 +636,8 @@ const ZH = {
   "Couldn't add that alert — try again.": "无法添加该提醒 — 请重试。",
   "Couldn't remove that alert — try again.": "无法移除该提醒 — 请重试。",
   "transaction": "笔交易", "transactions": "笔交易", "holding": "个持仓", "holdings": "个持仓",
+  "broker": "个券商", "brokers": "个券商", "Can't remove": "无法移除", "it's your base currency": "这是您的基准货币",
+  "it's still used by": "目前仍被以下项目使用：", "You can add it back later if you need it again.": "如需要，之后仍可重新添加。",
   "transfer": "笔转账", "transfers": "笔转账",
   "This will permanently delete": "这将永久删除", "This cannot be undone. Consider Archive instead, which keeps everything and can be reversed.": "此操作无法撤销。建议改用「封存」，可保留所有记录且可随时恢复。",
   "Delete permanently": "永久删除",
@@ -2127,6 +2129,7 @@ function mountColInfoTaps() {
   tip.hidden = true;
   document.body.appendChild(tip);
   let shownFor = null;
+  let shownAt = 0;
 
   const show = (el) => {
     const text = el.getAttribute("data-tip");
@@ -2134,6 +2137,7 @@ function mountColInfoTaps() {
     tip.textContent = text;
     tip.hidden = false;
     shownFor = el;
+    shownAt = performance.now();
     const r = el.getBoundingClientRect();
     // Default: centered above the icon. Measure the actual rendered box afterward and
     // nudge it back on-screen (or flip below) if that pushes it past a viewport edge —
@@ -2166,7 +2170,18 @@ function mountColInfoTaps() {
   });
   document.addEventListener("click", (e) => {
     const hit = e.target.closest(".col-info");
-    if (hit) { e.stopPropagation(); if (shownFor === hit && !tip.hidden) hide(); else show(hit); }
+    if (hit) {
+      e.stopPropagation();
+      // A touchscreen tap fires a synthetic "mouseover" immediately before "click" — show()
+      // above already ran for this exact tap, so the toggle here saw its own tooltip as
+      // already open and closed it right back — the first tap on any icon looked like it
+      // did nothing, every time, on every touch device. Only treat this as "close the
+      // already-open tip" once it's been open long enough that a same-tap synthetic
+      // mouseover+click pair (a few ms apart) can't be the reason — a real second tap,
+      // or a real mouse click while genuinely hovering, is always well past this.
+      if (shownFor === hit && !tip.hidden && performance.now() - shownAt > 300) hide();
+      else show(hit);
+    }
     else hide();
   });
   window.addEventListener("scroll", hide, true);   // capture phase: catches scroll on any nested container too
@@ -5148,6 +5163,12 @@ function pageBrokers() {
         // outflow instead of crediting a cash bucket under an id nothing points to anymore.
         ALL_TRANSACTIONS.forEach((x) => { if (x.toBrokerId === id) x.toBrokerId = undefined; });
         delete RECON_CHECKS[id];
+        // A manual upcoming-dividend entry can carry a specific brokerId (see the
+        // "upcomingDividends schema" comment above allUpcomingDivs()) — left behind, it
+        // permanently shows a $0 row (its matching holding is gone, so shares resolves to
+        // 0) linking to a holding-detail page that always says "no longer exists," with
+        // nothing else in this cascade ever clearing it.
+        for (let j = UPCOMING_DIVIDENDS.length - 1; j >= 0; j--) { if (UPCOMING_DIVIDENDS[j].brokerId === id) UPCOMING_DIVIDENDS.splice(j, 1); }
         if (editingBrokerId === id) editingBrokerId = null;
         saveStore(); toast(t("Broker removed")); render();
       }));
@@ -5534,9 +5555,30 @@ function mountFxControls() {
   // Defensive cleanup: an "undefined" entry from before this fix may already be sitting
   // in a saved snapshot. Never treat it as a real currency.
   if ("undefined" in FX.rates) { delete FX.rates.undefined; if (FX.base === "undefined") FX.base = "MYR"; saveStore(); }
-  // Delete a currency
-  $$(".fx-del").forEach((btn) => btn.addEventListener("click", () => {
+  // Delete a currency. Deleting one still in use had no check and no confirmation: every
+  // holding/broker/transaction in that currency instantly (and silently) re-valued at
+  // curFx()'s rate=1 fallback instead of its real rate, and if the user later edited and
+  // re-saved any of those records, the currency <select> (built only from FX.rates' own
+  // keys) could no longer show the record's real currency and would silently substitute a
+  // different one on save — permanently rewriting the stored transaction's currency to
+  // something the user never chose.
+  $$(".fx-del").forEach((btn) => btn.addEventListener("click", async () => {
     const c = btn.dataset.del;
+    const usedByBrokers = BROKERS.filter((b) => b.currency === c);
+    const usedByHoldings = T.holdings.filter((h) => h.currency === c);
+    const usedByTx = ALL_TRANSACTIONS.filter((x) => x.currency === c || x.toCurrency === c);
+    if (c === FX.base || usedByBrokers.length || usedByHoldings.length || usedByTx.length) {
+      const parts = [];
+      if (usedByBrokers.length) parts.push(`${usedByBrokers.length} ${usedByBrokers.length === 1 ? t("broker") : t("brokers")}`);
+      if (usedByHoldings.length) parts.push(`${usedByHoldings.length} ${usedByHoldings.length === 1 ? t("holding") : t("holdings")}`);
+      if (usedByTx.length) parts.push(`${usedByTx.length} ${usedByTx.length === 1 ? t("transaction") : t("transactions")}`);
+      const reason = c === FX.base
+        ? t("it's your base currency")
+        : `${t("it's still used by")} ${parts.join(", ")}`;
+      toast(`${t("Can't remove")} ${c} — ${reason}.`);
+      return;
+    }
+    if (!(await showConfirmModal(`${t("Remove")} ${c}? ${t("You can add it back later if you need it again.")}`, { danger: true, okLabel: t("Remove") }))) return;
     delete FX.rates[c]; saveStore(); render();
   }));
   // Auto-fill today's rate when a currency code is chosen
