@@ -12,3 +12,13 @@ Desktop.ini
 # Dependency / build dirs (not used now, but safe to ignore)
 node_modules/
 .vercel/
+
+# Native iOS wrapper — CI regenerates all of this on every build (see
+# .github/workflows/ios-build.yml). Only native/package.json and
+# native/capacitor.config.json are tracked.
+native/www/
+native/ios/
+native/build/
+native/out/
+native/package-lock.json
+*.ipa

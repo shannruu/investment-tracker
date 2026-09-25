@@ -1319,10 +1319,19 @@ async function refreshFxRates() {
  * Note: only works on the deployed site (or `vercel dev`) — a static file:// page
  * has no /api backend, so we surface a clear message in that case.
  * ========================================================================== */
-const LIVE_ENABLED = location.protocol === "http:" || location.protocol === "https:";
+/* Inside the packaged iOS app the page is served from capacitor://localhost, so
+ * a relative "/api/..." path resolves against the app bundle and every backend
+ * call 404s — and the protocol check below would disable live data outright.
+ * Point them at the deployed origin instead (the api/* functions already send
+ * Access-Control-Allow-Origin: *). On the web this stays "", so every URL here
+ * is byte-identical to what it was. */
+const API_BASE = (typeof window !== "undefined" && window.Capacitor)
+  ? "https://investment-tracker-gules-seven.vercel.app"
+  : "";
+const LIVE_ENABLED = !!API_BASE || location.protocol === "http:" || location.protocol === "https:";
 async function fetchQuote(symbol) {
   try {
-    const r = await fetch(`/api/quote?symbol=${encodeURIComponent(symbol)}`);
+    const r = await fetch(`${API_BASE}/api/quote?symbol=${encodeURIComponent(symbol)}`);
     if (!r.ok) return null;
     const d = await r.json();
     if (d && d.price != null) return d;
@@ -1332,7 +1341,7 @@ async function fetchQuote(symbol) {
 /* Search the market for matching stocks (code or name) → [{symbol,name,exchange}]. */
 async function searchSymbols(q) {
   try {
-    const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+    const r = await fetch(`${API_BASE}/api/search?q=${encodeURIComponent(q)}`);
     if (!r.ok) return [];
     const d = await r.json();
     return d.results || [];
@@ -1374,7 +1383,7 @@ let DIV_UNKNOWN_SYMBOLS = [];
 async function fetchDivHistory(ticker) {
   if (!LIVE_ENABLED) return { ok: true, divs: null };
   try {
-    const r = await fetch(`/api/dividend?symbol=${encodeURIComponent(ticker)}`);
+    const r = await fetch(`${API_BASE}/api/dividend?symbol=${encodeURIComponent(ticker)}`);
     // 404 = Yahoo simply doesn't cover this symbol (unlisted holding, private/custom
     // asset, delisted ticker). That's a definitive answer, not a failure: reporting it
     // as an error made one such holding raise "couldn't check some dividend schedules"
@@ -1402,7 +1411,7 @@ async function fetchExDividendCalendar(market, from, to) {
   const key = `${market}|${from}|${to}`;
   if (EX_DIV_CACHE[key]) return EX_DIV_CACHE[key];
   try {
-    const endpoint = EX_DIV_ENDPOINTS[market] || EX_DIV_ENDPOINTS.us;
+    const endpoint = API_BASE + (EX_DIV_ENDPOINTS[market] || EX_DIV_ENDPOINTS.us);
     const r = await fetch(`${endpoint}?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
     if (!r.ok) return null;
     const d = await r.json();
@@ -1464,7 +1473,7 @@ let MY_SYMBOL_CACHE = {};   // { [ticker]: symbol | null }
 async function fetchMySymbol(ticker) {
   if (ticker in MY_SYMBOL_CACHE) return MY_SYMBOL_CACHE[ticker];
   try {
-    const r = await fetch(`/api/stock-symbol-my?ticker=${encodeURIComponent(ticker)}`);
+    const r = await fetch(`${API_BASE}/api/stock-symbol-my?ticker=${encodeURIComponent(ticker)}`);
     if (!r.ok) { MY_SYMBOL_CACHE[ticker] = null; return null; }
     const d = await r.json();
     MY_SYMBOL_CACHE[ticker] = d.symbol || null;

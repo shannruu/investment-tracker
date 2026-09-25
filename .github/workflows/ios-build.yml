@@ -1,0 +1,108 @@
+name: Build iOS app
+
+# Produces an UNSIGNED .ipa of Divz as a downloadable artifact.
+#
+# Unsigned is deliberate: signing needs an Apple account, and the whole point of
+# this pipeline is that it runs with no Apple credentials anywhere near it. The
+# signing happens later, on the user's own PC, by the sideloading tool, using
+# their own Apple ID. That tool re-signs the app in place — it expects an
+# unsigned or ad-hoc-signed .ipa exactly like the one this produces.
+#
+# macOS runners are free here because the repository is public.
+
+on:
+  workflow_dispatch:          # lets you press "Run workflow" in the Actions tab
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'app.js'
+      - 'data.js'
+      - 'styles.css'
+      - 'sync.js'
+      - 'alerts.js'
+      - 'supabase-client.js'
+      - 'manifest.json'
+      - 'icons/**'
+      - 'native/**'
+      - '.github/workflows/ios-build.yml'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Capacitor needs one folder holding the whole web app. The site lives at
+      # the repo root, so copy just the files the browser actually loads —
+      # explicitly NOT api/ (those are Vercel serverless functions; the packaged
+      # app calls them over the network via API_BASE in app.js instead).
+      - name: Assemble web assets
+        run: |
+          set -eux
+          mkdir -p native/www/icons
+          cp index.html app.js data.js styles.css sync.js alerts.js supabase-client.js manifest.json native/www/
+          cp sw.js native/www/ || true
+          cp icons/*.png native/www/icons/ || true
+          ls -la native/www
+
+      - name: Install Capacitor
+        working-directory: native
+        run: npm install
+
+      - name: Generate the iOS project
+        working-directory: native
+        run: |
+          set -eux
+          npx cap add ios
+          npx cap sync ios
+
+      # Capacitor 8 uses Swift Package Manager, so there is usually no
+      # .xcworkspace and no shared scheme — the -workspace/-scheme invocation
+      # every tutorial shows fails here. Detect it rather than assume.
+      - name: Build (unsigned)
+        working-directory: native
+        run: |
+          set -eux
+          if [ -d ios/App/App.xcworkspace ]; then
+            echo "workspace found - building via workspace"
+            xcodebuild -workspace ios/App/App.xcworkspace -scheme App \
+              -configuration Release -sdk iphoneos -derivedDataPath build \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+              CODE_SIGN_ENTITLEMENTS="" ENABLE_BITCODE=NO
+          else
+            echo "no workspace - building the project target directly"
+            xcodebuild -project ios/App/App.xcodeproj -target App \
+              -configuration Release -sdk iphoneos -derivedDataPath build \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+              CODE_SIGN_ENTITLEMENTS="" ENABLE_BITCODE=NO
+          fi
+
+      # An .ipa is just a zip with the .app inside a folder called Payload.
+      - name: Package the .ipa
+        working-directory: native
+        run: |
+          set -eux
+          APP_PATH=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -1)
+          test -n "$APP_PATH"
+          mkdir -p out/Payload
+          cp -R "$APP_PATH" out/Payload/
+          cd out && zip -qry Divz-unsigned.ipa Payload && cd ..
+          ls -lh out/Divz-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Divz-ios-app
+          path: native/out/Divz-unsigned.ipa
+          retention-days: 90
+
+      - name: Where to find it
+        run: |
+          echo "Built native/out/Divz-unsigned.ipa"
+          echo "Download it from the Artifacts section at the bottom of this run's summary page."

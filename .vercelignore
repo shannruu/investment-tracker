@@ -1,0 +1,5 @@
+# The native iOS wrapper is built by GitHub Actions, not by Vercel, and nothing
+# in it is part of the website. Keeping it out of the deploy means the packaged
+# app can never affect the site.
+native/
+.github/

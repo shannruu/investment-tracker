@@ -1,0 +1,13 @@
+{
+  "appId": "com.shannruu.divz",
+  "appName": "Divz",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#f4f6fb",
+    "limitsNavigationsToAppBoundDomains": false
+  },
+  "server": {
+    "iosScheme": "capacitor"
+  }
+}

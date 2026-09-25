@@ -1,0 +1,11 @@
+{
+  "name": "divz-native",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Capacitor wrapper that packages the Divz web app as an installable iOS app. Deliberately isolated from the repo root package.json (which exists only for the Vercel serverless functions) so that nothing here can affect the website's deploy. The iOS project itself is not committed — CI regenerates it with `npx cap add ios` on every build.",
+  "devDependencies": {
+    "@capacitor/cli": "8.5.2",
+    "@capacitor/core": "8.5.2",
+    "@capacitor/ios": "8.5.2"
+  }
+}
