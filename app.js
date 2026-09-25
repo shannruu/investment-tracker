@@ -3059,7 +3059,13 @@ const portfolioFilters = { broker: "", market: "", currency: "", sort: "" };
 let portfolioTab = "holdings";   // holdings | allocation
 const EXCHANGE_NAMES = { NMS:"NASDAQ", NGM:"NASDAQ", NCM:"NASDAQ", NYQ:"NYSE", PCX:"NYSE Arca", KLS:"Bursa Malaysia", KLSE:"Bursa Malaysia", LSE:"London SE", HKG:"Hong Kong SE", ASX:"ASX", TSX:"TSX" };
 function exchangeName(code) { return code ? (EXCHANGE_NAMES[code] || code) : ""; }
-function marketRegion(m) { return (m === "KLS" || m === "KLSE") ? "malaysia" : (m ? "global" : ""); }
+// h.market stores the FRIENDLY exchange name ("Bursa Malaysia" — see EXCHANGE_NAMES /
+// exchangeName() above, what autofillFromTicker() actually writes there), never the raw
+// code ("KLS"/"KLSE") this used to check for exclusively. Every Malaysia holding was
+// misclassified as "global" as a result, and the Portfolio page's "Malaysia stocks"
+// filter option could never match anything. Checks both forms — the raw code stays in
+// case a manually-typed Market field ever holds one, since it's a free-text input.
+function marketRegion(m) { const s = (m || "").trim(); return (s === "KLS" || s === "KLSE" || s === "Bursa Malaysia") ? "malaysia" : (s ? "global" : ""); }
 
 const PORTFOLIO_PREFS_KEY = "il-portfolio-v2";
 const COL_DEFS = [
@@ -3122,6 +3128,30 @@ function aggregateHoldingsByTicker(holdings) {
     }
   });
   return Object.values(map);
+}
+
+/* "Edit columns" popover: anchored below its trigger by default (CSS), but with 11
+ * toggleable columns it's tall, and the trigger sits near the bottom of the panel head —
+ * often already near the bottom of a phone screen before any scrolling. Opening it there
+ * used to render most or all of it past the viewport edge with nothing scrollable to
+ * reach the cut-off part (see the .col-panel comment in styles.css). Flips the panel
+ * above the trigger when that has more room, and either way caps its height to what's
+ * actually available so .col-panel-list's own scroll (flex-shrunk to fit, see CSS) takes
+ * over instead of content running off the edge of the screen. */
+function positionColPanel(trigger, panel) {
+  panel.style.top = ""; panel.style.bottom = ""; panel.style.maxHeight = "";
+  const r = trigger.getBoundingClientRect();
+  const margin = 8;
+  const spaceBelow = window.innerHeight - r.bottom - margin;
+  const spaceAbove = r.top - margin;
+  const minUsable = 160;   // below this, flipping to the roomier side is worth it even if neither is great
+  if (spaceBelow < minUsable && spaceAbove > spaceBelow) {
+    panel.style.top = "auto";
+    panel.style.bottom = "calc(100% + 6px)";
+    panel.style.maxHeight = Math.max(minUsable, spaceAbove) + "px";
+  } else {
+    panel.style.maxHeight = Math.max(minUsable, spaceBelow) + "px";
+  }
 }
 
 function pagePortfolio() {
@@ -3227,7 +3257,11 @@ function pagePortfolio() {
       // Column visibility panel
       const colBtn = $("#colBtn"), colPanel = $("#colPanel");
       if (colBtn && colPanel) {
-        colBtn.addEventListener("click", (e) => { e.stopPropagation(); colPanel.hidden = !colPanel.hidden; });
+        colBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          colPanel.hidden = !colPanel.hidden;
+          if (!colPanel.hidden) positionColPanel(colBtn, colPanel);
+        });
         const colPanelClose = $("#colPanelClose");
         if (colPanelClose) colPanelClose.addEventListener("click", (e) => { e.stopPropagation(); colPanel.hidden = true; });
         colPanel.addEventListener("change", (e) => {

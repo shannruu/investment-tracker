@@ -425,6 +425,13 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
   border-radius: var(--radius-sm);
   box-shadow: 0 8px 30px rgba(16,24,40,.18), 0 2px 8px rgba(16,24,40,.10);
   width: 224px; z-index: 200; overflow: hidden;
+  /* Flex column so a JS-set max-height (positionColPanel(), app.js) only ever squeezes
+     .col-panel-list below — the header and hint keep their natural size instead of
+     everything getting clipped in place with no way to scroll to what's cut off. Without
+     this, opening the panel low enough on the page (the common case: it's the last thing
+     above the table, itself already near the bottom of a phone screen) rendered most or
+     all of it below the viewport with 0 of 11 columns actually reachable. */
+  display: flex; flex-direction: column;
 }
 .col-panel-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -438,7 +445,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 }
 .col-panel-close:hover { color: var(--text); background: var(--surface-2); }
 .col-panel-hint { font-size: 11px; color: var(--muted); padding: 5px 12px 3px; margin: 0; }
-.col-panel-list { max-height: 60vh; overflow-y: auto; padding: 4px 0 6px; }
+.col-panel-list { max-height: 60vh; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 4px 0 6px; }
 .col-toggle-row {
   display: flex; align-items: center; height: 36px; padding: 0 8px; gap: 8px;
   border-radius: 6px; margin: 0 4px;
