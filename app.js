@@ -4034,7 +4034,13 @@ function wireTxSubmit(form) {
           const errEl = document.createElement("p");
           errEl.className = "field-err";
           errEl.textContent = msg;
-          label.insertAdjacentElement("afterend", errEl);
+          // Appended INSIDE the label, not after it. .form-grid lays labels out as grid
+          // items, so a sibling <p> became a grid item of its own — it claimed a full-width
+          // row and shoved the field that belongs beside this one (Price / Share next to
+          // Quantity) down onto the following row, visibly rearranging the form the moment
+          // a validation message appeared. The label is already a flex column, so appending
+          // puts the message under its own input and leaves every other field where it was.
+          label.appendChild(errEl);
           const clear = () => { errEl.remove(); if (hilite) hilite.classList.remove("field-invalid"); };
           input.addEventListener("input", clear, { once: true });
           input.addEventListener("change", clear, { once: true });
