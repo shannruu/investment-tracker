@@ -5389,8 +5389,8 @@ function pageSettings() {
         { value: "price", label: t("Unrealized") },
       ], SETTINGS.returnMode === "price" ? "price" : "total", { id: "returnModeSel" })}</div>`)}
       ${settingRow(t("Cost basis method"), `<div style="width:200px">${styledSelect("costBasis", [{ value: "average", label: t("Average Cost") }], "average", { id: "costBasis" })}</div>`)}
-      ${settingRow(t("Show reconciliation on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
-      ${settingRow(t("Show Ex-Dividend Screener on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
+      ${settingRow(t("Show reconciliation on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" aria-label="${escAttr(t("Show reconciliation on Brokers page"))}" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
+      ${settingRow(t("Show Ex-Dividend Screener on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" aria-label="${escAttr(t("Show Ex-Dividend Screener on Dividends page"))}" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
       </div>`)}
 
     ${(() => {

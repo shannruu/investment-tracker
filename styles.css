@@ -1644,4 +1644,30 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
     width: 40px; height: 40px; transform: translate(-50%, -50%);
   }
   .stat-head-group { gap: 16px; }
+  /* Every other control this media query already covers stayed at desktop size on
+     touch — found by driving the real app and measuring every tap target. Sized to
+     the app's own 44px convention above; .link/.note-add-btn/.cash-item use padding +
+     a matching negative margin instead of a literal size bump, so the enlarged hit
+     area doesn't shift surrounding layout, same trick as .col-info's ::after above. */
+  .btn { height: 44px; }
+  .link { padding-block: 11px; margin-block: -11px; }
+  .note-add-btn { padding-block: 12px; margin-block: -12px; }
+  .cash-item { padding-block: 12px; }
+  .bc-menu-pop button { padding: 12px 10px; }
+  /* .switch is already position:relative with real visual content filling its box (the
+     track + thumb) — padding+negative-margin (the trick used above for plain inline text
+     links) visibly inflated the toggle itself instead of staying invisible. An ::after hit
+     -pad, same as .col-info/.col-move-*, leaves the visible switch exactly as designed. */
+  .switch::after {
+    content: ""; position: absolute; top: 50%; left: 50%;
+    width: 44px; height: 44px; transform: translate(-50%, -50%);
+  }
+  /* Column reorder arrows: a 30x30 box with a 2px gap between "up" and "down" — easy to
+     hit the wrong one. Same invisible-hit-pad approach as .col-info, so the compact
+     visual size (this panel is already tight on space) doesn't have to change to fix it. */
+  .col-move-up, .col-move-down { position: relative; }
+  .col-move-up::after, .col-move-down::after {
+    content: ""; position: absolute; top: 50%; left: 50%;
+    width: 40px; height: 40px; transform: translate(-50%, -50%);
+  }
 }
