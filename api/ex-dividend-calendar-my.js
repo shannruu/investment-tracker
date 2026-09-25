@@ -51,6 +51,7 @@
  * back null rather than risk showing a wrong code — the frontend simply
  * omits the code line when null, same as any other missing field.
  * ========================================================================== */
+const { fetchTimeout } = require("./_lib");
 const MAX_WINDOW_DAYS = 21;
 const MAX_ROWS = 1500;
 
@@ -93,7 +94,7 @@ module.exports = async (req, res) => {
   };
   async function lookupStockCode(symbol) {
     try {
-      const r = await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(symbol)}&quotesCount=15&newsCount=0&listsCount=0`, { headers: searchHeaders });
+      const r = await fetchTimeout(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(symbol)}&quotesCount=15&newsCount=0&listsCount=0`, { headers: searchHeaders });
       if (!r.ok) return null;
       const d = await r.json();
       const klMatch = (d.quotes || []).find((q) => q.symbol && q.symbol.endsWith(".KL"));
@@ -102,7 +103,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const r = await fetch("https://scanner.tradingview.com/malaysia/scan", {
+    const r = await fetchTimeout("https://scanner.tradingview.com/malaysia/scan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

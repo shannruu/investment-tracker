@@ -11,6 +11,8 @@
  * Prices here ARE live/delayed market data — the app labels them "Live" so they
  * are never confused with manually entered prices.
  * ========================================================================== */
+const { fetchTimeout } = require("./_lib");
+
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -28,7 +30,7 @@ module.exports = async (req, res) => {
     const hosts = ["https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com"];
     for (const h of hosts) {
       try {
-        const r = await fetch(`${h}/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`, { headers });
+        const r = await fetchTimeout(`${h}/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`, { headers });
         if (r.ok) return await r.json();
       } catch (e) { /* try next host */ }
     }
@@ -48,7 +50,7 @@ module.exports = async (req, res) => {
     let name = m.shortName || m.longName || null;
     let sector = null, industry = null, country = null;
     try {
-      const s = await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(symbol)}&quotesCount=3&newsCount=0`, { headers });
+      const s = await fetchTimeout(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(symbol)}&quotesCount=3&newsCount=0`, { headers });
       if (s.ok) {
         const sd = await s.json();
         const q = (sd.quotes || []).find((x) => x.symbol === (m.symbol || symbol)) || (sd.quotes || [])[0];
@@ -58,7 +60,7 @@ module.exports = async (req, res) => {
     // assetProfile carries sector/industry/country (may 401 — best-effort)
     if (!sector || !country) {
       try {
-        const p = await fetch(`https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=assetProfile`, { headers });
+        const p = await fetchTimeout(`https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=assetProfile`, { headers });
         if (p.ok) {
           const pd = await p.json();
           const ap = pd && pd.quoteSummary && pd.quoteSummary.result && pd.quoteSummary.result[0] && pd.quoteSummary.result[0].assetProfile;

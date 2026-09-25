@@ -20,6 +20,7 @@
  *              indicatedAnnual, announcementDate }, ...], truncated }
  * rows sorted by exDate then symbol. US-market only (Nasdaq's own coverage).
  * ========================================================================== */
+const { fetchTimeout } = require("./_lib");
 const MAX_WINDOW_DAYS = 21;
 const MAX_ROWS = 1500;
 
@@ -68,7 +69,7 @@ module.exports = async (req, res) => {
   };
   async function getDay(date) {
     try {
-      const r = await fetch(`https://api.nasdaq.com/api/calendar/dividends?date=${date}`, { headers });
+      const r = await fetchTimeout(`https://api.nasdaq.com/api/calendar/dividends?date=${date}`, { headers });
       if (!r.ok) return [];
       const data = await r.json();
       const rawRows = data && data.data && data.data.calendar && data.data.calendar.rows;

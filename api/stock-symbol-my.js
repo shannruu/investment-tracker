@@ -23,6 +23,8 @@
  * Response is { symbol: null } if nothing resolves — never an error, since
  * this is a "nice to have" enrichment, not a required field.
  * ========================================================================== */
+const { fetchTimeout } = require("./_lib");
+
 function normalize(name) {
   return String(name || "")
     .toLowerCase()
@@ -52,7 +54,7 @@ module.exports = async (req, res) => {
   };
 
   try {
-    const yr = await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(bare + ".KL")}&quotesCount=5&newsCount=0&listsCount=0`, { headers });
+    const yr = await fetchTimeout(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(bare + ".KL")}&quotesCount=5&newsCount=0&listsCount=0`, { headers });
     if (!yr.ok) { res.status(200).json({ symbol: null }); return; }
     const yd = await yr.json();
     const quotes = (yd.quotes || []).filter((q) => q.symbol);
@@ -66,7 +68,7 @@ module.exports = async (req, res) => {
       columns: ["name", "description"],
       range: [0, 10],
     };
-    const tr = await fetch("https://scanner.tradingview.com/malaysia/scan", {
+    const tr = await fetchTimeout("https://scanner.tradingview.com/malaysia/scan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(tvBody),

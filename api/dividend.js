@@ -22,6 +22,8 @@
  * date = ex-dividend date (Yahoo's chart API doesn't separately report a pay
  * date); amount = per share, in the security's own currency.
  * ========================================================================== */
+const { fetchTimeout, isValidIsoDate } = require("./_lib");
+
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -30,6 +32,13 @@ module.exports = async (req, res) => {
   const symbol = String((req.query && req.query.symbol) || "").trim();
   if (!symbol) { res.status(400).json({ error: "Missing ?symbol" }); return; }
   if (!/^[A-Za-z0-9.\-]{1,20}$/.test(symbol)) { res.status(400).json({ error: "Invalid symbol" }); return; }
+
+  // Validated BEFORE the fallback-or-parse below: an unvalidated bad value (this is a
+  // public, unauthenticated, CORS-open endpoint — any caller can send one directly, not
+  // just app.js) used to silently become NaN and produce a misleading 404 "no data"
+  // instead of a 400 telling the caller their date param was wrong.
+  if (req.query && req.query.from && !isValidIsoDate(String(req.query.from).trim())) { res.status(400).json({ error: "Invalid ?from (expected YYYY-MM-DD)" }); return; }
+  if (req.query && req.query.to && !isValidIsoDate(String(req.query.to).trim())) { res.status(400).json({ error: "Invalid ?to (expected YYYY-MM-DD)" }); return; }
 
   const today = new Date().toISOString().slice(0, 10);
   const from = String((req.query && req.query.from) || "").trim() || (() => {
@@ -49,7 +58,7 @@ module.exports = async (req, res) => {
     const hosts = ["https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com"];
     for (const h of hosts) {
       try {
-        const r = await fetch(`${h}/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${period1}&period2=${period2}&interval=1d&events=div`, { headers });
+        const r = await fetchTimeout(`${h}/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${period1}&period2=${period2}&interval=1d&events=div`, { headers });
         if (r.ok) return await r.json();
       } catch (e) { /* try next host */ }
     }

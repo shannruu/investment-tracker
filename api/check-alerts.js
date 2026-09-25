@@ -15,6 +15,7 @@
  * ========================================================================== */
 const { createClient } = require("@supabase/supabase-js");
 const webpush = require("web-push");
+const { fetchTimeout } = require("./_lib");
 
 module.exports = async (req, res) => {
   if (String((req.query && req.query.key) || "") !== process.env.CRON_SECRET) {
@@ -55,7 +56,7 @@ module.exports = async (req, res) => {
     const prices = {};
     await Promise.all(tickers.map(async (tk) => {
       try {
-        const r = await fetch(`${origin}/api/quote?symbol=${encodeURIComponent(tk)}`);
+        const r = await fetchTimeout(`${origin}/api/quote?symbol=${encodeURIComponent(tk)}`);
         if (!r.ok) return;
         const d = await r.json();
         if (d && d.price != null) prices[tk] = d.price;

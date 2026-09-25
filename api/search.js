@@ -4,6 +4,8 @@
  *   /api/search?q=5555     → 5555.KL SUNMED (Sunway Medical) ...
  *   /api/search?q=maybank  → 1155.KL MAYBANK ...
  * ========================================================================== */
+const { fetchTimeout } = require("./_lib");
+
 module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -21,7 +23,7 @@ module.exports = async (req, res) => {
     let data = null;
     for (const h of hosts) {
       try {
-        const r = await fetch(`${h}/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=15&newsCount=0&listsCount=0`, { headers });
+        const r = await fetchTimeout(`${h}/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=15&newsCount=0&listsCount=0`, { headers });
         if (r.ok) { data = await r.json(); break; }
       } catch (e) { /* try next host */ }
     }
