@@ -46,12 +46,26 @@ function syncAvailable() { return !!window.SUPABASE; }
 /* Called once from app.js's init(), fire-and-forget (never awaited there) so
  * it can't delay first paint. */
 async function initSync() {
-  if (!syncAvailable()) return;
+  if (!syncAvailable()) {
+    // supabase-client.js is still waiting on its CDN import — not permanently
+    // unavailable. Re-run this same function once it announces success rather
+    // than giving up here: giving up here means the onAuthStateChange listener
+    // below never gets registered for the rest of this page load, so even a
+    // successful sign-in later would have nothing listening for it. See
+    // supabase-client.js's own comment for the full failure mode this fixes.
+    window.addEventListener("supabase-ready", initSync, { once: true });
+    return;
+  }
 
   try {
     const { data } = await SUPABASE.auth.getSession();
-    if (data && data.session) { SYNC_USER = data.session.user; await reconcileOnSignIn(); render(); }
+    if (data && data.session) { SYNC_USER = data.session.user; await reconcileOnSignIn(); }
   } catch (e) { /* stays signed out */ }
+  // Whatever page is on screen right now may have already rendered once with
+  // syncAvailable() false (a real "not configured" panel, not a guess — this is
+  // the exact race the "supabase-ready" retry above exists for). One render()
+  // here refreshes it with what's now known to be true, signed in or not.
+  render();
 
   SUPABASE.auth.onAuthStateChange(async (event, session) => {
     if (event === "SIGNED_IN" && session && (!SYNC_USER || SYNC_USER.id !== session.user.id)) {

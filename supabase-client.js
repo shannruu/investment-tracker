@@ -8,13 +8,26 @@
  * and can call saveStore()/snapshot()/render()/etc. directly. This file can't
  * do that (ES modules have their own scope), so it stays a thin bridge.
  *
- * Module scripts always run after the document is parsed, regardless of
- * where the <script type="module"> tag sits — so by the time init() runs
- * (on DOMContentLoaded), window.SUPABASE is already set if the CDN import
- * succeeded. If it didn't (offline, CDN down, or the two placeholders below
- * were never replaced), window.SUPABASE stays undefined and every call site
- * in sync.js guards for that — Cloud Sync just shows "not configured" with
- * zero effect on the rest of the app.
+ * Module scripts run after the document is parsed — but this one also awaits
+ * a dynamic import from a CDN (a real network round-trip, sometimes several:
+ * esm.sh resolves @supabase/supabase-js into ~10 chained module fetches), and
+ * that can take longer than DOMContentLoaded takes to fire. sync.js's
+ * initSync() cannot simply assume window.SUPABASE is already set by the time
+ * it runs — it was written on that assumption, and on a slow connection it
+ * silently lost the race: syncAvailable() read false at that one moment,
+ * initSync() returned before ever registering the onAuthStateChange listener,
+ * and nothing in the app tried again. Cloud Sync would work — you could sign
+ * in and Supabase would accept it — but nothing was listening for that event,
+ * so the page just never updated. No error, because there wasn't one.
+ *
+ * The "supabase-ready" event closes that gap: it fires exactly once, only on
+ * success, after window.SUPABASE is actually usable, so initSync() can wait
+ * for it instead of gambling on being called late enough.
+ *
+ * If the import fails outright (offline, CDN down, or the two placeholders
+ * below were never replaced), window.SUPABASE stays undefined, no event ever
+ * fires, and every call site in sync.js guards for that — Cloud Sync just
+ * shows "not configured" with zero effect on the rest of the app.
  *
  * SETUP: replace the two placeholders below with your own Supabase project's
  * URL and anon (public) key — Settings → API in the Supabase dashboard.
@@ -37,6 +50,7 @@ if (SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.startsWith("YOUR_")) {
     window.SUPABASE = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { flowType: "pkce", detectSessionInUrl: true },
     });
+    window.dispatchEvent(new Event("supabase-ready"));
   } catch (e) {
     // CDN unreachable, offline, etc. — leave window.SUPABASE unset; sync.js
     // treats that identically to "not configured."
