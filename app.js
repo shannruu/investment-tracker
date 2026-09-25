@@ -4541,7 +4541,16 @@ function dividendForecast(received, upcoming, tickerScope) {
   const knownUpcoming = upcoming
     .filter((d) => d.payDate && d.payDate >= today)
     .map((d) => ({ payDate: d.payDate, amtMYR: d.expectedNetMYR || 0, ticker: d.ticker, confirmed: true }));
-  const coveredTickers = new Set(knownUpcoming.map((p) => p.ticker));
+  // Per-ticker known dates, for de-duplicating a single already-known payment out of that
+  // ticker's own pattern projection below — NOT for skipping the ticker's projection
+  // outright (see the loop). A ±10-day tolerance, matching the same-purpose match window
+  // autoSyncDividends() already uses, since a confirmed ex-date+14d estimate and the
+  // pattern's own computed date for what is really the same event rarely land on the
+  // exact same day.
+  const knownDatesByTicker = {};
+  knownUpcoming.forEach((p) => {
+    (knownDatesByTicker[p.ticker] = knownDatesByTicker[p.ticker] || []).push(new Date(p.payDate + "T00:00:00").getTime());
+  });
 
   // Pattern detection: group history by ticker, detect payment frequency and
   // growth, project future dates up to 3 years out. Only for tickers NOT
@@ -4555,7 +4564,6 @@ function dividendForecast(received, upcoming, tickerScope) {
     : new Set([...Object.keys(byTicker), ...Object.keys(AUTO_DIV_CACHE)]);
 
   allTickers.forEach((ticker) => {
-    if (coveredTickers.has(ticker)) return;
     let sorted = (byTicker[ticker] || [])
       .map((d) => ({ net: divNetMYR(d), ds: d.payDate || d.date }))
       .filter((d) => d.ds)
@@ -4654,9 +4662,20 @@ function dividendForecast(received, upcoming, tickerScope) {
     }
     tickerInfo[ticker] = { count: sorted.length, freq: freqLabel, source, growthPct: growthPerPayment * 100, alert };
     if (!suspendedDetected) {
+      const knownTimes = knownDatesByTicker[ticker] || [];
       while (next <= limit) {
         const ds = dateToISO(next);
-        if (ds >= today) { projected.push({ payDate: ds, amtMYR: amt, ticker, confirmed: false }); amt *= (1 + growthPerPayment); }
+        if (ds >= today) {
+          // Skip only THIS payment if a confirmed/API-known date already covers it — used
+          // to skip the ticker's entire pattern projection instead, which meant a holding
+          // with even one known upcoming payment (the common case: an ex-date+14d estimate
+          // for whatever's coming up next) got projected zero payments for every year after
+          // that one, understating Year 2/Year 3 by however much that ticker contributes —
+          // for a holding that's most of the portfolio's income, that's most of the forecast.
+          const isKnownDup = knownTimes.some((kt) => Math.abs(kt - next.getTime()) <= 10 * 86400000);
+          if (!isKnownDup) projected.push({ payDate: ds, amtMYR: amt, ticker, confirmed: false });
+          amt *= (1 + growthPerPayment);
+        }
         next = new Date(next); next.setDate(next.getDate() + freqDays);
       }
     }
