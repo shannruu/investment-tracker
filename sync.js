@@ -89,6 +89,20 @@ async function initSync() {
       await reconcileOnSignIn();
       render();
     } else if (event === "SIGNED_OUT") {
+      // Revoke this device's price-alert push subscription WHILE we still know which
+      // account it belonged to — disablePriceAlertPush() only deletes the server-side
+      // push_subscriptions row when SYNC_USER is set, so nulling that first (as this used
+      // to) skipped the delete entirely. On a shared/public device, that left a stale
+      // subscription api/check-alerts.js would still find and push THIS account's alerts
+      // to, to a device the account is no longer signed into.
+      // Raced against a timeout, not awaited directly — navigator.serviceWorker.ready
+      // (which disablePriceAlertPush touches first) resolves once a registration is
+      // ACTIVE but never rejects if one never becomes active, so a broken/absent service
+      // worker in some browsing context would otherwise hang this whole handler forever,
+      // leaving the user stuck mid-"sign out" with the app never updating to reflect it.
+      if (typeof disablePriceAlertPush === "function") {
+        await Promise.race([disablePriceAlertPush({ silent: true }), new Promise((resolve) => setTimeout(resolve, 3000))]);
+      }
       SYNC_USER = null;
       resetPerAccountCaches();
       render();

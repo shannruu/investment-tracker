@@ -63,6 +63,15 @@ async function checkPushSubscribed() {
 async function enablePriceAlertPush() {
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) { toast(t("Push notifications aren't supported in this browser.")); return; }
   if (!SYNC_USER) { toast(t("Sign in first — alerts need an account.")); return; }
+  // Once a browser has recorded "denied" for this site, requestPermission() resolves to
+  // "denied" again instantly with no prompt shown at all — most browsers never re-ask.
+  // pageAlerts() already hides this button in that state, but enablePriceAlertPush() can
+  // still be reached directly (e.g. a stale render), so it needs its own actionable
+  // message rather than repeating the same dead-end generic toast forever.
+  if (typeof Notification !== "undefined" && Notification.permission === "denied") {
+    toast(t("Notifications are blocked for this site — enable them in your browser's site settings, then reload this page."));
+    return;
+  }
   const perm = await Notification.requestPermission();
   if (perm !== "granted") { toast(t("Notification permission wasn't granted.")); return; }
   try {
@@ -80,7 +89,11 @@ async function enablePriceAlertPush() {
   }
 }
 
-async function disablePriceAlertPush() {
+/* opts.silent: called from sync.js's SIGNED_OUT handler (a background auth event, not a
+ * user click on "Turn off") — sign-out never left this device's subscription behind
+ * before, but that call site must not pop the same success toast a deliberate "Turn off"
+ * click shows, especially since most sign-outs have nothing to actually unsubscribe. */
+async function disablePriceAlertPush(opts = {}) {
   try {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.getSubscription();
@@ -91,7 +104,7 @@ async function disablePriceAlertPush() {
     }
   } catch (e) { /* best-effort — the server also self-cleans expired subscriptions on a 410 */ }
   PUSH_SUBSCRIBED = false;
-  toast(t("Push notifications turned off on this device."));
+  if (!opts.silent) toast(t("Push notifications turned off on this device."));
 }
 
 function alertStatusBadge(a) {
@@ -145,8 +158,15 @@ function pageAlerts() {
       mount() {} };
   }
 
+  // Checking Notification.permission directly (not just the result of a past
+  // requestPermission() call) is what lets a "denied" state get its own message instead
+  // of repeating the same "Enable notifications" button that can only ever fail again —
+  // see enablePriceAlertPush()'s matching guard.
+  const notifPermission = typeof Notification !== "undefined" ? Notification.permission : "denied";
   const pushBanner = PUSH_SUBSCRIBED === true
     ? `<p class="alert-push-row"><span class="badge confirmed">${t("On")}</span> ${t("Push notifications are enabled on this device.")} <button type="button" class="link" id="disablePushBtn">${t("Turn off")}</button></p>`
+    : notifPermission === "denied"
+    ? `<p class="alert-push-row"><span class="badge subtle">${t("Blocked")}</span> ${t("Notifications are blocked for this site — enable them in your browser's site settings, then reload this page.")}</p>`
     : `<p class="alert-push-row">${t("Push notifications aren't on for this device yet.")} <button type="button" class="btn primary small" id="enablePushBtn">${t("Enable notifications")}</button></p>`;
 
   const rows = ALERTS_CACHE.map(alertRowHTML).join("");

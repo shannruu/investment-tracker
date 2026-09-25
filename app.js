@@ -622,6 +622,8 @@ const ZH = {
   "Sign in": "登录",
   "Push notifications aren't supported in this browser.": "此浏览器不支持推送通知。",
   "Notification permission wasn't granted.": "未授予通知权限。",
+  "Notifications are blocked for this site — enable them in your browser's site settings, then reload this page.": "此网站的通知已被屏蔽 — 请在浏览器的网站设置中启用通知，然后重新加载此页面。",
+  "Blocked": "已屏蔽",
   "Couldn't save this device — try again.": "无法保存此设备 — 请重试。",
   "Push notifications enabled on this device.": "已在此设备上启用推送通知。",
   "Push notifications turned off on this device.": "已在此设备上关闭推送通知。",
