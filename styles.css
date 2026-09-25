@@ -17,7 +17,13 @@
   --border:    #e4e8f0;
   --text:      #131722;
   --text-soft: #5b6473;
-  --muted:     #8b93a3;
+  /* Was #8b93a3 (3.09:1 vs --surface, 2.95:1 vs --surface-2 — both fail WCAG AA's 4.5:1 for
+     normal text). Used everywhere for small secondary text (.sub, .stat-label, .mc-label,
+     chip/badge subtext, ...), so this was a genuine light-theme-only readability gap for
+     low-vision users — the dark-theme --muted (#777a85, 4.57:1) already passed fine.
+     #6b7280 clears both surfaces (4.83:1 / 4.62:1) while staying visibly lighter/more
+     de-emphasized than --text-soft (5.97:1), the same relative ordering as before. */
+  --muted:     #6b7280;
 
   --brand:     #5b54e8;   /* indigo-violet brand */
   --brand-ink: #463cce;
@@ -147,6 +153,11 @@ a { color: inherit; text-decoration: none; }
   transition: color .12s;
 }
 .sidebar-top:hover #sidebarToggle { color: var(--text); }
+/* The bare `outline: none` above had no replacement anywhere — a keyboard user tabbing
+   to this button saw no focus indicator at all, with no way to tell it was focused or
+   guess whether Enter/Space would do anything. Same pattern as every other focusable
+   control in this file (.stat, .mini-card[role=button], .cash-item, .switch, ...). */
+#sidebarToggle:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .acct-switch {
   display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;
   padding: 8px 8px 8px 7px; border-radius: var(--radius-sm);
