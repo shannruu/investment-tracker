@@ -73,25 +73,71 @@ jobs:
           ls -la ios/App
           test -d ios/App/App.xcodeproj || { echo "no Xcode project was generated"; exit 1; }
 
-      # Capacitor 8 uses Swift Package Manager, so there is usually no
-      # .xcworkspace and no shared scheme — the -workspace/-scheme invocation
-      # every tutorial shows fails here. Detect it rather than assume.
+      # What targets/schemes actually exist. Capacitor's layout has changed
+      # across versions and most published recipes are wrong for 8.x, so read
+      # it from the generated project instead of assuming.
+      - name: Inspect the generated project
+        working-directory: native
+        run: |
+          echo '## Project layout' >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ls ios/App >> $GITHUB_STEP_SUMMARY 2>&1 || true
+          echo '' >> $GITHUB_STEP_SUMMARY
+          xcodebuild -list -project ios/App/App.xcodeproj >> $GITHUB_STEP_SUMMARY 2>&1 || true
+          if [ -d ios/App/App.xcworkspace ]; then
+            echo '--- workspace present ---' >> $GITHUB_STEP_SUMMARY
+            xcodebuild -list -workspace ios/App/App.xcworkspace >> $GITHUB_STEP_SUMMARY 2>&1 || true
+          fi
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat $GITHUB_STEP_SUMMARY
+
+      # Tries each plausible invocation in turn and keeps the first that yields
+      # an .app, so one run tells us which is correct rather than one per guess.
       - name: Build (unsigned)
         working-directory: native
         run: |
-          set -eux
+          set -u
+          COMMON="-configuration Release -sdk iphoneos -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= \
+            CODE_SIGN_ENTITLEMENTS= ENABLE_BITCODE=NO \
+            -skipPackagePluginValidation -skipMacroValidation"
+
+          try_build () {
+            echo "=============================================================="
+            echo "ATTEMPT: $*"
+            echo "=============================================================="
+            # shellcheck disable=SC2086
+            xcodebuild "$@" $COMMON > /tmp/xcb.log 2>&1
+            local rc=$?
+            if [ $rc -ne 0 ]; then
+              echo "--- failed (rc=$rc); last 60 lines ---"
+              tail -60 /tmp/xcb.log
+              return 1
+            fi
+            echo "--- succeeded ---"
+            return 0
+          }
+
+          OK=0
           if [ -d ios/App/App.xcworkspace ]; then
-            echo "workspace found - building via workspace"
-            xcodebuild -workspace ios/App/App.xcworkspace -scheme App \
-              -configuration Release -sdk iphoneos -derivedDataPath build \
-              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-              CODE_SIGN_ENTITLEMENTS="" ENABLE_BITCODE=NO
-          else
-            echo "no workspace - building the project target directly"
-            xcodebuild -project ios/App/App.xcodeproj -target App \
-              -configuration Release -sdk iphoneos -derivedDataPath build \
-              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
-              CODE_SIGN_ENTITLEMENTS="" ENABLE_BITCODE=NO
+            try_build -workspace ios/App/App.xcworkspace -scheme App && OK=1
+          fi
+          if [ $OK -eq 0 ]; then
+            try_build -project ios/App/App.xcodeproj -scheme App && OK=1
+          fi
+          if [ $OK -eq 0 ]; then
+            try_build -project ios/App/App.xcodeproj -target App && OK=1
+          fi
+
+          if [ $OK -eq 0 ]; then
+            {
+              echo '## xcodebuild failed'
+              echo 'Last 80 lines of the final attempt:'
+              echo '```'
+              tail -80 /tmp/xcb.log
+              echo '```'
+            } >> $GITHUB_STEP_SUMMARY
+            exit 1
           fi
 
       # An .ipa is just a zip with the .app inside a folder called Payload.
