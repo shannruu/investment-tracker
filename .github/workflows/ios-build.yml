@@ -152,6 +152,33 @@ jobs:
           cd out && zip -qry Divz-unsigned.ipa Payload && cd ..
           ls -lh out/Divz-unsigned.ipa
 
+      # Confirms the package is actually well-formed before anyone spends an
+      # evening sideloading it: right bundle id, a real binary, and the web app
+      # actually inside it (a Capacitor build will happily produce an .app with
+      # an empty public/ folder, which installs fine and opens to a blank screen).
+      - name: Verify the .ipa
+        working-directory: native
+        run: |
+          set -eu
+          APP=out/Payload/App.app
+          {
+            echo '## Packaged app'
+            echo '```'
+            echo "ipa size: $(du -h out/Divz-unsigned.ipa | cut -f1)"
+            echo "bundle id:  $(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")"
+            echo "display:    $(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist" 2>/dev/null || echo '(none)')"
+            echo "min iOS:    $(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist")"
+            echo "binary:     $(test -f "$APP/App" && echo present || echo MISSING)"
+            echo "web files in bundle:"
+            ls "$APP/public" 2>/dev/null | sed 's/^/  /' || echo "  public/ MISSING"
+            echo '```'
+          } | tee -a $GITHUB_STEP_SUMMARY
+
+          test -f "$APP/App"                || { echo "no executable in the app"; exit 1; }
+          test -f "$APP/public/index.html"  || { echo "web app not bundled"; exit 1; }
+          test -f "$APP/public/app.js"      || { echo "app.js not bundled"; exit 1; }
+          echo "OK: well-formed, web app present"
+
       - uses: actions/upload-artifact@v4
         with:
           name: Divz-ios-app
