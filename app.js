@@ -5154,11 +5154,14 @@ function pageBrokers() {
       $$("[data-broker-menu]").forEach((btn) => btn.addEventListener("click", (e) => {
         e.stopPropagation();
         const pop = btn.nextElementSibling;
-        $$(".bc-menu-pop").forEach((p) => { if (p !== pop) p.hidden = true; });
+        $$(".bc-menu-pop").forEach((p) => { if (p !== pop) { p.hidden = true; const b = p.previousElementSibling; if (b) b.setAttribute("aria-expanded", "false"); } });
         pop.hidden = !pop.hidden;
+        // aria-expanded="false" was hardcoded in the markup and never updated here —
+        // always false regardless of the popover's real state.
+        btn.setAttribute("aria-expanded", String(!pop.hidden));
       }));
       if (_brokerMenuCloseHandler) document.removeEventListener("click", _brokerMenuCloseHandler);
-      _brokerMenuCloseHandler = () => { $$(".bc-menu-pop").forEach((p) => (p.hidden = true)); };
+      _brokerMenuCloseHandler = () => { $$(".bc-menu-pop").forEach((p) => { p.hidden = true; const b = p.previousElementSibling; if (b) b.setAttribute("aria-expanded", "false"); }); };
       document.addEventListener("click", _brokerMenuCloseHandler);
 
       $$("[data-edit-broker]").forEach((btn) => btn.addEventListener("click", () => openBrokerDrawer(btn.dataset.editBroker)));
@@ -7235,6 +7238,13 @@ function init() {
     // Escape handler (initStyledSelects) close just the dropdown, don't nuke the whole
     // in-progress form. Only close the drawer when nothing smaller is open.
     if (document.querySelector(".sel.open")) return;
+    // Two more small overlays that used to fall through this whole chain and reach the
+    // drawer/modal checks below with nothing matching — Escape did nothing for either,
+    // leaving them open, unlike every other popover in the app.
+    const bcMenu = document.querySelector(".bc-menu-pop:not([hidden])");
+    if (bcMenu) { bcMenu.hidden = true; const btn = bcMenu.previousElementSibling; if (btn && btn.hasAttribute("aria-expanded")) btn.setAttribute("aria-expanded", "false"); return; }
+    const colPanel = document.getElementById("colPanel");
+    if (colPanel && !colPanel.hidden) { colPanel.hidden = true; return; }
     const dr = $("#addDrawer");
     if (dr && !dr.hidden) { exitAddDrawer(); return; }
     const bdr = $("#brokerDrawer");
