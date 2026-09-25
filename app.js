@@ -3601,13 +3601,18 @@ function pageRecords() {
         // Deleting a Buy that has later Sells of the same stock distorts realized P/L.
         const buyWithSells = tx && tx.type === "Buy" && ALL_TRANSACTIONS.some((x) =>
           x.type === "Sell" && x.brokerId === tx.brokerId && (x.ticker || "").toUpperCase() === (tx.ticker || "").toUpperCase());
+        // Names the actual record — date, type, ticker if any, amount — not just "this
+        // transaction". Adjacent rows in a real ledger (several dividends, several buys of
+        // the same stock on different dates) read alike at a glance; the confirm used to
+        // give no way to double-check it's about to delete the RIGHT one.
+        const txDesc = tx ? `${t(tx.type)}${tx.ticker && tx.ticker !== "—" ? ` · ${tx.ticker}` : ""} · ${fmtDate(tx.date)} · ${money(tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * (tx.fxRate || FX.rates[tx.currency] || 1))}` : "";
         const msg = buyWithSells && tx.dripPairId
-          ? t("This Buy has later Sell transactions for the same stock, and is also one half of a DRIP reinvestment whose paired record won't be deleted automatically. Deleting it will make those sells exceed shares held and distort realized P/L. Delete anyway?")
+          ? `${txDesc}. ${t("This Buy has later Sell transactions for the same stock, and is also one half of a DRIP reinvestment whose paired record won't be deleted automatically. Deleting it will make those sells exceed shares held and distort realized P/L. Delete anyway?")}`
           : buyWithSells
-          ? t("This Buy has later Sell transactions for the same stock. Deleting it will make those sells exceed shares held and distort realized P/L. Delete anyway?")
+          ? `${txDesc}. ${t("This Buy has later Sell transactions for the same stock. Deleting it will make those sells exceed shares held and distort realized P/L. Delete anyway?")}`
           : (tx && tx.dripPairId
-            ? t("This is one half of a DRIP reinvestment. Its paired record won't be deleted automatically. Delete anyway?")
-            : t("Delete this transaction? Holdings and balances will be recalculated."));
+            ? `${txDesc}. ${t("This is one half of a DRIP reinvestment. Its paired record won't be deleted automatically. Delete anyway?")}`
+            : `${txDesc}. ${t("Delete this transaction? Holdings and balances will be recalculated.")}`);
         if (!(await showConfirmModal(msg, { danger: true, okLabel: "Remove" }))) return;
         const i = ALL_TRANSACTIONS.findIndex((x) => x.id === b.dataset.delTx);
         if (i >= 0) ALL_TRANSACTIONS.splice(i, 1);
@@ -3650,23 +3655,27 @@ function recordsTable(list) {
     const myr = tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * fxr;
     const hasTicker = tx.ticker && tx.ticker !== "—";
     const txSub = hasTicker ? tickerSubLabel(tx.ticker, tx.company) : "";
+    // Actions lead the row, not trail it: at 5 data columns wide the table already needs a
+    // sideways scroll on a phone (.table-wrap's own horizontal scroll, by design — see its
+    // edge-fade hint), and with Edit/Delete as the LAST column that scroll was the only way
+    // to reach them at all. Leading means they're always on-screen without it.
     return `<tr>
+      <td class="dcc-c"><div class="rec-actions">
+        <button class="icon-btn rec-edit" data-edit-tx="${tx.id}" title="${t("Edit")}" aria-label="${t("Edit")}"><svg class="icon"><use href="#i-edit"/></svg></button>
+        <button class="icon-btn rec-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></div></td>
       <td class="dcc-c">${fmtDate(tx.date)}</td>
       <td class="dcc-c">${typeChip(tx.type)}</td>
       <td class="dcc-c">${hasTicker ? tickerCell(tx.ticker, tx.brokerId, txSub) : `<span class="ticker">—</span>`}</td>
       <td class="dcc-c">${money(myr)}</td>
-      <td class="dcc-c">${esc(brokerName(tx.brokerId))}${tx.type === "Transfer between brokers" && tx.toBrokerId ? `<div class="fx-note">→ ${esc(brokerName(tx.toBrokerId))}</div>` : ""}</td>
-      <td class="dcc-c"><div class="rec-actions">
-        <button class="icon-btn rec-edit" data-edit-tx="${tx.id}" title="${t("Edit")}" aria-label="${t("Edit")}"><svg class="icon"><use href="#i-edit"/></svg></button>
-        <button class="icon-btn rec-del" data-del-tx="${tx.id}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></div></td></tr>`;
+      <td class="dcc-c">${esc(brokerName(tx.brokerId))}${tx.type === "Transfer between brokers" && tx.toBrokerId ? `<div class="fx-note">→ ${esc(brokerName(tx.toBrokerId))}</div>` : ""}</td></tr>`;
   }).join("");
   return table([
+    { label: "" },
     { label: t("Date"), style: "width:19%;text-align:left" },
     { label: t("Type"), style: "width:19%;text-align:left" },
     { label: t("Holding"), style: "width:19%;text-align:left" },
     { label: `${t("Amount")} (${ccyLabel(FX.base)})`, style: "width:19%;text-align:left" },
     { label: t("Broker"), style: "width:19%;text-align:left" },
-    { label: "" },
   ], rows);
 }
 
