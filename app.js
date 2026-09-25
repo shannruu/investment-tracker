@@ -3781,7 +3781,22 @@ function renderAddDrawerBody(type, editing) {
   if (otherToggle) otherToggle.addEventListener("click", (ev) => {
     ev.preventDefault();
     const menu = body.querySelector(".type-other-menu");
-    if (menu) menu.hidden = !menu.hidden;
+    if (!menu) return;
+    menu.hidden = !menu.hidden;
+    if (menu.hidden) return;
+    // The CSS anchors this menu's RIGHT edge to the trigger's right edge and lets it
+    // grow purely leftward — fine when "Other" sits on the right of the type-pill row,
+    // but that row wraps on a phone, and wherever it wraps to, the menu still only grows
+    // left. A trigger that lands early in a wrapped row (common — "Other" wrapping alone,
+    // or with "FX", onto its own line starting near the left edge) pushed the menu as
+    // much as 86px past the LEFT edge of the screen, with every item in it unreachable.
+    // transform, not left/right — the stylesheet's right:0 combined with an explicit
+    // left would stretch the menu's width (no fixed width, only min-width) instead of
+    // just moving it. translateX shifts it without touching how it's sized.
+    menu.style.transform = "";
+    const r = menu.getBoundingClientRect();
+    const margin = 8;
+    if (r.left < margin) menu.style.transform = `translateX(${margin - r.left}px)`;
   });
   translateDOM(body);
 }
