@@ -35,9 +35,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Capacitor 8's CLI declares engines.node >= 22.
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       # Capacitor needs one folder holding the whole web app. The site lives at
       # the repo root, so copy just the files the browser actually loads —
@@ -56,12 +57,21 @@ jobs:
         working-directory: native
         run: npm install
 
+      - name: Report toolchain
+        run: |
+          node --version
+          xcodebuild -version
+          pod --version || echo "CocoaPods not present (Capacitor 8 uses SwiftPM, so this may be fine)"
+
       - name: Generate the iOS project
         working-directory: native
         run: |
           set -eux
           npx cap add ios
           npx cap sync ios
+          echo "--- generated tree ---"
+          ls -la ios/App
+          test -d ios/App/App.xcodeproj || { echo "no Xcode project was generated"; exit 1; }
 
       # Capacitor 8 uses Swift Package Manager, so there is usually no
       # .xcworkspace and no shared scheme — the -workspace/-scheme invocation
