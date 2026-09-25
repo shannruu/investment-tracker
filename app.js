@@ -1785,6 +1785,11 @@ function attachAutocomplete(form, statusEl, opts = {}) {
     if (q.length < 1) { close(); return; }
     timer = setTimeout(async () => {
       const results = await searchSymbols(q);
+      // The input may have lost focus (or been retyped into emptiness) while this
+      // 260ms-debounced search was in flight. Reopening the menu at this point used to
+      // land with no focus on the field and nothing left listening to close it again —
+      // it just stayed open, overlapping whatever field came after it in the form.
+      if (document.activeElement !== input) return;
       if (!results.length) { close(); return; }
       menu._results = results;
       menu.innerHTML = results.map((r, i) =>
@@ -1805,7 +1810,10 @@ function attachAutocomplete(form, statusEl, opts = {}) {
     close();
     autofillFromTicker(form, statusEl, opts);
   });
-  input.addEventListener("blur", () => setTimeout(close, 150));
+  // Cancels a still-pending debounced search too — blurring within the 260ms window
+  // (fast typing, or pasting a ticker and immediately tabbing on) used to leave that
+  // timer alive to reopen the menu ~100ms after this same handler had just closed it.
+  input.addEventListener("blur", () => { clearTimeout(timer); setTimeout(close, 150); });
 }
 
 /* Turn a user-typed code into a Yahoo symbol.
@@ -1981,7 +1989,15 @@ function lineChartSVG(series, opts) {
 
   const gainMode = opts && opts.gainMode;
   const noFill = opts && opts.noFill;
-  const W = 640, H = 240, padL = 52, padR = 16, padT = 16, padB = 28;
+  // padR scales with the longest x-axis label actually being rendered this call. A flat
+  // 16px was only ever enough for the short "YY-MM" labels most callers pass (Portfolio
+  // Value, Dividend Income) — the Holding Detail page's Cost Basis chart passes full
+  // "YY-MM-DD" dates, and with text-anchor:middle, the rightmost label's centered text
+  // extended past the 640-wide viewBox and got silently clipped by the SVG boundary
+  // (visually "26-09-25" rendering as "26-09-2"). Left untouched (16px) for every existing
+  // short-label caller, since Math.max(0, len-5) is 0 there.
+  const maxLabelLen = Math.max(0, ...series.map((d) => (d.month || "").length));
+  const W = 640, H = 240, padL = 52, padR = 16 + Math.max(0, maxLabelLen - 5) * 5, padT = 16, padB = 28;
   const nwVals = series.map((d) => d.value);
   const pVals = series.map((d) => d.principal || 0);
   const allVals = [...nwVals, ...pVals];
@@ -3903,12 +3919,20 @@ function addForm2(type, editing) {
     <input type="hidden" name="type" value="${type}">
     <div class="form-grid">${head}${core}</div>
     ${needsTicker ? `<div class="lookup-status muted" id="lookupStatus"></div>` : ""}
-    ${extra ? `<details class="more-fields"><summary>${(type === "Dividend" || type === "DRIP / Reinvested") ? t("Dividend schedule") : t("Fees, taxes & details")}</summary><div class="form-grid">${extra}</div></details>` : ""}
+    ${extra ? (() => {
+      // Auto-expand when editing a record that already has a value hidden inside this
+      // panel — it used to stay collapsed even then, identical to a brand-new blank form,
+      // so a Fee/Tax/Ex-dividend Date/Payment Date/FX rate already on the record was
+      // invisible unless the user thought to click the summary open. Same conditional-open
+      // convention the opening-holdings import panel already uses elsewhere in this file.
+      const hasExtraValues = editing && (e.fee || e.tax || e.exDate || e.payDate || e.fxRate);
+      return `<details class="more-fields"${hasExtraValues ? " open" : ""}><summary>${(type === "Dividend" || type === "DRIP / Reinvested") ? t("Dividend schedule") : t("Fees, taxes & details")}</summary><div class="form-grid">${extra}</div></details>`;
+    })() : ""}
     ${oversell}
     <div class="note-wrap">
       <button type="button" class="note-add-btn" id="noteToggle"${hasNote ? ' style="display:none"' : ''}>+ ${t("Add note")}</button>
       <label class="note-field" id="noteField"${!hasNote ? ' style="display:none"' : ''}>
-        <input type="text" name="notes" value="${v(e.notes != null ? e.notes : draft.notes)}" placeholder="${t("optional")}">
+        <textarea name="notes" placeholder="${t("optional")}">${v(e.notes != null ? e.notes : draft.notes)}</textarea>
       </label>
     </div>
     <div class="form-actions">
