@@ -9,12 +9,17 @@
   <title>Divz - Portfolio & Dividend Tracker</title>
   <meta name="description" content="Track investments across multiple brokers in one place." />
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#4a3ed9" />
+  <meta name="theme-color" content="#f4f6fb" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Divz" />
-  <link rel="stylesheet" href="styles.css?v=329" />
+  <!-- Must run here, blocking, before the stylesheet: <html> is hardcoded to the
+       light theme and init() only corrects it after ~500KB of JS has parsed, so a
+       dark-theme user saw a full white screen flash on every cold launch — the
+       single most "this is a web page" moment in the whole app. -->
+  <script>try{var t=localStorage.getItem("il-theme");if(t){document.documentElement.setAttribute("data-theme",t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",t==="dark"?"#000000":"#f4f6fb");}}catch(e){}</script>
+  <link rel="stylesheet" href="styles.css?v=330" />
 </head>
 <body>
 
@@ -219,10 +224,10 @@
     </div>
   </div>
 
-  <script type="module" src="supabase-client.js?v=329"></script>
-  <script src="data.js?v=329"></script>
-  <script src="app.js?v=329"></script>
-  <script src="sync.js?v=329"></script>
-  <script src="alerts.js?v=329"></script>
+  <script type="module" src="supabase-client.js?v=330"></script>
+  <script src="data.js?v=330"></script>
+  <script src="app.js?v=330"></script>
+  <script src="sync.js?v=330"></script>
+  <script src="alerts.js?v=330"></script>
 </body>
 </html>

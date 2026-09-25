@@ -69,7 +69,16 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+/* overscroll-behavior-y: none does two jobs on iOS: it stops the whole app
+ * rubber-banding to reveal a blank strip above the status bar, and it disables
+ * pull-to-refresh in the installed app. The second matters more than it looks —
+ * addDraft (app.js) is held in memory only, so an accidental pull mid-entry
+ * would silently discard a half-typed transaction. Prices have a refresh button. */
+html, body { margin: 0; padding: 0; overscroll-behavior-y: none; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* The grey box iOS paints over whatever you tap. The :active rules in the
+ * mobile block at the end of this file give back the press feedback it removes. */
+* { -webkit-tap-highlight-color: transparent; }
 body {
   font-family: var(--font);
   background: var(--bg);
@@ -519,7 +528,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 @media (max-width: 900px) { .pf-breakdowns { grid-template-columns: 1fr; } }
 
 /* ===================== Tables ===================== */
-.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-wrap { overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 /* table-layout:fixed makes the browser honor each column's declared percentage width
    literally, even when that squeezes a column below what its content needs — on a narrow
@@ -670,6 +679,9 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
   @keyframes drawer-up { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   .drawer-backdrop.closing .drawer-panel { animation: drawer-down .22s cubic-bezier(.4,0,1,1) forwards; }
   @keyframes drawer-down { from { transform: translateY(0); opacity: 1; } to { transform: translateY(40px); opacity: 0; } }
+  /* The drawer sits flush to the bottom of the screen, so its last control —
+     usually Save — lands in the same strip as the home-indicator swipe. */
+  .drawer-body { padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px)); }
 }
 
 .calc-row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; }
@@ -705,8 +717,15 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
 .alert-stack { position: fixed; top: 0; left: 0; right: 0; z-index: 300; display: flex; flex-direction: column; }
 .alert-banner {
   display: flex; align-items: center; gap: 10px;
-  color: var(--text); font-size: 13px; padding: 10px 16px;
+  color: var(--text); font-size: 13px;
+  /* .alert-stack is pinned to top:0, which on a notched phone is behind the
+     status bar / Dynamic Island — the insets have to be paid here. */
+  padding: calc(10px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px))
+           10px calc(16px + env(safe-area-inset-left, 0px));
 }
+/* Only the first banner clears the status bar; a second stacked beneath it
+   would otherwise repeat the whole inset as dead space. */
+.alert-banner ~ .alert-banner { padding-top: 10px; }
 .alert-banner[hidden] { display: none; }
 .alert-banner .w-ico { font-size: 15px; flex: none; }
 .alert-banner span:not(.w-ico) { flex: 1; }
@@ -1510,3 +1529,87 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .grid-2.dash-charts { grid-template-columns: 1fr 1fr; align-items: stretch; }
 .dash-charts .chart svg { max-height: 340px; }
 @media (max-width: 920px) { .grid-2.dash-charts { grid-template-columns: 1fr; } }
+
+/* =============================================================================
+ * Mobile app-feel pass — the difference between "a website on a phone" and
+ * "an app". Deliberately at the END of the file: a media query adds no
+ * specificity, so against the equally-specific base rules (e.g. the 13px
+ * control sizing at line 841) source order is the only thing that wins. Same
+ * trap already documented at lines 752 and 1122.
+ * ========================================================================== */
+
+/* iOS force-zooms the viewport whenever a control under 16px takes focus, and
+ * never zooms back out — the app is left magnified and off-centre. It is not
+ * configurable; 16px is the threshold. Several dialogs also autofocus a field
+ * on open, so this fired before the user had touched anything. */
+@media (max-width: 760px) {
+  .filters select, .form select, .form input,
+  .setting-rows select, .setting-rows input:not([type="checkbox"]),
+  .panel-head-actions input[type="search"],
+  .fx-input, .sel-search-input, .sel-trigger, .sel-opt { font-size: 16px; }
+  .form input, .form select, .setting-rows input:not([type="checkbox"]),
+  .fx-input, .sel-trigger { min-height: 44px; }
+  /* 16px text needs more room than 13px did before "MYR" starts ellipsising. */
+  .sel-combo .sel-trigger { min-width: 86px; max-width: 104px; }
+}
+
+/* Removes double-tap-to-zoom (and with it iOS's ~300ms wait to see whether a
+ * tap was the first half of one) on controls only. Never on html/body or a
+ * scroll container: page-level pinch-zoom must keep working. */
+.bn-item, .btn, .icon-btn, .tp-tab, .sel-trigger, .sel-opt, .sel-more,
+.nav-item, .more-item, .seg-btn, .col-toggle-row, .type-other-item,
+.mini-card[role="button"], .ph-stat, .cash-item, .bc-hero-return, .dot-hit,
+.col-info, .more-fields > summary, .panel.addhold > summary, .switch,
+.data-table tbody tr, input, select { touch-action: manipulation; }
+
+/* A scroll that runs out inside a sheet must not start scrolling the page
+ * underneath it. */
+.modal-body, .drawer-body, .more-sheet, .more-notif .notif-body, .notif-pop,
+.dcc-table-scroll, .col-panel-list, .sel-pop, .ac-menu { overscroll-behavior: contain; }
+@media (max-width: 760px) {
+  .drawer-body, .modal-body { overflow-x: hidden; }
+  .ac-menu { width: 100%; max-width: 100%; }
+}
+
+/* Long-press on chrome shouldn't raise the text-selection or share callout.
+ * Deliberately excludes the user's own data — values, tickers and notes stay
+ * selectable, because copying a figure out is a real thing people do. */
+.bn-item, .nav-item, .more-item, .btn, .icon-btn, .tp-tab, .brand,
+.seg-btn, .nav-section-label, summary { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+
+/* Touch devices have no hover, but iOS applies :hover on tap and leaves it
+ * stuck on the last-tapped element until you tap somewhere else — buttons look
+ * jammed on. :active replaces it, and also stands in for the OS tap flash that
+ * -webkit-tap-highlight-color suppresses. */
+@media (hover: none) {
+  .nav-item:hover, .more-item:hover, .sel-opt:hover, .sel-more:hover,
+  .type-other-item:hover, .cash-item:hover, .ph-stat:hover, .ac-item:hover,
+  .col-toggle-row:hover, .bc-menu-pop button:hover, .bc-hero-return:hover,
+  .data-table tbody tr:hover, .panel.addhold > summary:hover,
+  .btn:hover, .icon-btn:hover { background: transparent; }
+  .btn.primary:hover { background: var(--brand); }
+  .stat[role="button"]:hover, .mini-card[role="button"]:hover,
+  .tp-tab:hover, .sel-trigger:hover { border-color: var(--border); color: inherit; }
+  .rec-edit:hover, .rec-del:hover { color: inherit; border-color: var(--border); }
+
+  .stat[role="button"]:active, .mini-card[role="button"]:active, .ph-stat:active,
+  .cash-item:active, .more-item:active, .nav-item:active, .col-toggle-row:active,
+  .data-table tbody tr:active, .icon-btn:active, .seg-btn:active, .tp-tab:active,
+  .sel-opt:active, .ac-item:active { background: var(--surface-2); }
+  .bn-item:active { opacity: .55; }
+}
+
+/* Anything below ~44px is a coin-toss to hit with a thumb. */
+@media (pointer: coarse) {
+  .drawer-head .icon-btn, .bc-menu .icon-btn, .fx-del { width: 44px; height: 44px; }
+  /* 40px, not 44px: at 44 the Add screen's type pills wrap to a third row. */
+  .tp-tab { min-height: 40px; padding: 0 15px; }
+  .type-tabs.sm .tp-tab { min-height: 36px; padding: 0 14px; }
+  /* Grow the hit area of the tiny info dot without moving the dot itself. */
+  .col-info { position: relative; }
+  .col-info::after {
+    content: ""; position: absolute; top: 50%; left: 50%;
+    width: 40px; height: 40px; transform: translate(-50%, -50%);
+  }
+  .stat-head-group { gap: 16px; }
+}
