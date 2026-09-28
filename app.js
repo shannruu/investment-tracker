@@ -611,6 +611,8 @@ const ZH = {
   "Synced.": "已同步。",
   "Signed out.": "已退出登录。",
   "Synced from your account.": "已从您的账户同步。",
+  "Synced the latest changes from another device.": "已同步来自其他设备的最新更改。",
+  "Your account has newer changes — resolve them below before syncing further.": "您的账户中有更新的更改 — 请先在下方处理，再继续同步。",
   "Your data was uploaded to your account.": "您的数据已上传到账户。",
   "Finish choosing which data to keep": "请完成数据保留选择",
   "Choose which data to keep": "选择要保留的数据",

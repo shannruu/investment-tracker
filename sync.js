@@ -43,6 +43,15 @@ function setLocalOwner(id) { try { localStorage.setItem(LOCAL_OWNER_KEY, id); } 
 
 function syncAvailable() { return !!window.SUPABASE; }
 
+/* True exactly when this device has a local edit the cloud hasn't seen yet —
+ * compares against LAST_SAVED (the real last-edit time app.js tracks), not
+ * LAST_SYNCED (only the last successful round-trip, which says nothing about
+ * whether local data has changed since). Shared by every place that has to
+ * decide whether pulling right now would silently discard local work. */
+function hasUnsyncedLocalEdit() {
+  return !!(LAST_SAVED && (!LAST_SYNCED || new Date(LAST_SAVED) > new Date(LAST_SYNCED)));
+}
+
 /* Every per-account cache that lives OUTSIDE the local snapshot()/applySnapshot() blob
  * (Price Alerts today; anything else account-scoped added later) must be cleared here, on
  * every sign-in AND sign-out. Without this, switching accounts on a shared device kept
@@ -113,14 +122,23 @@ async function initSync() {
   // retry when connectivity returns, instead of waiting for the next edit.
   window.addEventListener("online", () => debouncedPush());
 
+  // The other half of the fix: pullIfNewer() at init only ever runs once, at
+  // the exact moment the app first loads. A PWA is usually backgrounded, not
+  // relaunched — switch away, someone edits on another device, switch back —
+  // and without this, that return to the app got no signal at all to check
+  // again. This is what actually makes cross-device edits show up while the
+  // app is sitting open, not just on a cold start.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") pullIfNewer();
+  });
+
   const pullBtn = $("#cloudStalePull");
   if (pullBtn) pullBtn.addEventListener("click", async () => {
     // A push may already be scheduled for a local edit that hasn't reached the
     // cloud yet — pulling now would overwrite that edit in memory, and letting
     // the pending push fire afterward would silently re-push the stale (reverted)
     // data right back over the fresh pull, losing the edit on both sides.
-    const hasUnsyncedEdit = LAST_SAVED && (!LAST_SYNCED || new Date(LAST_SAVED) > new Date(LAST_SYNCED));
-    if (hasUnsyncedEdit && !confirm(t("You have a change on this device that hasn't finished syncing yet. Pulling now will discard it. Continue?"))) return;
+    if (hasUnsyncedLocalEdit() && !confirm(t("You have a change on this device that hasn't finished syncing yet. Pulling now will discard it. Continue?"))) return;
     clearTimeout(_pushTimer);
     const row = await pullFromCloud();
     if (row) { applySnapshot(row.data); saveStore(); }
@@ -179,15 +197,27 @@ async function pullFromCloud() {
   } catch (e) { return null; }
 }
 
-/* Compares against LAST_SAVED (the real local last-edit time, already
- * tracked by app.js) — NOT against LAST_SYNCED, which only tracks the last
- * successful network round-trip and says nothing about whether local data
- * has since changed. */
+/* Checks for a newer cloud snapshot and — this is the actual fix, not just a
+ * check — applies it immediately whenever doing so is safe. It's only unsafe
+ * when THIS device also has an edit the cloud hasn't seen yet; a bare "pull
+ * check" that always stopped to ask, even with nothing local to protect, is
+ * why syncing across devices felt like it silently didn't work: the common
+ * case (open the app on device B, nothing typed there yet) required noticing
+ * a banner and tapping it before device B ever showed device A's data. */
 async function pullIfNewer() {
   if (!syncAvailable() || !SYNC_USER || _syncBusy) return;
   const row = await pullFromCloud();
   if (!row || !row.updated_at) return;
   if (LAST_SAVED && new Date(row.updated_at) <= new Date(LAST_SAVED)) return;
+  if (!hasUnsyncedLocalEdit()) {
+    applySnapshot(row.data); saveStore();
+    toast(t("Synced the latest changes from another device."));
+    render();
+    return;
+  }
+  // A genuine conflict: this device has its own unsynced edit, so picking
+  // either side silently would lose data — this is the one case that still
+  // has to ask.
   showCloudStaleWarning();
 }
 
@@ -376,9 +406,22 @@ function mountAccountSyncPanel() {
   });
   const syncNowBtn = $("#syncNowBtn");
   if (syncNowBtn) syncNowBtn.addEventListener("click", async () => {
+    // "Sync now" always meant "push my changes" — it never checked the cloud
+    // for anything newer first, so tapping it on a device that was behind
+    // just re-uploaded its own stale data over whatever another device had
+    // already pushed. pullIfNewer() pulls immediately when that's safe (see
+    // above) or raises the conflict banner when it isn't; only push
+    // afterward if there was nothing to pull, or a real conflict is now
+    // showing and shouldn't be silently overwritten.
     syncNowBtn.disabled = true;
-    const ok = await pushToCloud();
-    toast(ok ? t("Synced.") : t("Couldn't sync — check your connection and try again."));
+    await pullIfNewer();
+    const banner = document.getElementById("cloudStaleBanner");
+    if (banner && !banner.hidden) {
+      toast(t("Your account has newer changes — resolve them below before syncing further."));
+    } else {
+      const ok = await pushToCloud();
+      toast(ok ? t("Synced.") : t("Couldn't sync — check your connection and try again."));
+    }
     render();
   });
   const signOutBtn = $("#signOutBtn");
