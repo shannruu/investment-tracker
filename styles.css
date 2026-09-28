@@ -98,6 +98,16 @@ a { color: inherit; text-decoration: none; }
 .muted { color: var(--muted); }
 .link { color: var(--brand-ink); font-weight: 650; font-size: 13px; }
 .link:hover { text-decoration: underline; }
+/* .link was written for <a> tags, which have no native chrome to begin with — a
+   <button class="link"> (used where the action doesn't navigate, e.g. toggling
+   the sign-in form to sign-up) kept its browser-default background, border and
+   padding on top of it, rendering as a solid grey box instead of text. Only
+   inline padding is reset: .link's own mobile rule below still enlarges the
+   tap target vertically, and that must keep working on buttons too. */
+button.link {
+  background: none; border: none; padding-inline: 0;
+  font-family: inherit; -webkit-appearance: none; appearance: none; cursor: pointer;
+}
 
 /* ===================== Layout ===================== */
 .app { display: flex; min-height: 100vh; }
