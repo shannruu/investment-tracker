@@ -343,6 +343,14 @@ const ZH = {
   "Default dividend tax rate": "默认股息预扣税率",
   "Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward.": "适用于此券商自动登记的市场股息记录——例如无税务协定的美股填 30，马来西亚股票填 0。之后仍可在个别股息记录上自行修改税额。",
   "Applied to dividends auto-logged from market history at this broker.": "适用于此券商自动登记的市场股息记录。",
+  "What your holdings at this broker are worth right now, at current market prices. Add Available Cash below to get your full current value here.": "此券商目前持仓按当前市价计算的价值。加上下方的可用现金，即为您在此券商的完整现值。",
+  "Uninvested cash sitting in this broker right now — ready to invest or withdraw.": "目前存放在此券商、尚未投资的现金 — 可随时用于投资或提取。",
+  "Total dividends received from this broker so far, after any withholding tax.": "目前为止从此券商收到的股息总额（已扣除预扣税）。",
+  "Paper gain or loss on positions you still hold — not locked in until you actually sell.": "目前持有仓位的账面盈亏 — 尚未卖出前不算落实。",
+  "All money you've ever deposited into this broker. Deposits minus Withdrawals is your own net capital put in — separate from any gains.": "您存入此券商的全部资金。存款减去取款即为您实际投入的净本金 — 不含任何盈利。",
+  "All money you've ever withdrawn from this broker.": "您从此券商取出的全部资金。",
+  "Whether dividends from this broker land back in the broker's own cash balance, or go straight to your bank account instead.": "此券商的股息是计入券商本身的现金余额，还是直接进入您的银行账户。",
+  "Applied automatically to new dividend entries for this broker, unless you override it on a specific transaction.": "自动套用于此券商的新股息记录，除非您在个别交易中另行修改。",
   "Broker archived": "券商已归档", "Broker unarchived": "已取消归档", "Enter a broker name.": "请输入券商名称。",
   "No brokers yet — every transaction and holding needs one.": "暂无券商 — 每笔交易和每笔持仓都需要归属于一个券商。",
   "This broker still has records. Remove it anyway? (Consider Archive instead.)": "该券商仍有记录。仍要删除吗？（建议改为归档。）",
@@ -5154,7 +5162,7 @@ function brokerCard(b) {
         </div></div>
 
       <div class="bc-hero">
-        <div><span class="bc-hero-label">${t("Market Value")}</span><span class="bc-hero-value">${money(value)}</span></div>
+        <div><span class="bc-hero-label">${t("Market Value")}${infoTip(t("What your holdings at this broker are worth right now, at current market prices. Add Available Cash below to get your full current value here."))}</span><span class="bc-hero-value">${money(value)}</span></div>
         <div class="bc-hero-return ${cls(totalReturn)}" data-broker-return="${b.id}" tabindex="0" role="button" aria-label="${t("Total Return")}, show calculation">
           <span class="bc-hero-return-amt">${moneySigned(totalReturn)}</span>
           <span class="bc-hero-return-pct">${t("Total Return")} ${HOW_ICON_SVG}</span>
@@ -5162,19 +5170,19 @@ function brokerCard(b) {
       </div>
 
       <dl class="bc-list bc-list-2col">
-        <div><dt>${t("Available Cash")}${negPill}</dt><dd>${money(calc)}</dd></div>
-        <div><dt>${t("Net Dividends")}</dt><dd class="${dividends > 0 ? "pos" : ""}">${money(dividends)}</dd></div>
+        <div><dt>${t("Available Cash")}${infoTip(t("Uninvested cash sitting in this broker right now — ready to invest or withdraw."))}${negPill}</dt><dd>${money(calc)}</dd></div>
+        <div><dt>${t("Net Dividends")}${infoTip(t("Total dividends received from this broker so far, after any withholding tax."))}</dt><dd class="${dividends > 0 ? "pos" : ""}">${money(dividends)}</dd></div>
       </dl>
 
       <details class="bc-more">
         <summary>${t("More details")}</summary>
         <dl class="bc-list">
-          <div><dt>${t("Unrealized P/L")}</dt><dd class="${cls(unrealized)}">${moneySigned(unrealized)}</dd></div>
-          <div><dt>${t("Total Deposits")}</dt><dd>${money(deposits)}</dd></div>
-          <div><dt>${t("Total Withdrawals")}</dt><dd>${money(withdrawals)}</dd></div>
+          <div><dt>${t("Unrealized P/L")}${infoTip(t("Paper gain or loss on positions you still hold — not locked in until you actually sell."))}</dt><dd class="${cls(unrealized)}">${moneySigned(unrealized)}</dd></div>
+          <div><dt>${t("Total Deposits")}${infoTip(t("All money you've ever deposited into this broker. Deposits minus Withdrawals is your own net capital put in — separate from any gains."))}</dt><dd>${money(deposits)}</dd></div>
+          <div><dt>${t("Total Withdrawals")}${infoTip(t("All money you've ever withdrawn from this broker."))}</dt><dd>${money(withdrawals)}</dd></div>
           ${SETTINGS.showReconciliation ? `<div><dt>${t("Reconciliation")}</dt><dd><span class="badge ${reconCls}">${reconStatus}</span></dd></div>` : ""}
-          <div><dt>${t("Dividends paid to")}</dt><dd>${b.divPaidTo === "bank" ? t("Bank") : t("Broker")}</dd></div>
-          <div><dt>${t("Default dividend tax rate")}</dt><dd>${fmt(b.divTaxRate || 0, { maximumFractionDigits: 2 })}%</dd></div>
+          <div><dt>${t("Dividends paid to")}${infoTip(t("Whether dividends from this broker land back in the broker's own cash balance, or go straight to your bank account instead."))}</dt><dd>${b.divPaidTo === "bank" ? t("Bank") : t("Broker")}</dd></div>
+          <div><dt>${t("Default dividend tax rate")}${infoTip(t("Applied automatically to new dividend entries for this broker, unless you override it on a specific transaction."))}</dt><dd>${fmt(b.divTaxRate || 0, { maximumFractionDigits: 2 })}%</dd></div>
         </dl>
       </details>
       ${b.notes ? `<p class="bc-notes muted">${esc(b.notes)}</p>` : ""}</article>`;
