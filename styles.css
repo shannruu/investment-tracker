@@ -1229,6 +1229,12 @@ input[type="date"] { cursor: pointer; }
 .bc-list > div { display: flex; flex-direction: column; }
 .bc-list dt { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
 .bc-list dd { margin: 2px 0 0; font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
+/* Same click-to-see-calculation affordance as .bc-hero-return, just sized for a regular
+   .bc-list row instead of the card's hero stat. */
+.bc-netcash { cursor: pointer; border-radius: var(--radius-sm); padding: 4px 6px; margin: -4px -6px; transition: background .12s; }
+.bc-netcash:hover { background: var(--surface-2); }
+.bc-netcash:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.bc-netcash svg:last-child { flex: none; }
 @media (max-width: 480px) {
   .bc-list { grid-template-columns: 1fr 1fr; }
 }

@@ -351,6 +351,8 @@ const ZH = {
   "All money you've ever withdrawn from this broker.": "您从此券商取出的全部资金。",
   "Whether dividends from this broker land back in the broker's own cash balance, or go straight to your bank account instead.": "此券商的股息是计入券商本身的现金余额，还是直接进入您的银行账户。",
   "Applied automatically to new dividend entries for this broker, unless you override it on a specific transaction.": "自动套用于此券商的新股息记录，除非您在个别交易中另行修改。",
+  "Money Left In This Broker": "此券商中留存的本金",
+  "How much of your own money is still sitting in this broker. Not the same as its current value, since it excludes any gains or losses.": "您自己投入此券商、目前仍留存的本金。这不等于目前的账户价值，因为不含任何盈亏。",
   "Broker archived": "券商已归档", "Broker unarchived": "已取消归档", "Enter a broker name.": "请输入券商名称。",
   "No brokers yet — every transaction and holding needs one.": "暂无券商 — 每笔交易和每笔持仓都需要归属于一个券商。",
   "This broker still has records. Remove it anyway? (Consider Archive instead.)": "该券商仍有记录。仍要删除吗？（建议改为归档。）",
@@ -5115,6 +5117,19 @@ function brokerReturnCalc(b) {
   ], total: T.totalReturnByBroker[b.id] || 0 };
 }
 
+/* Deposits − Withdrawals for one broker — click-to-see-calculation, same pattern as
+ * brokerReturnCalc() above and the app-wide netCashAddedCalc(). */
+function brokerNetCashCalc(b) {
+  const deposits = T.depositsByBroker[b.id] || 0;
+  const withdrawals = T.withdrawalsByBroker[b.id] || 0;
+  return { title: "Money Left In This Broker",
+    intro: "How much of your own money is still sitting in this broker. Not the same as its current value, since it excludes any gains or losses.",
+    rows: [
+      { op: "+", label: "Total Deposits", val: fmt(deposits) },
+      { op: "−", label: "Total Withdrawals", val: fmt(withdrawals) },
+    ], total: deposits - withdrawals };
+}
+
 function brokerCard(b) {
   const holdings = T.holdings.filter((h) => h.brokerId === b.id);
   const value = holdings.reduce((s, h) => s + h.marketValue, 0);
@@ -5178,8 +5193,10 @@ function brokerCard(b) {
         <summary>${t("More details")}</summary>
         <dl class="bc-list">
           <div><dt>${t("Unrealized P/L")}${infoTip(t("Paper gain or loss on positions you still hold — not locked in until you actually sell."))}</dt><dd class="${cls(unrealized)}">${moneySigned(unrealized)}</dd></div>
-          <div><dt>${t("Total Deposits")}${infoTip(t("All money you've ever deposited into this broker. Deposits minus Withdrawals is your own net capital put in — separate from any gains."))}</dt><dd>${money(deposits)}</dd></div>
-          <div><dt>${t("Total Withdrawals")}${infoTip(t("All money you've ever withdrawn from this broker."))}</dt><dd>${money(withdrawals)}</dd></div>
+          <div class="bc-netcash" data-broker-netcash="${b.id}" tabindex="0" role="button" aria-label="${t("Money Left In This Broker")}, show calculation">
+            <dt>${t("Money Left In This Broker")} ${HOW_ICON_SVG}</dt>
+            <dd>${money(deposits - withdrawals)}</dd>
+          </div>
           ${SETTINGS.showReconciliation ? `<div><dt>${t("Reconciliation")}</dt><dd><span class="badge ${reconCls}">${reconStatus}</span></dd></div>` : ""}
           <div><dt>${t("Dividends paid to")}${infoTip(t("Whether dividends from this broker land back in the broker's own cash balance, or go straight to your bank account instead."))}</dt><dd>${b.divPaidTo === "bank" ? t("Bank") : t("Broker")}</dd></div>
           <div><dt>${t("Default dividend tax rate")}${infoTip(t("Applied automatically to new dividend entries for this broker, unless you override it on a specific transaction."))}</dt><dd>${fmt(b.divTaxRate || 0, { maximumFractionDigits: 2 })}%</dd></div>
@@ -5318,6 +5335,15 @@ function pageBrokers() {
         };
         el.addEventListener("click", open);
         el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+      });
+      $$("[data-broker-netcash]").forEach((el) => {
+        const open = (e) => {
+          if (e.target.closest(".col-info")) return;  // let the info-tip tap/hover through, don't also open the calc modal
+          const b = BROKERS.find((x) => x.id === el.dataset.brokerNetcash);
+          if (b) showCalc(brokerNetCashCalc(b));
+        };
+        el.addEventListener("click", open);
+        el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(e); } });
       });
       mountBrokerCashPanels();
     } };
