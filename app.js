@@ -500,9 +500,10 @@ const ZH = {
   // F5 round 2 — exchange/transfer/dups/broker-create
   "To Currency must differ": "兑入货币必须不同", "To Amount required": "需要兑入金额",
   "To Broker must differ": "目标券商必须不同", "Unknown To Broker": "未知目标券商",
-  "Create broker first": "请先创建券商", "Duplicate — skipped": "重复 — 已跳过",
+  "Needs broker": "缺券商", "Duplicate — skipped": "重复 — 已跳过",
   "duplicate": "重复", "need broker": "缺券商", "Duplicate": "重复",
   "Missing brokers": "缺少券商", "Create": "创建", "broker(s)": "个券商",
+  "Create them below, then import.": "请在下方创建后再导入。",
   "broker(s) created": "个券商已创建", "brokers created": "个券商已创建",
   "Duplicates already in your ledger are skipped automatically.": "账本中已存在的重复项将被自动跳过。",
   // Report panel titles + table headers (translateDOM text-node matches)
@@ -6838,7 +6839,7 @@ function importPreviewHTML() {
   const unknown = pendingImport.unknownBrokers || [];
   const statusCell = (r) => {
     if (r.errors.length) return `<span class="badge neg" title="${escAttr(r.errors.join("; "))}">${esc(r.errors.join("; "))}</span>`;
-    if (r.needsBroker) return `<span class="badge warn">${t("Create broker first")}</span>`;
+    if (r.needsBroker) return `<span class="badge warn">${t("Needs broker")}</span>`;
     if (r.dup) return `<span class="badge subtle">${t("Duplicate — skipped")}</span>`;
     return `<span class="badge pos">${t("Ready")}</span>`;
   };
@@ -6853,14 +6854,20 @@ function importPreviewHTML() {
       <td>${statusCell(r)}</td></tr>`;
   }).join("");
   const chip = (n, cls, lbl) => n ? ` · <span class="${cls}">${n} ${lbl}</span>` : "";
+  // Scroll only once the table is long enough to need it — same threshold
+  // philosophy as the Dividend Calendar's own .dcc-table-scroll usage — so a
+  // short preview isn't boxed into a scroll container for no reason, while a
+  // long CSV (this preview commonly runs to 100+ rows) doesn't push the
+  // action buttons far down the page.
+  const scrollCls = rows.length > 8 ? "dcc-table-scroll" : "";
   return `<div class="import-preview">
     <div class="import-summary"><strong>${rows.length}</strong> ${t("rows")} · <span class="pos">${okCount} ${t("ready")}</span>${chip(dupCount, "muted", t("duplicate"))}${chip(brokerCount, "warn-txt", t("need broker"))}${chip(errCount, "neg", t("with errors"))}</div>
-    ${unknown.length ? `<p class="muted" style="font-size:12.5px;margin:0 0 10px">${t("Missing brokers")}: ${unknown.map((u) => `<strong>${esc(u.name)}</strong>`).join(", ")}.
-      <button class="btn small" id="createBrokers" style="margin-left:6px">${t("Create")} ${unknown.length} ${t("broker(s)")}</button></p>` : ""}
-    <div class="table-wrap"><table class="data-table"><thead><tr>
+    ${unknown.length ? `<p class="muted" style="font-size:12.5px;margin:0 0 10px">${t("Missing brokers")}: ${unknown.map((u) => `<strong>${esc(u.name)}</strong>`).join(", ")}. ${t("Create them below, then import.")}</p>` : ""}
+    <div class="${scrollCls}"><div class="table-wrap"><table class="data-table"><thead><tr>
       <th>#</th><th>${t("Date")}</th><th>${t("Broker")}</th><th>${t("Type")}</th><th>${t("Ticker")}</th><th class="num">${t("Amount")}</th><th>${t("Ccy")}</th><th>${t("Status")}</th>
-    </tr></thead><tbody>${body}</tbody></table></div>
+    </tr></thead><tbody>${body}</tbody></table></div></div>
     <div class="form-actions" style="margin-top:12px">
+      ${unknown.length ? `<button class="btn" id="createBrokers">${t("Create")} ${unknown.length} ${t("broker(s)")}</button>` : ""}
       <button class="btn primary" id="commitImport" ${okCount ? "" : "disabled"}>${t("Import valid rows")} (${okCount})</button>
       <button class="btn ghost" id="cancelImport">${t("Cancel")}</button>
     </div>
