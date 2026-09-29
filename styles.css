@@ -443,6 +443,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
      all of it below the viewport with 0 of 11 columns actually reachable. */
   display: flex; flex-direction: column;
 }
+.col-panel[hidden] { display: none; }  /* beats .col-panel's own display:flex above, same as every other popover in this file */
 .col-panel-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 12px 8px; border-bottom: 1px solid var(--border);
