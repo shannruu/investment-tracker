@@ -6867,8 +6867,8 @@ function importPreviewHTML() {
       <th>#</th><th>${t("Date")}</th><th>${t("Broker")}</th><th>${t("Type")}</th><th>${t("Ticker")}</th><th class="num">${t("Amount")}</th><th>${t("Ccy")}</th><th>${t("Status")}</th>
     </tr></thead><tbody>${body}</tbody></table></div></div>
     <div class="form-actions" style="margin-top:12px">
-      ${unknown.length ? `<button class="btn" id="createBrokers">${t("Create")} ${unknown.length} ${t("broker(s)")}</button>` : ""}
-      <button class="btn primary" id="commitImport" ${okCount ? "" : "disabled"}>${t("Import valid rows")} (${okCount})</button>
+      ${unknown.length ? `<button class="btn primary" id="createBrokers">${t("Create")} ${unknown.length} ${t("broker(s)")}</button>` : ""}
+      <button class="btn ${unknown.length ? "" : "primary"}" id="commitImport" ${okCount ? "" : "disabled"}>${t("Import valid rows")} (${okCount})</button>
       <button class="btn ghost" id="cancelImport">${t("Cancel")}</button>
     </div>
     ${dupCount ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${t("Duplicates already in your ledger are skipped automatically.")}</p>` : ""}
