@@ -3250,6 +3250,11 @@ function pagePortfolio() {
       const apply = () => {
         const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioTable();
         const sm = $("#pfSummary"); if (sm) sm.innerHTML = portfolioSummaryHTML();
+        const ps = $("#pfPriceStamp");
+        if (ps) {
+          const latestFetch = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();
+          ps.innerHTML = latestFetch ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${fmtDateTime(latestFetch)}`) : "";
+        }
         mountPortfolioSummaryClicks();
       };
       mountPortfolioSummaryClicks();
@@ -3296,16 +3301,23 @@ function pagePortfolio() {
           const q = await fetchQuote(`${ccy}${FX.base}=X`);
           if (q && q.price > 0) FX.rates[ccy] = +q.price;
         }
-        saveStore(); render();
+        saveStore(); apply();
+        pfRefreshBtn.disabled = false;
+        pfRefreshBtn.querySelector("svg").classList.remove("spinning");
         toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
       });
       // Auto-refresh prices without waiting for the manual button — same pattern as the
-      // dividend auto-fetch elsewhere; re-render if still on this page once it lands.
+      // dividend auto-fetch elsewhere. Uses the same in-place apply() as a filter change
+      // rather than a full render(): this fires whenever it fires, with no regard for
+      // what else the user might be doing right now (e.g. the "Edit columns" popover
+      // open) — a full render() replaces the whole page's DOM, silently closing any
+      // open popover out from under them since its "open" state lives only on the DOM
+      // node render() just discarded, not in any tracked variable.
       if (LIVE_ENABLED) {
         fetchAllLivePrices().then(({ fetched }) => {
-          if (fetched && document.getElementById("pfRefreshBtn")) render();
+          if (fetched && document.getElementById("pfRefreshBtn")) apply();
         });
-        fetchAllMySymbols().then((found) => { if (found && document.getElementById("pfRefreshBtn")) render(); });
+        fetchAllMySymbols().then((found) => { if (found && document.getElementById("pfRefreshBtn")) apply(); });
       }
       // Panel drag-to-reorder
       if (colPanel) {
