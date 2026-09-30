@@ -1523,7 +1523,12 @@ async function fetchMySymbol(ticker) {
 /* Resolves every not-yet-cached .KL holding's symbol in parallel — call from a page's
  * mount(), then render() again only if it actually found something new. */
 async function fetchAllMySymbols() {
-  const klTickers = [...new Set(T.holdings.map((h) => h.ticker).filter((t) => (t || "").toUpperCase().endsWith(".KL")))];
+  // Every .KL ticker anywhere in the ledger, not only ones still held — tickerSubLabel()
+  // is used on transaction/dividend history rows too, and a stock fully sold months ago
+  // still shows up there (e.g. its old "Received" dividends). Resolving only current
+  // holdings left those rows with a bare ticker code and no way to tell what company it was.
+  const klTickers = [...new Set([...T.holdings.map((h) => h.ticker), ...ALL_TRANSACTIONS.map((x) => x.ticker)]
+    .filter((t) => (t || "").toUpperCase().endsWith(".KL")))];
   const missing = klTickers.filter((t) => !(t in MY_SYMBOL_CACHE));
   if (!missing.length) return false;
   await Promise.all(missing.map((t) => fetchMySymbol(t)));
@@ -1805,6 +1810,10 @@ function allUpcomingDivs() {
 
   return [...manual, ...auto, ...legacy]
     .filter((d) => d.payDate || d.exDate)
+    // A fully sold-out ticker has nothing left to be paid on — every source above scales
+    // its amount by shares held today (0 here), so it would otherwise still list as an
+    // upcoming payment row with a zero (or stale) amount and no way to tell why.
+    .filter((d) => sharesHeldForTicker(d.ticker) > 0)
     .sort((a, b) => ((a.payDate || a.exDate || "") < (b.payDate || b.exDate || "") ? -1 : 1));
 }
 
@@ -4617,9 +4626,15 @@ function dividendForecast(received, upcoming, tickerScope) {
   const tickerInfo = {};
   const byTicker = {};
   received.forEach((d) => { if (!byTicker[d.ticker]) byTicker[d.ticker] = []; byTicker[d.ticker].push(d); });
+  // Portfolio-wide: only tickers actually held TODAY. `byTicker` includes every ticker
+  // that ever logged a received dividend — fully sold-out positions included — so without
+  // this filter a stock sold months ago kept getting future dividends projected for it
+  // indefinitely, for shares that no longer exist. An explicit tickerScope (a single
+  // holding's own page) is left exactly as given: that page is about one specific ticker
+  // the user chose to look at, held or not.
   const allTickers = tickerScope
     ? new Set(tickerScope)
-    : new Set([...Object.keys(byTicker), ...Object.keys(AUTO_DIV_CACHE)]);
+    : new Set([...Object.keys(byTicker), ...Object.keys(AUTO_DIV_CACHE)].filter((tk) => sharesHeldForTicker(tk) > 0));
 
   allTickers.forEach((ticker) => {
     let sorted = (byTicker[ticker] || [])
@@ -5046,7 +5061,7 @@ function pageDividends() {
       { label: t("Amount"), style: "width:16%;text-align:left" },
       { label: "" },
     ], pendingAutoDivs.map((c) => `<tr>
-        <td>${tickerCell(c.ticker, c.brokerId)}</td>
+        <td>${tickerCell(c.ticker, c.brokerId, tickerSubLabel(c.ticker, c.company))}</td>
         <td>${esc(c.brokerName)}</td>
         <td>${fmtDate(c.exDate)}</td>
         <td>${fmtDate(c.payDate)}${c.payDateEstimated ? ` <span class="muted">(${t("est.")})</span>` : ""}</td>
