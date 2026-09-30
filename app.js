@@ -262,7 +262,7 @@ const ZH = {
   "Enter an amount or stock code for the transfer.": "请输入金额或股票代号。",
   "Received": "已收到", "Expected": "预期", "Split ratio (new ÷ old)": "拆股比例（新 ÷ 旧）",
   "To broker": "转入券商", "Notes": "备注", "FX rate to": "汇率对",
-  "Sign up to keep your investment records safe and in sync on every device.": "注册账户，让您的投资记录在所有设备上安全同步。", "Sign in to your Divz account.": "登录您的 Divz 账户。", "At least 6 characters.": "至少 6 个字符。", "Enter your email and password.": "请输入邮箱和密码。", "Create your account": "创建您的账户", "Forgot password?": "忘记密码？", "Too many emails were sent recently. Please wait about an hour and try again.": "近期发送的邮件过多，请等待约一小时后重试。", "Choose a password different from your old one.": "请选择与旧密码不同的新密码。", "Reset your password": "重设密码", "Enter your email and we'll send you a link to choose a new password.": "输入邮箱，我们会发送链接让您设置新密码。", "Send reset link": "发送重设链接", "Enter your email.": "请输入邮箱。", "Check your email": "请查看邮箱", "If an account exists for": "如果以下邮箱已注册：", "we've sent a link to reset the password. Open it in this same browser.": "我们已发送重设密码的链接。请在同一个浏览器中打开。", "Choose a new password": "设置新密码", "Pick a password you'll remember — at least 6 characters.": "请设置一个好记的密码，至少 6 个字符。", "New password": "新密码", "Update password": "更新密码", "Password updated": "密码已更新", "Your password has been changed and you're signed in.": "密码已更改，您已登录。", "Couldn't do that — try again.": "操作失败，请重试。", "Confirm password": "确认密码", "Repeat your password": "再次输入密码", "Show password": "显示密码", "Hide password": "隐藏密码", "Passwords don't match — please retype them.": "两次输入的密码不一致，请重新输入。", "You're all set!": "一切就绪！", "Your Divz account is ready:": "您的 Divz 账户已就绪：", "Your records will now be saved to your account and sync across your devices.": "您的记录将保存到账户，并在所有设备间同步。", "Continue to Divz": "进入 Divz", "Too many emails were sent recently. Please wait about an hour and try again — or sign in if you already created this account.": "近期发送的邮件过多，请等待约一小时后重试；如果已创建过此账户，请直接登录。", "Account created": "账户已创建", "We sent a confirmation link to": "我们已向以下邮箱发送确认链接：", "Open it to activate your account, then come back and sign in.": "打开链接激活账户，然后回来登录。", "Back to sign in": "返回登录", "Can't find it? Check your spam folder.": "找不到？请查看垃圾邮件文件夹。", "Free shares (bonus issue or gift — no cost)": "免费股份（红股或赠送，无成本）", "free shares": "免费股份", "Total Realized P/L": "累计已实现盈亏", "Best sale": "最佳卖出", "Worst sale": "最差卖出", "Winning sales": "盈利卖出", "By stock": "按股票", "Each sale": "逐笔卖出", "Highest profit first": "盈利最高优先", "Biggest loss first": "亏损最大优先", "Most recent first": "最新优先", "Sold": "卖出", "Cost": "成本", "Proceeds": "卖出所得", "Sales": "卖出次数", "Sort by": "排序", "No sales yet — once you sell a stock, what you earned or lost on it is listed here.": "尚无卖出记录——卖出股票后，盈亏将列在这里。", "Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.": "盈亏 = 卖出所得 − 所卖股份的平均成本 − 卖出的手续费和税费。股息和利息另行计算。",
+  "Sign up to keep your investment records safe and in sync on every device.": "注册账户，让您的投资记录在所有设备上安全同步。", "Sign in to your Divz account.": "登录您的 Divz 账户。", "At least 6 characters.": "至少 6 个字符。", "Enter your email and password.": "请输入邮箱和密码。", "Create your account": "创建您的账户", "A new version of Divz is ready.": "Divz 有新版本了。", "Refresh": "刷新", "Dismiss": "关闭", "Forgot password?": "忘记密码？", "Too many emails were sent recently. Please wait about an hour and try again.": "近期发送的邮件过多，请等待约一小时后重试。", "Choose a password different from your old one.": "请选择与旧密码不同的新密码。", "Reset your password": "重设密码", "Enter your email and we'll send you a link to choose a new password.": "输入邮箱，我们会发送链接让您设置新密码。", "Send reset link": "发送重设链接", "Enter your email.": "请输入邮箱。", "Check your email": "请查看邮箱", "If an account exists for": "如果以下邮箱已注册：", "we've sent a link to reset the password. Open it in this same browser.": "我们已发送重设密码的链接。请在同一个浏览器中打开。", "Choose a new password": "设置新密码", "Pick a password you'll remember — at least 6 characters.": "请设置一个好记的密码，至少 6 个字符。", "New password": "新密码", "Update password": "更新密码", "Password updated": "密码已更新", "Your password has been changed and you're signed in.": "密码已更改，您已登录。", "Couldn't do that — try again.": "操作失败，请重试。", "Confirm password": "确认密码", "Repeat your password": "再次输入密码", "Show password": "显示密码", "Hide password": "隐藏密码", "Passwords don't match — please retype them.": "两次输入的密码不一致，请重新输入。", "You're all set!": "一切就绪！", "Your Divz account is ready:": "您的 Divz 账户已就绪：", "Your records will now be saved to your account and sync across your devices.": "您的记录将保存到账户，并在所有设备间同步。", "Continue to Divz": "进入 Divz", "Too many emails were sent recently. Please wait about an hour and try again — or sign in if you already created this account.": "近期发送的邮件过多，请等待约一小时后重试；如果已创建过此账户，请直接登录。", "Account created": "账户已创建", "We sent a confirmation link to": "我们已向以下邮箱发送确认链接：", "Open it to activate your account, then come back and sign in.": "打开链接激活账户，然后回来登录。", "Back to sign in": "返回登录", "Can't find it? Check your spam folder.": "找不到？请查看垃圾邮件文件夹。", "Free shares (bonus issue or gift — no cost)": "免费股份（红股或赠送，无成本）", "free shares": "免费股份", "Total Realized P/L": "累计已实现盈亏", "Best sale": "最佳卖出", "Worst sale": "最差卖出", "Winning sales": "盈利卖出", "By stock": "按股票", "Each sale": "逐笔卖出", "Highest profit first": "盈利最高优先", "Biggest loss first": "亏损最大优先", "Most recent first": "最新优先", "Sold": "卖出", "Cost": "成本", "Proceeds": "卖出所得", "Sales": "卖出次数", "Sort by": "排序", "No sales yet — once you sell a stock, what you earned or lost on it is listed here.": "尚无卖出记录——卖出股票后，盈亏将列在这里。", "Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.": "盈亏 = 卖出所得 − 所卖股份的平均成本 − 卖出的手续费和税费。股息和利息另行计算。",
   "Allow selling more shares than currently held (override)": "允许卖出超过当前持有的股数（覆盖）",
   "You only hold": "您仅持有", "shares — tick the override to sell more.": "股 — 勾选覆盖以卖出更多。",
   "Avg Cost per share": "每股平均成本", "blank = use current": "留空 = 使用当前汇率",
@@ -7631,6 +7631,7 @@ function init() {
   render();
 
   if (typeof initSync === "function") initSync();   // fire-and-forget, never blocks first paint
+  watchForNewVersion();
 
   // Registers the service worker for installability + offline shell loading.
   // Fire-and-forget, same as sync — a registration failure (unsupported browser,
@@ -7638,5 +7639,35 @@ function init() {
   if ("serviceWorker" in navigator && LIVE_ENABLED) {
     navigator.serviceWorker.register("/sw.js").catch(() => {});
   }
+}
+/* A tab that stays open never picks up a new deploy by itself — it keeps running the scripts it loaded.
+ * So: every few minutes (and whenever the tab comes back to the foreground) fetch index.html, read
+ * which app.js?v=N it points at, and if that is newer than the one running, show a small bar with a
+ * Refresh button. Not an automatic reload — that could throw away a half-filled form. */
+function watchForNewVersion() {
+  const cur = (document.querySelector('script[src*="app.js?v="]') || {}).src;
+  const curV = cur && +(cur.match(/[?&]v=(\d+)/) || [])[1];
+  if (!curV || location.protocol === "file:") return;
+  let shown = false;
+  const check = async () => {
+    if (shown || document.visibilityState !== "visible") return;
+    try {
+      const html = await (await fetch("/index.html", { cache: "no-store" })).text();
+      const latest = +(html.match(/app\.js\?v=(\d+)/) || [])[1];
+      if (latest && latest > curV) showUpdateBar();
+    } catch (e) { /* offline — try again later */ }
+  };
+  const showUpdateBar = () => {
+    if (shown) return; shown = true;
+    const bar = document.createElement("div");
+    bar.className = "update-bar"; bar.setAttribute("role", "status");
+    bar.innerHTML = `<span>${t("A new version of Divz is ready.")}</span><button type="button" class="btn primary">${t("Refresh")}</button><button type="button" class="update-x" aria-label="${t("Dismiss")}">✕</button>`;
+    bar.querySelector(".btn").addEventListener("click", () => location.reload());
+    bar.querySelector(".update-x").addEventListener("click", () => bar.remove());
+    document.body.appendChild(bar);
+  };
+  setInterval(check, 5 * 60 * 1000);
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") check(); });
+  setTimeout(check, 15000);
 }
 document.addEventListener("DOMContentLoaded", init);

@@ -1779,3 +1779,12 @@ html:has(.auth-gate:not([hidden])) { overflow: hidden; }
 .nav-section-label { font-size: 11px; }
 .sidebar-add .btn { height: 38px; font-size: 13px; }
 button.nav-item { font-size: 14px; }
+
+/* "New version ready" bar */
+.update-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(16px, env(safe-area-inset-bottom)); z-index: 9000;
+  display: flex; align-items: center; gap: 12px; max-width: calc(100vw - 24px); padding: 10px 10px 10px 16px;
+  background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 10px 34px rgba(0,0,0,.28); font-size: 14px; }
+.update-bar .btn { height: 36px; padding: 0 14px; }
+.update-x { background: none; border: 0; color: var(--muted); cursor: pointer; font-size: 14px; padding: 6px 8px; border-radius: 8px; }
+.update-x:hover { color: var(--text); background: var(--surface-2); }
+@media (max-width: 760px) { .update-bar { bottom: calc(76px + env(safe-area-inset-bottom)); } }
