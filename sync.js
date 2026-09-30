@@ -91,14 +91,13 @@ function showAuthGate() {
   const signup = AUTH_GATE_MODE === "signup";
   g.innerHTML = `<div class="ag-card panel" role="dialog" aria-modal="true" aria-labelledby="agTitle">
     <div class="brand ag-brand"><span class="brand-mark" aria-hidden="true">D</span><span class="brand-name">Divz</span></div>
-    <div class="panel-head"><h2 id="agTitle">${signup ? t("Create your account") : t("Welcome back")}</h2></div>
+    <h2 id="agTitle" class="ag-title">${signup ? t("Create your account") : t("Welcome back")}</h2>
     <p class="muted ag-sub">${signup ? t("Sign up to keep your investment records safe and in sync on every device.") : t("Sign in to your Divz account.")}</p>
     <form id="agForm" class="form" novalidate>
       <div class="form-grid ag-grid">
         <label>${t("Email")}<input id="agEmail" name="email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" required></label>
-        <label>${t("Password")}<input id="agPass" name="password" type="password" placeholder="••••••••" autocomplete="${signup ? "new-password" : "current-password"}" required></label>
+        <label>${t("Password")}<input id="agPass" name="password" type="password" placeholder="${signup ? t("At least 6 characters.") : "••••••••"}" autocomplete="${signup ? "new-password" : "current-password"}" required></label>
       </div>
-      ${signup ? `<p class="muted ag-hint">${t("At least 6 characters.")}</p>` : ""}
       <p class="field-err ag-status" id="agStatus" role="alert"></p>
       <button type="submit" class="btn primary ag-btn">${signup ? t("Create account") : t("Sign in")}</button>
     </form>

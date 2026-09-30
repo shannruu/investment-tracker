@@ -1735,3 +1735,21 @@ html:has(.auth-gate:not([hidden])) { overflow: hidden; }
 }
 .ag-card, .ag-loading { position: relative; z-index: 1; }
 .ag-card { box-shadow: 0 24px 60px -20px color-mix(in srgb, var(--brand) 35%, transparent), var(--shadow); }
+
+/* Opening-page layout: centred header, roomy fields, full-width button — same structure as a modern sign-in card */
+.ag-card { max-width: 440px; padding: 40px 40px 32px; border-radius: 24px; }
+.ag-brand { justify-content: center; margin-bottom: 26px; }
+.ag-brand .brand-mark { width: 40px; height: 40px; font-size: 17px; border-radius: 11px; }
+.ag-brand .brand-name { font-size: 24px; max-width: none; }
+.ag-title { margin: 0 0 8px; text-align: center; font-size: 22px; font-weight: 700; color: var(--text); }
+.ag-sub { margin: 0 0 28px; text-align: center; font-size: 15px; line-height: 1.5; }
+.ag-card .form-grid { gap: 18px; }
+.ag-card .form label { font-size: 14px; font-weight: 600; color: var(--text); gap: 8px; }
+.ag-card .form input { font-size: 16px; padding: 0 16px; height: 50px; border-radius: 13px; }
+.ag-status { margin: 12px 0 0; text-align: center; font-size: 13px; }
+.ag-status:empty { display: none; }
+.ag-btn { height: 52px; margin-top: 24px; font-size: 16px; border-radius: 13px; }
+.ag-switch { margin: 22px 0 0; text-align: center; font-size: 14px; }
+@media (max-width: 480px) { .ag-card { padding: 30px 22px 26px; border-radius: 20px; } .ag-sub { margin-bottom: 22px; } }
+.auth-gate .ag-card .form label { font-size: 15px; font-weight: 600; color: var(--text); }
+.auth-gate .ag-brand .brand-mark { font-size: 19px; }
