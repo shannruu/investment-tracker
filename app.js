@@ -6669,14 +6669,18 @@ function exportCashCSV() {
     rows.map((c) => [c.date, brokerName(c.brokerId), c.type, c.gross, c.currency, c.fxRate || FX.rates[c.currency] || 1, (c.myrEquivalent != null ? c.myrEquivalent : (+c.gross || 0) * (c.fxRate || 1)).toFixed(2),
       c.toBrokerId ? brokerName(c.toBrokerId) : "", c.toCurrency || "", c.toAmount ?? ""]));
 }
+/* Same 18 columns importTxFromCSV() reads (IMPORT_HEADER, below) — an export is always
+ * re-importable without translation. Deliberately excludes a derived "MYR Equivalent"-style
+ * column: for Buy/Sell it would need to either omit the fee (misleadingly understating the
+ * real cost) or duplicate it inline, and for every row it's just Gross × FX Rate anyway —
+ * pure redundancy that only adds a column of numbers to double-check instead of trust. */
 function exportTxCSV() {
   downloadCSV("investment-ledger-transactions.csv",
     ["Date","Broker","Type","Ticker","Quantity","Price","Gross","Fee","Tax","Currency","FX Rate",
-      "To Broker","To Currency","To Amount","Status","Ex-Date","Pay Date","MYR Equivalent","Notes"],
-    ALL_TRANSACTIONS.map((x) => [x.date, brokerName(x.brokerId), x.type, x.ticker, x.qty ?? "", x.price ?? "", x.gross ?? "", x.fee ?? 0, x.tax ?? 0, x.currency, x.fxRate ?? "",
+      "To Broker","To Currency","To Amount","Status","Ex-Date","Pay Date","Notes"],
+    ALL_TRANSACTIONS.map((x) => [x.date, brokerName(x.brokerId), x.type, x.ticker || "", x.qty ?? "", x.price ?? "", x.gross ?? "", x.fee ?? 0, x.tax ?? 0, x.currency, x.fxRate ?? "",
       x.toBrokerId ? brokerName(x.toBrokerId) : "", x.toCurrency || "", x.toAmount ?? "",
-      x.status || "", x.exDate || "", x.payDate || "",
-      (x.myrEquivalent != null ? x.myrEquivalent : "").toString(), x.notes || ""]));
+      x.status || "", x.exDate || "", x.payDate || "", x.notes || ""]));
 }
 function exportDivCSV() {
   const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend");
