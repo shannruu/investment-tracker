@@ -1695,37 +1695,37 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
   }
 }
 
-/* ===== Opening page (sign in / create account) — always dark, independent of the app theme ===== */
+/* ===== Opening page (sign in / create account) — uses the app's own theme tokens, so it follows light/dark ===== */
 .auth-gate { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center;
   padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); overflow-y: auto;
-  background: radial-gradient(ellipse 60% 55% at 50% 30%, #17337a 0%, #0a1230 45%, #05070f 100%); color: #e9edf7; }
+  background: var(--bg); color: var(--text); font-family: var(--font); }
 .auth-gate[hidden] { display: none; }
 .ag-logo { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 10px;
-  background: linear-gradient(135deg, #6d5dfc, #4f46e5); color: #fff; font-weight: 700; font-size: 18px; box-shadow: 0 4px 18px rgba(99,102,241,.5); }
-.ag-loading .ag-logo { width: 48px; height: 48px; font-size: 24px; animation: agPulse 1.4s ease-in-out infinite; }
+  background: var(--brand); color: #fff; font-weight: 700; font-size: 18px; }
+.ag-loading .ag-logo { width: 48px; height: 48px; font-size: 24px; border-radius: 13px; animation: agPulse 1.4s ease-in-out infinite; }
 @keyframes agPulse { 50% { opacity: .45; transform: scale(.94); } }
 @media (prefers-reduced-motion: reduce) { .ag-loading .ag-logo { animation: none; } }
-.ag-card { width: 100%; max-width: 400px; margin: auto; padding: 32px 28px 26px; border-radius: 24px;
-  background: linear-gradient(160deg, rgba(38,56,110,.62), rgba(10,16,40,.78)); border: 1px solid rgba(120,150,255,.22);
-  box-shadow: 0 24px 80px rgba(0,0,0,.55), 0 0 90px rgba(40,90,220,.25); backdrop-filter: blur(14px); }
+.ag-card { width: 100%; max-width: 400px; margin: auto; padding: 32px 28px 26px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); }
 .ag-brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 22px; }
-.ag-name { font-size: 24px; font-weight: 650; color: #fff; }
-.ag-title { margin: 0 0 6px; font-size: 20px; font-weight: 650; text-align: center; color: #fff; }
-.ag-sub { margin: 0 0 22px; text-align: center; color: #aab4d0; font-size: 14px; line-height: 1.45; }
+.ag-name { font-size: 24px; font-weight: 700; color: var(--text); }
+.ag-title { margin: 0 0 6px; font-size: 20px; font-weight: 650; text-align: center; color: var(--text); }
+.ag-sub { margin: 0 0 22px; text-align: center; color: var(--text-soft); font-size: 14px; line-height: 1.45; }
 .ag-form { display: flex; flex-direction: column; gap: 8px; }
-.ag-form label { font-size: 13px; font-weight: 600; color: #d6dcef; margin-top: 6px; }
-.ag-form input { width: 100%; box-sizing: border-box; padding: 13px 14px; font-size: 16px; color: #fff; border-radius: 12px;
-  background: rgba(20,26,50,.8); border: 1px solid rgba(255,255,255,.12); outline: none; }
-.ag-form input:focus { border-color: #6f8dff; box-shadow: 0 0 0 3px rgba(111,141,255,.25); }
-.ag-hint { margin: 0; font-size: 12px; color: #8f9ab8; }
-.ag-status { min-height: 18px; margin: 4px 0 0; font-size: 13px; color: #ffb4b4; line-height: 1.4; }
-.ag-btn { margin-top: 6px; padding: 13px; font-size: 16px; font-weight: 650; color: #fff; cursor: pointer; border-radius: 12px;
-  border: 1px solid #5a7bff; background: linear-gradient(135deg, #3b56b8, #14226b); }
-.ag-btn:hover { filter: brightness(1.12); }
+.ag-form label { font-size: 13px; font-weight: 600; color: var(--text); margin-top: 6px; }
+.ag-form input { width: 100%; box-sizing: border-box; padding: 12px 14px; font-size: 16px; color: var(--text); border-radius: var(--radius-sm);
+  background: var(--surface-2); border: 1px solid var(--border); outline: none; }
+.ag-form input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 22%, transparent); }
+.ag-hint { margin: 0; font-size: 12px; color: var(--muted); }
+.ag-status { min-height: 18px; margin: 4px 0 0; font-size: 13px; color: var(--neg); line-height: 1.4; }
+.ag-btn { margin-top: 6px; padding: 12px; font-size: 16px; font-weight: 600; color: #fff; cursor: pointer; border-radius: var(--radius-sm);
+  border: 0; background: var(--brand); }
+.ag-btn:hover { background: var(--brand-ink); }
 .ag-btn:disabled { opacity: .6; cursor: default; }
-.ag-btn:focus-visible, .ag-link:focus-visible { outline: 2px solid #9db2ff; outline-offset: 2px; }
-.ag-switch { margin: 18px 0 0; text-align: center; font-size: 14px; color: #aab4d0; }
-.ag-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: #9db2ff; cursor: pointer; text-decoration: underline; }
-@media (max-width: 420px) { .ag-card { padding: 26px 20px 22px; border-radius: 20px; } }
+.ag-btn:focus-visible, .ag-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.ag-switch { margin: 18px 0 0; text-align: center; font-size: 14px; color: var(--text-soft); }
+.ag-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--brand); cursor: pointer; }
+.ag-link:hover { text-decoration: underline; }
+@media (max-width: 420px) { .ag-card { padding: 26px 20px 22px; } }
 html:has(.auth-gate:not([hidden])) { overflow: hidden; }
 .auth-gate input, .auth-gate button { font-family: inherit; }
