@@ -736,6 +736,21 @@ function fmtDate(iso) {
     default:           return `${d} ${months[m - 1]} ${y}`;
   }
 }
+/* "2026-04" -> "Apr 2026", following the same Date Format setting fmtDate() does (a numeric
+ * format stays numeric — "04/2026" — so a month never reads in a different style than the
+ * full dates elsewhere on the same page). */
+function fmtMonth(ym) {
+  const [y, m] = String(ym || "").split("-").map(Number);
+  if (!y || !m) return ym || "—";
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const pad = (n) => String(n).padStart(2, "0");
+  switch ((typeof SETTINGS !== "undefined" && SETTINGS.dateFormat) || "D MMM YYYY") {
+    case "YYYY-MM-DD": return `${y}-${pad(m)}`;
+    case "DD/MM/YYYY":
+    case "MM/DD/YYYY": return `${pad(m)}/${y}`;
+    default:           return `${months[m - 1]} ${y}`;
+  }
+}
 function fmtDateTime(iso) {
   if (!iso) return "—";
   const dt = new Date(iso);
@@ -4929,7 +4944,7 @@ function pageDividends() {
   const periods = dividendByPeriod(received);
   const monthsAsc = Object.keys(periods.byMonth).sort();
   const monthRows = monthsAsc.slice(-12).reverse()
-    .map((k) => `<tr><td class="dcc-c">${k}</td><td class="dcc-c pos">${money(periods.byMonth[k])}</td></tr>`).join("");
+    .map((k) => `<tr><td class="dcc-c">${fmtMonth(k)}</td><td class="dcc-c pos">${money(periods.byMonth[k])}</td></tr>`).join("");
   const qAsc = Object.keys(periods.byQuarter).sort();
   const quarterRows = qAsc.slice(-8).reverse()
     .map((k) => `<tr><td class="dcc-c">${k}</td><td class="dcc-c pos">${money(periods.byQuarter[k])}</td></tr>`).join("");
@@ -4941,6 +4956,7 @@ function pageDividends() {
   // one period of history anyway, and the trend is already visible across the rows).
   const incomeLabels = { monthly: t("Month"), quarterly: t("Quarter"), annual: t("Year") };
   const incomeRowsByPeriod = { monthly: monthRows, quarterly: quarterRows, annual: yearRows };
+  const incomeRowCount = { monthly: Math.min(monthsAsc.length, 12), quarterly: Math.min(qAsc.length, 8), annual: yearsAsc.length }[divIncomePeriod] || 0;
   const incomeFilterSel = styledSelect("divIncomePeriod", [
     { value: "monthly", label: t("Monthly") },
     { value: "quarterly", label: t("Quarterly") },
@@ -5110,10 +5126,12 @@ function pageDividends() {
     </div>
 
     ${panel(t("Dividend Income"), received.length
-        ? table([
+        // Same fixed-height scroll box as the Dividend Calendar above, once there are enough
+        // rows to need it (a monthly view is up to 12).
+        ? `<div class="${incomeRowCount > 7 ? "dcc-table-scroll divcal-table-scroll" : ""}">${table([
             { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
             { label: `${t("Net")} (${ccyLabel(FX.base)})`, style: "width:50%;text-align:left" },
-          ], incomeRowsByPeriod[divIncomePeriod] || monthRows, { fixed: true })
+          ], incomeRowsByPeriod[divIncomePeriod] || monthRows, { fixed: true })}</div>`
         : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
       `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}
 

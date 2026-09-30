@@ -604,8 +604,9 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 /* Ex-Dividend Screener reuses .dcc-table-scroll's overflow/sticky-header behavior but wants
    a taller viewport (its lists run longer) — override just the max-height, source order wins. */
 .exdiv-table-scroll { max-height: 440px; }
-/* The portfolio-wide Dividend Calendar: rows carry a two-line holding cell (code + name), so
-   the shared 300px would fit only ~3 of them — give it room for about 5. */
+/* The Dividends page's Calendar and Income tables: rows are tall (the calendar's holding
+   cell is two lines — code + name), so the shared 300px would fit only ~3-4 of them —
+   give them room for about 5-6. */
 .divcal-table-scroll { max-height: 400px; }
 .data-table td.dcc-c { text-align: left; font-variant-numeric: tabular-nums; }
 /* Long company names (depositary shares, preferred stock series, etc.) would otherwise
