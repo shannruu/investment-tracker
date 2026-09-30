@@ -286,6 +286,12 @@ const ZH = {
   "Check for a missing fee, dividend or transfer.": "请检查是否漏记费用、股息或转账。",
   "A sell exceeds shares held for": "卖出超过持有股数：", "Use the oversell override if intentional.": "如有意为之，请使用超卖覆盖。",
   "holding(s) have no current price set — portfolio value uses cost as a placeholder.": "个持仓未设当前价格 — 组合价值暂用成本代替。",
+  "found from market history — review before adding, in case a different broker actually received it.": "笔股息由市场记录中找到 — 请先核实再加入，因为实际派发对象可能是另一个券商。",
+  "Dividends Found From Market History": "从市场记录中找到的股息",
+  "These are real dividend payments for a stock you hold, but they haven't been added to your ledger. Review each one before adding it — if you've held this stock at more than one broker over time, a different broker may have actually received this specific payment.": "这些是您持有股票的真实股息记录，但尚未加入账本。请先逐笔核实再加入——如果您曾在不同时期于多个券商持有此股票，实际收到此笔股息的可能是另一个券商。",
+  "Dismiss": "忽略",
+  "Dividend added": "已加入股息记录",
+  "Dismissed — won't be suggested again": "已忽略 — 不会再次提示",
   "Exchange rates were last updated": "汇率最后更新于", "days ago — refresh them in Settings.": "天前 — 请在设置中刷新。",
   // Settings — data safety
   "Tolerance": "容差", "Differences within this amount are treated as a small difference rather than needing review.": "此金额内的差异视为小幅差异，而非需复核。",
@@ -1095,7 +1101,7 @@ const SCHEMA_VERSION = 4;
 function snapshot() {
   return { version: SCHEMA_VERSION, lastSaved: LAST_SAVED,
     BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS,
-    CURRENT_PRICES, STOCK_META, HOLDING_TYPES, RECON_CHECKS, SETTINGS, USER, FX, PV_HISTORY };
+    CURRENT_PRICES, STOCK_META, HOLDING_TYPES, RECON_CHECKS, DISMISSED_AUTO_DIVS, SETTINGS, USER, FX, PV_HISTORY };
 }
 /* A restored backup is untrusted JSON — Object.assign(target, parsedJson)
  * would let a crafted "__proto__"/"constructor"/"prototype" key in the file
@@ -1250,6 +1256,7 @@ function applySnapshot(s) {
   if (Array.isArray(s.PV_HISTORY)) replaceArr(PV_HISTORY, s.PV_HISTORY.filter((p) => p && p.value > 0));
   assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(RECON_CHECKS, s.RECON_CHECKS);
   assignObj(STOCK_META, s.STOCK_META); assignObj(HOLDING_TYPES, s.HOLDING_TYPES);
+  assignObj(DISMISSED_AUTO_DIVS, s.DISMISSED_AUTO_DIVS);
   if (s.SETTINGS) safeAssign(SETTINGS, s.SETTINGS);
   if (s.USER) safeAssign(USER, s.USER);
   if (s.lastSaved) LAST_SAVED = s.lastSaved;
@@ -1550,15 +1557,24 @@ function tickerCell(ticker, brokerId, sub) {
   return `${label}${sub ? `<div class="sub">${esc(sub)}</div>` : ""}`;
 }
 
-/* Auto-log dividends you're eligible for (held the stock on/after its ex-date) but haven't
- * recorded yet — same eligibility check the Holding Detail calendar's "Not logged" badge
- * uses. Creates real "Dividend" transactions (0 tax withheld — edit afterward if it differs)
- * so Total Dividends Received and the rest of the ledger reflect them without manual entry.
- * Idempotent: re-running skips anything already logged (by itself or by hand), matched by
- * ticker/broker and a ±10-day date window. Returns how many were newly logged. */
-function autoSyncDividends() {
+/* Compute dividends you're technically eligible for (held the stock on/after its ex-date)
+ * but haven't recorded yet and haven't explicitly dismissed — same eligibility check the
+ * Holding Detail calendar's "Not logged" badge uses. Returns candidate objects; NOTHING is
+ * written to the ledger here — see commitAutoDividend()/dismissAutoDividend() below, and
+ * the review list on the Dividends page that calls them.
+ *
+ * This used to write these straight into ALL_TRANSACTIONS with no confirmation. That's
+ * unsafe for exactly the scenario a historical CSV import creates: "held the stock on/after
+ * its ex-date, at THIS broker" only proves eligibility at one broker, not that THIS broker
+ * was the one who actually received that specific historical payment — a stock held at
+ * multiple brokers over its lifetime can show up as eligible everywhere it was ever held,
+ * even for a date a broker's own official statement proves it never got. Market data alone
+ * can't know which; only the user reviewing each suggestion can. Idempotent: skips anything
+ * already logged (by itself or by hand) or already dismissed, matched by ticker/broker and
+ * a ±10-day date window (or an exact dismiss-key match). */
+function computePendingAutoDividends() {
   const today = todayISO();
-  let added = 0;
+  const candidates = [];
   T.holdings.forEach((h) => {
     const marketHist = AUTO_DIV_CACHE[h.ticker];
     if (!marketHist || !marketHist.length) return;
@@ -1606,30 +1622,48 @@ function autoSyncDividends() {
       if (loggedExDates.has(dTime)) return;   // already logged, exact ex-date match
       const payTime = new Date(estPay + "T00:00:00").getTime();
       if (loggedPayOnlyDates.some((t) => Math.abs(t - payTime) <= 10 * 86400000)) return;   // already logged, as a manual date-only entry near this event's pay date
+      const dismissKey = `${h.brokerId}|${h.ticker.toUpperCase()}|${d.date}`;
+      if (DISMISSED_AUTO_DIVS[dismissKey]) return;   // the user already reviewed and said no to this exact one
       // The app has no historical FX rate history — today's rate is the best available
       // approximation for a dividend paid on a past date. Flagged clearly in the note
       // below so the user knows to correct it manually if the FX drift since then matters.
       const fxRate = FX.rates[d.currency] || 1;
-      // Shares held ON THIS DIVIDEND'S DATE, not h.shares (today's count) — auto-sync can
-      // run long after the ex-date (e.g. the first visit after several payouts have piled
-      // up), and by then the position may have grown or shrunk since. Using today's count
-      // would log a permanently wrong gross amount baked into the transaction forever.
+      // Shares held ON THIS DIVIDEND'S DATE, not h.shares (today's count) — this can be
+      // reviewed long after the ex-date (e.g. the first visit after several payouts have
+      // piled up), and by then the position may have grown or shrunk since. Using today's
+      // count would suggest a permanently wrong gross amount if the user accepts it.
       const sharesThen = sharesAsOf(h.ticker, h.brokerId, d.date);
       if (sharesThen <= 0) return;   // sold out entirely by the time this dividend priced — not eligible
       const gross = (d.amount || 0) * sharesThen;
       const tax = gross * ((broker && broker.divTaxRate ? broker.divTaxRate : 0) / 100);
-      ALL_TRANSACTIONS.unshift({
-        id: uid("t"), date: d.date, brokerId: h.brokerId, type: "Dividend",
+      candidates.push({
+        key: dismissKey, brokerId: h.brokerId, brokerName: broker ? broker.name : "",
         ticker: h.ticker, company: h.company || "", market: h.market || "",
-        currency: d.currency, gross, tax, fxRate, myrEquivalent: gross * fxRate,
-        status: "Received", paidTo: inferredPaidTo, exDate: d.date, payDate: estPay, payDateEstimated: !realMyPay,
-        notes: t("Auto-logged from market dividend history — review the tax withheld, \"Paid to\", and FX rate (this uses today's rate, not the rate on the payment date)."),
+        currency: d.currency, gross, tax, fxRate,
+        paidTo: inferredPaidTo, exDate: d.date, payDate: estPay, payDateEstimated: !realMyPay,
       });
-      loggedExDates.add(dTime);   // don't double-log within the same pass — new entries always carry exDate: d.date, so they match exactly on any later pass too
-      added++;
     });
   });
-  return added;
+  return candidates;
+}
+
+/* Writes one candidate from computePendingAutoDividends() as a real Dividend transaction —
+ * only ever called from the user explicitly clicking "Add" on that specific suggestion. */
+function commitAutoDividend(c) {
+  ALL_TRANSACTIONS.unshift({
+    id: uid("t"), date: c.exDate, brokerId: c.brokerId, type: "Dividend",
+    ticker: c.ticker, company: c.company, market: c.market,
+    currency: c.currency, gross: c.gross, tax: c.tax, fxRate: c.fxRate, myrEquivalent: c.gross * c.fxRate,
+    status: "Received", paidTo: c.paidTo, exDate: c.exDate, payDate: c.payDate, payDateEstimated: c.payDateEstimated,
+    notes: t("Auto-logged from market dividend history — review the tax withheld, \"Paid to\", and FX rate (this uses today's rate, not the rate on the payment date)."),
+  });
+}
+
+/* Permanently skips one candidate so it's never suggested again — even across a browser
+ * restart or the next market-data refresh (see DISMISSED_AUTO_DIVS, data.js). */
+function dismissAutoDividend(c) {
+  DISMISSED_AUTO_DIVS[c.key] = true;
+  saveStore();
 }
 
 /* Populate AUTO_DIV_CACHE for every held ticker concurrently, any market.
@@ -1662,16 +1696,10 @@ async function fetchAllDivSchedules() {
   DIV_FETCH_FAILED = failed;
   DIV_UNKNOWN_SYMBOLS = unknown;
   const hadError = failed.length > 0;
-  const autoLogged = autoSyncDividends();
-  if (autoLogged) {
-    saveStore();
-    // saveStore() clears the guard on the assumption holdings changed — but the only thing
-    // that changed here is the dividends this very call just logged. Re-arm it, or the
-    // caller's re-render re-enters and refetches every ticker a second time for nothing.
-    AUTO_DIV_CACHE_FETCHED = true;
-    AUTO_DIV_CACHE_FETCHED_AT = Date.now();
-    toast(`${autoLogged} ${t("dividends auto-logged from market history")}`);
-  }
+  // No auto-write here anymore — computePendingAutoDividends() only ever computes
+  // candidates, on demand, from whatever AUTO_DIV_CACHE now holds; the Dividends page's
+  // review list (and the notification badge) read it fresh each time. Nothing is ever
+  // written to the ledger without the user clicking "Add" on that specific suggestion.
   // A genuine failure shouldn't permanently block every retry for the rest of the
   // session — only saveStore() resets this guard otherwise, which won't happen again
   // until the user makes an unrelated edit. Shorten the guard instead of clearing it, so
@@ -2784,6 +2812,11 @@ function systemAlertItems() {
       items.push({ level: "crit", href: "#/brokers", html: `<strong>${t("Cash difference")} — ${esc(brokerName(bid))}.</strong> ${t("Calculated")} ${money(calc)} ${t("vs actual")} ${money(+chk.actual)} (${t("difference")} ${money(Math.abs(diff))}). ${t("Check for a missing fee, dividend or transfer.")}` });
     }
   });
+  // Dividends found from real market history that aren't in the ledger yet — never
+  // written automatically (see computePendingAutoDividends()); this is the only prompt
+  // telling the user they exist at all, so it has to surface somewhere.
+  const pendingDivs = computePendingAutoDividends();
+  if (pendingDivs.length) items.push({ level: "warn", href: "#/dividends", html: `${plural(pendingDivs.length, "dividend", "dividends")} ${t("found from market history — review before adding, in case a different broker actually received it.")}` });
   // Missing current prices
   if (T.missingPrices > 0) items.push({ level: "warn", href: "#/portfolio", html: `${T.missingPrices} ${t("holding(s) have no current price set — portfolio value uses cost as a placeholder.")}` });
   // Stale live prices (fetched > 2 days ago)
@@ -4995,7 +5028,36 @@ function pageDividends() {
     ? panel(t("Ex-Dividend Screener"), `<div id="exDivResults">${renderExDivBody()}</div>`, exDivHeadActions)
     : "";
 
+  // Real dividend events found in market history that match a held stock, but were never
+  // written to the ledger automatically — see computePendingAutoDividends() for why: an
+  // eligibility match at ONE broker doesn't prove that specific broker is who actually
+  // received a given historical payment, so every suggestion needs the user's own review
+  // (Add or Dismiss) before it becomes a real transaction. Shown first on the page — it's
+  // the one thing here that's actually asking for a decision, not just displaying data.
+  const pendingAutoDivs = computePendingAutoDividends();
+  const pendingAutoDivsPanel = pendingAutoDivs.length ? panel(
+    t("Dividends Found From Market History"),
+    `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("These are real dividend payments for a stock you hold, but they haven't been added to your ledger. Review each one before adding it — if you've held this stock at more than one broker over time, a different broker may have actually received this specific payment.")}</p>` +
+    table([
+      { label: t("Holding"), style: "width:18%;text-align:left" },
+      { label: t("Broker"), style: "width:16%;text-align:left" },
+      { label: t("Ex-Date"), style: "width:16%;text-align:left" },
+      { label: t("Est. Payment"), style: "width:16%;text-align:left" },
+      { label: t("Amount"), style: "width:16%;text-align:left" },
+      { label: "" },
+    ], pendingAutoDivs.map((c) => `<tr>
+        <td>${tickerCell(c.ticker, c.brokerId)}</td>
+        <td>${esc(c.brokerName)}</td>
+        <td>${fmtDate(c.exDate)}</td>
+        <td>${fmtDate(c.payDate)}${c.payDateEstimated ? ` <span class="muted">(${t("est.")})</span>` : ""}</td>
+        <td>${money((c.gross - c.tax) * c.fxRate)}</td>
+        <td class="num"><button type="button" class="btn small" data-add-auto-div="${escAttr(c.key)}">${t("Add")}</button>
+          <button type="button" class="btn small ghost" data-dismiss-auto-div="${escAttr(c.key)}">${t("Dismiss")}</button></td>
+      </tr>`).join(""), { fixed: true })
+  ) : "";
+
   const html = `
+    ${pendingAutoDivsPanel}
     <div class="mini-cards">
       ${miniCard(t("Gross Dividends"), money(grossBase))}
       ${miniCard(t("Withholding Tax"), money(taxBase), taxBase > 0 ? "neg" : "")}
@@ -5040,6 +5102,22 @@ function pageDividends() {
   return {
     title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
     mount() {
+      document.querySelectorAll("[data-add-auto-div]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const c = pendingAutoDivs.find((x) => x.key === btn.dataset.addAutoDiv);
+          if (!c) return;
+          commitAutoDividend(c);
+          saveStore(); toast(t("Dividend added")); render();
+        });
+      });
+      document.querySelectorAll("[data-dismiss-auto-div]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const c = pendingAutoDivs.find((x) => x.key === btn.dataset.dismissAutoDiv);
+          if (!c) return;
+          dismissAutoDividend(c);
+          toast(t("Dismissed — won't be suggested again")); render();
+        });
+      });
       document.querySelectorAll("[data-del-ud]").forEach((btn) => {
         btn.addEventListener("click", () => {
           const id = btn.dataset.delUd;

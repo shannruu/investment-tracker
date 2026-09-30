@@ -90,6 +90,15 @@ const HOLDING_TYPES = {};
  * { actual, date, note } — actual broker cash balance the user typed in. */
 const RECON_CHECKS = {};
 
+/* Dividends the market-history auto-sync (autoSyncDividends(), app.js) found a stock is
+ * technically eligible for but the user explicitly said NOT to add — e.g. a real ex-date
+ * for a stock they hold at THIS broker now, but that specific historical payment actually
+ * went to a different broker they held it at back then, or was never actually paid to
+ * them (a real corporate event with no way for market data alone to know who received it).
+ * Keyed by "brokerId|TICKER|exDate" so dismissing one is permanent and per-broker, never
+ * suggested again even after the next price/dividend refresh. */
+const DISMISSED_AUTO_DIVS = {};
+
 /* App settings persisted with the data. */
 const SETTINGS = {
   returnMode: "total",       // "total" (incl. dividends) | "price"
