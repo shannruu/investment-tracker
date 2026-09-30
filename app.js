@@ -2912,7 +2912,16 @@ function styledSelect(name, items, value, o = {}) {
     <div class="sel-pop" role="listbox" hidden><div class="sel-list">${opts}</div>${more}</div>
   </div>`;
 }
-function openSel(s) { s.classList.add("open"); const p = s.querySelector(".sel-pop"); if (p) p.hidden = false; }
+function openSel(s) {
+  s.classList.add("open");
+  const p = s.querySelector(".sel-pop");
+  if (!p) return;
+  p.hidden = false;
+  // A list that opens near the bottom of a scrolling sheet (the Add drawer on a phone) used to
+  // hang past the visible edge, its last options unreachable until the user noticed and
+  // scrolled. "nearest" scrolls only as far as needed, and not at all when it already fits.
+  requestAnimationFrame(() => p.scrollIntoView({ block: "nearest", inline: "nearest" }));
+}
 function closeSel(s) { s.classList.remove("open"); const p = s.querySelector(".sel-pop"); if (p) p.hidden = true; }
 
 /* Rebuild a currency dropdown's normal list (reflects current FX.rates + value, base first). */
@@ -3950,10 +3959,12 @@ function addForm2(type, editing) {
   const tickerVal = e.ticker && e.ticker !== "—" ? e.ticker : "";
   const isTrade = type === "Buy" || type === "Sell";
   const fxRow = `<label id="afFxField">${t("FX rate to")} ${ccyLabel(FX.base)}<input type="number" step="any" name="fxRate" id="afFx" value="${v(e.fxRate)}" placeholder="1.0"></label>`;
-  // Amount input with the currency selector attached on its right: [ 0.00 ][ MYR ▾ ]
-  const amtCombo = (name, val, ph) => `<div class="amt-combo">
-      <input type="number" step="any" name="${name}" value="${val}" placeholder="${ph}">
-      ${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency", combo: true })}
+  // Amount input with the currency selector attached on its LEFT: [ RM ▾ ][ 0.00 ] — the
+  // order money reads everywhere else in the app ("RM 165.00"), and the same layout the FX
+  // form's currency pair already uses.
+  const amtCombo = (name, val, ph) => `<div class="ccy-combo">
+      ${styledSelect("currency", ccyList, defCcy, { id: "afCcy", more: "currency", combo: "left" })}
+      <input type="number" step="any" name="${name}" value="${val}" placeholder="${ph}" inputmode="decimal">
     </div>`;
 
   const head = `<label>${type === "Transfer between brokers" ? t("From broker") : t("Broker")}${styledSelect("broker", brokerList, defBroker, { id: "afBroker" })}</label>

@@ -1171,14 +1171,9 @@ input[type="date"] { cursor: pointer; }
 .note-add-btn:hover { opacity: .75; }
 .note-field { display: flex; flex-direction: column; gap: 6px; }
 
-/* Amount + currency combo: [ 0.00 ][ MYR ▾ ] joined into one control */
-.amt-combo { display: flex; align-items: stretch; min-width: 0; }
-.amt-combo > input { flex: 1 1 auto; min-width: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
-.amt-combo .sel { flex: 0 0 auto; margin-left: -1px; }
-.sel-combo .sel-trigger { border-top-left-radius: 0; border-bottom-left-radius: 0; min-width: 76px; max-width: 90px; }
-.amt-combo > input:focus, .sel-combo.open .sel-trigger { position: relative; z-index: 1; }
-.amt-combo .sel-pop { left: auto; right: 0; min-width: 230px; max-width: 280px; }
-/* FX pair: [ Currency ▾ ][ Amount                    ] — selector left, amount fills right */
+/* Currency + amount combo: [ RM ▾ ][ 0.00                ] joined into one control —
+   currency first, matching how money reads elsewhere ("RM 165.00"). Every amount field and the
+   FX form's currency pair use it. */
 .ccy-combo { display: flex; align-items: stretch; min-width: 0; }
 .ccy-combo .sel { flex: 0 0 auto; margin-right: -1px; }
 .ccy-combo > input { flex: 1 1 auto; min-width: 0; border-top-left-radius: 0; border-bottom-left-radius: 0; }
@@ -1610,7 +1605,7 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
   .form input, .form select, .setting-rows input:not([type="checkbox"]),
   .fx-input, .sel-trigger { min-height: 44px; }
   /* 16px text needs more room than 13px did before "MYR" starts ellipsising. */
-  .sel-combo .sel-trigger { min-width: 86px; max-width: 104px; }
+  .sel-combo-l .sel-trigger { min-width: 86px; max-width: 104px; }
 }
 
 /* Removes double-tap-to-zoom (and with it iOS's ~300ms wait to see whether a
