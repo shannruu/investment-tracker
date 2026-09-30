@@ -288,7 +288,7 @@ const ZH = {
   "holding(s) have no current price set — portfolio value uses cost as a placeholder.": "个持仓未设当前价格 — 组合价值暂用成本代替。",
   "found from market history — review before adding, in case a different broker actually received it.": "笔股息由市场记录中找到 — 请先核实再加入，因为实际派发对象可能是另一个券商。",
   "Dividends Found From Market History": "从市场记录中找到的股息",
-  "These are real dividend payments for a stock you hold, but they haven't been added to your ledger. Review each one before adding it — if you've held this stock at more than one broker over time, a different broker may have actually received this specific payment.": "这些是您持有股票的真实股息记录，但尚未加入账本。请先逐笔核实再加入——如果您曾在不同时期于多个券商持有此股票，实际收到此笔股息的可能是另一个券商。",
+  "These are real dividend payments for a stock you hold, but they haven't been added to your ledger. Review each one before adding it — if you've held this stock at more than one broker over time, a different broker may have actually received this specific payment. An added dividend is recorded on its payment date (Est. Payment), the day the money arrives.": "这些是您持有股票的真实股息记录，但尚未加入账本。请先逐笔核实再加入——如果您曾在不同时期于多个券商持有此股票，实际收到此笔股息的可能是另一个券商。加入后的股息会以派息日（预估派息日）——即款项到账当天——作为记录日期。",
   "Dismiss": "忽略",
   "Dividend added": "已加入股息记录",
   "Dismissed — won't be suggested again": "已忽略 — 不会再次提示",
@@ -1671,7 +1671,10 @@ function computePendingAutoDividends() {
  * only ever called from the user explicitly clicking "Add" on that specific suggestion. */
 function commitAutoDividend(c) {
   ALL_TRANSACTIONS.unshift({
-    id: uid("t"), date: c.exDate, brokerId: c.brokerId, type: "Dividend",
+    // The record's Date is the day the money lands (the payment date), the same meaning every
+    // other cash movement's Date has and what a broker statement shows — not the ex-date, which
+    // only decides who's entitled. The ex-date is kept in its own field for matching/display.
+    id: uid("t"), date: c.payDate || c.exDate, brokerId: c.brokerId, type: "Dividend",
     ticker: c.ticker, company: c.company, market: c.market,
     currency: c.currency, gross: c.gross, tax: c.tax, fxRate: c.fxRate, myrEquivalent: c.gross * c.fxRate,
     status: "Received", paidTo: c.paidTo, exDate: c.exDate, payDate: c.payDate, payDateEstimated: c.payDateEstimated,
@@ -5069,7 +5072,7 @@ function pageDividends() {
   const pendingAutoDivs = computePendingAutoDividends();
   const pendingAutoDivsPanel = pendingAutoDivs.length ? panel(
     t("Dividends Found From Market History"),
-    `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("These are real dividend payments for a stock you hold, but they haven't been added to your ledger. Review each one before adding it — if you've held this stock at more than one broker over time, a different broker may have actually received this specific payment.")}</p>` +
+    `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("These are real dividend payments for a stock you hold, but they haven't been added to your ledger. Review each one before adding it — if you've held this stock at more than one broker over time, a different broker may have actually received this specific payment. An added dividend is recorded on its payment date (Est. Payment), the day the money arrives.")}</p>` +
     table([
       { label: t("Holding"), style: "width:18%;text-align:left" },
       { label: t("Broker"), style: "width:16%;text-align:left" },
