@@ -87,13 +87,23 @@ try {
 } catch (e) {}
 if (AUTH_GATE_PREVIEW) { const g0 = document.getElementById("authGate"); if (g0) g0.hidden = true; }
 let AUTH_GATE_TIMER = null;
-const AUTH_GATE_DEMO = (location.search.match(/[?&]gate=(done|confirm)/) || [])[1] || "";
+const AUTH_GATE_DEMO = (location.search.match(/[?&]gate=(done|confirm|forgot|reset|newpass|updated)/) || [])[1] || "";
 let AUTH_GATE_HOLD = false;   // true while a sign-up success page is showing: nothing may hide/replace it except its own button
 function authGateEl() { return document.getElementById("authGate"); }
 function hideAuthGate() {
   if (AUTH_GATE_HOLD) return;
   clearTimeout(AUTH_GATE_TIMER);
   const g = authGateEl(); if (g) g.hidden = true;
+}
+function wireAgEyes(g) {
+  g.querySelectorAll(".ag-eye").forEach((b) => b.addEventListener("click", () => {
+    const inp = document.getElementById(b.dataset.eyeFor), show = inp.type === "password";
+    inp.type = show ? "text" : "password";
+    b.innerHTML = show ? AG_EYE_OFF : AG_EYE;
+    b.setAttribute("aria-pressed", String(show));
+    b.setAttribute("aria-label", show ? t("Hide password") : t("Show password"));
+    inp.focus();
+  }));
 }
 const AG_EYE = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7.5 11-7.5S23 12 23 12s-4 7.5-11 7.5S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>`;
 const AG_EYE_OFF = `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.9 10.9 0 0 1 12 19.5C5 19.5 1 12 1 12a19.8 19.8 0 0 1 5.06-5.94M9.9 4.24A10.9 10.9 0 0 1 12 4.5C19 4.5 23 12 23 12a19.8 19.8 0 0 1-3.17 4.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
@@ -120,6 +130,7 @@ function showAuthGate() {
         ${agPasswordField("agPass", t("Password"), signup ? t("At least 6 characters.") : "••••••••", signup ? "new-password" : "current-password")}
         ${signup ? agPasswordField("agPass2", t("Confirm password"), t("Repeat your password"), "new-password") : ""}
       </div>
+      ${signup ? "" : `<div class="ag-forgot-row"><button type="button" id="agForgot" class="link">${t("Forgot password?")}</button></div>`}
       <p class="field-err ag-status" id="agStatus" role="alert"></p>
       <button type="submit" class="btn primary ag-btn">${signup ? t("Create account") : t("Sign in")}</button>
     </form>
@@ -127,14 +138,8 @@ function showAuthGate() {
       <button type="button" id="agToggle" class="link">${signup ? t("Sign in") : t("Create an account")}</button></p>
   </div>`;
   const form = document.getElementById("agForm"), status = document.getElementById("agStatus");
-  g.querySelectorAll(".ag-eye").forEach((b) => b.addEventListener("click", () => {
-    const inp = document.getElementById(b.dataset.eyeFor), show = inp.type === "password";
-    inp.type = show ? "text" : "password";
-    b.innerHTML = show ? AG_EYE_OFF : AG_EYE;
-    b.setAttribute("aria-pressed", String(show));
-    b.setAttribute("aria-label", show ? t("Hide password") : t("Show password"));
-    inp.focus();
-  }));
+  wireAgEyes(g);
+  const forgotBtn = document.getElementById("agForgot"); if (forgotBtn) forgotBtn.addEventListener("click", showAuthForgot);
   document.getElementById("agToggle").addEventListener("click", () => { AUTH_GATE_MODE = signup ? "signin" : "signup"; showAuthGate(); });
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -161,31 +166,110 @@ function showAuthGate() {
 }
 /* Shown after sign-up when the project requires email confirmation (no session yet) — a success
  * screen, not an error line: the account exists, one email click is all that's left. */
-function showAuthGateSuccess(email, ready) {
+function showAuthGateSuccess(email, mode) {
   const g = authGateEl(); if (!g) return;
   AUTH_GATE_HOLD = true;
   g.hidden = false; g.dataset.state = "success";
+  const enters = mode === true || mode === "updated";   // these end with "Continue to Divz"
+  const title = mode === true ? t("You're all set!") : mode === "updated" ? t("Password updated") : mode === "reset" ? t("Check your email") : t("Account created");
+  const body = mode === true
+    ? `${t("Your Divz account is ready:")}<strong class="ag-email"></strong>${t("Your records will now be saved to your account and sync across your devices.")}`
+    : mode === "updated" ? t("Your password has been changed and you're signed in.")
+    : mode === "reset" ? `${t("If an account exists for")}<strong class="ag-email"></strong>${t("we've sent a link to reset the password. Open it in this same browser.")}`
+    : `${t("We sent a confirmation link to")}<strong class="ag-email"></strong>${t("Open it to activate your account, then come back and sign in.")}`;
   g.innerHTML = `<div class="ag-card panel ag-done" role="dialog" aria-modal="true" aria-labelledby="agTitle">
     <div class="ag-check" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 12.5 10 17.5 19 7.5"/></svg></div>
-    <h2 id="agTitle" class="ag-title">${ready ? t("You're all set!") : t("Account created")}</h2>
-    ${ready
-      ? `<p class="muted ag-sub">${t("Your Divz account is ready:")}<strong class="ag-email"></strong>${t("Your records will now be saved to your account and sync across your devices.")}</p>`
-      : `<p class="muted ag-sub">${t("We sent a confirmation link to")}<strong class="ag-email"></strong>${t("Open it to activate your account, then come back and sign in.")}</p>`}
-    <button type="button" class="btn primary ag-btn" id="agBack">${ready ? t("Continue to Divz") : t("Back to sign in")}</button>
-    ${ready ? "" : `<p class="muted ag-switch">${t("Can't find it? Check your spam folder.")}</p>`}
+    <h2 id="agTitle" class="ag-title">${title}</h2>
+    <p class="muted ag-sub">${body}</p>
+    <button type="button" class="btn primary ag-btn" id="agBack">${enters ? t("Continue to Divz") : t("Back to sign in")}</button>
+    ${enters ? "" : `<p class="muted ag-switch">${t("Can't find it? Check your spam folder.")}</p>`}
   </div>`;
-  g.querySelector(".ag-email").textContent = email;
+  const em = g.querySelector(".ag-email"); if (em) em.textContent = email;
   document.getElementById("agBack").addEventListener("click", () => {
     AUTH_GATE_HOLD = false;
-    if (ready) { hideAuthGate(); render(); }
+    if (enters) { hideAuthGate(); render(); }
     else { AUTH_GATE_MODE = "signin"; showAuthGate(); }
   });
+}
+
+/* "Forgot password?": ask for the email, Supabase mails a reset link that comes back to this site
+ * (PKCE, so it must be opened in the same browser). The reply never says whether the address has
+ * an account — same message either way. */
+function showAuthForgot() {
+  const g = authGateEl(); if (!g) return;
+  AUTH_GATE_HOLD = true; g.hidden = false; g.dataset.state = "forgot";
+  g.innerHTML = `<div class="ag-card panel" role="dialog" aria-modal="true" aria-labelledby="agTitle">
+    <div class="brand ag-brand"><span class="brand-mark" aria-hidden="true">D</span><span class="brand-name">Divz</span></div>
+    <h2 id="agTitle" class="ag-title">${t("Reset your password")}</h2>
+    <p class="muted ag-sub">${t("Enter your email and we'll send you a link to choose a new password.")}</p>
+    <form id="agForm" class="form" novalidate>
+      <div class="form-grid ag-grid"><label>${t("Email")}<input id="agEmail" name="email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" required></label></div>
+      <p class="field-err ag-status" id="agStatus" role="alert"></p>
+      <button type="submit" class="btn primary ag-btn">${t("Send reset link")}</button>
+    </form>
+    <p class="muted ag-switch"><button type="button" id="agToggle" class="link">${t("Back to sign in")}</button></p>
+  </div>`;
+  const form = document.getElementById("agForm"), status = document.getElementById("agStatus");
+  document.getElementById("agToggle").addEventListener("click", () => { AUTH_GATE_HOLD = false; AUTH_GATE_MODE = "signin"; showAuthGate(); });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = form.email.value.trim();
+    if (!email) { status.textContent = t("Enter your email."); return; }
+    const btn = form.querySelector("button[type=submit]"); btn.disabled = true; status.textContent = "";
+    try {
+      const { error } = await SUPABASE.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+      if (error) status.textContent = mapAuthError(error, "reset");
+      else { showAuthGateSuccess(email, "reset"); return; }
+    } catch (err) { status.textContent = t("Something went wrong — try again."); }
+    btn.disabled = false;
+  });
+  const first = document.getElementById("agEmail"); if (first) first.focus();
+}
+
+/* Landing from the reset email: Supabase has signed the person in with a recovery session and fires
+ * PASSWORD_RECOVERY — they must choose a new password before anything else. */
+function showAuthNewPassword() {
+  const g = authGateEl(); if (!g) return;
+  AUTH_GATE_HOLD = true; g.hidden = false; g.dataset.state = "newpass";
+  g.innerHTML = `<div class="ag-card panel" role="dialog" aria-modal="true" aria-labelledby="agTitle">
+    <div class="brand ag-brand"><span class="brand-mark" aria-hidden="true">D</span><span class="brand-name">Divz</span></div>
+    <h2 id="agTitle" class="ag-title">${t("Choose a new password")}</h2>
+    <p class="muted ag-sub">${t("Pick a password you'll remember — at least 6 characters.")}</p>
+    <form id="agForm" class="form" novalidate>
+      <div class="form-grid ag-grid">
+        ${agPasswordField("agPass", t("New password"), t("At least 6 characters."), "new-password")}
+        ${agPasswordField("agPass2", t("Confirm password"), t("Repeat your password"), "new-password")}
+      </div>
+      <p class="field-err ag-status" id="agStatus" role="alert"></p>
+      <button type="submit" class="btn primary ag-btn">${t("Update password")}</button>
+    </form>
+  </div>`;
+  wireAgEyes(g);
+  const form = document.getElementById("agForm"), status = document.getElementById("agStatus");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const pw = form.agPass.value;
+    if (pw.length < 6) { status.textContent = t("Password must be at least 6 characters."); return; }
+    if (pw !== form.agPass2.value) { status.textContent = t("Passwords don't match — please retype them."); return; }
+    const btn = form.querySelector("button[type=submit]"); btn.disabled = true; status.textContent = "";
+    try {
+      const { data, error } = await SUPABASE.auth.updateUser({ password: pw });
+      if (error) status.textContent = mapAuthError(error, "reset");
+      else { showAuthGateSuccess((data && data.user && data.user.email) || "", "updated"); return; }
+    } catch (err) { status.textContent = t("Something went wrong — try again."); }
+    btn.disabled = false;
+  });
+  const first = document.getElementById("agPass"); if (first) first.focus();
 }
 /* Called once we know whether a session exists. */
 function authGateSync() { if (SYNC_USER) hideAuthGate(); else showAuthGate(); }
 
 async function initSync() {
-  if (AUTH_GATE_DEMO) { showAuthGateSuccess("you@example.com", AUTH_GATE_DEMO === "done"); return; }
+  if (AUTH_GATE_DEMO) {
+    if (AUTH_GATE_DEMO === "forgot") showAuthForgot(); else if (AUTH_GATE_DEMO === "newpass") showAuthNewPassword();
+    else showAuthGateSuccess("you@example.com", AUTH_GATE_DEMO === "done" ? true : AUTH_GATE_DEMO === "reset" ? "reset" : AUTH_GATE_DEMO === "updated" ? "updated" : false);
+    return;
+  }
   // Not answered within 6s (offline / blocked): let the app open in local-only mode instead of
   // leaving a cover up forever. A late "supabase-ready" re-runs this and shows the gate then.
   if (!AUTH_GATE_TIMER && authGateEl() && !authGateEl().hidden && authGateEl().dataset.state === "loading") {
@@ -220,6 +304,8 @@ async function initSync() {
       resetPerAccountCaches();
       await reconcileOnSignIn();
       render();
+    } else if (event === "PASSWORD_RECOVERY") {
+      showAuthNewPassword();
     } else if (event === "SIGNED_OUT") {
       // Revoke this device's price-alert push subscription WHILE we still know which
       // account it belonged to — disablePriceAlertPush() only deletes the server-side
@@ -446,9 +532,12 @@ function hideCloudStaleWarning() {
 function mapAuthError(error, mode) {
   const msg = ((error && error.message) || "").toLowerCase();
   if ((error && (error.status === 429 || error.code === "over_email_send_rate_limit")) || msg.includes("rate limit"))
-    return t("Too many emails were sent recently. Please wait about an hour and try again — or sign in if you already created this account.");
+    return mode === "reset" ? t("Too many emails were sent recently. Please wait about an hour and try again.")
+      : t("Too many emails were sent recently. Please wait about an hour and try again — or sign in if you already created this account.");
   if (msg.includes("already registered") || msg.includes("already exists")) return t("That email's already registered — sign in instead.");
+  if (msg.includes("different from the old")) return t("Choose a password different from your old one.");
   if (msg.includes("password")) return t("Password must be at least 6 characters.");
+  if (mode === "reset") return t("Couldn't do that — try again.");
   if (mode === "signup") return t("Couldn't create that account — try again.");
   return t("Incorrect email or password.");
 }
