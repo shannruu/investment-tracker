@@ -36,8 +36,8 @@
  * the ledger_data table's RLS policies (not key secrecy) enforce that a
  * signed-in user can only ever read/write their own row.
  * ========================================================================== */
-const SUPABASE_URL = "https://joymdwpxfnrrkunoparx.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpveW1kd3B4Zm5ycmt1bm9wYXJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNDI0MTUsImV4cCI6MjEwNTgxODQxNX0.zh2l3wtGWl8bHKH9bmCp8VO8VpCxhlmMkQR1TwgwLE8";
+const SUPABASE_URL = "https://fntkpinmomhhvhpdxmzx.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZudGtwaW5tb21oaHZocGR4bXp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA3NTA4OTYsImV4cCI6MjEwNjMyNjg5Nn0.FjbesdF7iz8wHQxKywNF_vhx_u_8teC1ZXZtCbGImlc";
 
 if (SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.startsWith("YOUR_")) {
   try {
