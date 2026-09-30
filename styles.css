@@ -90,13 +90,13 @@ body {
   background: var(--bg);
   color: var(--text);
   -webkit-font-smoothing: antialiased;
-  font-size: 14px;
+  font-size: 15.5px;
   line-height: 1.45;
 }
 h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -.01em; }
 a { color: inherit; text-decoration: none; }
 .muted { color: var(--muted); }
-.link { color: var(--brand-ink); font-weight: 650; font-size: 13px; }
+.link { color: var(--brand-ink); font-weight: 650; font-size: 15px; }
 .link:hover { text-decoration: underline; }
 /* .link was written for <a> tags, which have no native chrome to begin with — a
    <button class="link"> (used where the action doesn't navigate, e.g. toggling
@@ -136,7 +136,7 @@ button.link {
   width: 34px; height: 34px; border-radius: 9px;
   background: linear-gradient(135deg, #6d5efc, #4a3ed9);
   box-shadow: 0 4px 12px rgba(109,94,252,.35);
-  color: #fff; font-weight: 800; font-size: 14px;
+  color: #fff; font-weight: 800; font-size: 15.5px;
   display: grid; place-items: center; letter-spacing: .5px;
 }
 
@@ -188,7 +188,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 .acct-switch .brand-mark, .brand .brand-mark { flex: none; }
 .acct-switch .brand-mark .icon { width: 17px; height: 17px; }
 .brand-name {
-  font-weight: 800; font-size: 15px; color: var(--text); letter-spacing: -.01em;
+  font-weight: 800; font-size: 16.5px; color: var(--text); letter-spacing: -.01em;
   overflow: hidden; white-space: nowrap; max-width: 160px; opacity: 1;
   transition: max-width .15s, opacity .1s;
 }
@@ -207,8 +207,8 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
   transition: max-width .15s, opacity .1s;
 }
 .sidebar.collapsed .acct-info { max-width: 0; opacity: 0; }
-.acct-name { font-weight: 700; font-size: 13.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.acct-sub { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-name { font-weight: 700; font-size: 15.5px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-sub { font-size: 13px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .nav { display: flex; flex-direction: column; gap: 2px; }
 /* padding-left: 15px centers the 18px icon exactly within the collapsed
@@ -217,14 +217,14 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 .nav-item {
   display: flex; align-items: center; gap: 11px;
   padding: 9px 11px 9px 15px; border-radius: var(--radius-sm);
-  color: var(--text-soft); font-weight: 550; font-size: 14px;
+  color: var(--text-soft); font-weight: 550; font-size: 15.5px;
   transition: background .12s, color .12s, gap .15s;
 }
 .sidebar.collapsed .nav-item { gap: 0; }
 /* Some nav-items are <button>s now (notifications/theme/language toggles), not
    just <a> page links — an existing "button.nav-item" reset further down
    (REFACTOR section) already undoes the browser's default button chrome. */
-.nav-item .ni-ico { width: 18px; text-align: center; opacity: .8; font-size: 14px; font-family: var(--icon-font); }
+.nav-item .ni-ico { width: 18px; text-align: center; opacity: .8; font-size: 15.5px; font-family: var(--icon-font); }
 .nav-item > span:last-child {
   overflow: hidden; white-space: nowrap; max-width: 160px; opacity: 1;
   transition: max-width .15s, opacity .1s;
@@ -257,7 +257,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 .notif-row-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: 1; min-width: 0; }
 .notif-badge {
   flex: none; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
-  background: var(--neg); color: #fff; font-size: 10px; font-weight: 800;
+  background: var(--neg); color: #fff; font-size: 11.5px; font-weight: 800;
   display: flex; align-items: center; justify-content: center; line-height: 1;
 }
 .notif-badge[hidden] { display: none; }
@@ -279,7 +279,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 /* "Menu" section label — hides on collapse the same way .nav-item labels do,
    just vertically (it's a block label, not an icon row) rather than sideways. */
 .nav-section-label {
-  padding: 12px 8px 6px 15px; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  padding: 12px 8px 6px 15px; font-size: 12.5px; font-weight: 700; text-transform: uppercase;
   letter-spacing: .04em; color: var(--muted); line-height: 1.3; overflow: hidden; white-space: nowrap;
   max-height: 34px; opacity: 1; transition: max-height .15s, opacity .1s, padding .15s;
 }
@@ -305,17 +305,17 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
    the icon and label vertically centered and the same size in any language. */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  height: 38px; padding: 0 14px; line-height: 1; white-space: nowrap;
+  height: 42px; padding: 0 16px; line-height: 1; white-space: nowrap;
   border: 1px solid var(--border); background: var(--surface);
   color: var(--text); border-radius: 10px;
-  font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit;
+  font-weight: 600; font-size: 15px; cursor: pointer; font-family: inherit;
   transition: background .12s, border-color .12s, transform .05s;
 }
 /* Leading button icon (⭳, +): fixed size + symbol font so it never changes
    between languages and all icons match each other. */
 .btn-ico {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 16px; height: 16px; font-size: 15px; line-height: 1;
+  width: 16px; height: 16px; font-size: 16.5px; line-height: 1;
   font-family: var(--icon-font);
 }
 .btn:hover { background: var(--surface-2); }
@@ -332,7 +332,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 .icon-btn {
   width: 38px; height: 38px; border-radius: 10px; cursor: pointer;
   border: 1px solid var(--border); background: var(--surface); color: var(--text);
-  font-size: 16px; display: grid; place-items: center; font-family: var(--icon-font);
+  font-size: 17.5px; display: grid; place-items: center; font-family: var(--icon-font);
 }
 .icon-btn:hover { background: var(--surface-2); }
 
@@ -348,29 +348,29 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 }
 
 /* ===== Stage-1 additions ===== */
-.app-disclaimer { padding: 18px 26px 28px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.app-disclaimer { padding: 18px 26px 28px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--border); margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
 .app-disclaimer .footer-links { display: inline-flex; gap: 8px; color: var(--muted); }
 .app-disclaimer .footer-links a { color: var(--muted); text-decoration: none; }
 .app-disclaimer .footer-links a:hover { color: var(--text); text-decoration: underline; }
 .bc-menu { margin-left: auto; position: relative; }
-.bc-menu .icon-btn { width: 32px; height: 32px; font-size: 15px; }
+.bc-menu .icon-btn { width: 32px; height: 32px; font-size: 16.5px; }
 .bc-menu-pop {
   position: absolute; right: 0; top: calc(100% + 6px); z-index: 5;
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow);
   padding: 6px; display: flex; flex-direction: column; gap: 2px; min-width: 130px;
 }
 .bc-menu-pop[hidden] { display: none; }
-.bc-menu-pop button { text-align: left; border: 0; background: transparent; padding: 8px 10px; border-radius: 7px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--text); cursor: pointer; }
+.bc-menu-pop button { text-align: left; border: 0; background: transparent; padding: 8px 10px; border-radius: 7px; font: inherit; font-size: 14.5px; font-weight: 600; color: var(--text); cursor: pointer; }
 .bc-menu-pop button:hover { background: var(--surface-2); }
 .bc-menu-pop button.danger { color: var(--neg); }
-.bc-notes { margin: 10px 0 0; font-size: 12.5px; }
+.bc-notes { margin: 10px 0 0; font-size: 14.5px; }
 .broker-card.archived { opacity: .6; }
 .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
-.seg-btn { border: 0; background: var(--surface); color: var(--text-soft); font-family: inherit; font-size: 12.5px; font-weight: 600; padding: 7px 12px; cursor: pointer; }
+.seg-btn { border: 0; background: var(--surface); color: var(--text-soft); font-family: inherit; font-size: 14.5px; font-weight: 600; padding: 7px 12px; cursor: pointer; }
 .seg-btn.on { background: var(--brand); color: #fff; }
 .manual-price { color: var(--warn); }
 .live-price { color: var(--pos); font-weight: 650; }
-.lookup-status { font-size: 12.5px; margin: -4px 0 4px; min-height: 16px; }
+.lookup-status { font-size: 14.5px; margin: -4px 0 4px; min-height: 16px; }
 .lookup-status:empty { display: none; min-height: 0; margin: 0; }   /* no phantom gap when there's no lookup message */
 .lookup-status.ok { color: var(--text); }
 .lookup-status.ok .live-price { margin-left: 4px; }
@@ -391,9 +391,9 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
   padding: 8px 12px; border-radius: 8px; color: var(--text);
 }
 .ac-item:hover { background: var(--surface-2); }
-.ac-sym { font-weight: 700; font-size: 13px; white-space: nowrap; }
-.ac-name { min-width: 0; font-size: 12.5px; color: var(--text-soft); white-space: normal; overflow-wrap: anywhere; }
-.ac-exch { font-size: 11px; color: var(--muted); white-space: nowrap; text-align: right; }
+.ac-sym { font-weight: 700; font-size: 15px; white-space: nowrap; }
+.ac-name { min-width: 0; font-size: 14.5px; color: var(--text-soft); white-space: normal; overflow-wrap: anywhere; }
+.ac-exch { font-size: 12.5px; color: var(--muted); white-space: nowrap; text-align: right; }
 /* Holding detail */
 .ticker-link { color: var(--brand-ink); cursor: pointer; }
 .ticker-link:hover { text-decoration: underline; }
@@ -403,7 +403,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 
 .spin, .pf-refresh svg.spinning { animation: liveSpin .7s linear infinite; }
 @keyframes liveSpin { to { transform: rotate(360deg); } }
-.form .check { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-soft); }
+.form .check { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; gap: 8px; font-size: 15px; font-weight: 600; color: var(--text-soft); }
 .form .check input[type="checkbox"] { flex: 0 0 auto; width: 16px; height: 16px; margin: 0; }
 .form label.block { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
 
@@ -414,7 +414,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
   padding: 16px 18px 18px; min-width: 0;
 }
 .panel-head { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
-.panel-head h2 { font-size: 15px; display: flex; align-items: center; }
+.panel-head h2 { font-size: 16.5px; display: flex; align-items: center; }
 .panel-head .link, .panel-head .badge, .panel-head .seg, .panel-head small { margin-left: auto; }
 /* flex-shrink:0 plus a long text child (the Dividends page's fetch-status line) had no
    way to give: one sentence widened the whole document to ~490px on a 360px phone, so
@@ -425,7 +425,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 
 /* A smaller heading for a sub-section within a panel (e.g. "Import from CSV"
    inside Data & Backup) — same info-icon spacing convention as a panel title. */
-.sub-head { display: flex; align-items: center; font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 12px; }
+.sub-head { display: flex; align-items: center; font-weight: 700; font-size: 15px; color: var(--text); margin-bottom: 12px; }
 
 /* ---- Column visibility panel ---- */
 .col-panel-wrap { position: relative; }
@@ -448,14 +448,14 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 12px 8px; border-bottom: 1px solid var(--border);
 }
-.col-panel-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.col-panel-title { font-size: 15.5px; font-weight: 600; color: var(--text); }
 .col-panel-close {
   display: flex; align-items: center; justify-content: center;
   width: 24px; height: 24px; border: none; background: none;
   cursor: pointer; color: var(--muted); border-radius: 4px; padding: 0; flex: none;
 }
 .col-panel-close:hover { color: var(--text); background: var(--surface-2); }
-.col-panel-hint { font-size: 11px; color: var(--muted); padding: 5px 12px 3px; margin: 0; }
+.col-panel-hint { font-size: 12.5px; color: var(--muted); padding: 5px 12px 3px; margin: 0; }
 .col-panel-list { max-height: 60vh; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 4px 0 6px; }
 .col-toggle-row {
   display: flex; align-items: center; height: 36px; padding: 0 8px; gap: 8px;
@@ -474,7 +474,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 .grip-ico { display: block; }
 .col-toggle {
   display: flex; align-items: center; gap: 8px; height: 100%;
-  cursor: pointer; font-size: 13px; color: var(--text); flex: 1; min-width: 0;
+  cursor: pointer; font-size: 15px; color: var(--text); flex: 1; min-width: 0;
 }
 .col-toggle span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .col-toggle:hover { background: transparent; }
@@ -486,7 +486,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 .col-move-btns { display: none; flex: none; gap: 2px; }
 .col-move-up, .col-move-down {
   border: 1px solid var(--border); background: var(--surface); color: var(--muted);
-  border-radius: 5px; width: 22px; height: 22px; font-size: 10px; line-height: 1;
+  border-radius: 5px; width: 22px; height: 22px; font-size: 11.5px; line-height: 1;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 .col-move-up:disabled, .col-move-down:disabled { opacity: 0.3; cursor: default; }
@@ -499,7 +499,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 /* ---- Broker pills in holding cell (by-stock grouped view) ---- */
 .broker-pills { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; }
 .chip-pill {
-  font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 4px;
+  font-size: 11.5px; font-weight: 600; padding: 1px 6px; border-radius: 4px;
   background: var(--surface-2); border: 1px solid var(--border); color: var(--text-soft);
 }
 
@@ -508,7 +508,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 .grid-2 { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
 
 .badge {
-  font-size: 11px; font-weight: 650; padding: 3px 9px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 650; padding: 3px 9px; border-radius: 999px;
   border: 1px solid var(--border); color: var(--text-soft); background: var(--surface-2);
 }
 .badge.subtle { background: color-mix(in srgb, #6b7280 14%, transparent); color: var(--text-soft); border-color: transparent; }
@@ -533,19 +533,19 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
   border: 1px solid rgba(255,255,255,.14);
   border-radius: 8px;
   padding: 7px 11px;
-  font-size: 12.5px;
+  font-size: 14.5px;
   line-height: 1.5;
   white-space: nowrap;
   pointer-events: none;
   z-index: 9999;
   box-shadow: 0 6px 20px rgba(0,0,0,.4);
 }
-.ct-date { font-size: 11px; opacity: .7; margin-bottom: 2px; }
+.ct-date { font-size: 12.5px; opacity: .7; margin-bottom: 2px; }
 .ct-val { font-weight: 600; }
 .ct-row { display: flex; justify-content: space-between; gap: 14px; margin-top: 1px; }
-.ct-lbl { opacity: .7; font-size: 11px; }
+.ct-lbl { opacity: .7; font-size: 12.5px; }
 .alloc-legend { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 150px; }
-.legend-row { display: flex; align-items: center; gap: 9px; font-size: 13px; }
+.legend-row { display: flex; align-items: center; gap: 9px; font-size: 15px; }
 .legend-dot { width: 11px; height: 11px; border-radius: 3px; flex: 0 0 auto; }
 .legend-row .lr-pct { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
 
@@ -558,7 +558,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 
 /* ===================== Tables ===================== */
 .table-wrap { overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
-.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 15px; }
 /* table-layout:fixed makes the browser honor each column's declared percentage width
    literally, even when that squeezes a column below what its content needs — on a narrow
    mobile viewport this collapsed multi-word headers and values into overlapping text
@@ -570,7 +570,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
    per-table min-width inline, scaled to how many columns it actually has. */
 .data-table-fixed { table-layout: fixed; min-width: 640px; }
 .data-table th {
-  text-align: left; color: var(--text-soft); font-weight: 700; font-size: 12px;
+  text-align: left; color: var(--text-soft); font-weight: 700; font-size: 14px;
   text-transform: uppercase; letter-spacing: .03em;
   padding: 8px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
   /* white-space:nowrap with no overflow rule let a long header (e.g. "Calculated
@@ -618,14 +618,14 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
 .data-table tbody tr:hover { background: var(--surface-2); }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 .ticker { font-weight: 700; }
-.sub { color: var(--muted); font-size: 12px; }
+.sub { color: var(--muted); font-size: 14px; }
 .pos { color: var(--pos); font-weight: 650; }
 .neg { color: var(--neg); font-weight: 650; }
 .chip {
-  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
+  font-size: 12.5px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
   background: var(--surface-2); border: 1px solid var(--border); color: var(--text-soft);
 }
-.fx-note { color: var(--muted); font-size: 11px; }
+.fx-note { color: var(--muted); font-size: 12.5px; }
 
 /* ===================== Warnings ===================== */
 /* Neutral card with a thin colored accent stripe — no filled yellow background. */
@@ -635,8 +635,8 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
   border-left: 3px solid var(--warn);
   border-radius: var(--radius); padding: 13px 16px;
 }
-.warn-card .w-ico { font-size: 16px; line-height: 1.4; color: var(--warn); }
-.warn-card .w-body { font-size: 13px; color: var(--text-soft); }
+.warn-card .w-ico { font-size: 17.5px; line-height: 1.4; color: var(--warn); }
+.warn-card .w-body { font-size: 15px; color: var(--text-soft); }
 .warn-card .w-body strong { color: var(--text); }
 .warn-card.crit { border-left-color: var(--neg); }
 .warn-card.crit .w-ico { color: var(--neg); }
@@ -652,20 +652,20 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
   box-shadow: var(--shadow);
 }
 .notif-pop[hidden] { display: none; }
-.notif-head { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 14px; }
+.notif-head { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 15.5px; }
 .notif-section + .notif-section { border-top: 1px solid var(--border); }
-.notif-section-title { padding: 12px 16px 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.notif-section-title { padding: 12px 16px 6px; font-size: 12.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .notif-section-title.crit { color: var(--neg); }
-.notif-item { display: flex; gap: 10px; padding: 10px 16px; font-size: 12.5px; line-height: 1.55; }
+.notif-item { display: flex; gap: 10px; padding: 10px 16px; font-size: 14.5px; line-height: 1.55; }
 a.notif-item { cursor: pointer; transition: background-color .12s; }
 a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
 .notif-item-ico { flex: none; margin-top: 2px; color: var(--muted); }
 .notif-item.crit .notif-item-ico { color: var(--neg); }
-.notif-item .w-body { font-size: 12.5px; color: var(--text-soft); }
+.notif-item .w-body { font-size: 14.5px; color: var(--text-soft); }
 .notif-item .w-body strong { color: var(--text); }
 .notif-item-title { font-weight: 700; margin-bottom: 2px; color: var(--text); }
-.notif-item-date { font-size: 11px; margin-top: 4px; }
-.notif-empty { padding: 28px 16px; text-align: center; font-size: 13px; }
+.notif-item-date { font-size: 12.5px; margin-top: 4px; }
+.notif-empty { padding: 28px 16px; text-align: center; font-size: 15px; }
 
 /* ===================== Modal ===================== */
 .modal-backdrop {
@@ -683,9 +683,9 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
   display: flex; flex-direction: column;
 }
 .modal-head { display: flex; align-items: center; flex: none; padding: 16px 18px; border-bottom: 1px solid var(--border); }
-.modal-head h3 { font-size: 15px; }
+.modal-head h3 { font-size: 16.5px; }
 .modal-head .icon-btn { margin-left: auto; width: 32px; height: 32px; }
-.modal-body { padding: 20px 24px; font-size: 13.5px; overflow-y: auto; }
+.modal-body { padding: 20px 24px; font-size: 15.5px; overflow-y: auto; }
 
 /* Add / edit record drawer — right-side panel on desktop, bottom sheet on phones.
  * Holds the full add form (too many fields per type for a small centered modal). */
@@ -708,7 +708,7 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
 .drawer-backdrop.closing .drawer-panel { animation: drawer-out .22s cubic-bezier(.4,0,1,1) forwards; }
 @keyframes drawer-out { from { transform: translateX(0); opacity: 1; } to { transform: translateX(32px); opacity: 0; } }
 .drawer-head { display: flex; align-items: center; flex: none; padding: 16px 18px; border-bottom: 1px solid var(--border); }
-.drawer-head h2 { font-size: 16px; }
+.drawer-head h2 { font-size: 17.5px; }
 .drawer-head .icon-btn { margin-left: auto; width: 32px; height: 32px; }
 .drawer-body { padding: 20px 18px 26px; overflow-y: auto; flex: 1; }
 @media (max-width: 640px) {
@@ -728,18 +728,18 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
 
 .calc-row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; }
 .calc-row .cr-op { color: var(--muted); display: inline-block; min-width: 16px; margin-right: 4px; }
-.calc-row.total { font-weight: 600; font-size: 14px; border-top: 1px solid var(--border); border-bottom: 0; margin-top: 4px; padding-top: 12px; }
+.calc-row.total { font-weight: 600; font-size: 15.5px; border-top: 1px solid var(--border); border-bottom: 0; margin-top: 4px; padding-top: 12px; }
 .calc-row .cr-val { font-variant-numeric: tabular-nums; }
 /* When the result carries a percentage, stack it under the amount instead of
    beside it — same cell, its own line, so the two never share a row. */
 .calc-row.total .cr-val { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
-.cr-pct { font-size: 12px; font-weight: 600; color: var(--text-soft); }
+.cr-pct { font-size: 14px; font-weight: 600; color: var(--text-soft); }
 
 /* ===================== Toast ===================== */
 .toast {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
   background: var(--text); color: var(--surface);
-  padding: 11px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
+  padding: 11px 18px; border-radius: 10px; font-size: 15px; font-weight: 600;
   z-index: 200; box-shadow: var(--shadow); max-width: min(420px, calc(100vw - 32px));
 }
 /* On phones bottom:24px put the toast ON TOP of the fixed bottom nav — it covered the
@@ -759,7 +759,7 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
 .alert-stack { position: fixed; top: 0; left: 0; right: 0; z-index: 300; display: flex; flex-direction: column; }
 .alert-banner {
   display: flex; align-items: center; gap: 10px;
-  color: var(--text); font-size: 13px;
+  color: var(--text); font-size: 15px;
   /* .alert-stack is pinned to top:0, which on a notched phone is behind the
      status bar / Dynamic Island — the insets have to be paid here. */
   padding: calc(10px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px))
@@ -769,7 +769,7 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
    would otherwise repeat the whole inset as dead space. */
 .alert-banner ~ .alert-banner { padding-top: 10px; }
 .alert-banner[hidden] { display: none; }
-.alert-banner .w-ico { font-size: 15px; flex: none; }
+.alert-banner .w-ico { font-size: 16.5px; flex: none; }
 .alert-banner span:not(.w-ico) { flex: 1; }
 .alert-banner .icon-btn { flex: none; width: 26px; height: 26px; }
 .alert-banner.crit { background: var(--neg-bg); border-bottom: 1px solid var(--neg); }
@@ -845,15 +845,15 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
   }
   .bn-item {
     flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
-    font-size: 10.5px; color: var(--muted); padding: 6px 2px; font-weight: 600;
+    font-size: 12px; color: var(--muted); padding: 6px 2px; font-weight: 600;
   }
-  .bn-item span:first-child { font-size: 17px; font-family: var(--icon-font); }
+  .bn-item span:first-child { font-size: 18px; font-family: var(--icon-font); }
   .bn-item.active { color: var(--brand); }
   .bn-item.add { color: var(--brand-ink); }
   .bn-item.add span:first-child {
     background: var(--brand); color: #fff; width: 38px; height: 38px;
     border-radius: 12px; display: grid; place-items: center; margin-top: -18px;
-    box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 45%, transparent); font-weight: 700; font-size: 20px;
+    box-shadow: 0 6px 16px color-mix(in srgb, var(--brand) 45%, transparent); font-weight: 700; font-size: 21px;
   }
 
   /* Bigger touch targets in the bottom nav */
@@ -867,7 +867,7 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
 
 .empty { color: var(--muted); padding: 24px 4px; text-align: center; }
 .portfolio-empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 32px 24px 28px; gap: 16px; }
-.portfolio-empty .pe-msg { margin: 0; color: var(--text-soft); font-size: 14px; line-height: 1.65; max-width: 360px; }
+.portfolio-empty .pe-msg { margin: 0; color: var(--text-soft); font-size: 15.5px; line-height: 1.65; max-width: 360px; }
 
 /* ---- Filters bar ---- */
 .filters { display: flex; flex-wrap: wrap; gap: 10px; padding-bottom: 14px; margin-bottom: 0; border-bottom: 1px solid var(--border); align-items: center; }
@@ -889,20 +889,20 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
  * every hover. Position/edge-clamping is computed in JS against the real rendered box. */
 .col-info-tip {
   position: fixed; background: var(--surface); border: 1px solid var(--border);
-  color: var(--text); font-size: 11px; font-weight: 400; font-family: var(--font);
+  color: var(--text); font-size: 12.5px; font-weight: 400; font-family: var(--font);
   padding: 5px 9px; border-radius: 5px; width: max-content; max-width: 260px; z-index: 9999; line-height: 1.5;
   box-shadow: 0 2px 8px rgba(0,0,0,.14); pointer-events: none; white-space: normal; text-align: left;
 }
 /* .meta-note defaults to white-space:nowrap (right for its usual short "Prices
    as of ..." usages) but this one sentence is much longer and needs to wrap,
    or it overflows the viewport on mobile instead of just going to a 2nd line. */
-.pv-clock-note { display: flex; align-items: flex-start; font-size: 11px; margin-top: 6px; gap: 0; }
+.pv-clock-note { display: flex; align-items: flex-start; font-size: 12.5px; margin-top: 6px; gap: 0; }
 .pv-clock-note .meta-note { white-space: normal; }
 th[data-col-id="shares"] { min-width: 80px; }
 .filters select, .form select, .form input, .setting-rows select, .setting-rows input:not([type="checkbox"]), .panel-head-actions input[type="search"] {
-  font-family: inherit; font-size: 13px; color: var(--text);
+  font-family: inherit; font-size: 15px; color: var(--text);
   background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: 9px; padding: 8px 11px; min-width: 140px;
+  border-radius: 10px; padding: 10px 13px; min-width: 140px;
 }
 /* Native selects: drop the OS arrow + bright focus ring; draw a padded chevron that
    matches the styled dropdown, so Broker/Currency/filter/Settings selects all look the same. */
@@ -940,7 +940,7 @@ th[data-col-id="shares"] { min-width: 80px; }
 }
 .input-prefix-tag {
   display: flex; align-items: center; padding: 0 10px;
-  font-size: 12.5px; font-weight: 700; color: var(--muted);
+  font-size: 14.5px; font-weight: 700; color: var(--muted);
   background: var(--bg-soft); border-right: 1px solid var(--border);
 }
 .setting-rows .input-prefix input {
@@ -960,14 +960,14 @@ input[type="date"] { cursor: pointer; }
 .form label:not(.amt-label):not(.ccy-pair) .sel { width: 100%; }
 .sel-trigger {
   display: flex; align-items: center; gap: 8px; width: 100%;
-  font-family: inherit; font-size: 13px; color: var(--text);
+  font-family: inherit; font-size: 15px; color: var(--text);
   background: var(--surface-2); border: 1px solid var(--border);
   border-radius: 9px; padding: 8px 12px; cursor: pointer; text-align: left;
 }
 .sel-trigger:hover { border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); }
 .sel.open .sel-trigger { border-color: var(--brand); }
 .sel-val { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sel-caret { color: var(--muted); font-size: 10px; transition: transform .12s; margin-left: 2px; padding-right: 1px; }
+.sel-caret { color: var(--muted); font-size: 11.5px; transition: transform .12s; margin-left: 2px; padding-right: 1px; }
 .sel.open .sel-caret { transform: rotate(180deg); }
 .sel-pop {
   position: absolute; left: 0; right: 0; top: calc(100% + 5px); z-index: 70;
@@ -978,7 +978,7 @@ input[type="date"] { cursor: pointer; }
 .sel-opt {
   display: block; width: 100%; text-align: left; cursor: pointer;
   background: transparent; border: 0; color: var(--text);
-  font-family: inherit; font-size: 13px; padding: 9px 10px; border-radius: 7px;
+  font-family: inherit; font-size: 15px; padding: 9px 10px; border-radius: 7px;
 }
 .sel-opt:hover { background: var(--surface-2); }
 .sel-opt.on { background: color-mix(in srgb, var(--brand) 16%, transparent); color: var(--brand-ink); font-weight: 600; }
@@ -987,21 +987,21 @@ input[type="date"] { cursor: pointer; }
 .sel-more {
   display: block; width: 100%; text-align: left; cursor: pointer;
   background: transparent; border: 0; border-top: 1px solid var(--border);
-  color: var(--brand-ink); font-family: inherit; font-size: 12.5px; font-weight: 650;
+  color: var(--brand-ink); font-family: inherit; font-size: 14.5px; font-weight: 650;
   padding: 9px 10px; margin-top: 2px; border-radius: 0 0 7px 7px;
 }
 .sel-more:hover { background: var(--surface-2); }
 /* Searchable world-currency view */
 .sel-search { position: sticky; top: -4px; background: var(--surface); padding: 4px 2px 6px; }
 .sel-search-input {
-  width: 100%; font-family: inherit; font-size: 13px; color: var(--text);
+  width: 100%; font-family: inherit; font-size: 15px; color: var(--text);
   background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
 }
 .sel-search-input:focus { outline: none; border-color: var(--brand); }
 .sel-search-opt { display: flex; align-items: baseline; gap: 10px; }
 .sel-sym { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 42px; }
-.sel-name { color: var(--text-soft); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sel-empty { padding: 12px 10px; color: var(--muted); font-size: 12.5px; }
+.sel-name { color: var(--text-soft); font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sel-empty { padding: 12px 10px; color: var(--muted); font-size: 14.5px; }
 
 /* ---- Collapsible "Add opening holding" ---- */
 .panel.addhold { padding: 0; }
@@ -1013,13 +1013,13 @@ input[type="date"] { cursor: pointer; }
 .panel.addhold > summary::-webkit-details-marker { display: none; }
 .panel.addhold > summary:hover { background: var(--surface-2); }
 .panel.addhold > summary::after {
-  content: "▾"; flex: none; color: var(--text-soft); font-size: 14px; transition: transform .15s;
+  content: "▾"; flex: none; color: var(--text-soft); font-size: 15.5px; transition: transform .15s;
 }
 .panel.addhold[open] > summary::after { transform: rotate(180deg); }
 .panel.addhold[open] > summary { border-bottom: 1px solid var(--border-soft); border-radius: var(--radius) var(--radius) 0 0; }
 .addhold-head { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.addhold-title { font-weight: 650; font-size: 15px; color: var(--text); }
-.addhold-sub { font-weight: 500; font-size: 12px; color: var(--muted); }
+.addhold-title { font-weight: 650; font-size: 16.5px; color: var(--text); }
+.addhold-sub { font-weight: 500; font-size: 14px; color: var(--muted); }
 .addhold-body { padding: 16px 18px 18px; }
 
 /* Opening-holding form: contained 2-column form (collapses to 1 column on phones) */
@@ -1027,7 +1027,7 @@ input[type="date"] { cursor: pointer; }
 .opening-form .form-intro { margin: -2px 0 2px; }
 .opening-form .form-group { margin-top: 2px; }
 .opening-form .form-sub {
-  font-size: 11.5px; font-weight: 700; color: var(--muted);
+  font-size: 13px; font-weight: 700; color: var(--muted);
   text-transform: uppercase; letter-spacing: .05em; margin: 16px 0 9px;
 }
 .opening-form .form-group:first-of-type .form-sub { margin-top: 8px; }
@@ -1046,10 +1046,10 @@ input[type="date"] { cursor: pointer; }
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 15px 16px; box-shadow: var(--shadow);
 }
-.mc-label { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--muted); font-weight: 600; }
+.mc-label { display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: var(--muted); font-weight: 600; }
 .mc-label .col-info { flex: none; }
-.mc-value { font-size: 21px; font-weight: 720; margin-top: 6px; letter-spacing: -.02em; }
-.mc-sub { font-size: 11.5px; margin-top: 4px; line-height: 1.35; }
+.mc-value { font-size: 22.5px; font-weight: 720; margin-top: 6px; letter-spacing: -.02em; }
+.mc-sub { font-size: 13px; margin-top: 4px; line-height: 1.35; }
 /* A mini-card that opens a calc breakdown on click (same interaction as the
    Dashboard's stat cards) — percentage/detail lives in the modal, not a
    permanently-visible subtitle. */
@@ -1092,8 +1092,8 @@ input[type="date"] { cursor: pointer; }
 .cash-item + .cash-item::before {
   content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 1px; background: var(--border);
 }
-.cash-k { color: var(--muted); font-weight: 600; font-size: 12.5px; }
-.cash-v { font-weight: 750; font-size: 15px; font-variant-numeric: tabular-nums; }
+.cash-k { color: var(--muted); font-weight: 600; font-size: 14.5px; }
+.cash-v { font-weight: 750; font-size: 16.5px; font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) {
   .cash-strip { flex-direction: column; align-items: stretch; }
   .cash-item + .cash-item::before { display: none; }
@@ -1106,7 +1106,7 @@ input[type="date"] { cursor: pointer; }
 .ph-stat { cursor: pointer; padding: 10px 12px; border-radius: 10px; transition: background-color .12s; }
 .ph-stat:hover { background: var(--surface-2); }
 .ph-stat-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.ph-stat-value { font-size: 21px; font-weight: 720; margin-top: 6px; letter-spacing: -.02em; }
+.ph-stat-value { font-size: 22.5px; font-weight: 720; margin-top: 6px; letter-spacing: -.02em; }
 
 /* Same "no individual card borders" idea as .ph-row, for plain (non-clickable) stat rows —
    separated by a thin vertical rule between stats instead of relying on gap/whitespace alone. */
@@ -1118,12 +1118,12 @@ input[type="date"] { cursor: pointer; }
 
 /* ---- CSV import preview ---- */
 .import-preview { margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 14px; }
-.import-summary { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+.import-summary { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
 .import-preview .row-bad { background: color-mix(in srgb, var(--neg) 9%, transparent); }
 .import-preview .row-dup { opacity: .62; }
 .import-preview .badge.neg { white-space: normal; max-width: 280px; display: inline-block; line-height: 1.3; }
 .warn-txt { color: var(--warn); font-weight: 650; }
-.btn.small { padding: 4px 10px; font-size: 12px; }
+.btn.small { padding: 4px 10px; font-size: 14px; }
 
 /* ---- Forms ---- */
 /* min-width:0 at every level here breaks the flex/grid "min-width:auto defaults to
@@ -1133,7 +1133,7 @@ input[type="date"] { cursor: pointer; }
    off-screen on narrow viewports instead of the fields actually stacking to fit. */
 .form { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap: 14px; min-width: 0; }
-.form label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 600; color: var(--text-soft); min-width: 0; }
+.form label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; color: var(--text-soft); min-width: 0; }
 .form input, .form select { min-width: 0; }
 /* The notes field (.note-field) is a <textarea> now, not a single-line <input> — the
    auto-logged-dividend caution note it carries by default is a full sentence (~150 chars)
@@ -1141,14 +1141,14 @@ input[type="date"] { cursor: pointer; }
    Mirrors .form input/select's own look (not folded into that shared selector, to avoid
    touching every OTHER input/select in the app for a change only this field needs). */
 .form textarea {
-  font-family: inherit; font-size: 13px; color: var(--text);
+  font-family: inherit; font-size: 15px; color: var(--text);
   background: var(--surface-2); border: 1px solid var(--border);
   border-radius: 9px; padding: 8px 11px; min-width: 0; min-height: 60px;
   resize: vertical; line-height: 1.4;
 }
 .form textarea:focus { outline: none; border-color: var(--brand); box-shadow: none; }
 .field-invalid { border-color: var(--neg) !important; }
-.field-err { font-size: 12px; color: var(--neg); margin: -4px 0 4px; line-height: 1.4; }
+.field-err { font-size: 14px; color: var(--neg); margin: -4px 0 4px; line-height: 1.4; }
 /* The normal case: fieldErr() appends the message inside the field's own label, which is a
    flex column with its own 6px gap — no extra margin needed, and it stays in that label's
    grid cell so a neighbouring field never gets pushed onto the next row. */
@@ -1159,15 +1159,15 @@ input[type="date"] { cursor: pointer; }
 .form-grid > .field-err { grid-column: 1 / -1; }
 .form-note {
   background: var(--warn-bg); border: 1px solid var(--warn-bd);
-  border-radius: var(--radius-sm); padding: 10px 13px; font-size: 12.5px; margin: 0;
+  border-radius: var(--radius-sm); padding: 10px 13px; font-size: 14.5px; margin: 0;
 }
 .form-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.add-total { margin-left: auto; font-size: 13px; color: var(--text-soft); white-space: nowrap; }
+.add-total { margin-left: auto; font-size: 15px; color: var(--text-soft); white-space: nowrap; }
 .add-total strong { color: var(--text); font-weight: 750; }
-.fx-hint { display: none; margin-top: 4px; font-size: 11.5px; font-weight: 600; color: var(--warn); }
-.form-optional { font-weight: 400; color: var(--muted); font-size: 11px; margin-left: 3px; }
+.fx-hint { display: none; margin-top: 4px; font-size: 13px; font-weight: 600; color: var(--warn); }
+.form-optional { font-weight: 400; color: var(--muted); font-size: 12.5px; margin-left: 3px; }
 .note-wrap { margin-top: 6px; }
-.note-add-btn { background: none; border: none; cursor: pointer; font-size: 13px; font-weight: 650; color: var(--brand); padding: 2px 0; }
+.note-add-btn { background: none; border: none; cursor: pointer; font-size: 15px; font-weight: 650; color: var(--brand); padding: 2px 0; }
 .note-add-btn:hover { opacity: .75; }
 .note-field { display: flex; flex-direction: column; gap: 6px; }
 
@@ -1180,7 +1180,7 @@ input[type="date"] { cursor: pointer; }
 .sel-combo-l .sel-trigger { border-top-right-radius: 0; border-bottom-right-radius: 0; min-width: 76px; max-width: 100px; }
 .ccy-combo > input:focus, .sel-combo-l.open .sel-trigger { position: relative; z-index: 1; }
 .ccy-combo .sel-pop { left: 0; right: auto; min-width: 230px; max-width: 280px; }
-.fx-rate-info { font-size: 12px; color: var(--muted); margin: 2px 0 0; line-height: 1.5; }
+.fx-rate-info { font-size: 14px; color: var(--muted); margin: 2px 0 0; line-height: 1.5; }
 .fx-rate-info .fx-rate-val { font-weight: 650; color: var(--text); }
 
 /* ---- Brokers ---- */
@@ -1197,23 +1197,23 @@ input[type="date"] { cursor: pointer; }
 }
 .bc-head { display: flex; align-items: center; gap: 11px; margin-bottom: 16px; }
 .bc-head .badge { margin-left: 6px; }
-.brand-mark.sm { width: 30px; height: 30px; font-size: 12px; border-radius: 8px; }
+.brand-mark.sm { width: 30px; height: 30px; font-size: 14px; border-radius: 8px; }
 .bc-name { font-weight: 700; }
 
 /* Hero figure: Market Value + Total Return, the one "how's this broker doing" glance —
  * everything else in the card is secondary to this, same idea as the Dashboard's own
  * Net Worth / Total Return hero stats. */
 .bc-hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid var(--border); }
-.bc-hero-label { display: block; font-size: 11.5px; color: var(--muted); font-weight: 650; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 4px; }
-.bc-hero-value { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.bc-hero-label { display: block; font-size: 13px; color: var(--muted); font-weight: 650; text-transform: uppercase; letter-spacing: .03em; margin-bottom: 4px; }
+.bc-hero-value { font-size: 23.5px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .bc-hero-return {
   text-align: right; cursor: pointer; border-radius: var(--radius-sm);
   padding: 4px 6px; margin: -4px -6px; transition: background .12s;
 }
 .bc-hero-return:hover { background: var(--surface-2); }
 .bc-hero-return:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-.bc-hero-return-amt { display: block; font-weight: 700; font-size: 14.5px; font-variant-numeric: tabular-nums; }
-.bc-hero-return-pct { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.bc-hero-return-amt { display: block; font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+.bc-hero-return-pct { display: flex; align-items: center; justify-content: flex-end; gap: 4px; font-size: 13px; color: var(--muted); margin-top: 2px; }
 .bc-hero-return-pct svg { flex: none; }
 /* Market value and total return sit side by side; neither shrinks (both are unbreakable
    tabular numbers), so on a narrow phone they have to wrap onto separate lines instead. */
@@ -1226,8 +1226,8 @@ input[type="date"] { cursor: pointer; }
 
 .bc-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 10px; margin: 0; }
 .bc-list > div { display: flex; flex-direction: column; }
-.bc-list dt { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
-.bc-list dd { margin: 2px 0 0; font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.bc-list dt { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+.bc-list dd { margin: 2px 0 0; font-size: 16.5px; font-weight: 650; font-variant-numeric: tabular-nums; }
 /* Same click-to-see-calculation affordance as .bc-hero-return, just sized for a regular
    .bc-list row instead of the card's hero stat. */
 .bc-netcash { cursor: pointer; border-radius: var(--radius-sm); padding: 4px 6px; margin: -4px -6px; transition: background .12s; }
@@ -1247,11 +1247,11 @@ input[type="date"] { cursor: pointer; }
  * already lands it in the same spot — no width-matching trick needed. */
 .bc-more { margin-top: 14px; }
 .bc-more summary {
-  list-style: none; cursor: pointer; font-size: 12.5px; font-weight: 650; color: var(--brand-ink);
+  list-style: none; cursor: pointer; font-size: 14.5px; font-weight: 650; color: var(--brand-ink);
   display: flex; align-items: center; justify-content: flex-end; gap: 6px; padding: 2px 0;
 }
 .bc-more summary::-webkit-details-marker { display: none; }
-.bc-more summary::after { content: "▸"; font-size: 10px; transition: transform .15s; }
+.bc-more summary::after { content: "▸"; font-size: 11.5px; transition: transform .15s; }
 .bc-more[open] summary::after { transform: rotate(90deg); }
 .bc-more .bc-list { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
 
@@ -1260,7 +1260,7 @@ input[type="date"] { cursor: pointer; }
  * flags something worth a look, not a loss, so it shouldn't read as alarming as P/L red. */
 .warn-pill {
   display: inline-flex; align-items: center; gap: 4px;
-  font-weight: 700; font-size: 10.5px; padding: 3px 8px; border-radius: 999px;
+  font-weight: 700; font-size: 12px; padding: 3px 8px; border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--warn) 45%, transparent);
   background: color-mix(in srgb, var(--warn) 12%, transparent); color: var(--warn);
 }
@@ -1270,12 +1270,12 @@ input[type="date"] { cursor: pointer; }
 .setting-rows { display: flex; flex-direction: column; }
 .setting-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--border-soft); }
 .setting-row:last-child { border-bottom: 0; }
-.sr-label { color: var(--text-soft); font-weight: 600; font-size: 13px; }
+.sr-label { color: var(--text-soft); font-weight: 600; font-size: 15px; }
 .sr-value { font-weight: 600; }
 
 /* ---- Exchange rate controls ---- */
 .fx-input {
-  font-family: inherit; font-size: 13px; color: var(--text);
+  font-family: inherit; font-size: 15px; color: var(--text);
   background: var(--surface-2); border: 1px solid var(--border);
   border-radius: 9px; padding: 8px 11px;
 }
@@ -1285,7 +1285,7 @@ input[type="date"] { cursor: pointer; }
    button inside the input — off-center and inconsistent with every other input
    in the app. Hide it; the datalist suggestions still work without it. */
 .fx-input::-webkit-calendar-picker-indicator { display: none !important; }
-.fx-del { width: 32px; height: 32px; font-size: 13px; }
+.fx-del { width: 32px; height: 32px; font-size: 15px; }
 /* Reveal on row hover, same as the Records table's edit/delete icons (.rec-actions) */
 @media (hover: hover) {
   .fx-del { opacity: 0; transition: opacity .12s; }
@@ -1307,7 +1307,7 @@ input[type="date"] { cursor: pointer; }
 }
 .fx-row:last-child { border-bottom: 0; }
 .fx-ccy { font-weight: 600; }
-.fx-rate-static { color: var(--muted); font-size: 13px; }
+.fx-rate-static { color: var(--muted); font-size: 15px; }
 .fx-row-controls { display: flex; align-items: center; gap: 10px; flex: none; }
 .fx-ccy-input { width: 140px; }
 /* Unlike the read-only rows above (short code vs. right-pinned controls), the
@@ -1316,13 +1316,13 @@ input[type="date"] { cursor: pointer; }
    with a dead gap in the middle. */
 .fx-row-add { justify-content: flex-start; padding-top: 10px; }
 .fx-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
-.fx-status { font-size: 12px; }
+.fx-status { font-size: 14px; }
 
 /* ---- Price Alerts ---- */
 .alert-push-row {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   margin: 0 0 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border-soft);
-  font-size: 13px; color: var(--text-soft);
+  font-size: 15px; color: var(--text-soft);
 }
 .alert-list { display: flex; flex-direction: column; }
 .alert-row {
@@ -1338,7 +1338,7 @@ input[type="date"] { cursor: pointer; }
 /* Each section is a plain heading, not a second card — .help-item below is
    already its own boxed accordion, so a wrapping panel() was just a box
    around a stack of boxes. */
-.help-section-title { font-size: 15px; margin: 0 0 14px; }
+.help-section-title { font-size: 16.5px; margin: 0 0 14px; }
 .help-list { display: flex; flex-direction: column; gap: 10px; }
 .help-item {
   background: var(--surface); border: 1px solid var(--border);
@@ -1348,7 +1348,7 @@ input[type="date"] { cursor: pointer; }
 .help-item summary::-webkit-details-marker { display: none; }
 .help-item summary::before { content: "＋"; color: var(--brand); margin-right: 10px; font-weight: 700; }
 .help-item[open] summary::before { content: "−"; }
-.help-item p { margin: 0 0 14px; color: var(--text-soft); font-size: 13.5px; }
+.help-item p { margin: 0 0 14px; color: var(--text-soft); font-size: 15.5px; }
 
 /* =============================================================================
  * REFACTOR — 5-item nav, "More" sheet, dashboard hero, Add type-picker,
@@ -1356,7 +1356,7 @@ input[type="date"] { cursor: pointer; }
  * ========================================================================== */
 
 /* Make <button> nav items identical to the <a> nav items */
-button.nav-item { width: 100%; font-family: inherit; font-size: 14px; background: transparent; border: 0; cursor: pointer; text-align: left; }
+button.nav-item { width: 100%; font-family: inherit; font-size: 15.5px; background: transparent; border: 0; cursor: pointer; text-align: left; }
 button.bn-item { font-family: inherit; background: transparent; border: 0; cursor: pointer; }
 
 /* Clean line icons (inline SVG sprite) */
@@ -1387,7 +1387,7 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
  * position between the low and high bounds. No fill bar (that would imply a
  * "progress toward" reading, e.g. toward the high, which isn't the intent). */
 .range52 { margin: 12px 0 0; }
-.range52-labels { display: flex; justify-content: space-between; font-size: 11.5px; margin: 0 0 5px; }
+.range52-labels { display: flex; justify-content: space-between; font-size: 13px; margin: 0 0 5px; }
 .range52-track { position: relative; height: 4px; border-radius: 999px; background: var(--border); }
 .range52-marker {
   position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%;
@@ -1407,7 +1407,7 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .stat:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .stat.net { background: linear-gradient(150deg, color-mix(in srgb, var(--brand) 12%, var(--surface)), var(--surface)); }
 .stat-head { display: flex; align-items: center; gap: 8px; min-height: 28px; flex-wrap: wrap; }
-.stat-label { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.stat-label { font-size: 14.5px; color: var(--muted); font-weight: 600; }
 .stat-head .col-info, .stat-head .seg, .stat-head .stat-head-group { margin-left: auto; }
 /* Toggle + "how" icon together (P/L card) — a bit more breathing room between
  * them than a plain gap, so two controls next to each other don't read as one
@@ -1416,27 +1416,27 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .stat-head-group .seg { margin-left: 0; }
 .stat-value { font-size: 30px; font-weight: 780; letter-spacing: -.03em; margin-top: 8px; line-height: 1.05; }
 .stat.net .stat-value { font-size: 33px; }
-.stat-sub { font-size: 12px; margin-top: 6px; }
+.stat-sub { font-size: 14px; margin-top: 6px; }
 .td-holding { max-width: 220px; overflow: hidden; }
 .td-holding .ticker-link { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .td-holding .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Small segmented toggle that lives inside a card header */
 .seg.seg-sm { border-radius: 999px; }
-.seg-sm .seg-btn { padding: 3px 11px; font-size: 11px; font-weight: 650; }
+.seg-sm .seg-btn { padding: 3px 11px; font-size: 12.5px; font-weight: 650; }
 
-.dash-footnote { font-size: 11.5px; margin: 2px 0 0; text-align: right; }
+.dash-footnote { font-size: 13px; margin: 2px 0 0; text-align: right; }
 /* One shared look for every small "as of / last saved" status line, wherever
  * it appears — icon + muted text, same size, same gap, every time. */
-.meta-note { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.meta-note { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
 .meta-note svg { flex: none; }
 
 /* Compact one-line empty state for dashboard list panels */
-.empty-line { padding: 6px 2px 2px; font-size: 13px; }
+.empty-line { padding: 6px 2px 2px; font-size: 15px; }
 
 /* Portfolio Value Over Time — external legend below chart */
 .chart-legend { display: flex; gap: 24px; justify-content: center; padding: 8px 0 2px; }
-.cl-item { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--text-soft); white-space: nowrap; }
+.cl-item { display: flex; align-items: center; gap: 7px; font-size: 12.5px; color: var(--text-soft); white-space: nowrap; }
 .cl-nw { display: inline-block; width: 22px; height: 2px; background: var(--brand); border-radius: 1px; }
 .cl-p { display: inline-block; width: 22px; height: 0; border-top: 1.5px dashed var(--muted); }
 
@@ -1445,7 +1445,7 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .dash-charts .panel .panel-body { flex: 1; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
 .dash-charts .chart.alloc { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
 .dash-charts .chart.alloc svg { width: 160px !important; height: 160px !important; }
-.dash-charts .alloc-legend { font-size: 11px; padding-top: 0; }
+.dash-charts .alloc-legend { font-size: 12.5px; padding-top: 0; }
 .dash-charts .alloc-legend .legend-row { padding: 2px 0; gap: 5px; }
 .dash-charts .alloc-legend .lr-pct { margin-left: auto; }
 
@@ -1463,8 +1463,8 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 @media (max-width: 560px) {
   .metrics { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .metrics .stat { padding: 13px 14px; }
-  .metrics .stat-value { font-size: 20px; }
-  .metrics .stat-sub { font-size: 11px; }
+  .metrics .stat-value { font-size: 21px; }
+  .metrics .stat-sub { font-size: 12.5px; }
   .metrics .stat.net, .metrics .stat.pl { grid-column: 1 / -1; }
   .metrics .stat.net .stat-value { font-size: 28px; }
   .metrics .stat.pl .stat-value { font-size: 26px; }
@@ -1473,12 +1473,12 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
   /* Same one-per-row problem, same fix, for the other stat strips. */
   .mini-cards { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .mini-card { padding: 13px 14px; }
-  .mc-value { font-size: 18px; }
+  .mc-value { font-size: 19px; }
   .mini-cards .mini-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
 
   .ph-row, .plain-stat-row { grid-template-columns: repeat(2, 1fr); }
   .ph-stat { padding: 10px 10px; }
-  .ph-stat-value { font-size: 18px; }
+  .ph-stat-value { font-size: 19px; }
   /* Side by side, a one-line label ("XIRR") and a two-line one ("Diversification Score")
      pushed their values to different heights. Reserve two lines for every label. */
   .ph-stat-head { min-height: 34px; align-items: flex-start; }
@@ -1509,7 +1509,7 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .more-item:hover { background: var(--surface-2); }
 .more-item.active { background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand-ink); }
 .more-item .ni-ico { font-family: var(--icon-font); text-align: center; opacity: .85; }
-.more-item .more-sub { grid-column: 2; font-size: 11.5px; font-weight: 500; color: var(--muted); }
+.more-item .more-sub { grid-column: 2; font-size: 13px; font-weight: 500; color: var(--muted); }
 /* Language + theme — the sidebar's versions of these are unreachable here (the
    sidebar is display:none below the mobile breakpoint), so this row is their
    mobile home instead. */
@@ -1530,7 +1530,7 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
   display: inline-flex; align-items: center; gap: 7px;
   padding: 8px 13px; border: 1px solid var(--border); border-radius: 999px;
   background: var(--surface-2); color: var(--text-soft);
-  font-weight: 600; font-size: 13px; cursor: pointer; line-height: 1;
+  font-weight: 600; font-size: 15px; cursor: pointer; line-height: 1;
   font-family: inherit;   /* used on <button> (Records tabs) as well as <a> — buttons don't inherit font by default */
   transition: border-color .12s, background .12s, color .12s;
 }
@@ -1539,10 +1539,10 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .tp-tab-ico { display: inline-flex; }
 .tp-tab .icon { width: 16px; height: 16px; }
 .tp-tab.on .icon { stroke: #fff; }
-.type-tabs.sm .tp-tab { padding: 6px 12px; font-size: 12.5px; }
+.type-tabs.sm .tp-tab { padding: 6px 12px; font-size: 14.5px; }
 /* "Other" rare-types dropdown — trigger is a normal pill; the menu floats below it. */
 .type-other { position: relative; }
-.tp-caret { margin-left: 5px; font-size: 10px; opacity: .7; }
+.tp-caret { margin-left: 5px; font-size: 11.5px; opacity: .7; }
 .type-other-menu {
   position: absolute; top: calc(100% + 6px); right: 0; z-index: 60;
   background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
@@ -1552,7 +1552,7 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 .type-other-menu[hidden] { display: none; }   /* beats .type-other-menu display:flex */
 .type-other-item {
   text-align: left; padding: 9px 12px; border-radius: 7px; border: 0;
-  background: transparent; color: var(--text); font-family: inherit; font-size: 13px;
+  background: transparent; color: var(--text); font-family: inherit; font-size: 15px;
   font-weight: 600; cursor: pointer; white-space: nowrap;
 }
 .type-other-item:hover { background: var(--surface-2); }
@@ -1574,7 +1574,7 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
 
 /* --- Collapsible secondary fields (fees / taxes / details) --- */
 .more-fields { border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 14px; background: var(--surface-2); }
-.more-fields > summary { cursor: pointer; font-weight: 650; font-size: 13px; color: var(--text-soft); padding: 12px 0; list-style: none; }
+.more-fields > summary { cursor: pointer; font-weight: 650; font-size: 15px; color: var(--text-soft); padding: 12px 0; list-style: none; }
 .more-fields > summary::-webkit-details-marker { display: none; }
 .more-fields > summary::before { content: "＋"; color: var(--brand); margin-right: 8px; font-weight: 700; }
 .more-fields[open] > summary::before { content: "−"; }
@@ -1601,7 +1601,7 @@ button.bn-item { font-family: inherit; background: transparent; border: 0; curso
   .filters select, .form select, .form input,
   .setting-rows select, .setting-rows input:not([type="checkbox"]),
   .panel-head-actions input[type="search"],
-  .fx-input, .sel-search-input, .sel-trigger, .sel-opt { font-size: 16px; }
+  .fx-input, .sel-search-input, .sel-trigger, .sel-opt { font-size: 17.5px; }
   .form input, .form select, .setting-rows input:not([type="checkbox"]),
   .fx-input, .sel-trigger { min-height: 44px; }
   /* 16px text needs more room than 13px did before "MYR" starts ellipsising. */
