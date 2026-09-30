@@ -3947,7 +3947,16 @@ function renderAddDrawerBody(type, editing) {
     menu.style.transform = "";
     const r = menu.getBoundingClientRect();
     const margin = 8;
-    if (r.left < margin) menu.style.transform = `translateX(${margin - r.left}px)`;
+    // Bound it by the DRAWER's own edges, not just the screen's: the drawer panel clips
+    // anything past its left edge (on a desktop it starts ~44px in), so measuring against
+    // the viewport left the first few characters of every item cut off there.
+    const clip = (body.closest(".drawer, .drawer-panel, [class*=drawer]") || body).getBoundingClientRect();
+    const minLeft = Math.max(0, clip.left) + margin;
+    const maxRight = Math.min(window.innerWidth, clip.right) - margin;
+    let dx = 0;
+    if (r.left < minLeft) dx = minLeft - r.left;
+    else if (r.right > maxRight) dx = maxRight - r.right;
+    if (dx) menu.style.transform = `translateX(${dx}px)`;
   });
   translateDOM(body);
 }
