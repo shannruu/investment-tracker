@@ -4787,6 +4787,7 @@ function dividendForecast(received, upcoming, tickerScope) {
  * PAGE: DIVIDENDS
  * ========================================================================== */
 let divCalendarFilter = "all";   // all | past | upcoming — filters the combined dividend calendar
+let divCalScrollTop = null;      // calendar's scroll position — survives the page's background re-renders; null = not scrolled by the user yet, so jump to the next payment
 let divIncomePeriod = "monthly"; // monthly | quarterly | annual — which Dividend Income view is shown
 let exDivWindowDays = 14;        // 7 | 14 | 30 — how far ahead the ex-dividend screener looks
 let exDivSearch = "";            // client-side ticker/company filter for the ex-dividend screener
@@ -5083,7 +5084,11 @@ function pageDividends() {
     <div id="divUpcomingSection">
       ${panel(`${t("Dividend Calendar")}${calendarTitleTip}`,
         allDivEntries.length
-          ? table([
+          // Years of history can run to dozens of rows — scroll inside a fixed-height box
+          // (sticky header, same .dcc-table-scroll pattern as the Holding Detail calendar)
+          // instead of pushing everything below it off-screen. Only once it's long enough
+          // to need it.
+          ? `<div id="divCalScroll" class="${calendarFiltered.length > 7 ? "dcc-table-scroll divcal-table-scroll" : ""}">${table([
               { label: t("Holding"), style: "width:14%;text-align:left" },
               { label: `${t("Ex-Date")}${exDateTip}`, style: "width:14%;text-align:left" },
               { label: `${t("Est. Payment")}${payDateTip}`, style: "width:14%;text-align:left" },
@@ -5092,7 +5097,7 @@ function pageDividends() {
               { label: t("Yield"), style: "width:14%;text-align:left" },
               { label: t("Status"), style: "width:14%;text-align:left" },
               { label: "" },
-            ], calendarRows)
+            ], calendarRows)}</div>`
           // Genuinely empty now only when there's no logged history AND no declared date
           // AND no detectable pattern anywhere in the portfolio.
           : `<p class="muted" style="margin:0 0 12px;font-size:13px">${
@@ -5141,7 +5146,24 @@ function pageDividends() {
         });
       });
       const calendarFilterEl = $("#divCalendarFilterSel");
-      if (calendarFilterEl) calendarFilterEl.addEventListener("change", () => { divCalendarFilter = calendarFilterEl.value; render(); });
+      if (calendarFilterEl) calendarFilterEl.addEventListener("change", () => { divCalendarFilter = calendarFilterEl.value; divCalScrollTop = null; render(); });
+      // Position the calendar box: keep wherever the user scrolled it to across this page's
+      // background re-renders (market data landing re-renders it a moment after load);
+      // otherwise open on the next payment — the row that matters, not the oldest history.
+      const calScroll = $("#divCalScroll");
+      if (calScroll && calScroll.classList.contains("dcc-table-scroll")) {
+        // Our own positioning below fires a scroll event too — only a genuine user scroll
+        // should count as "the user moved it", or the auto-position would freeze in place.
+        let settingPos = true;
+        if (divCalScrollTop != null) calScroll.scrollTop = divCalScrollTop;
+        else {
+          const nextRow = calScroll.querySelector(".next-div-row");
+          const headH = (calScroll.querySelector("thead") || { offsetHeight: 0 }).offsetHeight;
+          if (nextRow) calScroll.scrollTop = Math.max(0, nextRow.getBoundingClientRect().top - calScroll.getBoundingClientRect().top + calScroll.scrollTop - headH - 60);
+        }
+        requestAnimationFrame(() => { settingPos = false; });
+        calScroll.addEventListener("scroll", () => { if (!settingPos) divCalScrollTop = calScroll.scrollTop; }, { passive: true });
+      }
       const incomePeriodEl = $("#divIncomePeriodSel");
       if (incomePeriodEl) incomePeriodEl.addEventListener("change", () => { divIncomePeriod = incomePeriodEl.value; render(); });
       if (LIVE_ENABLED) {
