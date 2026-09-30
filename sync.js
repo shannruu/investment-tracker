@@ -87,13 +87,17 @@ try {
 } catch (e) {}
 if (AUTH_GATE_PREVIEW) { const g0 = document.getElementById("authGate"); if (g0) g0.hidden = true; }
 let AUTH_GATE_TIMER = null;
+const AUTH_GATE_DEMO = (location.search.match(/[?&]gate=(done|confirm)/) || [])[1] || "";
+let AUTH_GATE_HOLD = false;   // true while a sign-up success page is showing: nothing may hide/replace it except its own button
 function authGateEl() { return document.getElementById("authGate"); }
 function hideAuthGate() {
+  if (AUTH_GATE_HOLD) return;
   clearTimeout(AUTH_GATE_TIMER);
   const g = authGateEl(); if (g) g.hidden = true;
 }
 function showAuthGate() {
   const g = authGateEl(); if (!g) return;
+  if (AUTH_GATE_HOLD) return;
   if (AUTH_GATE_PREVIEW) { hideAuthGate(); return; }
   clearTimeout(AUTH_GATE_TIMER);
   g.hidden = false; g.dataset.state = "form";
@@ -122,10 +126,11 @@ function showAuthGate() {
     const btn = form.querySelector("button[type=submit]"); btn.disabled = true; status.textContent = "";
     try {
       if (signup) {
+        AUTH_GATE_HOLD = true;   // set BEFORE the call: SIGNED_IN can fire while signUp() is still awaiting
         const { data, error } = await SUPABASE.auth.signUp({ email, password });
+        AUTH_GATE_HOLD = false;
         if (error) status.textContent = mapAuthError(error, "signup");
-        else if (!data.session) { showAuthGateSuccess(email); return; }
-        // else a session came back at once: onAuthStateChange (initSync) takes it from here.
+        else { showAuthGateSuccess(email, !!data.session); return; }
       } else {
         const { error } = await SUPABASE.auth.signInWithPassword({ email, password });
         if (error) status.textContent = mapAuthError(error, "signin");
@@ -137,24 +142,31 @@ function showAuthGate() {
 }
 /* Shown after sign-up when the project requires email confirmation (no session yet) — a success
  * screen, not an error line: the account exists, one email click is all that's left. */
-function showAuthGateSuccess(email) {
+function showAuthGateSuccess(email, ready) {
   const g = authGateEl(); if (!g) return;
-  if (AUTH_GATE_PREVIEW) { hideAuthGate(); return; }
+  AUTH_GATE_HOLD = true;
   g.hidden = false; g.dataset.state = "success";
   g.innerHTML = `<div class="ag-card panel ag-done" role="dialog" aria-modal="true" aria-labelledby="agTitle">
     <div class="ag-check" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 12.5 10 17.5 19 7.5"/></svg></div>
-    <h2 id="agTitle" class="ag-title">${t("Account created")}</h2>
-    <p class="muted ag-sub">${t("We sent a confirmation link to")}<strong class="ag-email"></strong>${t("Open it to activate your account, then come back and sign in.")}</p>
-    <button type="button" class="btn primary ag-btn" id="agBack">${t("Back to sign in")}</button>
-    <p class="muted ag-switch">${t("Can't find it? Check your spam folder.")}</p>
+    <h2 id="agTitle" class="ag-title">${ready ? t("You're all set!") : t("Account created")}</h2>
+    ${ready
+      ? `<p class="muted ag-sub">${t("Your Divz account is ready:")}<strong class="ag-email"></strong>${t("Your records will now be saved to your account and sync across your devices.")}</p>`
+      : `<p class="muted ag-sub">${t("We sent a confirmation link to")}<strong class="ag-email"></strong>${t("Open it to activate your account, then come back and sign in.")}</p>`}
+    <button type="button" class="btn primary ag-btn" id="agBack">${ready ? t("Continue to Divz") : t("Back to sign in")}</button>
+    ${ready ? "" : `<p class="muted ag-switch">${t("Can't find it? Check your spam folder.")}</p>`}
   </div>`;
   g.querySelector(".ag-email").textContent = email;
-  document.getElementById("agBack").addEventListener("click", () => { AUTH_GATE_MODE = "signin"; showAuthGate(); });
+  document.getElementById("agBack").addEventListener("click", () => {
+    AUTH_GATE_HOLD = false;
+    if (ready) { hideAuthGate(); render(); }
+    else { AUTH_GATE_MODE = "signin"; showAuthGate(); }
+  });
 }
 /* Called once we know whether a session exists. */
 function authGateSync() { if (SYNC_USER) hideAuthGate(); else showAuthGate(); }
 
 async function initSync() {
+  if (AUTH_GATE_DEMO) { showAuthGateSuccess("you@example.com", AUTH_GATE_DEMO === "done"); return; }
   // Not answered within 6s (offline / blocked): let the app open in local-only mode instead of
   // leaving a cover up forever. A late "supabase-ready" re-runs this and shows the gate then.
   if (!AUTH_GATE_TIMER && authGateEl() && !authGateEl().hidden && authGateEl().dataset.state === "loading") {
