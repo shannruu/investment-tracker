@@ -404,6 +404,8 @@ function hideCloudStaleWarning() {
 
 function mapAuthError(error, mode) {
   const msg = ((error && error.message) || "").toLowerCase();
+  if ((error && (error.status === 429 || error.code === "over_email_send_rate_limit")) || msg.includes("rate limit"))
+    return t("Too many emails were sent recently. Please wait about an hour and try again — or sign in if you already created this account.");
   if (msg.includes("already registered") || msg.includes("already exists")) return t("That email's already registered — sign in instead.");
   if (msg.includes("password")) return t("Password must be at least 6 characters.");
   if (mode === "signup") return t("Couldn't create that account — try again.");
