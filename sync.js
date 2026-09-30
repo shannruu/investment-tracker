@@ -492,7 +492,7 @@ function openReconcileModal(cloudRow, userId) {
   const cloudCount = (cloudRow.data.ALL_TRANSACTIONS || []).length;
   $("#modalTitle").textContent = t("Choose which data to keep");
   $("#modalBody").innerHTML = `
-    <p class="muted" style="margin:0 0 14px;font-size:15.5px;line-height:1.6">${t("Both this device and your account already have data. Pick one to continue — the other side will be replaced.")}</p>
+    <p class="muted" style="margin:0 0 14px;font-size:13.5px;line-height:1.6">${t("Both this device and your account already have data. Pick one to continue — the other side will be replaced.")}</p>
     <div class="mini-cards" style="margin-bottom:16px">
       <div class="mini-card"><div class="mc-label">${t("This device")}</div><div class="mc-value">${localCount}</div><div class="mc-sub muted">${t("Transactions")} · ${LAST_SAVED ? fmtDateTime(LAST_SAVED) : "—"}</div></div>
       <div class="mini-card"><div class="mc-label">${t("Your account")}</div><div class="mc-value">${cloudCount}</div><div class="mc-sub muted">${t("Transactions")} · ${cloudRow.updated_at ? fmtDateTime(cloudRow.updated_at) : "—"}</div></div>
@@ -584,8 +584,8 @@ function accountSyncPanelHTML() {
       </div>
       <div class="form-actions"><button class="btn primary" type="submit">${isSignup ? t("Create account") : t("Sign in")}</button></div>
     </form>
-    <p class="muted" style="margin:10px 0 0;font-size:14.5px">${isSignup ? t("Already have an account?") : t("New here?")} <button type="button" class="link" id="toggleSyncMode">${isSignup ? t("Sign in instead") : t("Create an account")}</button></p>
-    <p class="muted" id="signInStatus" style="margin:6px 0 0;font-size:14.5px"></p>`;
+    <p class="muted" style="margin:10px 0 0;font-size:12.5px">${isSignup ? t("Already have an account?") : t("New here?")} <button type="button" class="link" id="toggleSyncMode">${isSignup ? t("Sign in instead") : t("Create an account")}</button></p>
+    <p class="muted" id="signInStatus" style="margin:6px 0 0;font-size:12.5px"></p>`;
   }
   return panel(t("Account & Cloud Sync"), body);
 }

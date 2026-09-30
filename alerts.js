@@ -122,7 +122,7 @@ function alertRowHTML(a) {
     </div>
     <div class="alert-row-meta">
       ${alertStatusBadge(a)}
-      ${a.last_triggered_at ? `<span class="muted" style="font-size:12.5px">${t("Last triggered")} ${fmtDateTime(a.last_triggered_at)}</span>` : ""}
+      ${a.last_triggered_at ? `<span class="muted" style="font-size:11px">${t("Last triggered")} ${fmtDateTime(a.last_triggered_at)}</span>` : ""}
     </div>
     <button type="button" class="icon-btn" data-del-alert="${escAttr(a.id)}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button>
   </div>`;
@@ -139,7 +139,7 @@ function addAlertFormHTML() {
       <label>${t("Target Price")}<input name="targetPrice" type="number" step="any" min="0" placeholder="0.00" required></label>
     </div>
     <label class="check" style="margin-top:10px"><input type="checkbox" name="recurring">${t("Notify every time it crosses, not just once")}</label>
-    <p class="muted" id="alertPriceHint" style="margin:8px 0 0;font-size:14.5px"></p>
+    <p class="muted" id="alertPriceHint" style="margin:8px 0 0;font-size:12.5px"></p>
     <div class="form-actions" style="margin-top:12px"><button class="btn primary" type="submit">${t("Add Alert")}</button></div>
   </form>`;
 }

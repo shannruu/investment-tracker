@@ -2147,7 +2147,7 @@ function lineChartSVG(series, opts) {
     <defs>${clipDefs}</defs>
     <style>
       .grid{stroke:var(--border);stroke-width:1}
-      .ylab,.xlab{fill:var(--muted);font-size:12.5px;font-family:var(--font)}
+      .ylab,.xlab{fill:var(--muted);font-size:11px;font-family:var(--font)}
       .ylab{text-anchor:end}.xlab{text-anchor:middle}
       .ln-nw{fill:none;stroke:var(--brand);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
       .ln-p{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:5,4;stroke-linejoin:round;stroke-linecap:round}
@@ -2204,7 +2204,7 @@ function barChartSVG(series, opts) {
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">
     <style>
       .grid{stroke:var(--border);stroke-width:1}
-      .ylab,.xlab{fill:var(--muted);font-size:12.5px;font-family:var(--font)}
+      .ylab,.xlab{fill:var(--muted);font-size:11px;font-family:var(--font)}
       .ylab{text-anchor:end}.xlab{text-anchor:middle}
       .bar-rec{fill:var(--pos)}
       .bar-proj{fill:var(--warn);opacity:.55}
@@ -2381,8 +2381,8 @@ function donutHTML(slices, centerLabel, centerValue, colors) {
     <span class="legend-dot" style="background:${clr(i)}"></span>
     <span>${esc(s.label)}</span><span class="lr-pct">${fmt((s.value / total) * 100, { maximumFractionDigits: 1 })}%</span></div>`).join("");
   return `<div class="chart alloc"><svg viewBox="0 0 176 176" width="176" height="176" role="img" aria-label="Allocation">
-    ${arcs}<text x="88" y="84" text-anchor="middle" style="fill:var(--muted);font-size:11.5px;font-family:var(--font)">${centerLabel}</text>
-    <text x="88" y="100" text-anchor="middle" style="fill:var(--text);font-size:14px;font-weight:700;font-family:var(--font)">${centerValue}</text></svg>
+    ${arcs}<text x="88" y="84" text-anchor="middle" style="fill:var(--muted);font-size:10px;font-family:var(--font)">${centerLabel}</text>
+    <text x="88" y="100" text-anchor="middle" style="fill:var(--text);font-size:12px;font-weight:700;font-family:var(--font)">${centerValue}</text></svg>
     <div class="alloc-legend">${legend}</div></div>`;
 }
 
@@ -2552,7 +2552,7 @@ function buildDashChartContent() {
 
   return `<div class="chart" data-chart-mode="${dashChartMode}">${lineChartSVG(series, { noFill: true })}</div>
     <div class="chart-legend"><span class="cl-item"><span class="cl-nw"></span>${mvLabel}</span><span class="cl-item"><span class="cl-p"></span>${t("Cost Basis")}</span></div>
-    <p class="muted" style="font-size:12.5px;margin:5px 0 0;text-align:center">${t("Market value vs. what you paid — the gap is your gain or loss.")}</p>${clockNote}`;
+    <p class="muted" style="font-size:11px;margin:5px 0 0;text-align:center">${t("Market value vs. what you paid — the gap is your gain or loss.")}</p>${clockNote}`;
 }
 
 function pageDashboard() {
@@ -2674,7 +2674,7 @@ function pageDashboard() {
       <div class="stat-value ${up ? "pos" : dn ? "neg" : ""}">${up ? "▲ " : dn ? "▼ " : ""}${moneySigned(shownReturn)}</div>
       <div class="stat-sub" style="display:flex;align-items:baseline;gap:6px">
         <span class="${shownPct == null ? "muted" : up ? "pos" : dn ? "neg" : "muted"}">${shownPct == null ? "—" : (up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%")}</span>
-        <span class="muted" style="font-size:12.5px">${shownPct != null ? t("on net capital") : T.netCapitalInvested < 0 ? t("more withdrawn than invested") : t("no capital invested yet")}</span>
+        <span class="muted" style="font-size:11px">${shownPct != null ? t("on net capital") : T.netCapitalInvested < 0 ? t("more withdrawn than invested") : t("no capital invested yet")}</span>
       </div>
     </article>
     <article class="stat" data-card="cash" tabindex="0" role="button" aria-label="${t("Available Cash")}, show calculation">
@@ -2763,7 +2763,7 @@ function pageDashboard() {
         const el = $("#" + id);
         if (el) el.addEventListener("click", () => {
           $("#modalTitle").textContent = title;
-          $("#modalBody").innerHTML = `<p style="margin:0;font-size:15.5px;line-height:1.7">${body}</p>`;
+          $("#modalBody").innerHTML = `<p style="margin:0;font-size:13.5px;line-height:1.7">${body}</p>`;
           $("#modal").hidden = false;
         });
       });
@@ -3548,7 +3548,7 @@ function realizedPLHTML() {
   return summary + panel(t("Realized P/L"),
     `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${modeBtns}${sortSel}</div>
      <div class="dcc-table-scroll" style="max-height:480px">${table(headers.map((h) => ({ label: h, style: "width:" + w })), rows)}</div>
-     <p class="muted" style="font-size:14px;margin:10px 0 0">${t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.")}</p>`);
+     <p class="muted" style="font-size:12px;margin:10px 0 0">${t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.")}</p>`);
 }
 
 function portfolioSummaryHTML() {
@@ -4615,7 +4615,7 @@ function brokerCashPanelsHTML() {
 
   const cashBody = ccyRows
     ? table([{label:t("Broker")},{label:t("Balance")},{label:`≈ ${ccyLabel(FX.base)}`}], ccyRows + ccyTotalRow)
-    : `<p class="muted" style="margin:0 0 12px;font-size:15px">${t("No cash recorded yet.")}</p><a class="btn ghost" href="#/add/deposit">${t("Record a deposit")} →</a>`;
+    : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No cash recorded yet.")}</p><a class="btn ghost" href="#/add/deposit">${t("Record a deposit")} →</a>`;
   return `${panel(`${t("Cash Balances by Currency")}`, cashBody)}
     ${reconPanel}`;
 }
@@ -5025,7 +5025,7 @@ function pageDividends() {
       <td class="dcc-c">${money(d.amtMYR)}</td>
       <td class="dcc-c">${d.yieldPct != null ? fmt(d.yieldPct, { maximumFractionDigits: 2 }) + "%" : "—"}</td>
       <td class="dcc-c">${statusCell}</td>
-      <td class="dcc-c">${d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" aria-label="${t("Remove")}" style="color:var(--muted);font-size:15.5px">✕</button>` : ""}</td></tr>`;
+      <td class="dcc-c">${d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" aria-label="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : ""}</td></tr>`;
   }).join("");
 
   const grossBase = received.reduce((s, d) => s + (+d.gross || 0) * (d.fxRate || FX.rates[d.currency] || 1), 0);
@@ -5053,7 +5053,7 @@ function pageDividends() {
     { value: "annual", label: t("Annual") },
   ], divIncomePeriod, { id: "divIncomePeriodSel" });
 
-  const dash = `<span class="muted" style="font-size:23.5px;line-height:1">—</span>`;
+  const dash = `<span class="muted" style="font-size:22px;line-height:1">—</span>`;
   const tickerEntries = Object.entries(fc.tickerInfo || {});
   const tickerSummary = tickerEntries.length
     ? tickerEntries.map(([tk, info]) => {
@@ -5061,7 +5061,7 @@ function pageDividends() {
         return `${esc(tk)} (${info.freq}${growth})`;
       }).join(", ")
     : "";
-  const patternLine = tickerSummary ? `<p class="muted" style="margin:6px 0 0;font-size:14px">${t("Pattern detected for")}: ${tickerSummary}</p>` : "";
+  const patternLine = tickerSummary ? `<p class="muted" style="margin:6px 0 0;font-size:12px">${t("Pattern detected for")}: ${tickerSummary}</p>` : "";
   const multiYearCards = (fc.year2 > 0 || fc.year3 > 0)
     ? `${miniCard(t("Year 2"), fc.year2 > 0 ? money(fc.year2) : dash)}${miniCard(t("Year 3"), fc.year3 > 0 ? money(fc.year3) : dash)}`
     : "";
@@ -5071,9 +5071,9 @@ function pageDividends() {
         ${miniCard(t("Next Month"), fc.nextMonth > 0 ? money(fc.nextMonth) : dash)}
         ${miniCard(t("Next Year"), fc.nextYear > 0 ? money(fc.nextYear) : dash)}${multiYearCards}</div>
       ${patternLine}
-      <p class="muted" style="margin:8px 0 0;font-size:14px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`
-    : `<div class="div-fc-empty"><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:15px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:15px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}<div class="form-actions" style="margin-top:10px"><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a></div></div></div>
-      <p class="muted" style="margin:10px 0 0;font-size:14px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
+      <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`
+    : `<div class="div-fc-empty"><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}<div class="form-actions" style="margin-top:10px"><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a></div></div></div>
+      <p class="muted" style="margin:10px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
 
   // Ex-Dividend Screener — market-wide upcoming ex-dividend dates, distinct from the
   // personal Dividend Calendar above: browsing what's coming up across a whole market,
@@ -5094,13 +5094,13 @@ function pageDividends() {
     { value: "30", label: t("Next 30 days") },
   ], String(exDivWindowDays), { id: "exDivWindowSel" });
   function renderExDivBody() {
-    if (!LIVE_ENABLED) return `<p class="muted" style="margin:0;font-size:15px">${t("Live lookup only works on your deployed website, not when you open the file locally. Commit, push, and try it on your Vercel URL.")}</p>`;
-    if (!exDivData) return `<p class="muted" id="exDivStatus" style="margin:0;font-size:15px">${t("Loading ex-dividend calendar…")}</p>`;
+    if (!LIVE_ENABLED) return `<p class="muted" style="margin:0;font-size:13px">${t("Live lookup only works on your deployed website, not when you open the file locally. Commit, push, and try it on your Vercel URL.")}</p>`;
+    if (!exDivData) return `<p class="muted" id="exDivStatus" style="margin:0;font-size:13px">${t("Loading ex-dividend calendar…")}</p>`;
     const rowsAll = exDivData.rows;
-    if (rowsAll.length === 0) return `<p class="muted" style="margin:0;font-size:15px">${t("No ex-dividend dates in this window.")}</p>`;
+    if (rowsAll.length === 0) return `<p class="muted" style="margin:0;font-size:13px">${t("No ex-dividend dates in this window.")}</p>`;
     const q = exDivSearch.trim().toLowerCase();
     const filtered = q ? rowsAll.filter((r) => (r.symbol || "").toLowerCase().includes(q) || (r.company || "").toLowerCase().includes(q) || (r.stockCode || "").toLowerCase().includes(q)) : rowsAll;
-    if (filtered.length === 0) return `<p class="muted" style="margin:0;font-size:15px">${t("No matches for your search.")}</p>`;
+    if (filtered.length === 0) return `<p class="muted" style="margin:0;font-size:13px">${t("No matches for your search.")}</p>`;
     const shown = filtered.slice(0, 300);
     // Some real listings (depositary shares, preferred stock series, etc.) have very long
     // company names — .exdiv-company truncates with an ellipsis instead of overflowing into
@@ -5110,7 +5110,7 @@ function pageDividends() {
     // with 0 or 1 consecutive payouts hasn't established a regular schedule, flagged the same
     // way DivTracker marks these, a small note under the ex-date rather than a loud badge.
     const irregularNote = (r) => (r.payoutStreak != null && r.payoutStreak <= 1)
-      ? `<div class="muted" style="font-size:12.5px;margin-top:2px">(${t("Irregular")})</div>` : "";
+      ? `<div class="muted" style="font-size:11px;margin-top:2px">(${t("Irregular")})</div>` : "";
     // Same ticker-code-on-top, trading-symbol-below convention as the Holdings tables
     // (e.g. "6718.KL" over "CRESNDO") — stockCode is Malaysia-only, so a US row (no
     // stockCode) falls back to showing just its own symbol as the primary line, unchanged.
@@ -5127,7 +5127,7 @@ function pageDividends() {
     // but taller (.exdiv-table-scroll overrides just the max-height) since this list is
     // typically longer and worth showing more of at a glance.
     const scrollCls = shown.length > 8 ? "dcc-table-scroll exdiv-table-scroll" : "";
-    return `${filtered.length > 300 ? `<p class="muted" style="margin:0 0 10px;font-size:14px">${t("Showing the first 300 results — narrow your search to see more.")}</p>` : ""}<div class="${scrollCls}">${table([
+    return `${filtered.length > 300 ? `<p class="muted" style="margin:0 0 10px;font-size:12px">${t("Showing the first 300 results — narrow your search to see more.")}</p>` : ""}<div class="${scrollCls}">${table([
       { label: t("Ticker"), style: "width:12%;text-align:left" },
       { label: t("Company Name"), style: "width:34%;text-align:left" },
       { label: t("Ex-Date"), style: "width:14%;text-align:left" },
@@ -5159,7 +5159,7 @@ function pageDividends() {
   const pendingAutoDivs = computePendingAutoDividends();
   const pendingAutoDivsPanel = pendingAutoDivs.length ? panel(
     t("Dividends Found From Market History"),
-    `<p class="muted" style="margin:0 0 12px;font-size:15px">${t("These are real dividend payments for a stock you hold, but they haven't been added to your ledger. Review each one before adding it — if you've held this stock at more than one broker over time, a different broker may have actually received this specific payment. An added dividend is recorded on its payment date (Est. Payment), the day the money arrives.")}</p>` +
+    `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("These are real dividend payments for a stock you hold, but they haven't been added to your ledger. Review each one before adding it — if you've held this stock at more than one broker over time, a different broker may have actually received this specific payment. An added dividend is recorded on its payment date (Est. Payment), the day the money arrives.")}</p>` +
     table([
       { label: t("Holding"), style: "width:18%;text-align:left" },
       { label: t("Broker"), style: "width:16%;text-align:left" },
@@ -5206,7 +5206,7 @@ function pageDividends() {
             ], calendarRows)}</div>`
           // Genuinely empty now only when there's no logged history AND no declared date
           // AND no detectable pattern anywhere in the portfolio.
-          : `<p class="muted" style="margin:0 0 12px;font-size:15px">${
+          : `<p class="muted" style="margin:0 0 12px;font-size:13px">${
               !LIVE_ENABLED
                 ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.")
                 : t("No dividends yet. Record one to get started.")
@@ -5222,7 +5222,7 @@ function pageDividends() {
             { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
             { label: `${t("Net")} (${ccyLabel(FX.base)})`, style: "width:50%;text-align:left" },
           ], incomeRowsByPeriod[divIncomePeriod] || monthRows, { fixed: true })}</div>`
-        : `<p class="muted" style="margin:0 0 12px;font-size:15px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
+        : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
       `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}
 
     ${exDivPanel}`;
@@ -5307,7 +5307,7 @@ function pageDividends() {
             if (!document.getElementById("divUpcomingSection")) return;
             if (d) { render(); return; }
             const results = document.getElementById("exDivResults");
-            if (results) results.innerHTML = `<p class="muted" style="margin:0;font-size:15px">${t("Couldn't load the ex-dividend calendar — try again later.")}</p>`;
+            if (results) results.innerHTML = `<p class="muted" style="margin:0;font-size:13px">${t("Couldn't load the ex-dividend calendar — try again later.")}</p>`;
           });
         }
       }
@@ -5586,7 +5586,7 @@ function brokerFormHTML(editing) {
       ], e.divPaidTo || "broker")}</label>
       <label>${t("Default dividend tax rate")} (%)<input type="number" step="any" min="0" max="100" name="divTaxRate" value="${e.divTaxRate != null ? esc(e.divTaxRate) : ""}" placeholder="0"></label>
     </div>
-    <p class="muted" style="margin:-8px 0 12px;font-size:14px">${t("Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward.")}</p>
+    <p class="muted" style="margin:-8px 0 12px;font-size:12px">${t("Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward.")}</p>
     <label class="block">${t("Notes")}<input name="notes" value="${esc(e.notes)}" placeholder="${t("optional")}"></label>
     <div class="form-actions">
       <button class="btn primary" type="submit">${editing ? t("Update Broker") : t("Add Broker")}</button>
@@ -5752,7 +5752,7 @@ function pageSettings() {
         <button class="btn" id="impJsonBtn">${t("Import backup (JSON)")}</button>
         <input type="file" id="impJsonFile" accept="application/json,.json" hidden>
       </div>
-      <p class="muted" style="margin:16px 0 8px;font-size:14.5px">${t("Or export just one part, as CSV")}:</p>
+      <p class="muted" style="margin:16px 0 8px;font-size:12.5px">${t("Or export just one part, as CSV")}:</p>
       <div class="form-actions">
         <button class="btn small" id="setExpTx">${t("Transactions")}</button>
         <button class="btn small" id="setExpCash">${t("Cash")}</button>
@@ -6208,7 +6208,7 @@ function pagePrivacy() {
     ] },
   ];
   const sections = LANG === "zh" ? sectionsZH : sectionsEN;
-  const html = sections.map((sec) => panel(sec.title, sec.body.map((p) => `<p style="margin:0 0 10px;font-size:15.5px;line-height:1.6">${p}</p>`).join(""))).join("");
+  const html = sections.map((sec) => panel(sec.title, sec.body.map((p) => `<p style="margin:0 0 10px;font-size:13.5px;line-height:1.6">${p}</p>`).join(""))).join("");
   return { title: "Privacy Policy", subtitle: "What data this app touches, and where it goes.", html };
 }
 
@@ -6253,7 +6253,7 @@ function pageTerms() {
     ] },
   ];
   const sections = LANG === "zh" ? sectionsZH : sectionsEN;
-  const html = sections.map((sec) => panel(sec.title, sec.body.map((p) => `<p style="margin:0 0 10px;font-size:15.5px;line-height:1.6">${p}</p>`).join(""))).join("");
+  const html = sections.map((sec) => panel(sec.title, sec.body.map((p) => `<p style="margin:0 0 10px;font-size:13.5px;line-height:1.6">${p}</p>`).join(""))).join("");
   return { title: "Terms of Use", subtitle: "Please read before relying on this app for real financial decisions.", html };
 }
 
@@ -6389,20 +6389,20 @@ function pageHolding() {
       ${posStat(t("Price Return"), moneySigned(h.priceUnrealized), cls(h.priceUnrealized), "", `${signed(priceReturnPct)}%`)}
       ${posStat(t("Current Price"), priceLbl)}
     </div>
-    <p style="font-size:15.5px;margin:14px 0 0">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} · ${t("Average Cost")} ${money(h.avgCost)} · ${t("Cost Basis")} ${money(h.costBasis)} · ${t("Commission Paid")} ${money(commissionPaid)} · ${t("% of Portfolio")} ${fmt(pctOfPortfolio, { maximumFractionDigits: 2 })}%</p>
+    <p style="font-size:14px;margin:14px 0 0">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} · ${t("Average Cost")} ${money(h.avgCost)} · ${t("Cost Basis")} ${money(h.costBasis)} · ${t("Commission Paid")} ${money(commissionPaid)} · ${t("% of Portfolio")} ${fmt(pctOfPortfolio, { maximumFractionDigits: 2 })}%</p>
     <div class="setting-row" style="padding:11px 0 0;border-bottom:0">
       <span class="sr-label">${t("Asset type")}</span>
       <span class="sr-value"><div style="width:160px">${styledSelect("holdingAssetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), holdingType(h.ticker), { id: "holdingAssetType" })}</div></span>
     </div>
     ${range52Html}
-    ${openedRecently ? `<p class="muted" style="font-size:14px;margin:8px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}
+    ${openedRecently ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}
   `);
 
   const html = `
     <p style="margin:-4px 0 12px"><a class="link" href="#/portfolio">← ${t("Back to Portfolio")}</a></p>
     <div class="holding-head">
       <div>
-        <div class="ticker" style="font-size:21px">${esc(h.ticker)}</div>
+        <div class="ticker" style="font-size:20px">${esc(h.ticker)}</div>
         <div class="sub">${esc(h.company) || ""}</div>
         <div class="holding-chips">
           <span class="chip">${esc(brokerName(h.brokerId))}</span>
@@ -6443,7 +6443,7 @@ function pageHolding() {
         ${stat(t("Next Month"), tFc.nextMonth > 0 ? money(tFc.nextMonth) : "—")}
         ${stat(t("Next Quarter"), tFc.nextQuarter > 0 ? money(tFc.nextQuarter) : "—")}
         ${stat(t("Next Year"), tFc.nextYear > 0 ? money(tFc.nextYear) : "—")}${multiYear}</div>
-        ${alertNote}<p class="muted" style="font-size:14px;margin:20px 0 0">${patternNote}</p>`);
+        ${alertNote}<p class="muted" style="font-size:12px;margin:20px 0 0">${patternNote}</p>`);
     })()}
 
     ${(() => {
@@ -6563,7 +6563,7 @@ function pageHolding() {
       const showCost = costSeries.length >= 2;
       const showDiv = divSeries.length >= 2;
       if (!showCost && !showDiv) return "";
-      const costPanel = panel(t("Cost Basis Over Time"), `<div class="chart">${lineChartSVG(costSeries)}</div><p class="muted" style="font-size:12.5px;margin:6px 0 0">${t("Cumulative cost — historical market prices are not stored.")}</p>`);
+      const costPanel = panel(t("Cost Basis Over Time"), `<div class="chart">${lineChartSVG(costSeries)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Cumulative cost — historical market prices are not stored.")}</p>`);
       const divPanel = panel(t("Dividend Income Over Time"), `<div class="chart">${lineChartSVG(divSeries)}</div>`);
       if (showCost && showDiv) return `<section class="grid-2">${costPanel}${divPanel}</section>`;
       return showCost ? costPanel : divPanel;
@@ -6719,9 +6719,9 @@ function showCalc(calc) {
   // of adding a second row with its own label.
   const totalVal = calc.totalFmt != null ? calc.totalFmt : money(calc.total);
   const pctVal = calc.pctFmt != null ? `<span class="cr-pct">${calc.pctFmt}</span>` : "";
-  $("#modalBody").innerHTML = `${calc.intro ? `<p class="muted" style="margin:0 0 14px;font-size:15px">${t(calc.intro)}</p>` : ""}${rows}
+  $("#modalBody").innerHTML = `${calc.intro ? `<p class="muted" style="margin:0 0 14px;font-size:13px">${t(calc.intro)}</p>` : ""}${rows}
     <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${totalVal}${pctVal}</span></div>
-    <p class="muted" style="margin:14px 0 0;font-size:14px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
+    <p class="muted" style="margin:14px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
   $("#modal").hidden = false;
 }
 function closeModal() {
@@ -6742,7 +6742,7 @@ function showConfirmModal(message, opts = {}) {
     modalResolve = resolve;
     $("#modalTitle").textContent = opts.title ? t(opts.title) : t("Confirm");
     $("#modalBody").innerHTML = `
-      <p style="margin:0 0 18px;font-size:15.5px;line-height:1.5">${esc(message)}</p>
+      <p style="margin:0 0 18px;font-size:13.5px;line-height:1.5">${esc(message)}</p>
       <div class="form-actions">
         <button type="button" class="btn ${opts.danger ? "danger" : "primary"}" id="modalConfirmOk">${t(opts.okLabel || "OK")}</button>
         <button type="button" class="btn ghost" id="modalConfirmCancel">${t("Cancel")}</button>
@@ -6765,7 +6765,7 @@ function showTypeToConfirmModal(message, confirmWord, opts = {}) {
     modalResolve = resolve;
     $("#modalTitle").textContent = opts.title ? t(opts.title) : t("Confirm");
     $("#modalBody").innerHTML = `
-      <p style="margin:0 0 14px;font-size:15.5px;line-height:1.5">${esc(message)}</p>
+      <p style="margin:0 0 14px;font-size:13.5px;line-height:1.5">${esc(message)}</p>
       <form id="typeConfirmForm" class="form">
         <label>
           <span>${t("Type the word")} <strong>${esc(confirmWord)}</strong> ${t("to confirm")}</span>
@@ -6841,7 +6841,7 @@ function showSetPriceModal(h) {
       <label>${t("Price per share")} (${esc(h.currentPriceCcy)})
         <input type="number" step="any" name="price" value="${cur ? esc(cur.price) : ""}" placeholder="0.00" required>
       </label>
-      <p class="muted" style="font-size:14px;margin:10px 0 0">${t("Manually entered prices are always labelled \"Manual price\" and are never mistaken for live market data.")}</p>
+      <p class="muted" style="font-size:12px;margin:10px 0 0">${t("Manually entered prices are always labelled \"Manual price\" and are never mistaken for live market data.")}</p>
       <div class="form-actions" style="margin-top:14px">
         <button class="btn primary" type="submit">${t("Save")}</button>
         <button class="btn ghost" type="button" id="setPriceCancel">${t("Cancel")}</button>
@@ -7136,7 +7136,7 @@ function importPreviewHTML() {
   const scrollCls = rows.length > 8 ? "dcc-table-scroll" : "";
   return `<div class="import-preview">
     <div class="import-summary"><strong>${rows.length}</strong> ${t("rows")} · <span class="pos">${okCount} ${t("ready")}</span>${chip(dupCount, "muted", t("duplicate"))}${chip(brokerCount, "warn-txt", t("need broker"))}${chip(errCount, "neg", t("with errors"))}</div>
-    ${unknown.length ? `<p class="muted" style="font-size:14.5px;margin:0 0 10px">${t("Missing brokers")}: ${unknown.map((u) => `<strong>${esc(u.name)}</strong>`).join(", ")}. ${t("Create them below, then import.")}</p>` : ""}
+    ${unknown.length ? `<p class="muted" style="font-size:12.5px;margin:0 0 10px">${t("Missing brokers")}: ${unknown.map((u) => `<strong>${esc(u.name)}</strong>`).join(", ")}. ${t("Create them below, then import.")}</p>` : ""}
     <div class="${scrollCls}"><div class="table-wrap"><table class="data-table"><thead><tr>
       <th>#</th><th>${t("Date")}</th><th>${t("Broker")}</th><th>${t("Type")}</th><th>${t("Ticker")}</th><th class="num">${t("Amount")}</th><th>${t("Ccy")}</th><th>${t("Status")}</th>
     </tr></thead><tbody>${body}</tbody></table></div></div>
@@ -7145,8 +7145,8 @@ function importPreviewHTML() {
       <button class="btn ${unknown.length ? "" : "primary"}" id="commitImport" ${okCount ? "" : "disabled"}>${t("Import valid rows")} (${okCount})</button>
       <button class="btn ghost" id="cancelImport">${t("Cancel")}</button>
     </div>
-    ${dupCount ? `<p class="muted" style="font-size:14px;margin:8px 0 0">${t("Duplicates already in your ledger are skipped automatically.")}</p>` : ""}
-    ${errCount ? `<p class="muted" style="font-size:14px;margin:6px 0 0">${t("Rows with errors are skipped. Fix them in your spreadsheet and re-upload.")}</p>` : ""}
+    ${dupCount ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${t("Duplicates already in your ledger are skipped automatically.")}</p>` : ""}
+    ${errCount ? `<p class="muted" style="font-size:12px;margin:6px 0 0">${t("Rows with errors are skipped. Fix them in your spreadsheet and re-upload.")}</p>` : ""}
   </div>`;
 }
 
