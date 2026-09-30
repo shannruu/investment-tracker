@@ -78,6 +78,14 @@ function resetPerAccountCaches() {
  * dropped after a few seconds so the app still opens in local-only mode.
  * ========================================================================== */
 let AUTH_GATE_MODE = "signup";
+// Design-preview escape hatch: open the site with ?preview=1 to look around without an account
+// (remembered for this tab only). The gate is a client-side courtesy, not a security boundary.
+let AUTH_GATE_PREVIEW = false;
+try {
+  if (/[?&]preview=1/.test(location.search)) sessionStorage.setItem("divz-preview", "1");
+  AUTH_GATE_PREVIEW = sessionStorage.getItem("divz-preview") === "1";
+} catch (e) {}
+if (AUTH_GATE_PREVIEW) { const g0 = document.getElementById("authGate"); if (g0) g0.hidden = true; }
 let AUTH_GATE_TIMER = null;
 function authGateEl() { return document.getElementById("authGate"); }
 function hideAuthGate() {
@@ -86,6 +94,7 @@ function hideAuthGate() {
 }
 function showAuthGate() {
   const g = authGateEl(); if (!g) return;
+  if (AUTH_GATE_PREVIEW) { hideAuthGate(); return; }
   clearTimeout(AUTH_GATE_TIMER);
   g.hidden = false; g.dataset.state = "form";
   const signup = AUTH_GATE_MODE === "signup";
@@ -130,6 +139,7 @@ function showAuthGate() {
  * screen, not an error line: the account exists, one email click is all that's left. */
 function showAuthGateSuccess(email) {
   const g = authGateEl(); if (!g) return;
+  if (AUTH_GATE_PREVIEW) { hideAuthGate(); return; }
   g.hidden = false; g.dataset.state = "success";
   g.innerHTML = `<div class="ag-card panel ag-done" role="dialog" aria-modal="true" aria-labelledby="agTitle">
     <div class="ag-check" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 12.5 10 17.5 19 7.5"/></svg></div>
