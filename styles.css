@@ -1717,3 +1717,21 @@ html:has(.auth-gate:not([hidden])) { overflow: hidden; }
 .ag-status:empty { min-height: 0; margin: 4px 0 0; }
 .ag-hint + .ag-status:empty { margin: 0; }
 .ag-btn { margin-top: 10px; }
+/* Opening-page backdrop: brand-tinted glows + a faint dot grid, all derived from --brand so it follows the theme */
+.auth-gate {
+  background:
+    radial-gradient(60% 50% at 18% 12%, color-mix(in srgb, var(--brand) 24%, transparent) 0%, transparent 70%),
+    radial-gradient(55% 50% at 88% 90%, color-mix(in srgb, var(--brand) 18%, transparent) 0%, transparent 70%),
+    radial-gradient(40% 35% at 85% 8%, color-mix(in srgb, var(--pos) 9%, transparent) 0%, transparent 70%),
+    var(--bg);
+}
+.auth-gate::before {
+  content: ""; position: fixed; inset: 0; pointer-events: none;
+  background-image: radial-gradient(color-mix(in srgb, var(--brand) 30%, transparent) 1px, transparent 1.2px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(70% 70% at 50% 45%, #000 0%, transparent 100%);
+  mask-image: radial-gradient(70% 70% at 50% 45%, #000 0%, transparent 100%);
+  opacity: .55;
+}
+.ag-card, .ag-loading { position: relative; z-index: 1; }
+.ag-card { box-shadow: 0 24px 60px -20px color-mix(in srgb, var(--brand) 35%, transparent), var(--shadow); }
