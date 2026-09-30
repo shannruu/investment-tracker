@@ -69,7 +69,73 @@ function resetPerAccountCaches() {
 
 /* Called once from app.js's init(), fire-and-forget (never awaited there) so
  * it can't delay first paint. */
+/* =============================================================================
+ * Opening page: nobody sees the app until they've signed in or created an account.
+ * index.html ships a static #authGate cover (state "loading") so the app never flashes
+ * before we know who's here. Once Cloud Sync answers, initSync() calls authGateSync():
+ * signed in -> cover removed; signed out -> the sign-in / create-account card.
+ * If Cloud Sync can't start at all (offline first visit, CDN blocked) the cover is
+ * dropped after a few seconds so the app still opens in local-only mode.
+ * ========================================================================== */
+let AUTH_GATE_MODE = "signup";
+let AUTH_GATE_TIMER = null;
+function authGateEl() { return document.getElementById("authGate"); }
+function hideAuthGate() {
+  clearTimeout(AUTH_GATE_TIMER);
+  const g = authGateEl(); if (g) g.hidden = true;
+}
+function showAuthGate() {
+  const g = authGateEl(); if (!g) return;
+  clearTimeout(AUTH_GATE_TIMER);
+  g.hidden = false; g.dataset.state = "form";
+  const signup = AUTH_GATE_MODE === "signup";
+  g.innerHTML = `<div class="ag-card" role="dialog" aria-modal="true" aria-labelledby="agTitle">
+    <div class="ag-brand"><span class="ag-logo">D</span><span class="ag-name">Divz</span></div>
+    <h1 id="agTitle" class="ag-title">${signup ? t("Create your account") : t("Welcome back")}</h1>
+    <p class="ag-sub">${signup ? t("Sign up to keep your investment records safe and in sync on every device.") : t("Sign in to your Divz account.")}</p>
+    <form id="agForm" class="ag-form" novalidate>
+      <label for="agEmail">${t("Email")}</label>
+      <input id="agEmail" name="email" type="email" autocomplete="email" inputmode="email" required>
+      <label for="agPass">${t("Password")}</label>
+      <input id="agPass" name="password" type="password" autocomplete="${signup ? "new-password" : "current-password"}" required>
+      ${signup ? `<p class="ag-hint">${t("At least 6 characters.")}</p>` : ""}
+      <p class="ag-status" id="agStatus" role="alert"></p>
+      <button type="submit" class="ag-btn">${signup ? t("Create account") : t("Sign in")}</button>
+    </form>
+    <p class="ag-switch">${signup ? t("Already have an account?") : t("New here?")}
+      <button type="button" id="agToggle" class="ag-link">${signup ? t("Sign in") : t("Create an account")}</button></p>
+  </div>`;
+  const form = document.getElementById("agForm"), status = document.getElementById("agStatus");
+  document.getElementById("agToggle").addEventListener("click", () => { AUTH_GATE_MODE = signup ? "signin" : "signup"; showAuthGate(); });
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = form.email.value.trim(), password = form.password.value;
+    if (!email || !password) { status.textContent = t("Enter your email and password."); return; }
+    const btn = form.querySelector("button[type=submit]"); btn.disabled = true; status.textContent = "";
+    try {
+      if (signup) {
+        const { data, error } = await SUPABASE.auth.signUp({ email, password });
+        if (error) status.textContent = mapAuthError(error, "signup");
+        else if (!data.session) { AUTH_GATE_MODE = "signin"; showAuthGate(); document.getElementById("agStatus").textContent = t("Account created — check your email to confirm it, then sign in."); return; }
+        // else a session came back at once: onAuthStateChange (initSync) takes it from here.
+      } else {
+        const { error } = await SUPABASE.auth.signInWithPassword({ email, password });
+        if (error) status.textContent = mapAuthError(error, "signin");
+      }
+    } catch (err) { status.textContent = t("Something went wrong — try again."); }
+    btn.disabled = false;
+  });
+  const first = document.getElementById("agEmail"); if (first) first.focus();
+}
+/* Called once we know whether a session exists. */
+function authGateSync() { if (SYNC_USER) hideAuthGate(); else showAuthGate(); }
+
 async function initSync() {
+  // Not answered within 6s (offline / blocked): let the app open in local-only mode instead of
+  // leaving a cover up forever. A late "supabase-ready" re-runs this and shows the gate then.
+  if (!AUTH_GATE_TIMER && authGateEl() && !authGateEl().hidden && authGateEl().dataset.state === "loading") {
+    AUTH_GATE_TIMER = setTimeout(hideAuthGate, 6000);
+  }
   if (!syncAvailable()) {
     // supabase-client.js is still waiting on its CDN import — not permanently
     // unavailable. Re-run this same function once it announces success rather
@@ -83,8 +149,9 @@ async function initSync() {
 
   try {
     const { data } = await SUPABASE.auth.getSession();
-    if (data && data.session) { SYNC_USER = data.session.user; await reconcileOnSignIn(); }
+    if (data && data.session) { SYNC_USER = data.session.user; hideAuthGate(); await reconcileOnSignIn(); }
   } catch (e) { /* stays signed out */ }
+  authGateSync();
   // Whatever page is on screen right now may have already rendered once with
   // syncAvailable() false (a real "not configured" panel, not a guess — this is
   // the exact race the "supabase-ready" retry above exists for). One render()
@@ -94,6 +161,7 @@ async function initSync() {
   SUPABASE.auth.onAuthStateChange(async (event, session) => {
     if (event === "SIGNED_IN" && session && (!SYNC_USER || SYNC_USER.id !== session.user.id)) {
       SYNC_USER = session.user;
+      hideAuthGate();
       resetPerAccountCaches();
       await reconcileOnSignIn();
       render();
@@ -115,6 +183,8 @@ async function initSync() {
       SYNC_USER = null;
       resetPerAccountCaches();
       render();
+      AUTH_GATE_MODE = "signin";
+      showAuthGate();
     }
   });
 
