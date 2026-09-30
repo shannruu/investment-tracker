@@ -262,6 +262,7 @@ const ZH = {
   "Enter an amount or stock code for the transfer.": "请输入金额或股票代号。",
   "Received": "已收到", "Expected": "预期", "Split ratio (new ÷ old)": "拆股比例（新 ÷ 旧）",
   "To broker": "转入券商", "Notes": "备注", "FX rate to": "汇率对",
+  "Free shares (bonus issue or gift — no cost)": "免费股份（红股或赠送，无成本）", "free shares": "免费股份",
   "Allow selling more shares than currently held (override)": "允许卖出超过当前持有的股数（覆盖）",
   "You only hold": "您仅持有", "shares — tick the override to sell more.": "股 — 勾选覆盖以卖出更多。",
   "Avg Cost per share": "每股平均成本", "blank = use current": "留空 = 使用当前汇率",
@@ -2628,7 +2629,7 @@ function pageDashboard() {
     const fxR = tx.fxRate || FX.rates[tx.currency] || 1;
     const myrEq = tx.currency !== FX.base && txAmt > 0 ? txAmt * fxR : 0;
     const hasTicker = tx.ticker && tx.ticker !== "—";
-    const txSub = hasTicker ? tickerSubLabel(tx.ticker, tx.company) : "";
+    const txSub = hasTicker ? [tickerSubLabel(tx.ticker, tx.company), tx.type === "Buy" && tx.price === 0 ? t("free shares") : ""].filter(Boolean).join(" · ") : "";
     return `<tr><td class="dcc-c">${fmtDate(tx.date)}</td><td class="dcc-c">${typeChip(tx.type)}</td>
       <td class="dcc-c">${hasTicker ? tickerCell(tx.ticker, tx.brokerId, txSub) : `<span class="ticker">—</span>`}</td><td class="dcc-c sub">${esc(brokerName(tx.brokerId))}</td>
       <td class="dcc-c">${esc(ccyLabel(tx.currency))} ${fmt(txAmt)}${myrEq > 0 ? `<div class="fx-note">${ccyLabel(FX.base)} ${fmt(myrEq)}</div>` : ""}</td></tr>`;
@@ -3748,7 +3749,7 @@ function recordsTable(list) {
     const fxr = tx.fxRate || FX.rates[tx.currency] || 1;
     const myr = tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * fxr;
     const hasTicker = tx.ticker && tx.ticker !== "—";
-    const txSub = hasTicker ? tickerSubLabel(tx.ticker, tx.company) : "";
+    const txSub = hasTicker ? [tickerSubLabel(tx.ticker, tx.company), tx.type === "Buy" && tx.price === 0 ? t("free shares") : ""].filter(Boolean).join(" · ") : "";
     // Actions lead the row, not trail it: at 5 data columns wide the table already needs a
     // sideways scroll on a phone (.table-wrap's own horizontal scroll, by design — see its
     // edge-fade hint), and with Edit/Delete as the LAST column that scroll was the only way
@@ -4066,6 +4067,8 @@ function addForm2(type, editing) {
 
   const oversell = type === "Sell"
     ? `<label class="check" id="oversellWrap"><input type="checkbox" name="override" ${e.override ? "checked" : ""}> ${t("Allow selling more shares than currently held (override)")}</label>` : "";
+  const freeBox = type === "Buy"
+    ? `<label class="check" id="freeSharesWrap"><input type="checkbox" name="freeShares" id="afFree" ${e.price === 0 && editing ? "checked" : ""}> ${t("Free shares (bonus issue or gift — no cost)")}</label>` : "";
   const needsTicker = isTrade || type === "Dividend" || type === "Stock split" || type === "DRIP / Reinvested";
   const hasNote = !!(e.notes || draft.notes);
 
@@ -4082,7 +4085,7 @@ function addForm2(type, editing) {
       const hasExtraValues = editing && (e.fee || e.tax || e.exDate || e.payDate || e.fxRate);
       return `<details class="more-fields"${hasExtraValues ? " open" : ""}><summary>${(type === "Dividend" || type === "DRIP / Reinvested") ? t("Dividend schedule") : t("Fees, taxes & details")}</summary><div class="form-grid">${extra}</div></details>`;
     })() : ""}
-    ${oversell}
+    ${oversell}${freeBox}
     <div class="note-wrap">
       <button type="button" class="note-add-btn" id="noteToggle"${hasNote ? ' style="display:none"' : ''}>+ ${t("Add note")}</button>
       <label class="note-field" id="noteField"${!hasNote ? ' style="display:none"' : ''}>
@@ -4140,6 +4143,12 @@ function mountAddForm(type, editing) {
         noteToggle.style.display = "";
       }
     });
+  }
+  // Free shares: no price to enter, so grey the price box out while the box is ticked.
+  const freeEl = $("#afFree"), priceEl = form.querySelector('input[name="price"]');
+  if (freeEl && priceEl) {
+    const syncFree = () => { priceEl.disabled = freeEl.checked; if (freeEl.checked) priceEl.value = ""; };
+    freeEl.addEventListener("change", syncFree); syncFree();
   }
   const brokerSel = $("#afBroker"), ccySel = $("#afCcy"), fxEl = $("#afFx"), fxField = $("#afFxField");
   // FX rate only matters when the currency differs from base — hide it for MYR, prefill it otherwise.
@@ -4239,6 +4248,8 @@ function wireTxSubmit(form) {
     if (type === "Buy" || type === "Sell") tax = parseFloat(d.tradeTax) || 0;
     let qty = d.qty ? parseFloat(d.qty) : null;
     let price = d.price ? parseFloat(d.price) : null;
+    const freeShares = type === "Buy" && !!d.freeShares;
+    if (freeShares) price = 0;
     let gross = parseFloat(d.amount) || 0;
     if (type === "Dividend" || type === "DRIP / Reinvested") gross = parseFloat(d.divGross) || 0;
     // normalizeSymbol, not a bare trim/uppercase: a bare Bursa code ("1155") becomes the
@@ -4291,7 +4302,7 @@ function wireTxSubmit(form) {
     if (type === "Buy" || type === "Sell") {
       if (!ticker) return void fieldErr("ticker", t("Enter a ticker."));
       if (!(qty > 0)) return void fieldErr("qty", t("Enter a quantity greater than 0."));
-      if (!(price > 0)) return void fieldErr("price", t("Enter a price greater than 0."));
+      if (!(price > 0) && !freeShares) return void fieldErr("price", t("Enter a price greater than 0."));
     } else if (type === "Dividend") {
       if (!ticker) return void fieldErr("ticker", t("Enter a ticker."));
       if (!(gross > 0)) return void fieldErr("divGross", t("Enter a gross dividend greater than 0."));
@@ -6956,7 +6967,8 @@ function importTxFromCSV(text) {
     let dripQty;
     if (type === "Buy" || type === "Sell") {
       if (!(qty > 0)) errors.push(t("Quantity required"));
-      if (!(price > 0)) errors.push(t("Price required"));
+      // A Buy may have an explicit price of 0 (bonus / gifted shares); blank is still an error.
+      if (!(price > 0) && !(type === "Buy" && price === 0)) errors.push(t("Price required"));
       if (!ticker) errors.push(t("Ticker required"));
       gross = (qty || 0) * (price || 0);
     } else if (type === "DRIP / Reinvested") {
