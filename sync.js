@@ -115,7 +115,7 @@ function showAuthGate() {
       if (signup) {
         const { data, error } = await SUPABASE.auth.signUp({ email, password });
         if (error) status.textContent = mapAuthError(error, "signup");
-        else if (!data.session) { AUTH_GATE_MODE = "signin"; showAuthGate(); document.getElementById("agStatus").textContent = t("Account created — check your email to confirm it, then sign in."); return; }
+        else if (!data.session) { showAuthGateSuccess(email); return; }
         // else a session came back at once: onAuthStateChange (initSync) takes it from here.
       } else {
         const { error } = await SUPABASE.auth.signInWithPassword({ email, password });
@@ -125,6 +125,21 @@ function showAuthGate() {
     btn.disabled = false;
   });
   const first = document.getElementById("agEmail"); if (first) first.focus();
+}
+/* Shown after sign-up when the project requires email confirmation (no session yet) — a success
+ * screen, not an error line: the account exists, one email click is all that's left. */
+function showAuthGateSuccess(email) {
+  const g = authGateEl(); if (!g) return;
+  g.hidden = false; g.dataset.state = "success";
+  g.innerHTML = `<div class="ag-card panel ag-done" role="dialog" aria-modal="true" aria-labelledby="agTitle">
+    <div class="ag-check" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 12.5 10 17.5 19 7.5"/></svg></div>
+    <h2 id="agTitle" class="ag-title">${t("Account created")}</h2>
+    <p class="muted ag-sub">${t("We sent a confirmation link to")}<strong class="ag-email"></strong>${t("Open it to activate your account, then come back and sign in.")}</p>
+    <button type="button" class="btn primary ag-btn" id="agBack">${t("Back to sign in")}</button>
+    <p class="muted ag-switch">${t("Can't find it? Check your spam folder.")}</p>
+  </div>`;
+  g.querySelector(".ag-email").textContent = email;
+  document.getElementById("agBack").addEventListener("click", () => { AUTH_GATE_MODE = "signin"; showAuthGate(); });
 }
 /* Called once we know whether a session exists. */
 function authGateSync() { if (SYNC_USER) hideAuthGate(); else showAuthGate(); }

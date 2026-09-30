@@ -1753,3 +1753,9 @@ html:has(.auth-gate:not([hidden])) { overflow: hidden; }
 @media (max-width: 480px) { .ag-card { padding: 30px 22px 26px; border-radius: 20px; } .ag-sub { margin-bottom: 22px; } }
 .auth-gate .ag-card .form label { font-size: 15px; font-weight: 600; color: var(--text); }
 .auth-gate .ag-brand .brand-mark { font-size: 19px; }
+
+.ag-done { text-align: center; }
+.ag-check { width: 64px; height: 64px; margin: 0 auto 20px; border-radius: 50%; display: grid; place-items: center;
+  color: var(--pos); background: color-mix(in srgb, var(--pos) 14%, transparent); border: 1px solid color-mix(in srgb, var(--pos) 35%, transparent); }
+.ag-email { display: block; margin: 4px 0 8px; color: var(--text); overflow-wrap: anywhere; }
+.ag-done .ag-btn { margin-top: 8px; }
