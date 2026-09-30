@@ -262,7 +262,7 @@ const ZH = {
   "Enter an amount or stock code for the transfer.": "请输入金额或股票代号。",
   "Received": "已收到", "Expected": "预期", "Split ratio (new ÷ old)": "拆股比例（新 ÷ 旧）",
   "To broker": "转入券商", "Notes": "备注", "FX rate to": "汇率对",
-  "Free shares (bonus issue or gift — no cost)": "免费股份（红股或赠送，无成本）", "free shares": "免费股份",
+  "Free shares (bonus issue or gift — no cost)": "免费股份（红股或赠送，无成本）", "free shares": "免费股份", "Total Realized P/L": "累计已实现盈亏", "Best sale": "最佳卖出", "Worst sale": "最差卖出", "Winning sales": "盈利卖出", "By stock": "按股票", "Each sale": "逐笔卖出", "Highest profit first": "盈利最高优先", "Biggest loss first": "亏损最大优先", "Most recent first": "最新优先", "Sold": "卖出", "Cost": "成本", "Proceeds": "卖出所得", "Sales": "卖出次数", "Sort by": "排序", "No sales yet — once you sell a stock, what you earned or lost on it is listed here.": "尚无卖出记录——卖出股票后，盈亏将列在这里。", "Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.": "盈亏 = 卖出所得 − 所卖股份的平均成本 − 卖出的手续费和税费。股息和利息另行计算。",
   "Allow selling more shares than currently held (override)": "允许卖出超过当前持有的股数（覆盖）",
   "You only hold": "您仅持有", "shares — tick the override to sell more.": "股 — 勾选覆盖以卖出更多。",
   "Avg Cost per share": "每股平均成本", "blank = use current": "留空 = 使用当前汇率",
@@ -916,6 +916,7 @@ function computeTotals() {
 
   let totalDeposits = 0, totalWithdrawals = 0, netDividends = 0, totalFees = 0, realizedPL = 0, totalInterest = 0;
   const oversells = [];
+  const realizedSales = [];   // one entry per Sell — feeds the Portfolio → Realized P/L tab
   // Same figures, broken out per broker — every transaction has exactly one
   // brokerId, so each map's values sum back to the portfolio-wide total above
   // (kept auditable: the Broker page shows these, and they must actually add up).
@@ -955,6 +956,8 @@ function computeTotals() {
         const realizedThis = proceedsMYR - avgMYR * q - feeMYR - taxMYR;   // nets commission + taxes
         realizedPL += realizedThis; l.realizedMYR += realizedThis;
         addTo(realizedByBroker, tx.brokerId, realizedThis);
+        realizedSales.push({ id: tx.id, date: tx.date, brokerId: tx.brokerId, ticker: tx.ticker, company: tx.company, qty: q, price, currency: ccy,
+          costMYR: avgMYR * q, proceedsMYR, feesMYR: feeMYR + taxMYR, pl: realizedThis });
         l.shares -= q; l.costMYR -= avgMYR * q; l.costLocal -= avgLocal * q;
         if (l.shares < 1e-9) { l.shares = 0; l.costMYR = Math.max(0, l.costMYR); l.costLocal = Math.max(0, l.costLocal); }
         addCash(tx.brokerId, ccy, gross - fee - taxv); break;
@@ -1059,7 +1062,7 @@ function computeTotals() {
     netDividends, totalInterest, unrealizedPL, realizedPL, totalFees, priceUnrealizedPL, fxUnrealizedPL, priceReturn, totalReturn, totalReturnPct,
     holdings, brokerCash, brokerCashByCcy, oversells, missingPrices, negativeCash, xirr: xirrValue, totalCash,
     depositsByBroker, withdrawalsByBroker, dividendsByBroker, realizedByBroker, unrealizedByBroker, totalReturnByBroker,
-    interestByBroker, feesByBroker };
+    interestByBroker, feesByBroker, realizedSales };
 }
 
 /* Shares actually held in a ticker+broker lot as of a given date — replays the opening
@@ -3139,7 +3142,8 @@ function mountOpeningHoldingForm() {
  * PAGE: PORTFOLIO  (with working filters + grouped allocations)
  * ========================================================================== */
 const portfolioFilters = { broker: "", market: "", currency: "", sort: "" };
-let portfolioTab = "holdings";   // holdings | allocation
+let portfolioTab = "holdings";   // holdings | allocation | realized
+let realizedView = { mode: "stock", sort: "high" };   // mode: stock | sale ; sort: high | low | new
 const EXCHANGE_NAMES = { NMS:"NASDAQ", NGM:"NASDAQ", NCM:"NASDAQ", NYQ:"NYSE", PCX:"NYSE Arca", KLS:"Bursa Malaysia", KLSE:"Bursa Malaysia", LSE:"London SE", HKG:"Hong Kong SE", ASX:"ASX", TSX:"TSX" };
 function exchangeName(code) { return code ? (EXCHANGE_NAMES[code] || code) : ""; }
 // h.market stores the FRIENDLY exchange name ("Bursa Malaysia" — see EXCHANGE_NAMES /
@@ -3311,13 +3315,14 @@ function pagePortfolio() {
   const refreshBtn = `<button class="icon-btn pf-refresh" id="pfRefreshBtn" title="${t("Refresh live prices")}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>`;
   // Holdings table vs. allocation breakdowns — same tp-tab pills as the Records page,
   // so switching doesn't feel like a different component elsewhere in the app.
-  const pfTabs = [["holdings", "Holdings"], ["allocation", "Allocation"]];
+  const pfTabs = [["holdings", "Holdings"], ["allocation", "Allocation"], ["realized", "Realized P/L"]];
   const pfNav = `<div class="type-tabs" role="tablist" style="margin-bottom:16px">${pfTabs.map(([k, lbl]) =>
     `<button class="tp-tab ${portfolioTab === k ? "on" : ""}" data-pftab="${k}">${t(lbl)}</button>`).join("")}</div>`;
-  const html = has
-    ? `<div id="pfSummary">${portfolioSummaryHTML()}</div>
+  const hasSales = (T.realizedSales || []).length > 0;
+  const html = (has || hasSales)
+    ? `${has ? `<div id="pfSummary">${portfolioSummaryHTML()}</div>` : ""}
        ${pfNav}
-       ${portfolioTab === "allocation" ? breakdowns
+       ${portfolioTab === "realized" ? realizedPLHTML() : !has ? panel(t("Holdings"), emptyContent) : portfolioTab === "allocation" ? breakdowns
           : panel(t("All Holdings"), filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
               `<div class="panel-head-actions">${priceStampHtml}${refreshBtn}</div>`)}`
     : panel(t("Holdings"), emptyContent);
@@ -3327,6 +3332,8 @@ function pagePortfolio() {
       : `${plural(T.holdings.length, "holding", "holdings")} across ${plural(BROKERS.length, "broker", "brokers")} · ${money(T.portfolioValue)}`, html,
     mount() {
       $$("[data-pftab]").forEach((b) => b.addEventListener("click", () => { portfolioTab = b.dataset.pftab; render(); }));
+      $$("[data-rzmode]").forEach((b) => b.addEventListener("click", () => { realizedView.mode = b.dataset.rzmode; render(); }));
+      const rzSort = $("#rzSort"); if (rzSort) rzSort.addEventListener("change", () => { realizedView.sort = rzSort.value; render(); });
       const apply = () => {
         const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioTable();
         const sm = $("#pfSummary"); if (sm) sm.innerHTML = portfolioSummaryHTML();
@@ -3495,6 +3502,55 @@ function filteredHoldings() {
  * always the whole portfolio. % figures are weighted by cost basis (sum of
  * gain ÷ sum of cost), not an average of each row's own percentage — those
  * aren't the same thing once holdings have different position sizes. */
+/* Portfolio → Realized P/L: what selling has actually earned (or lost), by stock or per sale.
+ * Every figure comes from T.realizedSales, which computeTotals fills in the same Sell pass that
+ * builds T.realizedPL — so the rows here always add back up to the Total Return card. */
+function realizedPLHTML() {
+  const sales = T.realizedSales || [];
+  if (!sales.length) return panel(t("Realized P/L"), emptyState(t("No sales yet — once you sell a stock, what you earned or lost on it is listed here.")));
+  const pct = (pl, cost) => cost > 0 ? `<span>${pctTxt((pl / cost) * 100)}</span>` : `<span class="muted">—</span>`;
+  const sortFn = (a, b) => realizedView.sort === "low" ? a.pl - b.pl : realizedView.sort === "new" ? (b.date < a.date ? -1 : b.date > a.date ? 1 : 0) : b.pl - a.pl;
+  let rows, headers;
+  if (realizedView.mode === "sale") {
+    rows = [...sales].sort(sortFn).map((x) => `<tr>
+      <td class="dcc-c">${fmtDate(x.date)}</td>
+      <td class="dcc-c td-holding">${tickerCell(x.ticker, null, tickerSubLabel(x.ticker, x.company))}<div class="sub">${esc(brokerName(x.brokerId))}</div></td>
+      <td class="dcc-c">${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} @ ${fmt(x.price)} ${ccyLabel(x.currency)}</td>
+      <td class="dcc-c">${money(x.costMYR)}</td><td class="dcc-c">${money(x.proceedsMYR)}</td>
+      <td class="dcc-c ${cls(x.pl)}">${moneySigned(x.pl)}</td><td class="dcc-c ${cls(x.pl)}">${pct(x.pl, x.costMYR)}</td></tr>`).join("");
+    headers = [t("Date"), t("Holding"), t("Sold"), t("Cost"), t("Proceeds"), t("Realized P/L"), t("Return %")];
+  } else {
+    const by = {};
+    sales.forEach((x) => {
+      const g = by[x.ticker] || (by[x.ticker] = { ticker: x.ticker, company: x.company, n: 0, cost: 0, proceeds: 0, pl: 0, date: "" });
+      g.n++; g.cost += x.costMYR; g.proceeds += x.proceedsMYR; g.pl += x.pl; if (x.date > g.date) g.date = x.date;
+      if (!g.company && x.company) g.company = x.company;
+    });
+    rows = Object.values(by).sort(sortFn).map((g) => `<tr>
+      <td class="dcc-c td-holding">${tickerCell(g.ticker, null, tickerSubLabel(g.ticker, g.company))}</td>
+      <td class="dcc-c">${g.n}</td><td class="dcc-c">${money(g.cost)}</td><td class="dcc-c">${money(g.proceeds)}</td>
+      <td class="dcc-c ${cls(g.pl)}">${moneySigned(g.pl)}</td><td class="dcc-c ${cls(g.pl)}">${pct(g.pl, g.cost)}</td></tr>`).join("");
+    headers = [t("Holding"), t("Sales"), t("Cost"), t("Proceeds"), t("Realized P/L"), t("Return %")];
+  }
+  const best = [...sales].sort((a, b) => b.pl - a.pl)[0], worst = [...sales].sort((a, b) => a.pl - b.pl)[0];
+  const wins = sales.filter((x) => x.pl > 0).length;
+  const mc = (label, val, c = "") => `<div class="mini-card"><div class="mc-label">${label}</div><div class="mc-value ${c}">${val}</div></div>`;
+  const summary = `<div class="mini-cards" style="margin-bottom:16px">
+    ${mc(t("Total Realized P/L"), moneySigned(T.realizedPL), cls(T.realizedPL))}
+    ${mc(t("Best sale"), `${moneySigned(best.pl)}<div class="sub">${esc(best.ticker)} · ${fmtDate(best.date)}</div>`, cls(best.pl))}
+    ${mc(t("Worst sale"), `${moneySigned(worst.pl)}<div class="sub">${esc(worst.ticker)} · ${fmtDate(worst.date)}</div>`, cls(worst.pl))}
+    ${mc(t("Winning sales"), `${wins} / ${sales.length}`)}</div>`;
+  const modeBtns = `<div class="seg" role="group">${[["stock", "By stock"], ["sale", "Each sale"]].map(([k, l]) =>
+    `<button class="seg-btn ${realizedView.mode === k ? "on" : ""}" data-rzmode="${k}">${t(l)}</button>`).join("")}</div>`;
+  const sortSel = styledSelect("rzSort", [["high", "Highest profit first"], ["low", "Biggest loss first"], ["new", "Most recent first"]]
+    .map(([value, label]) => ({ value, label: t(label) })), realizedView.sort, { id: "rzSort" });
+  const w = (100 / headers.length).toFixed(1) + "%";
+  return summary + panel(t("Realized P/L"),
+    `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${modeBtns}${sortSel}</div>
+     <div class="dcc-table-scroll" style="max-height:480px">${table(headers.map((h) => ({ label: h, style: "width:" + w })), rows)}</div>
+     <p class="muted" style="font-size:12px;margin:10px 0 0">${t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.")}</p>`);
+}
+
 function portfolioSummaryHTML() {
   const rows = filteredHoldings();
   const mv = rows.reduce((s, h) => s + h.marketValue, 0);
