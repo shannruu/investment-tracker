@@ -77,7 +77,16 @@ function resetPerAccountCaches() {
  * If Cloud Sync can't start at all (offline first visit, CDN blocked) the cover is
  * dropped after a few seconds so the app still opens in local-only mode.
  * ========================================================================== */
-let AUTH_GATE_MODE = "signup";
+// Which tab the opening page starts on: Sign in for anyone arriving from an email link (?code= / type= /
+// error in the URL) or who has already made/used an account in this browser; Create account only for a
+// genuinely new visitor.
+const AG_HAD_ACCOUNT_KEY = "divz-had-account";
+function agRememberAccount() { try { localStorage.setItem(AG_HAD_ACCOUNT_KEY, "1"); } catch (e) {} }
+let AUTH_GATE_MODE = (() => {
+  let had = false;
+  try { had = localStorage.getItem(AG_HAD_ACCOUNT_KEY) === "1"; } catch (e) {}
+  return had || /[?&#](code|type|access_token|error|error_code)=/.test(location.search + location.hash) ? "signin" : "signup";
+})();
 // Design-preview escape hatch: open the site with ?preview=1 to look around without an account
 // (remembered for this tab only). The gate is a client-side courtesy, not a security boundary.
 let AUTH_GATE_PREVIEW = false;
@@ -154,7 +163,7 @@ function showAuthGate() {
         const { data, error } = await SUPABASE.auth.signUp({ email, password });
         AUTH_GATE_HOLD = false;
         if (error) status.textContent = mapAuthError(error, "signup");
-        else { showAuthGateSuccess(email, !!data.session); return; }
+        else { agRememberAccount(); showAuthGateSuccess(email, !!data.session); return; }
       } else {
         const { error } = await SUPABASE.auth.signInWithPassword({ email, password });
         if (error) status.textContent = mapAuthError(error, "signin");
@@ -288,7 +297,7 @@ async function initSync() {
 
   try {
     const { data } = await SUPABASE.auth.getSession();
-    if (data && data.session) { SYNC_USER = data.session.user; hideAuthGate(); await reconcileOnSignIn(); }
+    if (data && data.session) { SYNC_USER = data.session.user; agRememberAccount(); hideAuthGate(); await reconcileOnSignIn(); }
   } catch (e) { /* stays signed out */ }
   authGateSync();
   // Whatever page is on screen right now may have already rendered once with
@@ -300,6 +309,7 @@ async function initSync() {
   SUPABASE.auth.onAuthStateChange(async (event, session) => {
     if (event === "SIGNED_IN" && session && (!SYNC_USER || SYNC_USER.id !== session.user.id)) {
       SYNC_USER = session.user;
+      agRememberAccount();
       hideAuthGate();
       resetPerAccountCaches();
       await reconcileOnSignIn();
