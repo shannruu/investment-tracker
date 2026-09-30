@@ -1759,3 +1759,11 @@ html:has(.auth-gate:not([hidden])) { overflow: hidden; }
   color: var(--pos); background: color-mix(in srgb, var(--pos) 14%, transparent); border: 1px solid color-mix(in srgb, var(--pos) 35%, transparent); }
 .ag-email { display: block; margin: 4px 0 8px; color: var(--text); overflow-wrap: anywhere; }
 .ag-done .ag-btn { margin-top: 8px; }
+
+.ag-pw { position: relative; display: block; }
+.ag-card .ag-pw input { padding-right: 52px; }
+.ag-eye { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; display: grid; place-items: center;
+  background: none; border: 0; border-radius: 10px; color: var(--muted); cursor: pointer; padding: 0; }
+.ag-eye:hover { color: var(--text); background: var(--surface-2); }
+.ag-eye:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.auth-gate .ag-pw input { width: 100%; box-sizing: border-box; }
