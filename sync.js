@@ -89,21 +89,21 @@ function showAuthGate() {
   clearTimeout(AUTH_GATE_TIMER);
   g.hidden = false; g.dataset.state = "form";
   const signup = AUTH_GATE_MODE === "signup";
-  g.innerHTML = `<div class="ag-card" role="dialog" aria-modal="true" aria-labelledby="agTitle">
-    <div class="ag-brand"><span class="ag-logo">D</span><span class="ag-name">Divz</span></div>
-    <h1 id="agTitle" class="ag-title">${signup ? t("Create your account") : t("Welcome back")}</h1>
-    <p class="ag-sub">${signup ? t("Sign up to keep your investment records safe and in sync on every device.") : t("Sign in to your Divz account.")}</p>
-    <form id="agForm" class="ag-form" novalidate>
-      <label for="agEmail">${t("Email")}</label>
-      <input id="agEmail" name="email" type="email" autocomplete="email" inputmode="email" required>
-      <label for="agPass">${t("Password")}</label>
-      <input id="agPass" name="password" type="password" autocomplete="${signup ? "new-password" : "current-password"}" required>
-      ${signup ? `<p class="ag-hint">${t("At least 6 characters.")}</p>` : ""}
-      <p class="ag-status" id="agStatus" role="alert"></p>
-      <button type="submit" class="ag-btn">${signup ? t("Create account") : t("Sign in")}</button>
+  g.innerHTML = `<div class="ag-card panel" role="dialog" aria-modal="true" aria-labelledby="agTitle">
+    <div class="brand ag-brand"><span class="brand-mark" aria-hidden="true">D</span><span class="brand-name">Divz</span></div>
+    <div class="panel-head"><h2 id="agTitle">${signup ? t("Create your account") : t("Welcome back")}</h2></div>
+    <p class="muted ag-sub">${signup ? t("Sign up to keep your investment records safe and in sync on every device.") : t("Sign in to your Divz account.")}</p>
+    <form id="agForm" class="form" novalidate>
+      <div class="form-grid ag-grid">
+        <label>${t("Email")}<input id="agEmail" name="email" type="email" placeholder="you@example.com" autocomplete="email" inputmode="email" required></label>
+        <label>${t("Password")}<input id="agPass" name="password" type="password" placeholder="••••••••" autocomplete="${signup ? "new-password" : "current-password"}" required></label>
+      </div>
+      ${signup ? `<p class="muted ag-hint">${t("At least 6 characters.")}</p>` : ""}
+      <p class="field-err ag-status" id="agStatus" role="alert"></p>
+      <button type="submit" class="btn primary ag-btn">${signup ? t("Create account") : t("Sign in")}</button>
     </form>
-    <p class="ag-switch">${signup ? t("Already have an account?") : t("New here?")}
-      <button type="button" id="agToggle" class="ag-link">${signup ? t("Sign in") : t("Create an account")}</button></p>
+    <p class="muted ag-switch">${signup ? t("Already have an account?") : t("New here?")}
+      <button type="button" id="agToggle" class="link">${signup ? t("Sign in") : t("Create an account")}</button></p>
   </div>`;
   const form = document.getElementById("agForm"), status = document.getElementById("agStatus");
   document.getElementById("agToggle").addEventListener("click", () => { AUTH_GATE_MODE = signup ? "signin" : "signup"; showAuthGate(); });
