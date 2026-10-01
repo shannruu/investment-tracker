@@ -2261,14 +2261,29 @@ function mountColInfoTaps() {
   let shownFor = null;
   let shownAt = 0;
 
-  const show = (el) => {
+  // Column titles: on a device that can hover (a mouse) the TITLE itself shows the description and the
+  // little info icon is hidden by CSS; a touch screen can't hover, so there the icon stays and a tap shows it.
+  const canHover = window.matchMedia("(hover: hover) and (pointer: fine)");
+  const hostOf = (target) => {
+    if (!target || !target.closest) return null;
+    const icon = target.closest(".col-info");
+    if (icon) return { el: icon, icon: true, rect: () => icon.getBoundingClientRect() };
+    if (!canHover.matches) return null;
+    const th = target.closest("th");
+    const ic = th && th.querySelector(".col-info[data-tip]");
+    if (!ic) return null;
+    // anchor the tooltip to the title's own text, not the whole (possibly much wider) header cell
+    return { el: ic, icon: false, rect: () => { const rg = document.createRange(); rg.selectNodeContents(th); return rg.getBoundingClientRect(); } };
+  };
+
+  const show = (el, rectFn) => {
     const text = el.getAttribute("data-tip");
     if (!text) return;
     tip.textContent = text;
     tip.hidden = false;
     shownFor = el;
     shownAt = performance.now();
-    const r = el.getBoundingClientRect();
+    const r = rectFn ? rectFn() : el.getBoundingClientRect();
     // Default: centered above the icon. Measure the actual rendered box afterward and
     // nudge it back on-screen (or flip below) if that pushes it past a viewport edge —
     // same two-pass measure-then-clamp approach as mountChartTooltips().
@@ -2290,16 +2305,17 @@ function mountColInfoTaps() {
   const hide = () => { tip.hidden = true; shownFor = null; };
 
   document.addEventListener("mouseover", (e) => {
-    const hit = e.target.closest(".col-info");
-    if (hit) show(hit);
+    const h = hostOf(e.target);
+    if (h) show(h.el, h.rect);
   });
   document.addEventListener("mouseout", (e) => {
-    const hit = e.target.closest(".col-info");
-    const to = e.relatedTarget && e.relatedTarget.closest && e.relatedTarget.closest(".col-info");
-    if (hit && hit !== to) hide();
+    const from = hostOf(e.target), to = hostOf(e.relatedTarget);
+    if (from && (!to || to.el !== from.el)) hide();
   });
   document.addEventListener("click", (e) => {
-    const hit = e.target.closest(".col-info");
+    const h = hostOf(e.target);
+    if (h && !h.icon) return;   // a title on a hover-capable device: hovering already shows it, a click shouldn't undo that
+    const hit = h && h.el;
     if (hit) {
       e.stopPropagation();
       // A touchscreen tap fires a synthetic "mouseover" immediately before "click" — show()

@@ -1820,3 +1820,11 @@ button.nav-item { font-size: 14px; }
 .hc-detail { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-soft); }
 @media (max-width: 900px) { .hc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .hc-grid { grid-template-columns: 1fr 1fr; gap: 16px 14px; } }
+
+/* Column titles with a description: with a mouse the TITLE shows it on hover (the info icon is hidden);
+   on a touch screen — which can't hover — the icon stays and a tap shows it. */
+@media (hover: hover) and (pointer: fine) {
+  th .col-info { display: none; }
+  th:has(.col-info) { cursor: help; }
+  th:has(.col-info):hover { color: var(--text); }
+}
