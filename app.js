@@ -890,7 +890,7 @@ function computeTotals() {
   const lots = {};
   const ensureLot = (brokerId, ticker, meta = {}) => {
     const k = keyOf(brokerId, ticker);
-    if (!lots[k]) lots[k] = { ticker, brokerId, company: "", market: "", currency: FX.base, shares: 0, costMYR: 0, costLocal: 0, netDivMYR: 0, realizedMYR: 0 };
+    if (!lots[k]) lots[k] = { ticker, brokerId, company: "", market: "", currency: FX.base, shares: 0, costMYR: 0, costLocal: 0, priceCostMYR: 0, priceCostLocal: 0, netDivMYR: 0, realizedMYR: 0 };
     const l = lots[k];
     if (meta.company && !l.company) l.company = meta.company;
     if (meta.market && !l.market) l.market = meta.market;
@@ -906,6 +906,7 @@ function computeTotals() {
     l.shares += +h.shares || 0;
     l.costLocal += localCost;          // cost in the holding's own currency
     l.costMYR += localCost * fx;        // cost in base currency at historical FX
+    l.priceCostLocal += localCost; l.priceCostMYR += localCost * fx;   // no fees on an opening position
     if (h.netDividends) l.netDivMYR += +h.netDividends;
   });
 
@@ -942,6 +943,7 @@ function computeTotals() {
         const l = ensureLot(tx.brokerId, tx.ticker, tx);
         const localCost = q * price + fee + taxv;
         l.shares += q; l.costLocal += localCost; l.costMYR += localCost * fx;
+        l.priceCostLocal += q * price; l.priceCostMYR += q * price * fx;   // same lot WITHOUT fees (Portfolio → Broker check)
         // A DRIP-funded Buy never touched cash — the money it "spent" is the same dividend
         // whose own cash was already suppressed (paidTo: "reinvested") on its Dividend leg.
         if (!tx.drip) addCash(tx.brokerId, ccy, -(gross + fee + taxv));
@@ -952,14 +954,21 @@ function computeTotals() {
         if (q > l.shares + 1e-9 && !tx.override) oversells.push({ ticker: tx.ticker, brokerId: tx.brokerId });
         const avgMYR = l.shares > 0 ? l.costMYR / l.shares : 0;
         const avgLocal = l.shares > 0 ? l.costLocal / l.shares : 0;
+        const avgPriceMYR = l.shares > 0 ? l.priceCostMYR / l.shares : 0;
+        const avgPriceLocal = l.shares > 0 ? l.priceCostLocal / l.shares : 0;
         const proceedsMYR = q * price * fx;
         const realizedThis = proceedsMYR - avgMYR * q - feeMYR - taxMYR;   // nets commission + taxes
         realizedPL += realizedThis; l.realizedMYR += realizedThis;
         addTo(realizedByBroker, tx.brokerId, realizedThis);
         realizedSales.push({ id: tx.id, date: tx.date, brokerId: tx.brokerId, ticker: tx.ticker, company: tx.company, qty: q, price, currency: ccy,
-          costMYR: avgMYR * q, proceedsMYR, feesMYR: feeMYR + taxMYR, pl: realizedThis });
+          costMYR: avgMYR * q, proceedsMYR, feesMYR: feeMYR + taxMYR, pl: realizedThis,
+          plLocal: q * price - avgLocal * q - fee - taxv });   // same profit in the stock's own currency
         l.shares -= q; l.costMYR -= avgMYR * q; l.costLocal -= avgLocal * q;
-        if (l.shares < 1e-9) { l.shares = 0; l.costMYR = Math.max(0, l.costMYR); l.costLocal = Math.max(0, l.costLocal); }
+        l.priceCostMYR -= avgPriceMYR * q; l.priceCostLocal -= avgPriceLocal * q;
+        if (l.shares < 1e-9) {
+          l.shares = 0; l.costMYR = Math.max(0, l.costMYR); l.costLocal = Math.max(0, l.costLocal);
+          l.priceCostMYR = Math.max(0, l.priceCostMYR); l.priceCostLocal = Math.max(0, l.priceCostLocal);
+        }
         addCash(tx.brokerId, ccy, gross - fee - taxv); break;
       }
       case "Dividend": {
@@ -1008,6 +1017,10 @@ function computeTotals() {
     const costBasis = l.costMYR;
     const avgCost = l.shares > 0 ? l.costMYR / l.shares : 0;          // MYR/share (historical)
     const avgCostLocal = l.shares > 0 ? l.costLocal / l.shares : 0;   // original ccy/share
+    // Buying fees sitting inside the cost above (Divz counts them as part of what you paid; most
+    // broker apps show "cost" without them) and the matching fee-free average — see Broker check.
+    const feeCostMYR = Math.max(0, l.costMYR - l.priceCostMYR), feeCostLocal = Math.max(0, l.costLocal - l.priceCostLocal);
+    const avgCostExLocal = l.shares > 0 ? l.priceCostLocal / l.shares : 0;
     let marketValue, unrealized, priceUnrealized, fxUnrealized;
     if (hasPrice) {
       marketValue = l.shares * (+cp.price) * curFx(priceCcy);
@@ -1020,7 +1033,7 @@ function computeTotals() {
     const unrealizedPct = costBasis ? (unrealized / costBasis) * 100 : 0;
     const totalReturn = unrealized + (l.realizedMYR || 0) + l.netDivMYR;
     const meta = STOCK_META[l.ticker] || {};
-    return { ...l, costBasis, marketValue, avgCost, avgCostLocal, unrealized, unrealizedPct, priceUnrealized, fxUnrealized,
+    return { ...l, costBasis, marketValue, avgCost, avgCostLocal, feeCostMYR, feeCostLocal, avgCostExLocal, unrealized, unrealizedPct, priceUnrealized, fxUnrealized,
       realized: l.realizedMYR || 0, netDividends: l.netDivMYR, totalReturn,
       country: meta.country || marketInfo(l.ticker).country, sector: meta.sector || null, industry: meta.industry || null,
       hasPrice, currentPrice: hasPrice ? +cp.price : null, currentPriceCcy: priceCcy,
@@ -1120,7 +1133,7 @@ const SCHEMA_VERSION = 4;
 function snapshot() {
   return { version: SCHEMA_VERSION, lastSaved: LAST_SAVED,
     BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS,
-    CURRENT_PRICES, STOCK_META, HOLDING_TYPES, RECON_CHECKS, DISMISSED_AUTO_DIVS, SETTINGS, USER, FX, PV_HISTORY };
+    CURRENT_PRICES, STOCK_META, HOLDING_TYPES, RECON_CHECKS, HOLDING_CHECKS, DISMISSED_AUTO_DIVS, SETTINGS, USER, FX, PV_HISTORY };
 }
 /* A restored backup is untrusted JSON — Object.assign(target, parsedJson)
  * would let a crafted "__proto__"/"constructor"/"prototype" key in the file
@@ -1273,7 +1286,7 @@ function applySnapshot(s) {
   replaceArr(BROKERS, s.BROKERS); replaceArr(HOLDINGS, s.HOLDINGS);
   replaceArr(ALL_TRANSACTIONS, s.ALL_TRANSACTIONS); replaceArr(UPCOMING_DIVIDENDS, s.UPCOMING_DIVIDENDS);
   if (Array.isArray(s.PV_HISTORY)) replaceArr(PV_HISTORY, s.PV_HISTORY.filter((p) => p && p.value > 0));
-  assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(RECON_CHECKS, s.RECON_CHECKS);
+  assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(RECON_CHECKS, s.RECON_CHECKS); assignObj(HOLDING_CHECKS, s.HOLDING_CHECKS);
   assignObj(STOCK_META, s.STOCK_META); assignObj(HOLDING_TYPES, s.HOLDING_TYPES);
   assignObj(DISMISSED_AUTO_DIVS, s.DISMISSED_AUTO_DIVS);
   if (s.SETTINGS) safeAssign(SETTINGS, s.SETTINGS);
@@ -3158,7 +3171,9 @@ const PORTFOLIO_PREFS_KEY = "il-portfolio-v2";
 const COL_DEFS = [
   { id: "broker",         label: "Broker" },
   { id: "shares",         label: "Shares" },
-  { id: "avgCost",        label: "Avg Cost" },
+  { id: "avgCost",        label: "Avg Cost (incl. fees)" },
+  { id: "avgCostEx",      label: "Avg Cost (excl. fees)" },
+  { id: "buyFees",        label: "Buying fees" },
   { id: "price",          label: "Price" },
   { id: "priceMyr",       label: "≈ Base currency" },
   { id: "unrealizedAmt",  label: "Unrealized P/L" },
@@ -3169,7 +3184,7 @@ const COL_DEFS = [
   { id: "netDiv",         label: "Net Dividends" },
 ];
 const COL_DEFAULTS = {
-  broker: true, shares: true, avgCost: true, price: true, priceMyr: false,
+  broker: true, shares: true, avgCost: true, avgCostEx: false, buyFees: false, price: true, priceMyr: false,
   unrealizedAmt: false, unrealizedPct: true, totalReturnAmt: true, totalReturnPct: false,
   marketValue: true, netDiv: false,
 };
@@ -3205,6 +3220,8 @@ function aggregateHoldingsByTicker(holdings) {
       g.unrealizedPct = newCost > 0 ? (g.unrealized / newCost) * 100 : 0;
       g.totalReturn = (g.totalReturn || 0) + (h.totalReturn || 0);
       g.netDividends = (g.netDividends || 0) + (h.netDividends || 0);
+      g.feeCostMYR = (g.feeCostMYR || 0) + (h.feeCostMYR || 0);
+      g.priceCostMYR = (g.priceCostMYR || 0) + (h.priceCostMYR || 0);
       g.hasPrice = g.hasPrice && h.hasPrice;
       g._brokerIds.push(h.brokerId); g._brokerNames.push(brokerName(h.brokerId));
       if (h.priceFetchedAt && (!g.priceFetchedAt || h.priceFetchedAt > g.priceFetchedAt)) {
@@ -3316,14 +3333,18 @@ function pagePortfolio() {
   // Holdings table vs. allocation breakdowns — same tp-tab pills as the Records page,
   // so switching doesn't feel like a different component elsewhere in the app.
   const pfTabs = [["holdings", "Holdings"], ["allocation", "Allocation"], ["realized", "Realized P/L"]];
+  if (has && typeof brokerCheckHTML === "function") pfTabs.push(["check", "Broker check"]);
   const pfNav = `<div class="type-tabs" role="tablist" style="margin-bottom:16px">${pfTabs.map(([k, lbl]) =>
     `<button class="tp-tab ${portfolioTab === k ? "on" : ""}" data-pftab="${k}">${t(lbl)}</button>`).join("")}</div>`;
   const hasSales = (T.realizedSales || []).length > 0;
   const html = (has || hasSales)
     ? `${has ? `<div id="pfSummary">${portfolioSummaryHTML()}</div>` : ""}
        ${pfNav}
-       ${portfolioTab === "realized" ? realizedPLHTML() : !has ? panel(t("Holdings"), emptyContent) : portfolioTab === "allocation" ? breakdowns
-          : panel(t("All Holdings"), filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
+       ${portfolioTab === "realized" ? realizedPLHTML() : !has ? panel(t("Holdings"), emptyContent)
+          : (portfolioTab === "check" && typeof brokerCheckHTML === "function") ? brokerCheckHTML()
+          : portfolioTab === "allocation" ? breakdowns
+          : panel(t("All Holdings"), filterBar + `<div id="holdingsBody">${portfolioTable()}</div>
+              <p class="pf-note muted">${t("Divz counts your buying fees as part of your cost and adds up every dividend you have received, so some figures differ slightly from your broker's app.")} <button type="button" class="link" data-pftab="check">${t("Compare with your broker")} →</button></p>`,
               `<div class="panel-head-actions">${priceStampHtml}${refreshBtn}</div>`)}`
     : panel(t("Holdings"), emptyContent);
 
@@ -3333,6 +3354,7 @@ function pagePortfolio() {
     mount() {
       $$("[data-pftab]").forEach((b) => b.addEventListener("click", () => { portfolioTab = b.dataset.pftab; render(); }));
       $$("[data-rzmode]").forEach((b) => b.addEventListener("click", () => { realizedView.mode = b.dataset.rzmode; render(); }));
+      if (portfolioTab === "check" && typeof mountBrokerCheck === "function") mountBrokerCheck();
       const rzSort = $("#rzSort"); if (rzSort) rzSort.addEventListener("change", () => { realizedView.sort = rzSort.value; render(); });
       const apply = () => {
         const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioTable();
@@ -3610,7 +3632,8 @@ function portfolioTable() {
   // Visible columns in user-defined order
   const orderedColIds = colOrder.filter((id) => cols[id]);
   const colLabels = {
-    broker: t("Broker"), shares: t("Shares"), avgCost: t("Avg Cost"),
+    broker: t("Broker"), shares: t("Shares"), avgCost: t("Avg Cost (incl. fees)"),
+    avgCostEx: t("Avg Cost (excl. fees)"), buyFees: t("Buying fees"),
     price: t("Price"), priceMyr: `≈ ${ccyLabel(FX.base)}`,
     unrealizedAmt: t("Unrealized P/L"), unrealizedPct: t("P/L %"),
     totalReturnAmt: t("Total Return"), totalReturnPct: t("Return %"),
@@ -3631,7 +3654,7 @@ function portfolioTable() {
   // past 100% and scrolls horizontally (via .table-wrap) instead of overlapping.
   const colPct = (100 / (orderedColIds.length + 1)).toFixed(2);
   const colMinWidths = {
-    broker: 130, shares: 90, avgCost: 100, price: 110, priceMyr: 100,
+    broker: 130, shares: 90, avgCost: 112, avgCostEx: 112, buyFees: 96, price: 110, priceMyr: 100,
     unrealizedAmt: 110, unrealizedPct: 90, totalReturnAmt: 110, totalReturnPct: 90,
     marketValue: 110, netDiv: 110,
   };
@@ -3640,7 +3663,9 @@ function portfolioTable() {
     const cellMap = {
       broker:         `<td class="dcc-c"><div class="broker-pills">${(h._brokerNames || [brokerName(h.brokerId)]).map((n) => `<span class="chip chip-pill">${esc(n)}</span>`).join("")}</div></td>`,
       shares:         `<td class="dcc-c">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>`,
-      avgCost:        `<td class="dcc-c">${money(h.avgCost)}</td>`,
+      avgCost:        `<td class="dcc-c">${ccyLabel(FX.base)} ${fmt(h.avgCost, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>`,
+      avgCostEx:      `<td class="dcc-c">${h.shares > 0 && h.priceCostMYR != null ? `${ccyLabel(FX.base)} ${fmt(h.priceCostMYR / h.shares, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : `<span class="muted">—</span>`}</td>`,
+      buyFees:        `<td class="dcc-c">${h.feeCostMYR > 0.004 ? money(h.feeCostMYR) : `<span class="muted">—</span>`}</td>`,
       price:          `<td class="dcc-c">${h.hasPrice ? `${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}` : `<span class="muted">—</span>`}</td>`,
       priceMyr:       `<td class="dcc-c">${(h.hasPrice && h.currency !== FX.base) ? `${ccyLabel(FX.base)} ${fmt(h.currentPrice * (FX.rates[h.currency] || 1))}` : `<span class="muted">—</span>`}</td>`,
       unrealizedAmt:  `<td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? moneySigned(h.unrealized) : `<span class="muted">—</span>`}</td>`,
@@ -3659,6 +3684,13 @@ function portfolioTable() {
   }).join("");
 
   const colTooltips = {
+    avgCost: t("Average price you paid per share, including your buying fees. Most broker apps show this without fees — see Broker check."),
+    avgCostEx: t("Average price you paid per share, without buying fees — usually the number your broker's app shows as cost."),
+    buyFees: t("Brokerage and other fees you paid when buying the shares you still hold."),
+    unrealizedAmt: t("Market value minus your cost (buying fees included) — the profit or loss on shares you still hold."),
+    totalReturnAmt: t("Unrealized P/L, plus profit from shares you sold, plus every dividend you have received."),
+    netDiv: t("Every dividend you have received for this stock, after tax."),
+    marketValue: t("Shares × current price."),
     unrealizedPct: t("Unrealized gain/loss as a percentage of your cost basis"),
     totalReturnPct: t("Total return including dividends, as a percentage of cost basis"),
     priceMyr: t("Live price converted to base currency at today's exchange rate"),
@@ -3669,7 +3701,7 @@ function portfolioTable() {
   }).join("");
   const thead = `<thead><tr><th style="width:${colPct}%;min-width:140px">${t("Holding")}</th>${thCols}</tr></thead>`;
 
-  return `<div class="table-wrap"><table class="data-table">${thead}<tbody>${body}</tbody></table></div>`;
+  return `<div class="table-wrap"><table class="data-table pf-table">${thead}<tbody>${body}</tbody></table></div>`;
 }
 
 /* =============================================================================
@@ -5542,6 +5574,7 @@ function pageBrokers() {
         // outflow instead of crediting a cash bucket under an id nothing points to anymore.
         ALL_TRANSACTIONS.forEach((x) => { if (x.toBrokerId === id) x.toBrokerId = undefined; });
         delete RECON_CHECKS[id];
+        Object.keys(HOLDING_CHECKS).forEach((k) => { if (k.startsWith(id + "|")) delete HOLDING_CHECKS[k]; });   // its Broker-check entries too
         // A manual upcoming-dividend entry can carry a specific brokerId (see the
         // "upcomingDividends schema" comment above allUpcomingDivs()) — left behind, it
         // permanently shows a $0 row (its matching holding is gone, so shares resolves to
@@ -5851,7 +5884,7 @@ function pageSettings() {
 /* --- Data safety helpers --- */
 function clearAllData() {
   [BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS, PV_HISTORY].forEach((a) => (a.length = 0));
-  assignObj(CURRENT_PRICES, {}); assignObj(RECON_CHECKS, {});
+  assignObj(CURRENT_PRICES, {}); assignObj(RECON_CHECKS, {}); assignObj(HOLDING_CHECKS, {});
   resetStore(); recompute();
   saveStore();   // also push the now-empty state to the cloud for signed-in users
 }

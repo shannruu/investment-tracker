@@ -90,6 +90,12 @@ const HOLDING_TYPES = {};
  * { actual, date, note } — actual broker cash balance the user typed in. */
 const RECON_CHECKS = {};
 
+/* What the user's broker app shows for one holding, typed in on Portfolio → Broker check so Divz can
+ * compare it with its own figures. Keyed "brokerId|TICKER" → { shares, avgCost, price, unrealized,
+ * realized, date } — every value kept as the raw text typed (e.g. "6.0636"), because how many decimals
+ * the user typed sets how tight the comparison is. */
+const HOLDING_CHECKS = {};
+
 /* Dividends the market-history auto-sync (autoSyncDividends(), app.js) found a stock is
  * technically eligible for but the user explicitly said NOT to add — e.g. a real ex-date
  * for a stock they hold at THIS broker now, but that specific historical payment actually
