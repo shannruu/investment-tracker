@@ -879,10 +879,18 @@ const txDateSort = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : txOrd
  * P/L, dividends and fees are all DERIVED here using a simple average-cost method.
  * Cost basis is tracked in MYR using each transaction's historical FX rate; current
  * market value uses the (current) FX.rates and manually-entered current prices. */
-function computeTotals() {
+/* ctx (optional) replays a PAST day for the Dashboard's history chart:
+ *   txns     the transactions that had happened by then (default: all of them)
+ *   priceOf  (ticker) => { price, currency } the closing price that day (default: CURRENT_PRICES)
+ *   fxOf     (currency) => rate to the base currency that day (default: FX.rates)
+ *   skipXirr leave out the (slow, unneeded) annualised return
+ * Called with no argument it behaves exactly as it always has. */
+function computeTotals(ctx) {
   // FX helpers: historical rate stored on the transaction; current from FX.rates.
   const histFx = (tx) => (tx.fxRate != null && tx.fxRate !== "" ? +tx.fxRate : (FX.rates[tx.currency] || 1));
   const curFx = (ccy) => (FX.rates[ccy] || 1);
+  // What things are WORTH uses the rate of the day being valued; what they COST keeps the rates they were bought at.
+  const valFx = (ccy) => (ctx && ctx.fxOf ? ctx.fxOf(ccy) : curFx(ccy));
 
   const keyOf = (brokerId, ticker) => brokerId + "|" + ticker;
   const lots = {};
@@ -923,7 +931,7 @@ function computeTotals() {
   const addTo = (map, id, amt) => { map[id] = (map[id] || 0) + amt; };
 
   // Process chronologically so average cost is correct.
-  const txns = [...ALL_TRANSACTIONS].sort(txDateSort);
+  const txns = [...((ctx && ctx.txns) || ALL_TRANSACTIONS)].sort(txDateSort);
   txns.forEach((tx) => {
     const fx = histFx(tx);
     const ccy = tx.currency || FX.base;
@@ -1004,11 +1012,11 @@ function computeTotals() {
   const brokerCash = {}, brokerCashByCcy = {};
   Object.keys(cash).forEach((id) => {
     brokerCashByCcy[id] = cash[id];
-    brokerCash[id] = Object.keys(cash[id]).reduce((s, c) => s + cash[id][c] * curFx(c), 0);
+    brokerCash[id] = Object.keys(cash[id]).reduce((s, c) => s + cash[id][c] * valFx(c), 0);
   });
 
   const holdings = Object.values(lots).filter((l) => Math.abs(l.shares) > 1e-9).map((l) => {
-    const cp = CURRENT_PRICES[l.ticker];
+    const cp = ctx && ctx.priceOf ? ctx.priceOf(l.ticker) : CURRENT_PRICES[l.ticker];
     const hasPrice = !!cp && cp.price != null;
     const priceCcy = hasPrice ? cp.currency : l.currency;
     const costBasis = l.costMYR;
@@ -1020,8 +1028,8 @@ function computeTotals() {
     const avgCostExLocal = l.shares > 0 ? l.priceCostLocal / l.shares : 0;
     let marketValue, unrealized, priceUnrealized, fxUnrealized;
     if (hasPrice) {
-      marketValue = l.shares * (+cp.price) * curFx(priceCcy);
-      priceUnrealized = (+cp.price - avgCostLocal) * l.shares * curFx(priceCcy);  // price effect @ current FX
+      marketValue = l.shares * (+cp.price) * valFx(priceCcy);
+      priceUnrealized = (+cp.price - avgCostLocal) * l.shares * valFx(priceCcy);  // price effect @ current FX
       unrealized = marketValue - costBasis;
       fxUnrealized = unrealized - priceUnrealized;                                // FX translation on cost
     } else {
@@ -1053,10 +1061,10 @@ function computeTotals() {
   // Negative cash detection per (broker, currency) — allowed, but flagged.
   const negativeCash = [];
   Object.keys(cash).forEach((id) => Object.keys(cash[id]).forEach((c) => {
-    if (cash[id][c] < -0.005) negativeCash.push({ brokerId: id, currency: c, amount: cash[id][c], amountMYR: cash[id][c] * curFx(c) });
+    if (cash[id][c] < -0.005) negativeCash.push({ brokerId: id, currency: c, amount: cash[id][c], amountMYR: cash[id][c] * valFx(c) });
   }));
   const totalCash = Object.values(brokerCash).reduce((s, c) => s + c, 0);
-  const xirrValue = xirrPercent(txns, portfolioValue + totalCash);
+  const xirrValue = ctx && ctx.skipXirr ? null : xirrPercent(txns, portfolioValue + totalCash);
 
   // Unrealized P/L per broker — holdings are already keyed by brokerId|ticker,
   // so this partitions exactly (sums back to unrealizedPL above).
@@ -1307,6 +1315,8 @@ function loadStore() {
 }
 function resetStore() {
   try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+  // The Dashboard's cached net-worth history is derived from this data (see dashboard.js) — it must go with it.
+  try { localStorage.removeItem("il-hist-v1"); } catch (e) {}
 }
 loadStore();  // hydrate from the browser before the first calculation
 
@@ -2370,18 +2380,6 @@ function mountChartTooltips() {
 // Monochrome indigo ramp (+ one neutral) so the allocation chart stays on-brand.
 const PALETTE = ["#4a3ed9", "#6d5efc", "#8b80ff", "#a99dff", "#352c9e", "#c4bcff", "#8089a0"];
 
-/* Currency colors for the dashboard's by-currency allocation donut. MYR/USD
- * get fixed, memorable colors; any 3rd+ currency gets a stable PALETTE color
- * assigned once and cached — module-level so it stays the same currency-to-
- * color mapping across re-renders instead of shifting on every render(). */
-const CCY_COLORS = { MYR: "var(--brand)", USD: "#3b82f6" };
-const _ccyColorCache = {};
-let _ccyColorIdx = 0;
-function ccyColor(ccy) {
-  if (CCY_COLORS[ccy]) return CCY_COLORS[ccy];
-  if (!_ccyColorCache[ccy]) { _ccyColorCache[ccy] = PALETTE[_ccyColorIdx % PALETTE.length]; _ccyColorIdx++; }
-  return _ccyColorCache[ccy];
-}
 function donutHTML(slices, centerLabel, centerValue, colors) {
   slices = (slices || []).filter((s) => s.value > 0);
   if (!slices.length) return emptyState(`${t("No holdings yet. Add a buy transaction to create your first holding.")}<div style="margin-top:14px"><a class="btn primary" href="#/add">${t("Add a transaction")} →</a></div>`);
@@ -2456,26 +2454,6 @@ function ttmDividends(tickers) {
   }, 0);
 }
 
-/* Portfolio Health — objective analytics only, one panel (so it has a clear
- * home on the page, unlike the headingless version) with three plain stat
- * columns instead of individually bordered/shadowed mini-cards (so it doesn't
- * read as boxes nested inside a box). Separation comes from gap and a hover
- * tint alone, no competing borders. */
-function insightsHTML() {
-  const hp = portfolioHealth();
-  const stat = (id, label, val, sub) => `<div class="ph-stat" id="${id}">
-    <div class="ph-stat-head"><span class="stat-label">${label}</span></div>
-    <div class="ph-stat-value">${val}</div>
-    ${sub ? `<div class="mc-sub muted">${sub}</div>` : ""}
-  </div>`;
-  return panel(t("Portfolio Health"), `<div class="ph-row">
-    ${stat("phDivYield", t("Dividend Yield (TTM)"), hp.yieldEst != null ? fmt(hp.yieldEst, { maximumFractionDigits: 2 }) + "%" : "—", hp.yieldEst != null ? "" : t("No dividends recorded yet"))}
-    ${stat("phCashAlloc", t("Cash Allocation"), hp.cashAlloc != null ? fmt(hp.cashAlloc, { maximumFractionDigits: 1 }) + "%" : "—", hp.cashAlloc != null ? t("of total net value") : t("Nothing to allocate yet"))}
-    ${stat("phDivScore", t("Diversification Score"), T.holdings.length >= 2 ? `${hp.divScore}/100` : "—", T.holdings.length >= 2 ? `${fmt(hp.effectiveN, { maximumFractionDigits: 1 })} ${t("effective holdings")}` : t("Add more holdings to score"))}
-    ${stat("phXirr", t("XIRR"), T.xirr != null ? fmt(T.xirr, { maximumFractionDigits: 2 }) + "%" : "—", T.xirr != null ? t("Money-weighted annual return") : t("Not enough cash-flow history"))}
-  </div>`);
-}
-
 /* Objective portfolio-health metrics (no advice). */
 function portfolioHealth() {
   const hs = T.holdings, pv = T.portfolioValue || 0;
@@ -2498,340 +2476,6 @@ function portfolioHealth() {
   const effectiveN = hhi ? 1 / hhi : 0;
   const divScore = hs.length ? Math.round(Math.max(0, Math.min(100, (1 - hhi) * 100))) : 0;
   return { largest, winner, loser, ttm, yieldEst, cashAlloc, totalNav, hhi, effectiveN, divScore, pv };
-}
-
-/* =============================================================================
- * PAGE: DASHBOARD
- * ========================================================================== */
-let dashAllocMode = "currency"; // "currency" | "type"
-let dashChartMode = (() => { try { return localStorage.getItem("il-chart-mode") || "mv"; } catch(e) { return "mv"; } })(); // "mv" | "div"
-
-/* Builds the Asset Allocation donut for the current dashAllocMode — shared by the
- * initial Dashboard render and the toggle's click handler so the branch only lives
- * in one place. No "by individual holding" mode — unlike currency or asset type,
- * the number of distinct holdings isn't bounded, and a pie stops being readable
- * past 4-5 slices (same reasoning Portfolio's own breakdown panels use a ranked
- * bar list instead of a donut for exactly this kind of unbounded category count). */
-function dashAllocDonutHTML() {
-  const totalStr = money(T.portfolioValue).replace(".00", "");
-  if (dashAllocMode === "type") {
-    const typeSlices = groupSum(T.holdings, (h) => t(holdingType(h.ticker)), (h) => h.marketValue).filter((s) => s.value > 0);
-    return donutHTML(typeSlices, t("Portfolio"), totalStr, typeSlices.map((s) => ccyColor(s.label)));
-  }
-  const ccySlices = groupSum(T.holdings, (h) => h.currency || "Other", (h) => h.marketValue).filter((s) => s.value > 0);
-  return donutHTML(ccySlices, t("Portfolio"), totalStr, ccySlices.map((s) => ccyColor(s.label)));
-}
-
-/* Builds the chart body HTML for the Investment Return panel.
- * Called on initial render and again in-place when the mode toggle fires. */
-function buildDashChartContent() {
-  const currentMV = T.portfolioValue || 0;
-  const pvPrincipal = T.netCapitalInvested || 0;
-  const todayStr = todayISO();
-
-  // Cumulative net dividends received up to each date (for "Incl. Dividends" mode)
-  const cumDivByDate = (() => {
-    const byDate = {};
-    ALL_TRANSACTIONS
-      .filter((x) => x.type === "Dividend" && x.status !== "Expected")
-      .forEach((d) => { const dt = d.payDate || d.date; if (dt) byDate[dt] = (byDate[dt] || 0) + divNetMYR(d); });
-    let acc = 0;
-    const result = {};
-    Object.keys(byDate).sort().forEach((dt) => { acc += byDate[dt]; result[dt] = acc; });
-    return result;
-  })();
-  const getCumDiv = (date) => {
-    let val = 0;
-    for (const k of Object.keys(cumDivByDate).sort()) { if (k <= date) val = cumDivByDate[k]; else break; }
-    return val;
-  };
-
-  // Build historical series: filter stale snapshots, always replace today with live data
-  const filtered = PV_HISTORY
-    .filter((p) => {
-      const mv = p.mv != null ? p.mv : p.value;
-      if (mv < 0) return false;
-      // Discard if snapshot MV is implausibly higher than 3× current live portfolio value
-      if (currentMV > 0 && mv > currentMV * 3) return false;
-      const pVal = p.principal != null ? p.principal : 0;
-      return mv > 0 || pVal > 0;
-    })
-    .filter((p) => p.date !== todayStr)  // always replace today with live recalculation
-    .map((p) => {
-      const mv = p.mv != null ? p.mv : p.value;
-      const principal = p.principal != null ? p.principal : 0;
-      const cumDiv = dashChartMode === "div" ? getCumDiv(p.date) : 0;
-      return { month: p.date.slice(5), date: p.date, value: mv + cumDiv, principal };
-    });
-
-  // Today's point always uses live T.portfolioValue (never a cached snapshot)
-  const todayCumDiv = dashChartMode === "div" ? getCumDiv(todayStr) : 0;
-  const todayPoint = { month: todayStr.slice(5), date: todayStr, value: currentMV + todayCumDiv, principal: pvPrincipal };
-
-  const series = filtered.length
-    ? [...filtered, todayPoint].sort((a, b) => (a.date < b.date ? -1 : 1))
-    : [todayPoint];
-
-  const mvLabel = dashChartMode === "div" ? `${t("Total Return")} (${ccyLabel(FX.base)})` : t("Market Value");
-  const clockNote = !filtered.length
-    ? `<div class="pv-clock-note">${metaNote(CLOCK_ICON_SVG, t("Prices as of today will appear here tomorrow — check back after your next visit."))}</div>`
-    : "";
-
-  return `<div class="chart" data-chart-mode="${dashChartMode}">${lineChartSVG(series, { noFill: true })}</div>
-    <div class="chart-legend"><span class="cl-item"><span class="cl-nw"></span>${mvLabel}</span><span class="cl-item"><span class="cl-p"></span>${t("Cost Basis")}</span></div>
-    <p class="muted" style="font-size:11px;margin:5px 0 0;text-align:center">${t("Market value vs. what you paid — the gap is your gain or loss.")}</p>${clockNote}`;
-}
-
-function pageDashboard() {
-  const netWorth = (T.portfolioValue || 0) + (T.totalCash || 0);
-  const returnIsTotal = SETTINGS.returnMode !== "price";
-  // "Unrealized" must show pure unrealized P/L, not T.priceReturn (which also mixes
-  // in realized P/L and fees) — otherwise a fully-sold position with no current
-  // holdings can still show a large nonzero "Unrealized P/L" from past realized gains.
-  const shownReturn = returnIsTotal ? T.totalReturn : T.unrealizedPL;
-  // null (not 0) whenever the ratio would be meaningless — no capital invested yet
-  // (a portfolio funded entirely through DRIP reinvestment with zero deposits), OR net
-  // capital invested has gone NEGATIVE (lifetime withdrawals exceeding lifetime deposits
-  // — a normal outcome for anyone who periodically sweeps profits/dividends back to a
-  // bank account). A negative denominator flips shownPct's sign independently of
-  // shownReturn's, so a genuinely profitable portfolio (shownReturn > 0, green "up" arrow)
-  // could show a green, "positive"-styled percentage that nonetheless reads "-200.00%" —
-  // self-contradictory and, for anyone who only scans the percentage, alarming. "—" (same
-  // convention as XIRR's own no-data case) is honest for both cases instead of a
-  // sign-flipped or misleadingly-zero number.
-  const shownPct = T.netCapitalInvested > 0 ? (shownReturn / T.netCapitalInvested) * 100 : null;
-  const up = shownReturn > 0;
-  const dn = shownReturn < 0;
-  const yr = todayISO().slice(0, 4);
-  const divYTD = ALL_TRANSACTIONS
-    .filter((x) => x.type === "Dividend" && x.status !== "Expected" && (x.payDate || x.date || "").slice(0, 4) === yr)
-    .reduce((s, d) => s + divNetMYR(d), 0);
-
-  // Latest "prices as of" — ISO datetime from live fetch if available, else manual date.
-  const priceDates = T.holdings.filter((h) => h.hasPrice && h.currentPriceDate).map((h) => h.currentPriceDate).sort();
-  const latestLiveFetch = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();
-  const pricesAsOf = latestLiveFetch || (priceDates.length ? priceDates[priceDates.length - 1] : null);
-  const pricesAsOfFmt = latestLiveFetch ? fmtDateTime(latestLiveFetch) : (priceDates.length ? fmtDate(priceDates[priceDates.length - 1]) : null);
-
-  const holdingsRows = aggregateHoldingsByTicker(T.holdings).sort((a, b) => b.marketValue - a.marketValue).slice(0, 8).map((h) => `
-    <tr><td class="dcc-c td-holding">
-        <a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${esc(h.ticker)}</a>
-        ${holdingSubLabel(h) ? `<div class="sub">${esc(holdingSubLabel(h))}</div>` : ""}
-      </td>
-      <td class="dcc-c">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>
-      <td class="dcc-c">${money(h.marketValue)}</td>
-      <td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? moneySigned(h.unrealized) : `<span class="muted">—</span>`}</td>
-      <td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? pctTxt(h.unrealizedPct) : `<span class="muted">—</span>`}</td>
-      <td class="dcc-c ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</td>
-      <td class="dcc-c ${cls(h.totalReturn)}">${h.costBasis > 0 ? pctTxt((h.totalReturn / h.costBasis) * 100) : `<span class="muted">—</span>`}</td></tr>`).join("");
-
-  // Upcoming dividends — manual (UPCOMING_DIVIDENDS), auto-fetched (AUTO_DIV_CACHE), legacy
-  // Expected, AND pattern-based estimates (fc.nextPayments) for tickers with a detected
-  // frequency but no officially declared date — same merge as the Dividends page, so this
-  // widget isn't empty for every holding that only has an estimate, not a confirmed date.
-  const upcoming = allUpcomingDivs();
-  const dashFc = dividendForecast(ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status !== "Expected"), upcoming);
-  const dashOneYearOut = new Date(todayDate()); dashOneYearOut.setFullYear(dashOneYearOut.getFullYear() + 1);
-  const dashOneYearOutStr = dateToISO(dashOneYearOut);
-  const dashEstimated = (dashFc.nextPayments || [])
-    .filter((p) => !p.confirmed && p.payDate <= dashOneYearOutStr)
-    .map((p) => {
-      const h = T.holdings.find((x) => x.ticker === p.ticker);
-      return { ticker: p.ticker, brokerId: h ? h.brokerId : null, exDate: null, payDate: p.payDate, amtMYR: p.amtMYR, source: "estimated" };
-    });
-  const dashSourceBadge = (src) => src === "api" ? `<span class="badge info">API</span>`
-    : src === "estimated" ? `<span class="badge warn">${t("Estimated")}</span>` : `<span class="badge subtle">${t("Manual")}</span>`;
-  const dashUpcoming = [...upcoming.map((d) => ({ ...d, amtMYR: d.expectedNetMYR })), ...dashEstimated]
-    .sort((a, b) => ((a.payDate || "") < (b.payDate || "") ? -1 : 1));
-  // Pattern-projected rows (source: "estimated") only ever get a payDate from the detected
-  // frequency, never a real declared ex-date — mirror the app's own ex-date+14d payment
-  // estimate in reverse so the column isn't blank on every single projected row. The row's
-  // own "Estimated" status badge already flags the whole row as a projection.
-  const estExDate = (payDs) => { const dd = new Date(payDs + "T00:00:00"); dd.setDate(dd.getDate() - 14); return dateToISO(dd); };
-  const divRows = dashUpcoming.map((d) => {
-    const exDate = d.exDate || (d.payDate ? estExDate(d.payDate) : null);
-    return `<tr><td class="dcc-c">${tickerCell(d.ticker, d.brokerId, tickerSubLabel(d.ticker))}</td><td class="dcc-c">${fmtDate(exDate)}</td><td class="dcc-c">${fmtDate(d.payDate)}</td>
-      <td class="dcc-c">${money(d.amtMYR)}</td><td class="dcc-c">${dashSourceBadge(d.source || "manual")}</td></tr>`;
-  }).join("");
-
-  const recentRows = ALL_TRANSACTIONS.slice(0, 6).map((tx) => {
-    const txAmt = tx.gross != null ? tx.gross : 0;
-    const fxR = tx.fxRate || FX.rates[tx.currency] || 1;
-    const myrEq = tx.currency !== FX.base && txAmt > 0 ? txAmt * fxR : 0;
-    const hasTicker = tx.ticker && tx.ticker !== "—";
-    const txSub = hasTicker ? [tickerSubLabel(tx.ticker, tx.company), tx.type === "Buy" && tx.price === 0 ? t("free shares") : ""].filter(Boolean).join(" · ") : "";
-    return `<tr><td class="dcc-c">${fmtDate(tx.date)}</td><td class="dcc-c">${typeChip(tx.type)}</td>
-      <td class="dcc-c">${hasTicker ? tickerCell(tx.ticker, tx.brokerId, txSub) : `<span class="ticker">—</span>`}</td><td class="dcc-c sub">${esc(brokerName(tx.brokerId))}</td>
-      <td class="dcc-c">${esc(ccyLabel(tx.currency))} ${fmt(txAmt)}${myrEq > 0 ? `<div class="fx-note">${ccyLabel(FX.base)} ${fmt(myrEq)}</div>` : ""}</td></tr>`;
-  }).join("");
-
-  // In-card return-mode toggle (controls the Total P/L figure).
-  const toggle = `<div class="seg seg-sm" role="group" aria-label="${t("Return mode")}">
-    <button class="seg-btn ${SETTINGS.returnMode !== "price" ? "on" : ""}" data-return="total">${t("Total Return")}</button>
-    <button class="seg-btn ${SETTINGS.returnMode === "price" ? "on" : ""}" data-return="price">${t("Unrealized")}</button></div>`;
-  const cashLow = (T.totalCash || 0) < 50;
-
-  // Calc breakdowns (click a stat to see "how").
-  const calcs = {
-    nw: { title: "Net Worth", rows: [
-      { op: "+", label: "Current Portfolio Value", val: fmt(T.portfolioValue) },
-      { op: "+", label: "Available cash (all brokers)", val: fmt(T.totalCash || 0) }], total: netWorth },
-    pl: { title: returnIsTotal ? "Total Return" : "Unrealized P/L", rows: returnIsTotal ? [
-      { op: "+", label: "Unrealized P/L", val: moneySigned(T.unrealizedPL) },
-      { op: "+", label: "Realized P/L", val: moneySigned(T.realizedPL) },
-      { op: "+", label: "Net Dividends", val: moneySigned(T.netDividends) },
-      ...(T.totalInterest ? [{ op: "+", label: "Interest Received", val: moneySigned(T.totalInterest) }] : []),
-      { op: "−", label: "Total Fees", val: fmt(T.totalFees) }] : [
-      { op: "+", label: "Unrealized P/L", val: moneySigned(T.unrealizedPL) },
-    ], total: shownReturn },
-    cash: availableCashCalc(),
-    principal: netCashAddedCalc("Principal Invested"),
-  };
-
-  const statHead = (label, right) => `<div class="stat-head"><span class="stat-label">${label}</span>${right || ""}</div>`;
-  const metrics = `<section class="metrics">
-    <article class="stat net" data-card="nw" tabindex="0" role="button" aria-label="${t("Net Worth")}, show calculation">
-      ${statHead(t("Net Worth"))}
-      <div class="stat-value">${money(netWorth)}</div>
-      <div class="stat-sub muted">${t("Holdings")} ${money(T.portfolioValue)} · ${t("Cash")} ${money(T.totalCash || 0)}</div>
-    </article>
-    <article class="stat pl ${up ? "is-up" : dn ? "is-down" : ""}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total Return") : t("Unrealized P/L")}, show calculation">
-      ${statHead(returnIsTotal ? t("Total Return") : t("Unrealized P/L"), `<div class="stat-head-group">${toggle}</div>`)}
-      <div class="stat-value ${up ? "pos" : dn ? "neg" : ""}">${up ? "▲ " : dn ? "▼ " : ""}${moneySigned(shownReturn)}</div>
-      <div class="stat-sub" style="display:flex;align-items:baseline;gap:6px">
-        <span class="${shownPct == null ? "muted" : up ? "pos" : dn ? "neg" : "muted"}">${shownPct == null ? "—" : (up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%")}</span>
-        <span class="muted" style="font-size:11px">${shownPct != null ? t("on net capital") : T.netCapitalInvested < 0 ? t("more withdrawn than invested") : t("no capital invested yet")}</span>
-      </div>
-    </article>
-    <article class="stat" data-card="cash" tabindex="0" role="button" aria-label="${t("Available Cash")}, show calculation">
-      ${statHead(`${t("Available Cash")}${cashLow ? `<span style="color:var(--warn);vertical-align:middle;margin-left:3px;display:inline-flex">${WARN_TRIANGLE_ICON_SVG}</span>` : ""}`)}
-      <div class="stat-value${cashLow ? " warn-val" : ""}">${money(T.totalCash || 0)}</div>
-      <div class="stat-sub${cashLow ? " warn-val" : " muted"}">${t("Across all brokers")}</div>
-    </article>
-    <article class="stat wide" data-card="principal" tabindex="0" role="button" aria-label="${t("Principal Invested")}, show calculation">
-      ${statHead(t("Principal Invested"))}
-      <div class="stat-value">${money(T.netCapitalInvested)}</div>
-      <div class="stat-sub muted">${t("Deposits − Withdrawals")}</div>
-    </article>
-    <article class="stat wide">
-      ${statHead(t("Dividends YTD"))}
-      <div class="stat-value ${divYTD ? "pos" : ""}">${money(divYTD)}</div>
-      <div class="stat-sub muted">${yr}</div>
-    </article>
-  </section>`;
-
-  // Collapse list panels to a one-line empty state until they have data.
-  const listPanel = (title, has, body, emptyMsg, extra) =>
-    panel(title, has ? body : `<p class="empty-line muted">${emptyMsg}</p>`, extra);
-
-  const html = `
-    ${metrics}
-    <section class="grid-2 dash-charts">
-      ${(() => {
-        const hasTxn = ALL_TRANSACTIONS.some((x) => x.type === "Buy" || x.type === "Deposit") || HOLDINGS.length > 0;
-        const chartToggle = `<div class="seg seg-sm" id="dashChartSeg" style="margin-left:0"><button class="seg-btn ${dashChartMode === "mv" ? "on" : ""}" data-chart="mv">${t("Market Value")}</button><button class="seg-btn ${dashChartMode === "div" ? "on" : ""}" data-chart="div">${t("Incl. Dividends")}</button></div>`;
-        // Toggle + explainer icon grouped together and right-aligned in the panel
-        // head, same position as the Asset Allocation toggle right next to it —
-        // not left-aligned inside the body like a second, competing header.
-        const chartHeadExtra = hasTxn
-          ? `<div style="display:flex;align-items:center;gap:8px;margin-left:auto">${chartToggle}<span class="col-info tip-down" data-tip="${t("Market value versus what you paid. The gap is your unrealized profit or loss.")}">${COL_INFO_ICON_SVG}</span></div>`
-          : "";
-        const chartBody = hasTxn
-          ? `<div id="dashChartBody">${buildDashChartContent()}</div>`
-          : emptyState(`${t("Record your first deposit or Buy to start tracking.")}<div style="margin-top:14px"><a class="btn primary" href="#/add">${t("Add a transaction")} →</a></div>`);
-        return panel(t("Investment Return Over Time"), chartBody, chartHeadExtra);
-      })()}
-      ${(() => {
-        const allocToggle = `<div class="seg seg-sm" id="dashAllocSeg">
-          <button class="seg-btn ${dashAllocMode === "currency" ? "on" : ""}" data-alloc="currency">${t("By currency")}</button>
-          <button class="seg-btn ${dashAllocMode === "type" ? "on" : ""}" data-alloc="type">${t("By type")}</button>
-        </div>`;
-        return panel(t("Asset Allocation"), `<div id="dashAllocBody" class="panel-body">${dashAllocDonutHTML()}</div>`, allocToggle);
-      })()}
-    </section>
-    <div id="dashDivSection">${listPanel(t("Upcoming Dividends"), dashUpcoming.length,
-      table([{label:t("Holding"),style:"width:20%"},{label:t("Ex-Date"),style:"width:20%"},{label:t("Payment"),style:"width:20%"},{label:`${t("Expected Net")} (${ccyLabel(FX.base)})`,style:"width:20%"},{label:t("Status"),style:"width:20%"}], divRows),
-      t("No upcoming dividends."), `<a class="link" href="#/dividends">${t("Calendar")} →</a>`)}</div>
-    ${listPanel(t("Holdings"), T.holdings.length,
-      table([{label:t("Holding"),style:"width:14.3%"},{label:t("Shares"),style:"width:14.3%"},{label:t("Market Value"),style:"width:14.3%"},{label:t("Unrealized P/L"),style:"width:14.3%"},{label:t("P/L %"),style:"width:14.3%"},{label:t("Total Return"),style:"width:14.3%"},{label:t("Return %"),style:"width:14.2%"}], holdingsRows),
-      t("No holdings yet — record a Buy on the Add page and it appears here automatically."), `<div style="margin-left:auto;display:flex;align-items:center;gap:12px">${pricesAsOf ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${pricesAsOfFmt}`) : ""}<a class="link" style="margin-left:0" href="#/portfolio">${t("View all")} →</a></div>`)}
-    ${insightsHTML()}
-    ${listPanel(t("Recent Activity"), ALL_TRANSACTIONS.length,
-      table([{label:t("Date"),style:"width:20%"},{label:t("Type"),style:"width:20%"},{label:t("Holding"),style:"width:20%"},{label:t("Broker"),style:"width:20%"},{label:t("Amount"),style:"width:20%"}], recentRows),
-      t("No activity yet."), `<a class="link" href="#/records">${t("All")} →</a>`)}
-    <p class="dash-footnote">${metaNote(SAVED_ICON_SVG, LAST_SAVED ? `${t("Last saved on this device")}: ${fmtDateTime(LAST_SAVED)}` : t("Nothing saved yet"))}</p>`;
-
-  return { title: "Dashboard", subtitle: "Welcome back — here is your portfolio at a glance.", html,
-    mount() {
-      $$("[data-card]").forEach((el) => {
-        const open = () => showCalc(calcs[el.dataset.card]);
-        el.addEventListener("click", open);
-        el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
-      });
-      $$("[data-return]").forEach((b) => b.addEventListener("click", (e) => {
-        e.stopPropagation();   // don't trigger the P/L card's calc modal
-        SETTINGS.returnMode = b.dataset.return; saveStore(); render();
-      }));
-      $$("[data-alloc]").forEach((b) => b.addEventListener("click", (e) => {
-        e.stopPropagation();
-        dashAllocMode = b.dataset.alloc;
-        $$("[data-alloc]").forEach((btn) => btn.classList.toggle("on", btn.dataset.alloc === dashAllocMode));
-        const allocBody = $("#dashAllocBody");
-        if (allocBody) {
-          allocBody.innerHTML = dashAllocDonutHTML();
-        }
-      }));
-      [
-        ["phDivYield", t("Dividend Yield (TTM)"), t("Trailing 12-month net dividends ÷ current portfolio market value.")],
-        ["phCashAlloc", t("Cash Allocation"), t("Cash as a percentage of total net value (market value + available cash).")],
-        ["phDivScore", t("Diversification Score"), t("Effective N score based on portfolio weights. Higher = more diversified.")],
-      ].forEach(([id, title, body]) => {
-        const el = $("#" + id);
-        if (el) el.addEventListener("click", () => {
-          $("#modalTitle").textContent = title;
-          $("#modalBody").innerHTML = `<p style="margin:0;font-size:13.5px;line-height:1.7">${body}</p>`;
-          $("#modal").hidden = false;
-        });
-      });
-      const xirrStatEl = $("#phXirr");
-      if (xirrStatEl) xirrStatEl.addEventListener("click", () => showCalc(xirrCalc()));
-      mountChartTooltips();
-      $$("[data-chart]").forEach((b) => b.addEventListener("click", (e) => {
-        e.stopPropagation();
-        dashChartMode = b.dataset.chart;
-        try { localStorage.setItem("il-chart-mode", dashChartMode); } catch(e) {}
-        $$("[data-chart]").forEach((btn) => btn.classList.toggle("on", btn.dataset.chart === dashChartMode));
-        const chartBody = $("#dashChartBody");
-        if (chartBody) { chartBody.innerHTML = buildDashChartContent(); mountChartTooltips(); }
-      }));
-      // Auto-fetch dividend schedules for all holdings; re-render if still here
-      if (LIVE_ENABLED) {
-        fetchAllDivSchedules().then(({ fetched, hadError, failed, fresh }) => {
-          if (fetched && document.getElementById("dashDivSection")) render();
-          // Only the Dividends page's own status line surfaced this before — a failure
-          // reached from the Dashboard just looked identical to "no upcoming dividends",
-          // with no indicator anywhere that the fetch itself had failed.
-          // Only on a real attempt (fresh) — a short-circuited "already fresh" call still
-          // reports the same old failure, and toasting that on every mount is pure noise.
-          if (fresh && hadError && document.getElementById("dashDivSection")) toast(divFetchWarning(failed));
-        });
-        fetchAllLivePrices().then(({ fetched }) => {
-          if (fetched && document.getElementById("dashDivSection")) render();
-        });
-        fetchAllMySymbols().then((found) => { if (found && document.getElementById("dashDivSection")) render(); });
-        // Exchange rates get the same daily auto-refresh as prices/dividends — no
-        // manual "Refresh live rates" click needed for normal day-to-day use.
-        if (!FX_AUTO_REFRESH_IN_FLIGHT && hoursSince(FX.updated) >= LIVE_REFRESH_HOURS) {
-          FX_AUTO_REFRESH_IN_FLIGHT = true;
-          refreshFxRates().then((r) => {
-            FX_AUTO_REFRESH_IN_FLIGHT = false;
-            if (!r.ok) return;
-            saveStore();
-            if (document.getElementById("dashDivSection")) render();
-          });
-        }
-      }
-    } };
 }
 
 /* Onboarding checklist — surfaced only in the notification bell (see
@@ -7157,7 +6801,8 @@ function toggleMoreSheet() {
  * ROUTER
  * ========================================================================== */
 const PAGES = {
-  dashboard: pageDashboard, portfolio: pagePortfolio, records: pageRecords, add: pageAdd,
+  dashboard: () => pageDashboard(),   // defined in dashboard.js
+  portfolio: pagePortfolio, records: pageRecords, add: pageAdd,
   dividends: pageDividends,
   brokers: pageBrokers, settings: pageSettings, help: pageHelp, holding: pageHolding,
   privacy: pagePrivacy, terms: pageTerms, profile: pageProfile,

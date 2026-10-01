@@ -21,6 +21,9 @@ on:
       - 'styles.css'
       - 'sync.js'
       - 'alerts.js'
+      - 'account.js'
+      - 'tabletips.js'
+      - 'dashboard.js'
       - 'supabase-client.js'
       - 'manifest.json'
       - 'icons/**'
@@ -48,7 +51,7 @@ jobs:
         run: |
           set -eux
           mkdir -p native/www/icons
-          cp index.html app.js data.js styles.css sync.js alerts.js supabase-client.js manifest.json native/www/
+          cp index.html app.js data.js styles.css sync.js alerts.js account.js tabletips.js dashboard.js supabase-client.js manifest.json native/www/
           cp sw.js native/www/ || true
           cp icons/*.png native/www/icons/ || true
           ls -la native/www

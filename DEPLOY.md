@@ -23,22 +23,26 @@ both safe to skip entirely:
 ```
 index.html
 app.js
+dashboard.js
 data.js
 styles.css
 supabase-client.js
 sync.js
+account.js
 alerts.js
+tabletips.js
 sw.js
 manifest.json
 package.json
-api/            (folder — quote.js, dividend.js, search.js, ex-dividend-calendar.js,
+api/            (folder — quote.js, history.js, dividend.js, search.js, ex-dividend-calendar.js,
                  ex-dividend-calendar-my.js, stock-symbol-my.js, check-alerts.js)
 icons/          (folder — icon-192.png, icon-512.png)
 README.md
 .gitignore
 ```
 
-`alerts.js` and `package.json` are needed even if you never set up Price Alerts — they
+`dashboard.js` is the Dashboard page itself (and `api/history.js` feeds its "Net worth over time" chart with daily
+prices — without it the chart falls back to the values saved on each visit). `alerts.js` and `package.json` are needed even if you never set up Price Alerts — they
 no-op safely (the page shows "not configured" the same way the Account panel does before
 Cloud Sync is set up). `api/` already powers live quotes, search, and dividend history in
 production today even without either optional feature turned on.
