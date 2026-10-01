@@ -262,7 +262,22 @@ const ZH = {
   "Enter an amount or stock code for the transfer.": "请输入金额或股票代号。",
   "Received": "已收到", "Expected": "预期", "Split ratio (new ÷ old)": "拆股比例（新 ÷ 旧）",
   "To broker": "转入券商", "Notes": "备注", "FX rate to": "汇率对",
-  "Sign up to keep your investment records safe and in sync on every device.": "注册账户，让您的投资记录在所有设备上安全同步。", "Sign in to your Divz account.": "登录您的 Divz 账户。", "At least 6 characters.": "至少 6 个字符。", "Enter your email and password.": "请输入邮箱和密码。", "Create your account": "创建您的账户", "A new version of Divz is ready.": "Divz 有新版本了。", "Refresh": "刷新", "Dismiss": "关闭", "Forgot password?": "忘记密码？", "Too many emails were sent recently. Please wait about an hour and try again.": "近期发送的邮件过多，请等待约一小时后重试。", "Choose a password different from your old one.": "请选择与旧密码不同的新密码。", "Reset your password": "重设密码", "Enter your email and we'll send you a link to choose a new password.": "输入邮箱，我们会发送链接让您设置新密码。", "Send reset link": "发送重设链接", "Enter your email.": "请输入邮箱。", "Check your email": "请查看邮箱", "If an account exists for": "如果以下邮箱已注册：", "we've sent a link to reset the password. Open it in this same browser.": "我们已发送重设密码的链接。请在同一个浏览器中打开。", "Choose a new password": "设置新密码", "Pick a password you'll remember — at least 6 characters.": "请设置一个好记的密码，至少 6 个字符。", "New password": "新密码", "Update password": "更新密码", "Password updated": "密码已更新", "Your password has been changed and you're signed in.": "密码已更改，您已登录。", "Couldn't do that — try again.": "操作失败，请重试。", "Confirm password": "确认密码", "Repeat your password": "再次输入密码", "Show password": "显示密码", "Hide password": "隐藏密码", "Passwords don't match — please retype them.": "两次输入的密码不一致，请重新输入。", "You're all set!": "一切就绪！", "Your Divz account is ready:": "您的 Divz 账户已就绪：", "Your records will now be saved to your account and sync across your devices.": "您的记录将保存到账户，并在所有设备间同步。", "Continue to Divz": "进入 Divz", "Too many emails were sent recently. Please wait about an hour and try again — or sign in if you already created this account.": "近期发送的邮件过多，请等待约一小时后重试；如果已创建过此账户，请直接登录。", "Account created": "账户已创建", "We sent a confirmation link to": "我们已向以下邮箱发送确认链接：", "Open it to activate your account, then come back and sign in.": "打开链接激活账户，然后回来登录。", "Back to sign in": "返回登录", "Can't find it? Check your spam folder.": "找不到？请查看垃圾邮件文件夹。", "Free shares (bonus issue or gift — no cost)": "免费股份（红股或赠送，无成本）", "free shares": "免费股份", "Total Realized P/L": "累计已实现盈亏", "Best sale": "最佳卖出", "Worst sale": "最差卖出", "Winning sales": "盈利卖出", "By stock": "按股票", "Each sale": "逐笔卖出", "Highest profit first": "盈利最高优先", "Biggest loss first": "亏损最大优先", "Most recent first": "最新优先", "Sold": "卖出", "Cost": "成本", "Proceeds": "卖出所得", "Sales": "卖出次数", "Sort by": "排序", "No sales yet — once you sell a stock, what you earned or lost on it is listed here.": "尚无卖出记录——卖出股票后，盈亏将列在这里。", "Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.": "盈亏 = 卖出所得 − 所卖股份的平均成本 − 卖出的手续费和税费。股息和利息另行计算。",
+  "Sign up to keep your investment records safe and in sync on every device.": "注册账户，让您的投资记录在所有设备上安全同步。", "Sign in to your Divz account.": "登录您的 Divz 账户。", "At least 6 characters.": "至少 6 个字符。", "Enter your email and password.": "请输入邮箱和密码。", "Create your account": "创建您的账户", "A new version of Divz is ready.": "Divz 有新版本了。", "Refresh": "刷新", "Dismiss": "关闭", "Forgot password?": "忘记密码？", "Too many emails were sent recently. Please wait about an hour and try again.": "近期发送的邮件过多，请等待约一小时后重试。", "Choose a password different from your old one.": "请选择与旧密码不同的新密码。", "Reset your password": "重设密码", "Enter your email and we'll send you a link to choose a new password.": "输入邮箱，我们会发送链接让您设置新密码。", "Send reset link": "发送重设链接", "Enter your email.": "请输入邮箱。", "Check your email": "请查看邮箱", "If an account exists for": "如果以下邮箱已注册：", "we've sent a link to reset the password. Open it in this same browser.": "我们已发送重设密码的链接。请在同一个浏览器中打开。", "Choose a new password": "设置新密码", "Pick a password you'll remember — at least 6 characters.": "请设置一个好记的密码，至少 6 个字符。", "New password": "新密码", "Update password": "更新密码", "Password updated": "密码已更新", "Your password has been changed and you're signed in.": "密码已更改，您已登录。", "Couldn't do that — try again.": "操作失败，请重试。", "Confirm password": "确认密码", "Repeat your password": "再次输入密码", "Show password": "显示密码", "Hide password": "隐藏密码", "Passwords don't match — please retype them.": "两次输入的密码不一致，请重新输入。", "You're all set!": "一切就绪！", "Your Divz account is ready:": "您的 Divz 账户已就绪：", "Your records will now be saved to your account and sync across your devices.": "您的记录将保存到账户，并在所有设备间同步。", "Continue to Divz": "进入 Divz", "Too many emails were sent recently. Please wait about an hour and try again — or sign in if you already created this account.": "近期发送的邮件过多，请等待约一小时后重试；如果已创建过此账户，请直接登录。", "Account created": "账户已创建", "We sent a confirmation link to": "我们已向以下邮箱发送确认链接：", "Open it to activate your account, then come back and sign in.": "打开链接激活账户，然后回来登录。", "Back to sign in": "返回登录", "Can't find it? Check your spam folder.": "找不到？请查看垃圾邮件文件夹。", "Free shares (bonus issue or gift — no cost)": "免费股份（红股或赠送，无成本）", "free shares": "免费股份",
+  "Cards": "卡片", "Table": "表格", "View": "视图", "today": "今日", "No price yet": "暂无价格",
+  "Avg Cost (incl. fees)": "平均成本（含手续费）", "Avg Cost (excl. fees)": "平均成本（不含手续费）", "Buying fees": "买入手续费",
+  "Average price you paid per share, including your buying fees. Most broker apps show it without fees.": "您每股的平均买入价，含买入手续费。大多数券商 App 显示的是不含手续费的数字。",
+  "Average price you paid per share, without buying fees — usually what your broker's app shows as cost.": "您每股的平均买入价，不含买入手续费——通常就是券商 App 显示的成本价。",
+  "Brokerage and other fees you paid when buying the shares you still hold.": "买入您仍持有的股份时支付的佣金和其他费用。",
+  "Market value minus your cost (buying fees included) — the profit or loss on shares you still hold.": "市值减去成本（含买入手续费）——仍持有股份的盈亏。",
+  "Unrealized P/L, plus profit from shares you sold, plus every dividend you have received.": "未实现盈亏，加上已卖出股份的盈亏，再加上您收到的每一笔股息。",
+  "Every dividend you have received for this stock, after tax.": "您从这只股票收到的每一笔股息（税后）。",
+  "Every dividend you have received for this stock, after tax. Some broker apps count only recent dividends in their profit figure.": "您从这只股票收到的每一笔股息（税后）。有些券商 App 的盈亏数字只计入最近的股息。",
+  "Shares × current price.": "股数 × 当前价格。",
+  "Everything you paid for the shares you still hold, buying fees included.": "您为仍持有的股份支付的全部费用，含买入手续费。",
+  "Profit or loss already locked in by selling part of this stock.": "卖出部分股份后已锁定的盈亏。",
+  "This holding's share of your total market value.": "这个持仓占您总市值的比例。",
+  "Fees you paid on every buy and sell of this stock.": "您在这只股票每一笔买入和卖出时支付的费用。",
+  "Divz counts your buying fees as part of your cost and adds up every dividend you have received, so some figures differ slightly from your broker's app.": "Divz 把买入手续费计入成本，并累计您收到的每一笔股息，所以部分数字会与券商 App 略有不同。", "Total Realized P/L": "累计已实现盈亏", "Best sale": "最佳卖出", "Worst sale": "最差卖出", "Winning sales": "盈利卖出", "By stock": "按股票", "Each sale": "逐笔卖出", "Highest profit first": "盈利最高优先", "Biggest loss first": "亏损最大优先", "Most recent first": "最新优先", "Sold": "卖出", "Cost": "成本", "Proceeds": "卖出所得", "Sales": "卖出次数", "Sort by": "排序", "No sales yet — once you sell a stock, what you earned or lost on it is listed here.": "尚无卖出记录——卖出股票后，盈亏将列在这里。", "Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.": "盈亏 = 卖出所得 − 所卖股份的平均成本 − 卖出的手续费和税费。股息和利息另行计算。",
   "Allow selling more shares than currently held (override)": "允许卖出超过当前持有的股数（覆盖）",
   "You only hold": "您仅持有", "shares — tick the override to sell more.": "股 — 勾选覆盖以卖出更多。",
   "Avg Cost per share": "每股平均成本", "blank = use current": "留空 = 使用当前汇率",
@@ -961,8 +976,7 @@ function computeTotals() {
         realizedPL += realizedThis; l.realizedMYR += realizedThis;
         addTo(realizedByBroker, tx.brokerId, realizedThis);
         realizedSales.push({ id: tx.id, date: tx.date, brokerId: tx.brokerId, ticker: tx.ticker, company: tx.company, qty: q, price, currency: ccy,
-          costMYR: avgMYR * q, proceedsMYR, feesMYR: feeMYR + taxMYR, pl: realizedThis,
-          plLocal: q * price - avgLocal * q - fee - taxv });   // same profit in the stock's own currency
+          costMYR: avgMYR * q, proceedsMYR, feesMYR: feeMYR + taxMYR, pl: realizedThis });
         l.shares -= q; l.costMYR -= avgMYR * q; l.costLocal -= avgLocal * q;
         l.priceCostMYR -= avgPriceMYR * q; l.priceCostLocal -= avgPriceLocal * q;
         if (l.shares < 1e-9) {
@@ -1133,7 +1147,7 @@ const SCHEMA_VERSION = 4;
 function snapshot() {
   return { version: SCHEMA_VERSION, lastSaved: LAST_SAVED,
     BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS,
-    CURRENT_PRICES, STOCK_META, HOLDING_TYPES, RECON_CHECKS, HOLDING_CHECKS, DISMISSED_AUTO_DIVS, SETTINGS, USER, FX, PV_HISTORY };
+    CURRENT_PRICES, STOCK_META, HOLDING_TYPES, RECON_CHECKS, DISMISSED_AUTO_DIVS, SETTINGS, USER, FX, PV_HISTORY };
 }
 /* A restored backup is untrusted JSON — Object.assign(target, parsedJson)
  * would let a crafted "__proto__"/"constructor"/"prototype" key in the file
@@ -1286,7 +1300,7 @@ function applySnapshot(s) {
   replaceArr(BROKERS, s.BROKERS); replaceArr(HOLDINGS, s.HOLDINGS);
   replaceArr(ALL_TRANSACTIONS, s.ALL_TRANSACTIONS); replaceArr(UPCOMING_DIVIDENDS, s.UPCOMING_DIVIDENDS);
   if (Array.isArray(s.PV_HISTORY)) replaceArr(PV_HISTORY, s.PV_HISTORY.filter((p) => p && p.value > 0));
-  assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(RECON_CHECKS, s.RECON_CHECKS); assignObj(HOLDING_CHECKS, s.HOLDING_CHECKS);
+  assignObj(CURRENT_PRICES, s.CURRENT_PRICES); assignObj(RECON_CHECKS, s.RECON_CHECKS);
   assignObj(STOCK_META, s.STOCK_META); assignObj(HOLDING_TYPES, s.HOLDING_TYPES);
   assignObj(DISMISSED_AUTO_DIVS, s.DISMISSED_AUTO_DIVS);
   if (s.SETTINGS) safeAssign(SETTINGS, s.SETTINGS);
@@ -3220,6 +3234,7 @@ function aggregateHoldingsByTicker(holdings) {
       g.unrealizedPct = newCost > 0 ? (g.unrealized / newCost) * 100 : 0;
       g.totalReturn = (g.totalReturn || 0) + (h.totalReturn || 0);
       g.netDividends = (g.netDividends || 0) + (h.netDividends || 0);
+      g.realized = (g.realized || 0) + (h.realized || 0);
       g.feeCostMYR = (g.feeCostMYR || 0) + (h.feeCostMYR || 0);
       g.priceCostMYR = (g.priceCostMYR || 0) + (h.priceCostMYR || 0);
       g.hasPrice = g.hasPrice && h.hasPrice;
@@ -3304,7 +3319,7 @@ function pagePortfolio() {
       { value: "marketValue", label: t("Market Value") },
     ], portfolioFilters.sort, { id: "fSort" })}
     <button class="btn ghost btn-reset${filtersActive ? " active" : ""}" id="fReset">${t("Reset")}</button>
-    ${colPanelHtml}</div>`;
+    ${portfolioView === "table" ? colPanelHtml : ""}</div>`;
 
   // Allocation breakdowns — moved here from the old Reports page (which was mostly a
   // mirror of other pages); this is genuinely-not-shown-elsewhere info, so it belongs
@@ -3333,7 +3348,8 @@ function pagePortfolio() {
   // Holdings table vs. allocation breakdowns — same tp-tab pills as the Records page,
   // so switching doesn't feel like a different component elsewhere in the app.
   const pfTabs = [["holdings", "Holdings"], ["allocation", "Allocation"], ["realized", "Realized P/L"]];
-  if (has && typeof brokerCheckHTML === "function") pfTabs.push(["check", "Broker check"]);
+  const viewSwitch = `<div class="seg seg-sm" role="group" aria-label="${escAttr(t("View"))}">${[["cards", "Cards"], ["table", "Table"]].map(([k, l]) =>
+    `<button type="button" class="seg-btn ${portfolioView === k ? "on" : ""}" data-pfview="${k}">${t(l)}</button>`).join("")}</div>`;
   const pfNav = `<div class="type-tabs" role="tablist" style="margin-bottom:16px">${pfTabs.map(([k, lbl]) =>
     `<button class="tp-tab ${portfolioTab === k ? "on" : ""}" data-pftab="${k}">${t(lbl)}</button>`).join("")}</div>`;
   const hasSales = (T.realizedSales || []).length > 0;
@@ -3341,11 +3357,10 @@ function pagePortfolio() {
     ? `${has ? `<div id="pfSummary">${portfolioSummaryHTML()}</div>` : ""}
        ${pfNav}
        ${portfolioTab === "realized" ? realizedPLHTML() : !has ? panel(t("Holdings"), emptyContent)
-          : (portfolioTab === "check" && typeof brokerCheckHTML === "function") ? brokerCheckHTML()
           : portfolioTab === "allocation" ? breakdowns
-          : panel(t("All Holdings"), filterBar + `<div id="holdingsBody">${portfolioTable()}</div>
-              <p class="pf-note muted">${t("Divz counts your buying fees as part of your cost and adds up every dividend you have received, so some figures differ slightly from your broker's app.")} <button type="button" class="link" data-pftab="check">${t("Compare with your broker")} →</button></p>`,
-              `<div class="panel-head-actions">${priceStampHtml}${refreshBtn}</div>`)}`
+          : panel(t("All Holdings"), filterBar + `<div id="holdingsBody">${portfolioBody()}</div>
+              <p class="pf-note muted">${t("Divz counts your buying fees as part of your cost and adds up every dividend you have received, so some figures differ slightly from your broker's app.")}</p>`,
+              `<div class="panel-head-actions">${viewSwitch}${priceStampHtml}${refreshBtn}</div>`)}`
     : panel(t("Holdings"), emptyContent);
 
   return { title: "Portfolio", subtitle: LANG === "zh"
@@ -3354,10 +3369,14 @@ function pagePortfolio() {
     mount() {
       $$("[data-pftab]").forEach((b) => b.addEventListener("click", () => { portfolioTab = b.dataset.pftab; render(); }));
       $$("[data-rzmode]").forEach((b) => b.addEventListener("click", () => { realizedView.mode = b.dataset.rzmode; render(); }));
-      if (portfolioTab === "check" && typeof mountBrokerCheck === "function") mountBrokerCheck();
+      $$("[data-pfview]").forEach((b) => b.addEventListener("click", () => {
+        portfolioView = b.dataset.pfview === "table" ? "table" : "cards";
+        try { localStorage.setItem("il-portfolio-view", portfolioView); } catch (e) { /* private mode: just this visit */ }
+        render();
+      }));
       const rzSort = $("#rzSort"); if (rzSort) rzSort.addEventListener("change", () => { realizedView.sort = rzSort.value; render(); });
       const apply = () => {
-        const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioTable();
+        const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioBody();
         const sm = $("#pfSummary"); if (sm) sm.innerHTML = portfolioSummaryHTML();
         const ps = $("#pfPriceStamp");
         if (ps) {
@@ -3616,18 +3635,96 @@ function mountPortfolioSummaryClicks() {
   });
 }
 
-function portfolioTable() {
+/* =============================================================================
+ * Portfolio → Holdings as cards. Every figure for a holding is laid out as a label over its value
+ * (the way DivTracker's position screen does) so nothing hides behind a sideways scroll. The
+ * dense table is still there behind the Cards / Table switch. holdingFactsHTML() is shared with
+ * the Holding page, so both places show the same numbers the same way.
+ * ========================================================================== */
+let portfolioView = (function () { try { return localStorage.getItem("il-portfolio-view") === "table" ? "table" : "cards"; } catch (e) { return "cards"; } })();
+
+const hcTip = (text) => `<span class="col-info tip-down" data-tip="${esc(text)}">${COL_INFO_ICON_SVG}</span>`;
+const HC_DASH = `<span class="muted">—</span>`;
+function hcStat(label, value, o = {}) {
+  return `<div class="hc-stat"><dt class="hc-label"><span>${label}</span>${o.tip ? hcTip(o.tip) : ""}</dt>
+    <dd class="hc-val">${value}</dd>${o.sub ? `<dd class="hc-sub">${o.sub}</dd>` : ""}</div>`;
+}
+
+/* The position facts of one holding. `h` is a holdings row (a single lot, or several brokers merged by
+ * aggregateHoldingsByTicker). o.commission (optional): total fees ever paid on this stock, shown on the Holding page. */
+function holdingFactsHTML(h, o = {}) {
+  const rate = (n) => `${ccyLabel(FX.base)} ${fmt(n, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+  const hasFees = (h.feeCostMYR || 0) > 0.004;
+  const realized = h.realized || 0;
+  const items = [
+    hcStat(t("Shares"), fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })),
+    hcStat(t("Avg Cost (incl. fees)"), rate(h.avgCost), { tip: t("Average price you paid per share, including your buying fees. Most broker apps show it without fees.") }),
+    hasFees && h.shares > 0 ? hcStat(t("Avg Cost (excl. fees)"), rate(h.priceCostMYR / h.shares), { tip: t("Average price you paid per share, without buying fees — usually what your broker's app shows as cost.") }) : "",
+    hcStat(t("Cost Basis"), money(h.costBasis), { tip: t("Everything you paid for the shares you still hold, buying fees included.") }),
+    // On the Holding page "Commission Paid" (all trades) can be the very same number — don't print it twice.
+    hasFees && !(o.commission != null && Math.abs(o.commission - h.feeCostMYR) < 0.005) ? hcStat(t("Buying fees"), money(h.feeCostMYR), { tip: t("Brokerage and other fees you paid when buying the shares you still hold.") }) : "",
+    o.commission != null ? hcStat(t("Commission Paid"), money(o.commission), { tip: t("Fees you paid on every buy and sell of this stock.") }) : "",
+    hcStat(t("Net Dividends"), h.netDividends ? money(h.netDividends) : HC_DASH, { tip: t("Every dividend you have received for this stock, after tax. Some broker apps count only recent dividends in their profit figure.") }),
+    hcStat(t("Realized P/L"), Math.abs(realized) > 0.004 ? `<span class="${cls(realized)}">${moneySigned(realized)}</span>` : HC_DASH, { tip: t("Profit or loss already locked in by selling part of this stock.") }),
+    hcStat(t("% of Portfolio"), T.portfolioValue > 0 ? `${fmt((h.marketValue / T.portfolioValue) * 100, { maximumFractionDigits: 2 })}%` : HC_DASH, { tip: t("This holding's share of your total market value.") }),
+  ].filter(Boolean);
+  return `<dl class="hc-grid">${items.join("")}</dl>`;
+}
+
+function holdingCardHTML(h) {
+  const sharesTxt = fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+  const href = `#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}`;
+  const brokers = (h._brokerNames || [brokerName(h.brokerId)]).map((n) => `<span class="chip chip-pill">${esc(n)}</span>`).join("");
+  const type = holdingType(h.ticker);
+  const name = holdingSubLabel(h);
+  const retPct = h.costBasis > 0 ? (h.totalReturn / h.costBasis) * 100 : null;
+  const priceTxt = h.hasPrice ? `${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}` : "";
+  const quote = h.hasPrice
+    ? `<div class="hc-quote"><div class="hc-price">${priceTxt}</div>
+         <div class="hc-quote-sub">${h.changePct != null ? `<span class="${cls(h.changePct)}">${pctTxt(h.changePct)}</span> ${t("today")} · ` : ""}${h.priceSource === "live" ? t("Live") : t("Manual price")}</div></div>`
+    : `<div class="hc-quote"><div class="hc-price muted">${t("No price set")}</div><div class="hc-quote-sub"><a class="link" href="${href}">${t("Set price")}</a></div></div>`;
+  const hero = [
+    hcStat(t("Market Value"), h.hasPrice ? money(h.marketValue) : HC_DASH, { tip: t("Shares × current price."), sub: h.hasPrice ? `${sharesTxt} × ${priceTxt}` : t("No price yet") }),
+    hcStat(t("Total Return"), `<span class="${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</span>`, { tip: t("Unrealized P/L, plus profit from shares you sold, plus every dividend you have received."), sub: retPct == null ? "" : `<span class="${cls(h.totalReturn)}">${pctTxt(retPct)}</span>` }),
+    hcStat(t("Unrealized P/L"), h.hasPrice ? `<span class="${cls(h.unrealized)}">${moneySigned(h.unrealized)}</span>` : HC_DASH, { tip: t("Market value minus your cost (buying fees included) — the profit or loss on shares you still hold."), sub: h.hasPrice ? `<span class="${cls(h.unrealized)}">${pctTxt(h.unrealizedPct)}</span>` : "" }),
+  ].join("");
+  return `<article class="hc">
+    <header class="hc-head">
+      <div class="hc-id">
+        <div class="hc-tk"><a class="ticker ticker-link" href="${href}">${esc(h.ticker)}</a>${name ? `<span class="hc-name">${esc(name)}</span>` : ""}</div>
+        <div class="hc-chips">${brokers}${type && type !== "Stock" ? `<span class="chip">${esc(t(type))}</span>` : ""}</div>
+      </div>
+      ${quote}
+    </header>
+    <dl class="hc-hero">${hero}</dl>
+    ${holdingFactsHTML(h)}
+  </article>`;
+}
+
+/* Filtered + sorted rows, one per ticker (the same stock at several brokers is merged) — used by both views. */
+function portfolioRows() {
   const f = portfolioFilters;
-  const { cols, colOrder } = portfolioPrefs;
   let rows = aggregateHoldingsByTicker(filteredHoldings());
   if (f.sort === "name")             rows.sort((a, b) => (a.ticker || "").localeCompare(b.ticker || ""));
   else if (f.sort === "gainPct")     rows.sort((a, b) => (b.unrealizedPct || 0) - (a.unrealizedPct || 0));
   else if (f.sort === "totalReturn") rows.sort((a, b) => (b.totalReturn || 0) - (a.totalReturn || 0));
   else if (f.sort === "shares")      rows.sort((a, b) => (b.shares || 0) - (a.shares || 0));
   else if (f.sort === "marketValue") rows.sort((a, b) => (b.marketValue || 0) - (a.marketValue || 0));
-  if (!rows.length) return emptyState(T.holdings.length
-    ? t("No holdings match these filters.")
-    : t("No holdings yet. Add a buy transaction to create your first holding."));
+  return rows;
+}
+const portfolioEmptyHTML = () => emptyState(T.holdings.length
+  ? t("No holdings match these filters.")
+  : t("No holdings yet. Add a buy transaction to create your first holding."));
+function portfolioCards() {
+  const rows = portfolioRows();
+  return rows.length ? `<div class="hc-list">${rows.map(holdingCardHTML).join("")}</div>` : portfolioEmptyHTML();
+}
+function portfolioBody() { return portfolioView === "table" ? portfolioTable() : portfolioCards(); }
+
+function portfolioTable() {
+  const { cols, colOrder } = portfolioPrefs;
+  const rows = portfolioRows();
+  if (!rows.length) return portfolioEmptyHTML();
 
   // Visible columns in user-defined order
   const orderedColIds = colOrder.filter((id) => cols[id]);
@@ -3684,7 +3781,7 @@ function portfolioTable() {
   }).join("");
 
   const colTooltips = {
-    avgCost: t("Average price you paid per share, including your buying fees. Most broker apps show this without fees — see Broker check."),
+    avgCost: t("Average price you paid per share, including your buying fees. Most broker apps show it without fees."),
     avgCostEx: t("Average price you paid per share, without buying fees — usually the number your broker's app shows as cost."),
     buyFees: t("Brokerage and other fees you paid when buying the shares you still hold."),
     unrealizedAmt: t("Market value minus your cost (buying fees included) — the profit or loss on shares you still hold."),
@@ -5574,7 +5671,6 @@ function pageBrokers() {
         // outflow instead of crediting a cash bucket under an id nothing points to anymore.
         ALL_TRANSACTIONS.forEach((x) => { if (x.toBrokerId === id) x.toBrokerId = undefined; });
         delete RECON_CHECKS[id];
-        Object.keys(HOLDING_CHECKS).forEach((k) => { if (k.startsWith(id + "|")) delete HOLDING_CHECKS[k]; });   // its Broker-check entries too
         // A manual upcoming-dividend entry can carry a specific brokerId (see the
         // "upcomingDividends schema" comment above allUpcomingDivs()) — left behind, it
         // permanently shows a $0 row (its matching holding is gone, so shares resolves to
@@ -5884,7 +5980,7 @@ function pageSettings() {
 /* --- Data safety helpers --- */
 function clearAllData() {
   [BROKERS, HOLDINGS, ALL_TRANSACTIONS, UPCOMING_DIVIDENDS, PV_HISTORY].forEach((a) => (a.length = 0));
-  assignObj(CURRENT_PRICES, {}); assignObj(RECON_CHECKS, {}); assignObj(HOLDING_CHECKS, {});
+  assignObj(CURRENT_PRICES, {}); assignObj(RECON_CHECKS, {});
   resetStore(); recompute();
   saveStore();   // also push the now-empty state to the cloud for signed-in users
 }
@@ -6414,7 +6510,6 @@ function pageHolding() {
   // independent facts worth their own stat card (same reasoning the comment above already
   // applies to Shares/Average Cost/Cost Basis), so they join that same description line.
   const commissionPaid = txs.reduce((s, x) => s + (+x.fee || 0) * (x.fxRate || FX.rates[x.currency] || 1), 0);
-  const pctOfPortfolio = T.portfolioValue ? (h.marketValue / T.portfolioValue) * 100 : 0;
   const positionPanel = panel(t("Position"), `
     <div class="metrics pos-metrics">
       ${posStat(t("Market Value"), money(h.marketValue), "", "net")}
@@ -6422,7 +6517,7 @@ function pageHolding() {
       ${posStat(t("Price Return"), moneySigned(h.priceUnrealized), cls(h.priceUnrealized), "", `${signed(priceReturnPct)}%`)}
       ${posStat(t("Current Price"), priceLbl)}
     </div>
-    <p style="font-size:14px;margin:14px 0 0">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} · ${t("Average Cost")} ${money(h.avgCost)} · ${t("Cost Basis")} ${money(h.costBasis)} · ${t("Commission Paid")} ${money(commissionPaid)} · ${t("% of Portfolio")} ${fmt(pctOfPortfolio, { maximumFractionDigits: 2 })}%</p>
+    <div class="hc-detail">${holdingFactsHTML(h, { commission: commissionPaid })}</div>
     <div class="setting-row" style="padding:11px 0 0;border-bottom:0">
       <span class="sr-label">${t("Asset type")}</span>
       <span class="sr-value"><div style="width:160px">${styledSelect("holdingAssetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), holdingType(h.ticker), { id: "holdingAssetType" })}</div></span>
