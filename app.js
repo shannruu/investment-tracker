@@ -39,17 +39,11 @@ function marketInfo(ticker) {
 // Prefer a stored country (from the stock lookup); fall back to the suffix map.
 const countryForTicker = (ticker, stored) => stored || marketInfo(ticker).country;
 
-/* Info icon for "how was this calculated" affordances — an SVG, not the ⓘ
- * Unicode glyph, so its size is pixel-exact everywhere instead of drifting
- * with whatever font a browser/OS substitutes for that character. */
-// Solely a decorative marker in the insights/warning list (not a tooltip trigger) —
-// every actual tooltip icon in the app, clickable or hover-only, uses COL_INFO_ICON_SVG
-// now, so they render identically everywhere instead of two differently-weighted icons.
-const HOW_ICON_SVG = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
-/* The one info icon used everywhere: column header hints, calc-row hints, and the
- * clickable "how was this calculated" triggers alike — an SVG (not a text glyph) so
- * sizing is consistent across every font/OS. */
-const COL_INFO_ICON_SVG = `<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+/* The one info icon used everywhere (column-title hints on touch screens, panel and label hints, the
+ * notification list): a soft disc with a rounded "i" — an SVG (not a text glyph) so it looks the same
+ * on every font/OS, tinted by currentColor so it follows the theme. */
+const COL_INFO_ICON_SVG = `<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="currentColor" opacity=".16"/><circle cx="8" cy="4.9" r="1.05" fill="currentColor"/><rect x="7.1" y="6.9" width="1.8" height="5" rx=".9" fill="currentColor"/></svg>`;
+const HOW_ICON_SVG = COL_INFO_ICON_SVG;   // marker for info items in the notification list
 /* Shared small-status-line pattern ("Prices as of…", "Last saved…") — one
  * template (icon + muted text via .meta-note) instead of each spot inventing
  * its own inline style and placement. */
@@ -2483,9 +2477,8 @@ function ttmDividends(tickers) {
  * tint alone, no competing borders. */
 function insightsHTML() {
   const hp = portfolioHealth();
-  const howHint = `<span class="col-info" data-tip="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${COL_INFO_ICON_SVG}</span>`;
   const stat = (id, label, val, sub) => `<div class="ph-stat" id="${id}">
-    <div class="ph-stat-head"><span class="stat-label">${label}</span>${howHint}</div>
+    <div class="ph-stat-head"><span class="stat-label">${label}</span></div>
     <div class="ph-stat-value">${val}</div>
     ${sub ? `<div class="mc-sub muted">${sub}</div>` : ""}
   </div>`;
@@ -2710,15 +2703,14 @@ function pageDashboard() {
   };
 
   const statHead = (label, right) => `<div class="stat-head"><span class="stat-label">${label}</span>${right || ""}</div>`;
-  const howHint = `<span class="col-info" data-tip="${t("How this was calculated")}" aria-label="${t("How this was calculated")}">${COL_INFO_ICON_SVG}</span>`;
   const metrics = `<section class="metrics">
     <article class="stat net" data-card="nw" tabindex="0" role="button" aria-label="${t("Net Worth")}, show calculation">
-      ${statHead(t("Net Worth"), howHint)}
+      ${statHead(t("Net Worth"))}
       <div class="stat-value">${money(netWorth)}</div>
       <div class="stat-sub muted">${t("Holdings")} ${money(T.portfolioValue)} · ${t("Cash")} ${money(T.totalCash || 0)}</div>
     </article>
     <article class="stat pl ${up ? "is-up" : dn ? "is-down" : ""}" data-card="pl" tabindex="0" role="button" aria-label="${returnIsTotal ? t("Total Return") : t("Unrealized P/L")}, show calculation">
-      ${statHead(returnIsTotal ? t("Total Return") : t("Unrealized P/L"), `<div class="stat-head-group">${toggle}${howHint}</div>`)}
+      ${statHead(returnIsTotal ? t("Total Return") : t("Unrealized P/L"), `<div class="stat-head-group">${toggle}</div>`)}
       <div class="stat-value ${up ? "pos" : dn ? "neg" : ""}">${up ? "▲ " : dn ? "▼ " : ""}${moneySigned(shownReturn)}</div>
       <div class="stat-sub" style="display:flex;align-items:baseline;gap:6px">
         <span class="${shownPct == null ? "muted" : up ? "pos" : dn ? "neg" : "muted"}">${shownPct == null ? "—" : (up || dn ? pctTxt(shownPct) : fmt(Math.abs(shownPct), {maximumFractionDigits:2}) + "%")}</span>
@@ -2726,12 +2718,12 @@ function pageDashboard() {
       </div>
     </article>
     <article class="stat" data-card="cash" tabindex="0" role="button" aria-label="${t("Available Cash")}, show calculation">
-      ${statHead(`${t("Available Cash")}${cashLow ? `<span style="color:var(--warn);vertical-align:middle;margin-left:3px;display:inline-flex">${WARN_TRIANGLE_ICON_SVG}</span>` : ""}`, howHint)}
+      ${statHead(`${t("Available Cash")}${cashLow ? `<span style="color:var(--warn);vertical-align:middle;margin-left:3px;display:inline-flex">${WARN_TRIANGLE_ICON_SVG}</span>` : ""}`)}
       <div class="stat-value${cashLow ? " warn-val" : ""}">${money(T.totalCash || 0)}</div>
       <div class="stat-sub${cashLow ? " warn-val" : " muted"}">${t("Across all brokers")}</div>
     </article>
     <article class="stat wide" data-card="principal" tabindex="0" role="button" aria-label="${t("Principal Invested")}, show calculation">
-      ${statHead(t("Principal Invested"), howHint)}
+      ${statHead(t("Principal Invested"))}
       <div class="stat-value">${money(T.netCapitalInvested)}</div>
       <div class="stat-sub muted">${t("Deposits − Withdrawals")}</div>
     </article>
@@ -5485,7 +5477,7 @@ function brokerCard(b) {
         <div><span class="bc-hero-label">${t("Market Value")}${infoTip(t("What your holdings here are worth at today's prices."))}</span><span class="bc-hero-value">${money(value)}</span></div>
         <div class="bc-hero-return ${cls(totalReturn)}" data-broker-return="${b.id}" tabindex="0" role="button" aria-label="${t("Total Return")}, show calculation">
           <span class="bc-hero-return-amt">${moneySigned(totalReturn)}</span>
-          <span class="bc-hero-return-pct">${t("Total Return")} ${HOW_ICON_SVG}</span>
+          <span class="bc-hero-return-pct">${t("Total Return")}</span>
         </div>
       </div>
 
@@ -5499,7 +5491,7 @@ function brokerCard(b) {
         <dl class="bc-list">
           <div><dt>${t("Unrealized P/L")}${infoTip(t("Profit or loss on shares you still hold. Not locked in until you sell."))}</dt><dd class="${cls(unrealized)}">${moneySigned(unrealized)}</dd></div>
           <div class="bc-netcash" data-broker-netcash="${b.id}" tabindex="0" role="button" aria-label="${t("Money Left In This Broker")}, show calculation">
-            <dt>${t("Money Left In This Broker")} ${HOW_ICON_SVG}</dt>
+            <dt>${t("Money Left In This Broker")}</dt>
             <dd>${money(deposits - withdrawals)}</dd>
           </div>
           ${SETTINGS.showReconciliation ? `<div><dt>${t("Reconciliation")}</dt><dd><span class="badge ${reconCls}">${reconStatus}</span></dd></div>` : ""}

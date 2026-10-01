@@ -878,7 +878,8 @@ a.notif-item:hover, a.notif-item:focus-visible { background: var(--surface-2); }
 /* Column header info tooltip. Hover works with a mouse; touch has no hover
  * state at all, so a tap toggles the same tooltip (wired in mountColInfoTaps())
  * — otherwise this content is unreachable on a phone. */
-.col-info { display: inline-flex; color: var(--muted); cursor: default; vertical-align: middle; }
+.col-info { display: inline-flex; color: var(--muted); cursor: default; vertical-align: middle; transition: color .12s; }
+.col-info:not(.warn-pill):hover { color: var(--brand); }
 .col-info svg { display: block; }
 /* The tooltip itself is a single position:fixed div appended to <body> by
  * mountColInfoTaps() (NOT a ::after anchored inside the icon) — fixed positioning is
