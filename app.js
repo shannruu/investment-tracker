@@ -3698,24 +3698,10 @@ function portfolioTable() {
     marketValue: t("Market Value"), netDiv: t("Net Dividends"),
   };
 
-  // Equal-width, left-aligned columns (same convention as the Dividend Calendar) — mixing
-  // right-aligned numeric columns into an otherwise left-aligned row made values cluster
-  // against whatever column followed them while leaving a ragged gap on the other side,
-  // which read as messier than uniform left-alignment, not cleaner. Widths are computed
-  // dynamically since the column set here is user-configurable via "Edit columns", so a
-  // fixed percentage split wouldn't fit every combination. Percentage
-  // widths alone are only a hint under table-layout:auto, so narrow-content columns (e.g.
-  // Broker, Price) render narrower than intended — but switching to table-layout:fixed
-  // instead makes columns overflow into each other once many columns are enabled (each
-  // one's share of 100% gets too small for its own content). A per-column min-width fixes
-  // the narrow-column case while staying on auto layout, so a too-many-columns table grows
-  // past 100% and scrolls horizontally (via .table-wrap) instead of overlapping.
-  const colPct = (100 / (orderedColIds.length + 1)).toFixed(2);
-  const colMinWidths = {
-    broker: 130, shares: 90, avgCost: 112, avgCostEx: 112, buyFees: 96, costBasis: 110, price: 110, todayPct: 90, priceMyr: 100, realizedPL: 110, pctPortfolio: 100,
-    unrealizedAmt: 110, unrealizedPct: 90, totalReturnAmt: 110, totalReturnPct: 90,
-    marketValue: 110, netDiv: 110,
-  };
+  // Left-aligned columns. Each title stays on ONE line with its info icon right after it, and every
+  // column simply sizes to its widest content (auto table layout) — so a title is never cut off or
+  // wrapped over two or three lines, and the whole header row lines up. A table with many columns
+  // enabled grows past 100% and scrolls sideways (via .table-wrap) instead of overlapping.
   const body = rows.map((h) => {
     const totalReturnPct = h.costBasis > 0 ? (h.totalReturn / h.costBasis) * 100 : null;
     const cellMap = {
@@ -3762,10 +3748,10 @@ function portfolioTable() {
     priceMyr: t("Live price converted to base currency at today's exchange rate"),
   };
   const thCols = orderedColIds.map((id) => {
-    const tip = colTooltips[id] ? ` <span class="col-info tip-down" data-tip="${colTooltips[id]}">${COL_INFO_ICON_SVG}</span>` : "";
-    return `<th style="width:${colPct}%;min-width:${colMinWidths[id] || 100}px;text-align:left" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
+    const tip = colTooltips[id] ? `<span class="col-info tip-down" data-tip="${colTooltips[id]}">${COL_INFO_ICON_SVG}</span>` : "";
+    return `<th style="text-align:left" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
   }).join("");
-  const thead = `<thead><tr><th style="width:${colPct}%;min-width:140px">${t("Holding")}</th>${thCols}</tr></thead>`;
+  const thead = `<thead><tr><th>${t("Holding")}</th>${thCols}</tr></thead>`;
 
   return `<div class="table-wrap"><table class="data-table pf-table">${thead}<tbody>${body}</tbody></table></div>`;
 }

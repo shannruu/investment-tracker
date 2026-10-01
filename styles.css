@@ -1800,6 +1800,9 @@ button.nav-item { font-size: 14px; }
 }
 .pf-table th:first-child, .pf-table td:first-child { position: sticky; left: 0; z-index: 2; background: var(--surface); box-shadow: 1px 0 0 var(--border-soft); }
 .pf-table th:first-child { z-index: 3; }
+/* Holdings table titles: one line each, info icon right after the text; columns size to their content */
+.pf-table th { white-space: nowrap; vertical-align: middle; min-width: 88px; }
+.pf-table th .col-info { margin-left: 6px; }
 .pf-table tbody tr:hover td:first-child { background: var(--surface-2); }
 @media (max-width: 760px) {
   .pf-table th:first-child { min-width: 96px !important; width: 96px !important; }
