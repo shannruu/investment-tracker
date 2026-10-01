@@ -1801,48 +1801,19 @@ button.nav-item { font-size: 14px; }
 .pf-table th:first-child, .pf-table td:first-child { position: sticky; left: 0; z-index: 2; background: var(--surface); box-shadow: 1px 0 0 var(--border-soft); }
 .pf-table th:first-child { z-index: 3; }
 .pf-table tbody tr:hover td:first-child { background: var(--surface-2); }
-.pf-note { margin: 12px 0 0; font-size: 12.5px; line-height: 1.55; }
-.pf-note .link { font-size: 12.5px; }
 @media (max-width: 760px) {
   .pf-table th:first-child { min-width: 96px !important; width: 96px !important; }
   .pf-table td:first-child, .pf-table td.td-holding { min-width: 96px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
 }
 
-/* ===== Portfolio → Holdings as cards (label over value, like DivTracker's position screen) ===== */
-.hc-list { display: flex; flex-direction: column; }
-.hc { padding: 22px 2px; border-top: 1px solid var(--border-soft); }
-.hc:first-child { border-top: 0; padding-top: 8px; }
-.hc:last-child { padding-bottom: 6px; }
-.hc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
-.hc-id { min-width: 0; }
-.hc-tk { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; }
-.hc-tk .ticker { font-size: 18px; }
-.hc-name { font-size: 13px; color: var(--muted); }
-.hc-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.hc-quote { flex: none; text-align: right; }
-.hc-price { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.hc-quote-sub { margin-top: 4px; font-size: 12px; color: var(--muted); }
-.hc-grid, .hc-hero, .hc-stat dt, .hc-stat dd { margin: 0; }
-.hc-hero { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 16px 18px; margin-bottom: 18px; background: var(--surface-2); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); }
+/* ===== Holding page: facts as label over value (like DivTracker's position screen) ===== */
+.hc-grid, .hc-stat dt, .hc-stat dd { margin: 0; }
 .hc-stat { min-width: 0; }
 .hc-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
 .hc-label .col-info { flex: none; }
 .hc-val { margin-top: 5px; font-size: 15px; font-weight: 650; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.hc-hero .hc-val { font-size: 22px; font-weight: 750; letter-spacing: -.02em; }
 .hc-sub { margin-top: 3px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .hc-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px 24px; }
 .hc-detail { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-soft); }
 @media (max-width: 900px) { .hc-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-@media (max-width: 640px) {
-  .hc { padding: 18px 0; }
-  .hc-hero { grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px; }
-  .hc-hero .hc-stat:last-child { grid-column: 1 / -1; }
-  .hc-hero .hc-val { font-size: 19px; }
-  .hc-grid { grid-template-columns: 1fr 1fr; gap: 16px 14px; }
-  .hc-tk .ticker { font-size: 17px; }
-}
-#holdingsBody + .pf-note { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-soft); }
-@media (max-width: 640px) {
-  /* Filters two per row on a phone (they were one per row, pushing the first holding off screen) */
-  .filters .sel { flex: 1 1 calc(50% - 5px); min-width: 0; max-width: none; }
-}
+@media (max-width: 640px) { .hc-grid { grid-template-columns: 1fr 1fr; gap: 16px 14px; } }
