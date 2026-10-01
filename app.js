@@ -125,7 +125,6 @@ const ZH = {
   "Profile": "个人资料", "Overview": "概览", "Appearance": "外观", "Base Currency": "基准货币",
   "Your Account": "您的账户", "Set up your profile": "设置您的个人资料",
   "Synced": "已同步", "Local only": "仅本地",
-  "Your identity, and how this app is set up for you.": "您的身份信息，以及本应用为您所做的设置。",
   "Notifications": "通知", "Announcements": "公告", "Alerts": "警示", "Reminders": "提醒",
   "You're all caught up.": "暂无新通知。",
   "Currency, preferences and data.": "货币、偏好设置与数据。",
@@ -219,7 +218,7 @@ const ZH = {
   "records": "条记录", "Transaction added": "已添加交易",
   "DRIP recorded as 2 linked records: dividend + buy": "股息再投资已记录为两条关联记录：股息 + 买入",
   // Settings
-  "Your name": "您的姓名", "Save profile": "保存资料", "Profile saved": "资料已保存",
+  "Your name": "您的姓名", "Profile saved": "资料已保存",
   "Add a rate for that currency first.": "请先为该货币添加汇率。", "Base currency set to": "基准货币已设为",
   "Clear all data": "清除所有数据",
   "Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone.": "清除将删除本浏览器中保存的所有券商、持仓和交易，且无法撤销。",
@@ -233,7 +232,7 @@ const ZH = {
   "No holdings match these filters.": "没有符合筛选条件的持仓。",
   "Getting started": "开始使用", "Add a broker": "添加券商", "Record your first deposit": "记录第一笔存款",
   "Add your first buy transaction": "添加第一笔买入交易", "Add a current price": "添加当前价格", "Record a dividend": "记录一笔股息",
-  "Record a Buy (or import an existing holding)": "记录一笔买入（或导入现有持仓）",
+  "Record a Buy": "记录一笔买入",
   "Last saved on this device": "本设备最后保存", "Nothing saved yet": "尚未保存",
   // Return modes
   "Return mode": "回报模式", "Price return only": "仅价格回报", "Total return": "总回报",
@@ -277,9 +276,7 @@ const ZH = {
  "Total Realized P/L": "累计已实现盈亏", "Best sale": "最佳卖出", "Worst sale": "最差卖出", "Winning sales": "盈利卖出", "By stock": "按股票", "Each sale": "逐笔卖出", "Highest profit first": "盈利最高优先", "Biggest loss first": "亏损最大优先", "Most recent first": "最新优先", "Sold": "卖出", "Cost": "成本", "Proceeds": "卖出所得", "Sales": "卖出次数", "Sort by": "排序", "No sales yet — once you sell a stock, what you earned or lost on it is listed here.": "尚无卖出记录——卖出股票后，盈亏将列在这里。", "Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.": "盈亏 = 卖出所得 − 所卖股份的平均成本 − 卖出的手续费和税费。股息和利息另行计算。",
   "Allow selling more shares than currently held (override)": "允许卖出超过当前持有的股数（覆盖）",
   "You only hold": "您仅持有", "shares — tick the override to sell more.": "股 — 勾选覆盖以卖出更多。",
-  "Avg Cost per share": "每股平均成本", "blank = use current": "留空 = 使用当前汇率",
-  "Use this only for investments you owned before you started tracking in Divz. New purchases should be entered as Buy transactions.": "仅用于您在开始使用 Divz 之前已持有的投资。新买入请记为买入交易。",
-  "Add Opening Holding": "添加期初持仓", "Opening holding added": "已添加期初持仓",
+  "blank = use current": "留空 = 使用当前汇率",
   "Set current price": "设置当前价格", "Manual price": "手动价格", "No price set": "未设价格",
   "Current price per share for": "每股当前价格：", "manual, not live": "手动，非实时",
   "Enter a valid price.": "请输入有效价格。", "Price updated": "价格已更新",
@@ -346,8 +343,6 @@ const ZH = {
   "Enter an exchange rate.": "请输入汇率。", "Choose a different destination currency.": "请选择不同的目标货币。",
   "Enter an exchange rate greater than 0.": "请输入大于 0 的汇率。",
   "Fee can't be negative.": "费用不能为负数。", "Tax can't be negative.": "税费不能为负数。",
-  "Enter a number of shares greater than 0.": "请输入大于 0 的股数。",
-  "Enter an average cost of 0 or more.": "请输入不小于 0 的平均成本。",
   "Negative cash balance": "现金余额为负",
   "A buy, fee or withdrawal exceeds the cash recorded for this broker. Add a deposit or check the entries.": "买入、费用或取款超过了该券商记录的现金。请添加存款或检查记录。",
   "Realized gain/loss from": "已实现盈亏，来自", "currency-exchange transaction(s), valued at current rates.": "笔货币兑换交易，按当前汇率估值。",
@@ -588,16 +583,10 @@ const ZH = {
   // Portfolio page
   "All brokers": "所有券商", "All markets": "所有市场", "All currencies": "所有货币", "All P/L": "所有盈亏",
   "Profit": "盈利", "Loss": "亏损", "Reset": "重置",
-  "Add opening holding": "添加期初持仓", "Add Opening Holding": "添加期初持仓",
-  "What you own": "持有内容", "Where & how much": "账户与数量", "Cost basis": "成本基础",
-  "As-of date": "截至日期", "Current price": "现价", "optional — for instant P/L": "可选 — 用于即时盈亏",
-  "No holdings yet. Record a Buy in Records, or add an opening holding below.": "暂无持仓。在「记录」中记一笔买入，或在下方添加期初持仓。",
-  "Import existing holdings": "导入现有持仓",
-  "Positions you held before tracking — click to open": "开始记录前已持有的仓位 — 点击展开",
+  "Current price": "现价",
   "No holdings yet — record a Buy on the Add page and it appears here automatically.": "暂无持仓 — 在「添加」页记录一笔买入，它会自动出现在此。",
   "Record your first Buy": "记录首笔买入",
   "Add a broker first, then record a Buy and it appears here.": "请先添加券商，然后记录买入，它会出现在此。",
-  "Add a broker first, then you can import holdings.": "请先添加券商，然后即可导入持仓。",
   "Add a broker": "添加券商",
   "You need a broker before you can record transactions — every transaction belongs to a broker.": "记录交易前需要先添加券商 — 每笔交易都属于某个券商。",
   "Your only broker is archived. Add (or restore) an active broker to record transactions.": "您唯一的券商已归档。请添加（或恢复）一个有效券商以记录交易。",
@@ -619,10 +608,7 @@ const ZH = {
   // Misc
   "Portfolio": "投资组合",
   // Cloud Sync
-  "Account & Cloud Sync": "账户与云同步",
   "Cloud sync isn't set up for this deployment yet.": "此部署尚未配置云同步。",
-  "Signed in as": "登录身份",
-  "Last synced to cloud": "上次同步到云端",
   "Not yet synced": "尚未同步",
   "Sync now": "立即同步",
   "Sign out": "退出登录",
@@ -2855,7 +2841,7 @@ function onboardingSteps() {
   return [
     { done: BROKERS.length > 0, label: t("Add a broker"), href: "#/brokers" },
     { done: ALL_TRANSACTIONS.some((x) => x.type === "Deposit"), label: t("Record your first deposit"), href: "#/add/deposit" },
-    { done: ALL_TRANSACTIONS.some((x) => x.type === "Buy") || HOLDINGS.length > 0, label: t("Record a Buy (or import an existing holding)"), href: "#/add/buy" },
+    { done: ALL_TRANSACTIONS.some((x) => x.type === "Buy") || HOLDINGS.length > 0, label: t("Record a Buy"), href: "#/add/buy" },
     { done: Object.keys(CURRENT_PRICES).length > 0, label: t("Add a current price"), href: "#/portfolio" },
     { done: ALL_TRANSACTIONS.some((x) => x.type === "Dividend"), label: t("Record a dividend"), href: "#/add/dividend" },
   ];
@@ -3065,118 +3051,8 @@ function setSelectValue(form, name, value) {
   el.dispatchEvent(new Event("change", { bubbles: true }));   // let listeners (e.g. FX sync) react
 }
 
-/* Market name → currency, for auto-setting currency on the opening-holding form. */
-const MARKET_CCY = {
-  NASDAQ: "USD", NYSE: "USD", NYSEARCA: "USD", ARCA: "USD", AMEX: "USD", BATS: "USD",
-  "BURSA": "MYR", "BURSA MALAYSIA": "MYR", KLSE: "MYR", MYX: "MYR",
-  SGX: "SGD", SES: "SGD", HKEX: "HKD", HKSE: "HKD", SEHK: "HKD", "HONG KONG SE": "HKD",
-  LSE: "GBP", "LONDON SE": "GBP", TSX: "CAD", ASX: "AUD", TYO: "JPY", TSE: "JPY", JPX: "JPY",
-};
-
 /* "1 broker" vs "3 brokers" — singular when count is 1 (EN). */
 function plural(n, one, many) { return `${n} ${n === 1 ? one : many}`; }
-
-/* =============================================================================
- * OPENING-HOLDING FORM — one-time import of positions owned before tracking.
- * Lives in Settings (not Portfolio) so it isn't mistaken for the normal
- * "add a stock" flow, which is a Buy transaction on the Add page.
- * ========================================================================== */
-function openingHoldingFormHTML() {
-  if (!BROKERS.length) return `<p class="muted">${t("Add a broker first, then you can import holdings.")}</p><div class="form-actions" style="margin-top:14px"><a class="btn primary" href="#/brokers">${t("Add a broker")} →</a></div>`;
-  const ccyItems = currencyItems();
-  const brokerItems = BROKERS.filter((b) => !b.archived).map((b) => ({ value: b.id, label: b.name }));
-  return `<form id="holdingForm" class="form opening-form" autocomplete="off">
-        <p class="muted form-intro">${t("Use this only for investments you owned before you started tracking in Divz. New purchases should be entered as Buy transactions.")}</p>
-
-        <div class="form-group">
-          <h4 class="form-sub">${t("What you own")}</h4>
-          <div class="form-grid og-own">
-            <label>${t("Ticker")}<input name="ticker" placeholder="AAPL" required></label>
-            <label>${t("Company Name")}<input name="company" placeholder="Apple Inc."></label>
-            <label>${t("Market")}<input name="market" placeholder="NASDAQ"></label>
-            <input type="hidden" name="assetType" value="Stock">
-          </div>
-          <div class="lookup-status muted" id="holdingLookup"></div>
-        </div>
-
-        <div class="form-group">
-          <h4 class="form-sub">${t("Where & how much")}</h4>
-          <div class="form-grid og-where">
-            <label>${t("Broker")}${styledSelect("brokerId", brokerItems, brokerItems[0] && brokerItems[0].value)}</label>
-            <label>${t("Currency")}${styledSelect("currency", ccyItems, FX.base, { id: "ohCurrency", more: "currency" })}</label>
-            <label>${t("Shares")}<input type="number" step="any" name="shares" placeholder="0" required></label>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <h4 class="form-sub">${t("Cost basis")}</h4>
-          <div class="form-grid og-cost">
-            <label>${t("Avg Cost per share")}<input type="number" step="any" name="avgCost" placeholder="0.00" required></label>
-            <label id="ohFxField">${t("FX rate to")} ${ccyLabel(FX.base)}<input type="number" step="any" name="openingFxRate" placeholder="1.0"></label>
-            <label>${t("As-of date")}<input type="date" name="asOfDate" value="${todayISO()}"></label>
-            <label>${t("Current price")}<input type="number" step="any" name="currentPrice" placeholder="${t("optional — for instant P/L")}"></label>
-          </div>
-        </div>
-
-        <div class="form-actions"><button class="btn primary" type="submit">${t("Add Opening Holding")}</button></div>
-      </form>`;
-}
-
-function mountOpeningHoldingForm() {
-  const hf = $("#holdingForm");
-  if (!hf) return;
-  mountDatePickers(hf);
-  const ht = hf.querySelector('[name="ticker"]');
-  if (ht) ht.addEventListener("change", () => autofillFromTicker(hf, $("#holdingLookup"), { fillPrice: false }));
-  attachAutocomplete(hf, $("#holdingLookup"), { fillPrice: false });
-
-  // Currency-dependent FX rate: hide for base currency, prefill the real rate otherwise.
-  const ccyInput = $("#ohCurrency");
-  const fxField = $("#ohFxField");
-  const fxInput = hf.querySelector('[name="openingFxRate"]');
-  const syncFx = () => {
-    const ccy = (ccyInput && ccyInput.value) || FX.base;
-    const isBase = ccy === FX.base;
-    if (fxField) fxField.style.display = isBase ? "none" : "";
-    if (fxInput) fxInput.value = isBase ? "" : (FX.rates[ccy] || "");
-  };
-  if (ccyInput) ccyInput.addEventListener("change", syncFx);
-  const mEl = hf.querySelector('[name="market"]');
-  if (mEl) mEl.addEventListener("change", () => {
-    const k = mEl.value.trim().toUpperCase();
-    if (!k) return;
-    let ccy = MARKET_CCY[k];
-    if (!ccy) { const m = Object.keys(MARKET_CCY).find((x) => k.includes(x)); if (m) ccy = MARKET_CCY[m]; }
-    if (ccy && FX.rates[ccy]) setSelectValue(hf, "currency", ccy);   // dispatches change → syncFx
-  });
-  syncFx();
-
-  hf.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const d = Object.fromEntries(new FormData(e.target).entries());
-    const ticker = d.ticker.trim().toUpperCase();
-    if (!ticker) { toast(t("Enter a ticker.")); return; }
-    const shares = parseFloat(d.shares);
-    if (!(shares > 0)) { toast(t("Enter a number of shares greater than 0.")); return; }
-    const avgCost = parseFloat(d.avgCost);
-    if (!(avgCost >= 0)) { toast(t("Enter an average cost of 0 or more.")); return; }
-    let openingFxRate = null;
-    if (d.openingFxRate) {
-      openingFxRate = parseFloat(d.openingFxRate);
-      if (!(openingFxRate > 0)) { toast(t("Enter an exchange rate greater than 0.")); return; }
-    }
-    HOLDINGS.push({
-      ticker, company: (d.company || "").trim(),
-      brokerId: d.brokerId, market: (d.market || "").trim(), currency: d.currency,
-      shares, avgCost, openingFxRate,
-      asOfDate: d.asOfDate || todayISO(), netDividends: 0,
-    });
-    setHoldingType(ticker, d.assetType);
-    const cp = parseFloat(d.currentPrice);
-    if (cp > 0) CURRENT_PRICES[ticker] = { price: cp, currency: d.currency, date: todayISO(), source: "manual" };
-    saveStore(); toast(t("Opening holding added")); render();
-  });
-}
 
 /* =============================================================================
  * PAGE: PORTFOLIO  (with working filters + grouped allocations)
@@ -5720,67 +5596,12 @@ function closeBrokerDrawer() {
 }
 
 /* =============================================================================
- * PAGE: PROFILE  (identity, Profile form, Account & Cloud Sync)
+ * PAGE: ACCOUNT  (#/profile — profile, security, cloud sync, your data)
+ * The page itself lives in account.js (a classic script loaded after sync.js, so it shares this scope).
  * ========================================================================== */
 function pageProfile() {
-  const idn = acctIdentity();
-  const heroLabel = idn.hasIdentity ? (idn.name || idn.email) : "";
-  const badge = idn.hasIdentity
-    ? `<span class="badge ${idn.signedIn ? "pos" : "subtle"}">${idn.signedIn ? t("Synced") : t("Local only")}</span>`
-    : `<span class="badge subtle">${t("Set up your profile")}</span>`;
-  const html = `
-    ${panel(t("Profile"), `<form id="profileForm" class="form" autocomplete="off">
-      <div class="avatar-manage-row">
-        <div class="avatar-upload">
-          <span class="brand-mark xl" id="profileAvatarPreview" role="button" tabindex="0" aria-label="${t("Change photo")}">${avatarInnerHTML(heroLabel)}</span>
-          <button type="button" class="avatar-edit-btn" id="avatarEditBtn" aria-label="${t("Change photo")}"><svg class="icon"><use href="#i-camera"/></svg></button>
-          <input type="file" id="avatarFileInput" accept="image/*" hidden>
-        </div>
-        <div class="avatar-manage-actions">
-          <button type="button" class="btn primary small" id="avatarUploadBtn">${t("Upload photo")}</button>
-          ${USER.avatar ? `<a href="#" class="link" id="avatarRemoveBtn">${t("Remove photo")}</a>` : ""}
-        </div>
-      </div>
-      <div class="form-grid">
-        <label>${t("Name")}<input name="name" value="${esc(USER.name)}" placeholder="${t("Your name")}"></label>
-        <label>${t("Email")}<input name="email" type="email" value="${esc(USER.email)}" placeholder="you@example.com"></label>
-        <label>${t("Investing since")}<input name="joined" type="date" value="${esc(USER.joined)}"></label>
-      </div>
-      <div class="form-actions"><button class="btn primary" type="submit">${t("Save profile")}</button></div>
-    </form>`, badge)}
-
-    ${typeof accountSyncPanelHTML === "function" ? accountSyncPanelHTML() : ""}
-
-    ${panel(t("Overview"), `<div class="cash-strip" style="margin:-4px 0 0;padding-bottom:0;border-bottom:0">
-      <a class="cash-item" href="#/brokers"><span class="cash-k">${t("Brokers")}</span><span class="cash-v">${BROKERS.length}</span></a>
-      <a class="cash-item" href="#/portfolio"><span class="cash-k">${t("Holdings")}</span><span class="cash-v">${T.holdings.length}</span></a>
-      <a class="cash-item" href="#/records"><span class="cash-k">${t("Transactions")}</span><span class="cash-v">${ALL_TRANSACTIONS.length}</span></a>
-    </div>`)}`;
-
-  return { title: "Profile", subtitle: "Your identity, and how this app is set up for you.", html,
-    mount() {
-      mountDatePickers($("#profileForm"));
-      $("#profileForm").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const d = Object.fromEntries(new FormData(e.target).entries());
-        USER.name = d.name; USER.email = d.email; USER.joined = d.joined;
-        saveStore(); toast(t("Profile saved")); render();
-      });
-      const fileInput = $("#avatarFileInput");
-      const openPicker = () => fileInput.click();
-      $("#avatarEditBtn").addEventListener("click", openPicker);
-      $("#avatarUploadBtn").addEventListener("click", openPicker);
-      const preview = $("#profileAvatarPreview");
-      preview.addEventListener("click", openPicker);
-      preview.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openPicker(); } });
-      fileInput.addEventListener("change", (e) => { if (e.target.files[0]) handleAvatarFile(e.target.files[0]); e.target.value = ""; });
-      const removeBtn = $("#avatarRemoveBtn");
-      if (removeBtn) removeBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        USER.avatar = ""; saveStore(); toast(t("Profile photo removed")); render();
-      });
-      if (typeof mountAccountSyncPanel === "function") mountAccountSyncPanel();
-    } };
+  return typeof pageAccount === "function" && typeof mountAccountSyncPanel === "function"
+    ? pageAccount() : { title: "Account", subtitle: "", html: "" };
 }
 
 /* =============================================================================
@@ -5848,10 +5669,6 @@ function pageSettings() {
       </div>`);
     })()}
 
-    <details class="panel addhold" id="importHoldings"${decodeURIComponent((location.hash.split("/")[2] || "")) === "holdings" ? " open" : ""}>
-      <summary><span class="addhold-head"><span class="addhold-title">${t("Import existing holdings")}</span><span class="addhold-sub">${t("Positions you held before tracking — click to open")}</span></span></summary>
-      <div class="addhold-body">${openingHoldingFormHTML()}</div></details>
-
     ${panel(t("Danger Zone"), `
       <p class="muted" style="margin:-2px 0 12px">${t("Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.")}</p>
       <div class="form-actions">
@@ -5860,12 +5677,6 @@ function pageSettings() {
 
   return { title: "Settings", subtitle: "Currency, preferences and data.", html,
     mount() {
-      mountOpeningHoldingForm();   // "Import existing holdings" form
-      // Deep-linked from the Portfolio empty state → reveal + scroll to the import section.
-      if (decodeURIComponent((location.hash.split("/")[2] || "")) === "holdings") {
-        const ih = $("#importHoldings");
-        if (ih) setTimeout(() => ih.scrollIntoView({ behavior: "smooth", block: "center" }), 60);
-      }
       // Change base currency — re-base every stored rate so values stay correct. FX.rates
       // alone isn't enough: every past transaction froze its own fxRate/myrEquivalent
       // relative to the OLD base at the time it was recorded (computeTotals()'s histFx()
@@ -6087,10 +5898,9 @@ function settingRow(label, value) {
 function pageHelp() {
   const sectionsEN = [
     { title: "Getting Started", items: [
-      { q: "What order should I set things up in?", a: "Add a broker first — every transaction and every holding belongs to one, so nothing else can be recorded until it exists. Next, get your positions into the ledger: record real Buy transactions for anything you buy from now on, or use \"Import existing holdings\" (Settings → Import existing holdings) for positions you already owned before you started tracking. Log deposits and withdrawals as they happen so each broker's calculated cash balance stays meaningful. Once a holding exists, set its current price (the Set Price control on Portfolio) — until then, market value falls back to cost and unrealized P/L reads as zero even if you're actually up or down. The Dashboard's setup checklist counts these off in that order (broker → deposit → buy/holding → price → dividend) but doesn't enforce it — you can complete them out of sequence." },
-      { q: "What's the practical difference between recording a Buy and using \"Import existing holdings\"?", a: "A Buy (Add → Buy) is a real dated transaction: it deducts cash from the broker's calculated balance, sets or updates the position's average cost, and later feeds realized P/L when you sell part of it. \"Import existing holdings\" (Settings → Import existing holdings, requires a broker to already exist) instead writes a holding directly — ticker, shares, average cost, an as-of date, and an optional starting current price — with no transaction behind it, so it never touches cash, deposits, or realized P/L. It exists only to seed a starting position for something you owned before you started tracking here. Anything you buy from this point on should go in as a real Buy, otherwise the broker's cash reconciliation will flag a difference for money that, as far as the ledger's concerned, never left." },
-      { q: "Do I need to complete all 5 onboarding checklist steps before the app is useful?", a: "No. The Dashboard's welcome panel just counts, out of 5, whether you have: a broker, a Deposit transaction, a Buy transaction or an opening holding, a current price set on any holding, and a Dividend transaction — it's a progress indicator, not a gate, and every page works with a partial setup. The one step worth prioritizing is the current price: without it, market value uses cost as a placeholder, so unrealized P/L and Total Return will understate or misstate your position even though the numbers are technically calculating." },
-      { q: "I only have positions I already owned — do I need to re-enter every historical Buy?", a: "Not necessarily. Backfilling the real historical Buys preserves exact per-lot cost and commission/tax history, but for most people \"Import existing holdings\" (Settings → Import existing holdings) is the intended shortcut: enter the ticker, shares, and a single average cost as of a chosen date, and the app treats that as your starting position going forward. Because it creates no transaction, it has no effect on cash balances, XIRR's dated cash-flow list, or realized P/L — only Buy and Sell transactions touch those. Net dividends on an imported holding start at zero and only accumulate from Dividend transactions you record after the as-of date; anything paid before that isn't retroactively counted." },
+      { q: "What order should I set things up in?", a: "Add a broker first — every transaction belongs to one, so nothing else can be recorded until it exists. Next, record the money you put in (Deposit) and what you bought (Buy). If you already owned stocks before you started tracking, enter them as Buy transactions too, using the original date and price from your broker's statement, so cost and profit are worked out from your real trades. Log deposits and withdrawals as they happen so each broker's calculated cash balance stays meaningful. Once a holding exists, set its current price (the Set Price control on Portfolio) — until then, market value falls back to cost and unrealized P/L reads as zero even if you're actually up or down. The Dashboard's setup checklist counts these off in that order (broker → deposit → buy → price → dividend) but doesn't enforce it — you can complete them out of sequence." },
+      { q: "Do I need to complete all 5 onboarding checklist steps before the app is useful?", a: "No. The Dashboard's welcome panel just counts, out of 5, whether you have: a broker, a Deposit transaction, a Buy transaction, a current price set on any holding, and a Dividend transaction — it's a progress indicator, not a gate, and every page works with a partial setup. The one step worth prioritizing is the current price: without it, market value uses cost as a placeholder, so unrealized P/L and Total Return will understate or misstate your position even though the numbers are technically calculating." },
+      { q: "I only have positions I already owned — do I need to re-enter every historical Buy?", a: "Ideally, yes — entering your real Buy transactions (date, price, fees) keeps the exact cost of each purchase, so cost, realized profit and returns are worked out from your real trades. If you no longer have the full history, record one Buy per stock dated the day you started tracking, with your broker's average cost as the price, plus the Deposit that paid for it. Many records can go in at once through Settings → Import from CSV, with a preview before anything is saved. Dividends are counted only from the Dividend records you add." },
     ] },
     { title: "Core Calculations", items: [
       { q: "How is Total Return calculated?", a: "Total Return = Unrealized P/L + Realized P/L + Net Dividends − standalone Fees. Trade commissions and taxes are already inside cost basis (buys) and realized P/L (sells), so they are not deducted twice." },
@@ -6127,8 +5937,8 @@ function pageHelp() {
     ] },
     { title: "Cloud Sync", items: [
       { q: "What is Cloud Sync?", a: "Cloud Sync copies your whole local ledger — every broker, transaction and setting — up to a Supabase-hosted account and back down again, so the same data appears when you open the app in a different browser or on a different device. It solves one problem: using the app on more than one device with the same data. It is not real-time collaboration — there's no live shared editing session, just a push of the entire local snapshot after each edit and a pull of the whole thing on sign-in." },
-      { q: "Do I have to set up Cloud Sync?", a: "No. It's entirely opt-in and off by default — until you sign in with an email, the app behaves exactly as it always has, saving only to localStorage on that device, with zero code path touched. If the deployment itself has no Cloud Sync configured, the Account & Cloud Sync panel on the Profile page just shows \"not configured\" and nothing else about the app changes." },
-      { q: "How does signing in work?", a: "Enter your email and a password in Profile → Account & Cloud Sync — \"Create an account\" the first time, \"Sign in\" after that. There's no magic-link email: sign-in is a direct email + password check, and depending on your Supabase project's settings, creating an account may ask you to confirm your email before you can sign in. The same email always maps to the same cloud account, so using it on a second device or browser links that device to the same data rather than creating a separate account." },
+      { q: "Do I have to set up Cloud Sync?", a: "No setup is needed. Divz asks you to create a free account (email and password) the first time you open it, and from then on your records are saved to that account automatically and appear on every device you sign in on. If Divz can't reach the sync service — you're offline, or this copy has none configured — it keeps working and stores your data on this device only." },
+      { q: "How does signing in work?", a: "Enter your email and a password on the opening page — 'Create an account' the first time, 'Sign in' after that. There's no magic-link email: sign-in is a direct email + password check, and creating an account may ask you to confirm your email before you can sign in. If you forget your password, use 'Forgot password?' on the sign-in page; you can also change it any time on the Account page (Security). The same email always maps to the same cloud account, so using it on a second device or browser links that device to the same data rather than creating a separate account." },
       { q: "I signed in on a second device that already has its own data — what happens?", a: "If that device already has local transactions and your account already has cloud data from elsewhere, the app can't guess which one you want, so it opens a \"Choose which data to keep\" prompt showing both sides' transaction counts and last-changed times. \"Keep this device\" uploads the local copy and overwrites the cloud copy; \"Use my account's data\" downloads the cloud copy and overwrites what's local — whichever you don't pick is fully replaced, not merged. If only one side actually has data (a genuinely fresh device, or your first-ever sign-in), it resolves automatically in that direction with no prompt." },
       { q: "What does \"last write wins\" actually mean?", a: "Each edit debounces a push of the full local snapshot to your account a few seconds later, and sign-in pulls that row down if it's newer than your last local edit. There is no field-level merge: if you edit on device A and device B before either has synced, whichever push reaches the server last simply overwrites the other device's row in its entirety, silently discarding the earlier device's changes — even edits to unrelated transactions. In practice, treat Cloud Sync as one edit session at a time, not a way to work on two devices concurrently." },
       { q: "Does signing out delete my data?", a: "No. Signing out only ends the session; everything already saved to localStorage on that device stays exactly as it was. The app separately remembers which account's data currently occupies that device's storage, independent of whether you're signed in, so that if a different account signs in later it won't upload or merge in the leftover data — it clears it first instead, treating the device as fresh for that new account." },
@@ -6152,10 +5962,9 @@ function pageHelp() {
   ];
   const sectionsZH = [
     { title: "入门指南", items: [
-      { q: "应该按什么顺序设置？", a: "先添加券商——每笔交易和每笔持仓都必须归属于某个券商，因此在此之前无法记录任何其他内容。接下来把您的持仓录入账本：为今后买入的任何股票记录真实的买入交易，或者对于您在开始使用本应用前就已持有的仓位，使用「导入现有持仓」（设置 → 导入现有持仓）。存款和取款请随时记录，这样每个券商的计算现金余额才有意义。持仓建立后，请设置其当前价格（投资组合页的设价功能）——在此之前，市值会以成本作为占位值，即使实际有盈亏，未实现盈亏也会显示为零。仪表盘的设置清单按此顺序（券商 → 存款 → 买入/持仓 → 价格 → 股息）计数，但并不强制要求——您可以不按顺序完成。" },
-      { q: "记录买入交易和使用「导入现有持仓」有什么实际区别？", a: "买入（添加 → 买入）是一笔真实的带日期交易：它会从券商的计算现金余额中扣除现金，设定或更新该仓位的平均成本，并在您日后卖出部分持仓时计入已实现盈亏。「导入现有持仓」（设置 → 导入现有持仓，需已存在券商）则直接写入一笔持仓——股票代码、股数、平均成本、截止日期，以及可选的起始当前价格——背后没有交易记录，因此不会影响现金、存款或已实现盈亏。它的作用仅是为您在开始使用本应用前已持有的仓位设定起始状态。此后任何买入都应作为真实买入交易录入，否则券商的现金对账会为这笔账本上从未离开过的资金标记差异。" },
-      { q: "使用本应用前，是否需要完成全部 5 项入门清单才有用？", a: "不需要。仪表盘欢迎面板只是统计以下 5 项中完成了几项：一个券商、一笔存款交易、一笔买入交易或期初持仓、任一持仓设置了当前价格、一笔股息交易——这只是进度提示，并非门槛，即使设置不完整，各页面也都能正常使用。最值得优先完成的是设置当前价格：在此之前，市值会以成本作为占位值，因此即使数字看似在正常计算，未实现盈亏和总回报也会被低估或误判。" },
-      { q: "我只有已持有的仓位——需要重新录入每一笔历史买入吗？", a: "不一定。补录真实的历史买入交易能保留精确的逐笔成本与佣金/税费记录，但对大多数人来说，「导入现有持仓」（设置 → 导入现有持仓）才是本应用设计的捷径：只需输入股票代码、股数，以及截至某日期的单一平均成本，应用便会将其视为您此后的起始仓位。由于它不产生交易记录，因此对现金余额、XIRR 的带日期现金流列表或已实现盈亏都没有影响——只有买入和卖出交易才会影响这些。导入持仓的净股息从零开始，只会从截止日期之后记录的股息交易开始累积；截止日期之前派发的股息不会被追溯计入。" },
+      { q: "应该按什么顺序设置？", a: "先添加券商——每笔交易都必须归属于某个券商，因此在此之前无法记录任何其他内容。接下来记录您存入的资金（存款）和买入的股票（买入）。如果您在开始使用本应用前就已持有股票，也请将它们记为买入交易，并使用券商对账单上的原始日期和价格，这样成本和盈亏就是根据您真实的交易计算出来的。存款和取款请随时记录，这样每个券商的计算现金余额才有意义。持仓建立后，请设置其当前价格（投资组合页的设价功能）——在此之前，市值会以成本作为占位值，即使实际有盈亏，未实现盈亏也会显示为零。仪表盘的设置清单按此顺序（券商 → 存款 → 买入 → 价格 → 股息）计数，但并不强制要求——您可以不按顺序完成。" },
+      { q: "使用本应用前，是否需要完成全部 5 项入门清单才有用？", a: "不需要。仪表盘欢迎面板只是统计以下 5 项中完成了几项：一个券商、一笔存款交易、一笔买入交易、任一持仓设置了当前价格、一笔股息交易——这只是进度提示，并非门槛，即使设置不完整，各页面也都能正常使用。最值得优先完成的是设置当前价格：在此之前，市值会以成本作为占位值，因此即使数字看似在正常计算，未实现盈亏和总回报也会被低估或误判。" },
+      { q: "我只有已持有的仓位——需要重新录入每一笔历史买入吗？", a: "最好是需要——录入真实的买入交易（日期、价格、费用）能保留每笔买入的确切成本，让成本、已实现盈亏和回报都根据您的真实交易计算。如果您已没有完整的交易记录，可以为每只股票记录一笔买入，日期设为您开始记录的那天，价格填券商显示的平均成本，并同时记录用于支付的存款。如需一次录入多笔记录，可使用「设置 → 从 CSV 导入」，保存前可先预览。股息只会根据您添加的股息记录来统计。" },
     ] },
     { title: "核心计算方式", items: [
       { q: "总回报是如何计算的？", a: "总回报 = 未实现盈亏 + 已实现盈亏 + 净股息 − 独立费用。买入的佣金和税费已计入成本，卖出的已计入已实现盈亏，因此不会重复扣除。" },
@@ -6192,8 +6001,8 @@ function pageHelp() {
     ] },
     { title: "云同步", items: [
       { q: "云同步是什么？", a: "云同步会将您的整个本地账本——每个券商、交易和设置——上传到由 Supabase 托管的账户，并可再下载回来，因此在不同浏览器或不同设备打开应用时会显示相同的数据。它只解决一个问题：在多台设备上使用相同数据。它不是实时协作——没有实时共享编辑会话，只是每次编辑后推送整个本地快照，并在登录时拉取整个远程数据。" },
-      { q: "我必须设置云同步吗？", a: "不需要。它完全是可选功能，默认关闭——在您用邮箱登录之前，应用行为与以往完全一致，仅保存到该设备的 localStorage，不会触及任何相关代码路径。如果该部署本身未配置云同步，个人资料页面中的「账户与云同步」面板只会显示「未配置」，应用的其他部分不会有任何变化。" },
-      { q: "登录是如何运作的？", a: "在个人资料 → 账户与云同步中输入您的邮箱，系统会向您发送一封一次性登录链接邮件——无需设置、记住或重置密码。点击链接即可登录，并返回已认证状态的应用。同一邮箱始终对应同一云端账户，因此在第二台设备或浏览器上使用它会关联到相同数据，而不会创建新账户。" },
+      { q: "我必须设置云同步吗？", a: "不需要任何设置。首次打开 Divz 时，系统会请您用邮箱和密码创建一个免费账户，此后您的记录会自动保存到该账户，并出现在您登录的每台设备上。如果 Divz 无法连接同步服务（例如您处于离线状态，或该部署未配置云同步），它仍可正常使用，数据只保存在这台设备上。" },
+      { q: "登录是如何运作的？", a: "在打开页面时输入您的邮箱和密码——首次使用请选「创建一个账户」，之后选「登录」。没有魔法链接邮件：登录是直接核对邮箱和密码，创建账户后可能需要先确认邮箱才能登录。忘记密码时，请在登录页点击「忘记密码？」；您也可以随时在「账户」页的「安全」中修改密码。同一邮箱始终对应同一云端账户，因此在第二台设备或浏览器上使用它会关联到相同数据，而不会创建新账户。" },
       { q: "我在已有自己数据的第二台设备上登录了——会发生什么？", a: "如果该设备本地已有交易数据，而您的账户在别处也已有云端数据，应用无法自行判断您想保留哪一份，因此会弹出「选择要保留的数据」提示，显示两侧的交易数量和最后更改时间。「保留此设备」会上传本地数据并覆盖云端数据；「使用我账户的数据」会下载云端数据并覆盖本地数据——无论选择哪一方，未选中的一方都会被完全替换，而非合并。如果只有一方真正有数据（真正的全新设备，或您的首次登录），系统会自动朝该方向解析，不会弹出提示。" },
       { q: "「最后写入者获胜」具体是什么意思？", a: "每次编辑都会在几秒后自动触发一次整份本地快照的推送，而登录会在云端数据比您最后一次本地编辑更新时将其拉取下来。这里没有字段级合并：如果您在设备 A 和设备 B 上分别编辑、且两者都尚未同步，无论哪一次推送最后到达服务器，都会整体覆盖另一台设备的数据行，悄悄丢弃较早那台设备的更改——即使是与本次编辑无关的其他交易。实际使用时，请将云同步视为「同一时间只在一台设备上编辑」，而非可在多台设备同时工作的方式。" },
       { q: "退出登录会删除我的数据吗？", a: "不会。退出登录只会结束登录会话；已保存在该设备 localStorage 中的一切都会原样保留。应用会单独记录该设备存储中当前所属的账户，与是否已登录无关，因此如果之后有不同账户登录，不会将遗留数据上传或合并进去——而是会先将其清除，把该设备视为该新账户的全新设备。" },
@@ -6242,7 +6051,7 @@ function pagePrivacy() {
       "Looking up a stock price, a dividend history, or browsing the Ex-Dividend Screener sends a request through this app's own server functions to third-party public market data sources (Yahoo Finance, Nasdaq, TradingView). Only the ticker symbol or date range you're asking about is sent — never your portfolio, your holdings, or any other personal financial data.",
     ] },
     { title: "Optional Cloud Sync (Supabase)", body: [
-      "If you choose to turn on Cloud Sync (Profile → Account & Cloud Sync), you create an account with your email address and a password, which Supabase (our database provider) stores in hashed form — this app's developer never sees it. Once signed in, your local ledger is copied to a Supabase-hosted database tied to your account, so the same data appears on any device you sign into.",
+      "If you choose to turn on Cloud Sync (the Account page), you create an account with your email address and a password, which Supabase (our database provider) stores in hashed form — this app's developer never sees it. Once signed in, your local ledger is copied to a Supabase-hosted database tied to your account, so the same data appears on any device you sign into.",
       "This is entirely opt-in and off by default. It exists only to save and restore your own data across your own devices — it's never shared, sold, or used for anything else. Row Level Security on the underlying database means only your signed-in account can ever read or write your own data.",
     ] },
     { title: "No analytics, no ads, no tracking", body: [
@@ -6269,7 +6078,7 @@ function pagePrivacy() {
       "查询股票价格、股息历史，或浏览除息股筛选器时，会通过本应用自身的服务器功能向第三方公开市场数据来源（Yahoo Finance、Nasdaq、TradingView）发出请求。只有您所查询的股票代码或日期范围会被发送——绝不会发送您的投资组合、持仓或任何其他个人财务数据。",
     ] },
     { title: "可选的云同步（Supabase）", body: [
-      "如果您选择开启云同步（个人资料 → 账户与云同步），您的邮箱地址将用于通过一次性登录链接为您登录——系统从不设置或保存任何密码。登录后，您的本地账本会被复制到与您账户关联的 Supabase 托管数据库中，因此您登录的任何设备都会显示相同的数据。",
+      "如果您选择开启云同步（账户页面），您将使用邮箱地址和密码创建账户，密码由我们的数据库提供商 Supabase 以哈希形式存储——本应用的开发者无法看到它。登录后，您的本地账本会被复制到与您账户关联的 Supabase 托管数据库中，因此您登录的任何设备都会显示相同的数据。",
       "此功能完全是可选的，默认关闭。它的作用仅仅是在您自己的多台设备之间保存和恢复您自己的数据——绝不会被分享、出售或用于其他任何用途。底层数据库的行级安全策略确保只有您已登录的账户才能读取或写入您自己的数据。",
     ] },
     { title: "没有分析追踪，没有广告，没有追踪工具", body: [
@@ -7369,7 +7178,7 @@ function currentPageKey() {
 let lastRenderedHash = null;
 /* Sidebar account switcher — identity is Cloud Sync's account when signed in
  * (the "real" account once cross-device sync exists), else the local Profile
- * fields (Settings → Profile), else an empty-state prompt. */
+ * fields (Account page → Profile), else an empty-state prompt. */
 function acctIdentity() {
   const cloudEmail = (typeof SYNC_USER !== "undefined" && SYNC_USER) ? SYNC_USER.email : "";
   const localName = (USER.name || "").trim();

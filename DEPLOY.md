@@ -167,8 +167,8 @@ const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 key belongs in client-side code; the SQL policies above are what actually keep each
 account's data private, not the key itself.
 
-Re-deploy (push the updated `supabase-client.js`), then Settings → Account & Cloud Sync
-will show a sign-in form instead of "not configured."
+Re-deploy (push the updated `supabase-client.js`), then the opening page will ask people to sign
+in or create an account, and the Account page will show Cloud sync instead of "not set up."
 
 ---
 
@@ -262,7 +262,7 @@ Web Push for installed PWAs has worked on iOS since 16.4, so this needs no nativ
 but it only works from the **installed** app, not a regular Safari tab:
 
 1. Open Divz from its **Home Screen icon** (Add to Home Screen first if you haven't).
-2. Sign in via Profile → Account & Cloud Sync.
+2. Sign in (the opening page, or the Account page).
 3. Go to the new **Price Alerts** page, tap **Enable notifications**, accept the iOS
    permission prompt.
 4. Add an alert — a ticker, a direction, and a target price.

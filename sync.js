@@ -558,38 +558,9 @@ async function signOutCloud() {
 }
 
 /* =============================================================================
- * Settings page: Account & Cloud Sync panel
+ * Account page (#/profile): the markup is in account.js; this wires up the sign-in / create-account
+ * form, Sync now, Sign out and the "finish choosing which data to keep" link on it.
  * ========================================================================== */
-function accountSyncPanelHTML() {
-  let body;
-  if (!syncAvailable()) {
-    body = `<p class="muted" style="margin:0">${t("Cloud sync isn't set up for this deployment yet.")}</p>`;
-  } else if (SYNC_USER) {
-    body = `<div class="setting-rows">
-        ${settingRow(t("Signed in as"), esc(SYNC_USER.email))}
-        ${settingRow(t("Last synced to cloud"), LAST_SYNCED ? fmtDateTime(LAST_SYNCED) : t("Not yet synced"))}
-      </div>
-      <div class="form-actions" style="margin-top:12px">
-        <button class="btn" id="syncNowBtn">${t("Sync now")}</button>
-        <button class="btn ghost" id="signOutBtn">${t("Sign out")}</button>
-      </div>
-      ${SYNC_STATUS === "needs-reconciliation"
-        ? `<p class="muted" style="margin:12px 0 0"><a class="link" href="#" id="reopenReconcile">${t("Finish choosing which data to keep")}</a></p>` : ""}`;
-  } else {
-    const isSignup = SYNC_FORM_MODE === "signup";
-    body = `<form id="signInForm" class="form" autocomplete="off">
-      <div class="form-grid">
-        <label>${t("Email")}<input name="email" type="email" placeholder="you@example.com" required></label>
-        <label>${t("Password")}<input name="password" type="password" placeholder="••••••••" minlength="6" required autocomplete="${isSignup ? "new-password" : "current-password"}"></label>
-      </div>
-      <div class="form-actions"><button class="btn primary" type="submit">${isSignup ? t("Create account") : t("Sign in")}</button></div>
-    </form>
-    <p class="muted" style="margin:10px 0 0;font-size:12.5px">${isSignup ? t("Already have an account?") : t("New here?")} <button type="button" class="link" id="toggleSyncMode">${isSignup ? t("Sign in instead") : t("Create an account")}</button></p>
-    <p class="muted" id="signInStatus" style="margin:6px 0 0;font-size:12.5px"></p>`;
-  }
-  return panel(t("Account & Cloud Sync"), body);
-}
-
 function mountAccountSyncPanel() {
   const form = $("#signInForm");
   if (form) {
@@ -609,9 +580,15 @@ function mountAccountSyncPanel() {
           } else if (!data.session) {
             // "Confirm email" is on for this project — signUp() created the
             // account but issued no session. onAuthStateChange only fires on
-            // an actual sign-in, so nothing else here transitions the panel.
-            if (statusEl) statusEl.textContent = t("Account created — check your email to confirm it, then sign in.");
+            // an actual sign-in, so nothing else here transitions the panel:
+            // flip the form to "Sign in" ourselves, keep the address they typed,
+            // and spell out the next step.
             SYNC_FORM_MODE = "signin";
+            render();
+            const em = document.querySelector('#signInForm [name="email"]'), st = $("#signInStatus");
+            if (em) em.value = email;
+            if (st) st.textContent = t("Account created — check your email to confirm it, then sign in.");
+            return;   // the form was rebuilt; the button/status we held belong to the old one
           }
           // else: session came back immediately (confirmation off) — the
           // onAuthStateChange listener in initSync() takes it from here.

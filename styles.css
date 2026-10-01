@@ -1016,7 +1016,7 @@ input[type="date"] { cursor: pointer; }
 .sel-name { color: var(--text-soft); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sel-empty { padding: 12px 10px; color: var(--muted); font-size: 12.5px; }
 
-/* ---- Collapsible "Add opening holding" ---- */
+/* ---- Collapsible panel (the stock page's Transactions list) ---- */
 .panel.addhold { padding: 0; }
 .panel.addhold > summary {
   list-style: none; cursor: pointer;
@@ -1035,24 +1035,6 @@ input[type="date"] { cursor: pointer; }
 .addhold-sub { font-weight: 500; font-size: 12px; color: var(--muted); }
 .addhold-body { padding: 16px 18px 18px; }
 
-/* Opening-holding form: contained 2-column form (collapses to 1 column on phones) */
-.opening-form { max-width: 460px; }
-.opening-form .form-intro { margin: -2px 0 2px; }
-.opening-form .form-group { margin-top: 2px; }
-.opening-form .form-sub {
-  font-size: 11.5px; font-weight: 700; color: var(--muted);
-  text-transform: uppercase; letter-spacing: .05em; margin: 16px 0 9px;
-}
-.opening-form .form-group:first-of-type .form-sub { margin-top: 8px; }
-.opening-form .form-grid { grid-template-columns: 1fr 1fr; gap: 10px; }  /* two per row; a lone field sits in one column */
-.opening-form #holdingLookup:empty { display: none; }
-.opening-form #holdingLookup { margin-top: 8px; }
-.opening-form .form-actions { margin-top: 24px; }                        /* breathing room above the button */
-.opening-form .form-actions .btn { min-width: 160px; }                   /* normal-width button, not full bleed */
-@media (max-width: 520px) {
-  .opening-form .form-grid { grid-template-columns: 1fr; }
-}
-
 /* ---- Mini cards (cash / dividends summaries) ---- */
 .mini-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 14px; }
 .mini-card {
@@ -1070,8 +1052,7 @@ input[type="date"] { cursor: pointer; }
 .mini-card[role="button"]:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); }
 .mini-card[role="button"]:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
-/* ---- Profile page: large circular avatar + Upload/Remove controls above the form ---- */
-.avatar-manage-row { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+/* ---- Avatar: large circular photo + camera button (Account page header) ---- */
 .avatar-upload { position: relative; flex: none; }
 .avatar-upload .brand-mark.xl { width: 88px; height: 88px; border-radius: 50%; font-size: 28px; cursor: pointer; }
 .avatar-upload .brand-mark.xl .icon { width: 36px; height: 36px; }
@@ -1084,7 +1065,64 @@ input[type="date"] { cursor: pointer; }
 }
 .avatar-edit-btn .icon { width: 15px; height: 15px; }
 .avatar-edit-btn:hover { background: var(--brand-ink); }
-.avatar-manage-actions { display: flex; align-items: center; gap: 16px; }
+
+/* ---- Account page (#/profile) — markup in account.js. "ap-" because .acct-* is the sidebar's account switcher ---- */
+/* container-type: the layout below reacts to the width of the page area (it shrinks when the sidebar is open),
+   not to the screen width */
+.ap { display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 920px; min-width: 0; container-type: inline-size; }
+.ap-hero {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 22px;
+  padding: 22px 24px; border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 11%, var(--surface)) 0%, var(--surface) 65%);
+}
+.ap-id { min-width: 0; }
+.ap-name { font-size: 22px; line-height: 1.2; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.ap-email { margin-top: 3px; font-size: 13.5px; color: var(--text-soft); overflow-wrap: anywhere; }
+.ap-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 12px; }
+.ap-stats { display: flex; gap: 10px; }
+.ap-stat {
+  display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 88px; padding: 10px 14px;
+  border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface) 72%, transparent); transition: border-color .12s;
+}
+.ap-stat:hover { border-color: color-mix(in srgb, var(--brand) 55%, var(--border)); }
+.ap-stat-v { font-size: 20px; font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+.ap-stat-k { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+
+/* one setting per row: label + hint on the left, its control on the right */
+.ap-rows { display: flex; flex-direction: column; }
+.ap-row {
+  display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); align-items: center; gap: 10px 32px;
+  padding: 16px 0; border-top: 1px solid var(--border-soft);
+}
+.ap-rows > .ap-row:first-child { border-top: 0; padding-top: 0; }
+.ap-row-title { font-size: 13.5px; font-weight: 650; }
+.ap-row-desc { margin-top: 2px; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+.ap-row-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-width: 0; }
+.ap-row-ctl > input { width: 100%; max-width: 380px; }
+.ap-val { font-size: 13px; color: var(--text); }
+.ap-row-ctl > .ap-readonly { background: transparent; color: var(--text-soft); cursor: default; }   /* the account email: shown, not editable */
+.ap-actions { display: flex; justify-content: flex-end; padding-top: 18px; border-top: 1px solid var(--border-soft); }
+
+/* change-password form, opened inline under its row. [hidden] needs its own rule: .form's display:flex outranks it */
+.ap-pw { padding: 2px 0 20px; }
+.ap-pw[hidden] { display: none; }
+.ap-pw .form-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.ap .ag-pw input { width: 100%; padding-right: 52px; }
+.ap-status { margin: 0; font-size: 12.5px; line-height: 1.4; color: var(--text-soft); }
+.ap-status.err { color: var(--neg); }
+.ap-status:empty { display: none; }
+.ap-intro { margin: 0 0 18px; max-width: 64ch; font-size: 13px; line-height: 1.55; color: var(--text-soft); }
+.ap-switch { margin: 14px 0 0; font-size: 12.5px; }
+
+@container (max-width: 680px) {
+  .ap-hero { grid-template-columns: auto minmax(0, 1fr); gap: 16px; padding: 18px; }
+  .ap-stats { grid-column: 1 / -1; }
+  .ap-stat { flex: 1 1 0; min-width: 0; }
+  .ap-row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .ap-row-ctl > input { max-width: none; }
+  .ap-actions .btn { flex: 1; }
+}
 /* Cash tab summary — one inline ledger strip instead of a grid of cards. Sits inside
  * the Transactions panel itself (above the table, so it never scrolls out of view as
  * the list grows), so it's a plain row with a bottom divider rather than its own
