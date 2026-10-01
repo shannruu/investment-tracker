@@ -2279,28 +2279,30 @@ function mountColInfoTaps() {
   const show = (el, rectFn) => {
     const text = el.getAttribute("data-tip");
     if (!text) return;
-    tip.textContent = text;
+    // A column title's tooltip leads with the title itself (bold), then the short description.
+    const th = el.closest && el.closest("th");
+    const title = th ? (th.textContent || "").replace(/\s+/g, " ").trim() : "";
+    tip.textContent = "";
+    if (title) { const b = document.createElement("b"); b.textContent = title; tip.appendChild(b); }
+    const d = document.createElement("span"); d.textContent = text; tip.appendChild(d);
+    tip.classList.toggle("has-title", !!title);
+    tip.classList.remove("below");
     tip.hidden = false;
     shownFor = el;
     shownAt = performance.now();
     const r = rectFn ? rectFn() : el.getBoundingClientRect();
-    // Default: centered above the icon. Measure the actual rendered box afterward and
-    // nudge it back on-screen (or flip below) if that pushes it past a viewport edge —
-    // same two-pass measure-then-clamp approach as mountChartTooltips().
-    tip.style.left = (r.left + r.width / 2) + "px";
-    tip.style.top = (r.top - 6) + "px";
-    tip.style.transform = "translate(-50%, -100%)";
-    const margin = 8;
+    // Measure the real rendered box, then place it centred above the anchor (flip below if there's no
+    // room), clamp it inside the window, and point the little arrow at the anchor's centre.
+    tip.style.left = "0px"; tip.style.top = "0px";
     const tr = tip.getBoundingClientRect();
-    let dx = 0;
-    if (tr.left < margin) dx = margin - tr.left;
-    else if (tr.right > window.innerWidth - margin) dx = (window.innerWidth - margin) - tr.right;
-    if (tr.top < margin) {
-      tip.style.top = (r.bottom + 6) + "px";
-      tip.style.transform = `translate(calc(-50% + ${dx}px), 0)`;
-    } else if (dx) {
-      tip.style.transform = `translate(calc(-50% + ${dx}px), -100%)`;
-    }
+    const margin = 8, gap = 11, cx = r.left + r.width / 2;
+    const left = Math.min(Math.max(cx - tr.width / 2, margin), Math.max(margin, window.innerWidth - margin - tr.width));
+    let top = r.top - tr.height - gap, below = false;
+    if (top < margin) { top = r.bottom + gap; below = true; }
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+    tip.classList.toggle("below", below);
+    tip.style.setProperty("--ax", Math.min(Math.max(cx - left, 16), Math.max(16, tr.width - 16)) + "px");
   };
   const hide = () => { tip.hidden = true; shownFor = null; };
 
@@ -2754,7 +2756,7 @@ function pageDashboard() {
         // head, same position as the Asset Allocation toggle right next to it —
         // not left-aligned inside the body like a second, competing header.
         const chartHeadExtra = hasTxn
-          ? `<div style="display:flex;align-items:center;gap:8px;margin-left:auto">${chartToggle}<span class="col-info tip-down" data-tip="${t("Shows your portfolio market value versus what you paid — the gap between the two lines is your unrealized gain or loss.")}">${COL_INFO_ICON_SVG}</span></div>`
+          ? `<div style="display:flex;align-items:center;gap:8px;margin-left:auto">${chartToggle}<span class="col-info tip-down" data-tip="${t("Market value versus what you paid. The gap is your unrealized profit or loss.")}">${COL_INFO_ICON_SVG}</span></div>`
           : "";
         const chartBody = hasTxn
           ? `<div id="dashChartBody">${buildDashChartContent()}</div>`
@@ -3747,25 +3749,8 @@ function portfolioTable() {
       ${orderedColIds.map((id) => cellMap[id] || "").join("")}</tr>`;
   }).join("");
 
-  const colTooltips = {
-    avgCost: t("Average price you paid per share, including your buying fees. Most broker apps show it without fees."),
-    avgCostEx: t("Average price you paid per share, without buying fees — usually the number your broker's app shows as cost."),
-    buyFees: t("Brokerage and other fees you paid when buying the shares you still hold."),
-    costBasis: t("Everything you paid for the shares you still hold, buying fees included."),
-    todayPct: t("How much the share price has moved today."),
-    realizedPL: t("Profit or loss already locked in by selling part of this stock."),
-    pctPortfolio: t("This holding's share of your total market value."),
-    unrealizedAmt: t("Market value minus your cost (buying fees included) — the profit or loss on shares you still hold."),
-    totalReturnAmt: t("Unrealized P/L, plus profit from shares you sold, plus every dividend you have received."),
-    netDiv: t("Every dividend you have received for this stock, after tax."),
-    marketValue: t("Shares × current price."),
-    unrealizedPct: t("Unrealized gain/loss as a percentage of your cost basis"),
-    totalReturnPct: t("Total return including dividends, as a percentage of cost basis"),
-    priceMyr: t("Live price converted to base currency at today's exchange rate"),
-  };
   const thCols = orderedColIds.map((id) => {
-    const tip = colTooltips[id] ? `<span class="col-info tip-down" data-tip="${colTooltips[id]}">${COL_INFO_ICON_SVG}</span>` : "";
-    return `<th style="text-align:left" data-col-id="${id}">${colLabels[id] || id}${tip}</th>`;
+    return `<th style="text-align:left" data-col-id="${id}">${colLabels[id] || id}</th>`;
   }).join("");
   const thead = `<thead><tr><th>${t("Holding")}</th>${thCols}</tr></thead>`;
 
@@ -4703,7 +4688,7 @@ function brokerCashPanelsHTML() {
 
   // Long explanatory sentences belong in a hover/tap tooltip (the app's standard col-info
   // "i" icon), not a big badge sitting in the panel header competing with the title.
-  const reconTip = `<span class="col-info tip-down" style="margin-left:10px" data-tip="${esc(t("Calculated from every recorded cash movement: deposits, withdrawals, buys, sells, dividends, fees, transfers and currency exchanges."))}">${COL_INFO_ICON_SVG}</span>`;
+  const reconTip = `<span class="col-info tip-down" style="margin-left:10px" data-tip="${esc(t("Worked out from your deposits, withdrawals, trades, dividends, fees and transfers."))}">${COL_INFO_ICON_SVG}</span>`;
 
   // Reconciliation is an advanced/occasional check, not something every user wants to see
   // by default — opt in from Settings (SETTINGS.showReconciliation).
@@ -5110,10 +5095,7 @@ function pageDividends() {
     { value: "past", label: t("Past") },
     { value: "upcoming", label: t("Upcoming") },
   ], divCalendarFilter, { id: "divCalendarFilterSel" });
-  const calendarTitleTip = `<span class="col-info tip-down" style="margin-left:10px" data-tip="${esc(t("Real dividend payments across your whole portfolio (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${COL_INFO_ICON_SVG}</span>`;
-  const exDateTip = ` <span class="col-info tip-down" data-tip="${esc(t("The ex-dividend date — buy before it to qualify for the payment. This is what market data sources report; they don't give a separate payment date."))}">${COL_INFO_ICON_SVG}</span>`;
-  const payDateTip = ` <span class="col-info tip-down" data-tip="${esc(t("A rough estimate of Ex-Date + 14 days (when the money would actually land), since market data reports only the ex-date, not a real payment date. A manually entered payment date is shown exactly as you typed it."))}">${COL_INFO_ICON_SVG}</span>`;
-
+  const calendarTitleTip = `<span class="col-info tip-down" style="margin-left:10px" data-tip="${esc(t("Dividend dates and amounts from market data. They feed the forecast above."))}">${COL_INFO_ICON_SVG}</span>`;
   const calendarRows = calendarFiltered.map((d) => {
     const isNext = nextIdx >= 0 && d === allDivEntries[nextIdx];
     const statusCell = isNext ? `<span class="badge confirmed">${t("Next payment")}</span>` : statusBadge(d.status);
@@ -5296,8 +5278,8 @@ function pageDividends() {
           // to need it.
           ? `<div id="divCalScroll" class="${calendarFiltered.length > 7 ? "dcc-table-scroll divcal-table-scroll" : ""}">${table([
               { label: t("Holding"), style: "width:14%;text-align:left" },
-              { label: `${t("Ex-Date")}${exDateTip}`, style: "width:14%;text-align:left" },
-              { label: `${t("Est. Payment")}${payDateTip}`, style: "width:14%;text-align:left" },
+              { label: t("Ex-Date"), style: "width:14%;text-align:left" },
+              { label: t("Est. Payment"), style: "width:14%;text-align:left" },
               { label: `${t("Per Share")} (${ccyLabel(FX.base)})`, style: "width:14%;text-align:left" },
               { label: `${t("Amount")} (${ccyLabel(FX.base)})`, style: "width:14%;text-align:left" },
               { label: t("Yield"), style: "width:14%;text-align:left" },
@@ -5500,7 +5482,7 @@ function brokerCard(b) {
         </div></div>
 
       <div class="bc-hero">
-        <div><span class="bc-hero-label">${t("Market Value")}${infoTip(t("What your holdings at this broker are worth right now, at current market prices. Add Available Cash below to get your full current value here."))}</span><span class="bc-hero-value">${money(value)}</span></div>
+        <div><span class="bc-hero-label">${t("Market Value")}${infoTip(t("What your holdings here are worth at today's prices."))}</span><span class="bc-hero-value">${money(value)}</span></div>
         <div class="bc-hero-return ${cls(totalReturn)}" data-broker-return="${b.id}" tabindex="0" role="button" aria-label="${t("Total Return")}, show calculation">
           <span class="bc-hero-return-amt">${moneySigned(totalReturn)}</span>
           <span class="bc-hero-return-pct">${t("Total Return")} ${HOW_ICON_SVG}</span>
@@ -5508,21 +5490,21 @@ function brokerCard(b) {
       </div>
 
       <dl class="bc-list bc-list-2col">
-        <div><dt>${t("Available Cash")}${infoTip(t("Uninvested cash sitting in this broker right now — ready to invest or withdraw."))}${negPill}</dt><dd>${money(calc)}</dd></div>
-        <div><dt>${t("Net Dividends")}${infoTip(t("Total dividends received from this broker so far, after any withholding tax."))}</dt><dd class="${dividends > 0 ? "pos" : ""}">${money(dividends)}</dd></div>
+        <div><dt>${t("Available Cash")}${infoTip(t("Cash in this broker, ready to invest or withdraw."))}${negPill}</dt><dd>${money(calc)}</dd></div>
+        <div><dt>${t("Net Dividends")}${infoTip(t("Dividends received from this broker, after tax."))}</dt><dd class="${dividends > 0 ? "pos" : ""}">${money(dividends)}</dd></div>
       </dl>
 
       <details class="bc-more">
         <summary>${t("More details")}</summary>
         <dl class="bc-list">
-          <div><dt>${t("Unrealized P/L")}${infoTip(t("Paper gain or loss on positions you still hold — not locked in until you actually sell."))}</dt><dd class="${cls(unrealized)}">${moneySigned(unrealized)}</dd></div>
+          <div><dt>${t("Unrealized P/L")}${infoTip(t("Profit or loss on shares you still hold. Not locked in until you sell."))}</dt><dd class="${cls(unrealized)}">${moneySigned(unrealized)}</dd></div>
           <div class="bc-netcash" data-broker-netcash="${b.id}" tabindex="0" role="button" aria-label="${t("Money Left In This Broker")}, show calculation">
             <dt>${t("Money Left In This Broker")} ${HOW_ICON_SVG}</dt>
             <dd>${money(deposits - withdrawals)}</dd>
           </div>
           ${SETTINGS.showReconciliation ? `<div><dt>${t("Reconciliation")}</dt><dd><span class="badge ${reconCls}">${reconStatus}</span></dd></div>` : ""}
-          <div><dt>${t("Dividends paid to")}${infoTip(t("Whether dividends from this broker land back in the broker's own cash balance, or go straight to your bank account instead."))}</dt><dd>${b.divPaidTo === "bank" ? t("Bank") : t("Broker")}</dd></div>
-          <div><dt>${t("Default dividend tax rate")}${infoTip(t("Applied automatically to new dividend entries for this broker, unless you override it on a specific transaction."))}</dt><dd>${fmt(b.divTaxRate || 0, { maximumFractionDigits: 2 })}%</dd></div>
+          <div><dt>${t("Dividends paid to")}${infoTip(t("Whether dividends stay in this broker's cash or go to your bank."))}</dt><dd>${b.divPaidTo === "bank" ? t("Bank") : t("Broker")}</dd></div>
+          <div><dt>${t("Default dividend tax rate")}${infoTip(t("Used for new dividends from this broker unless you change it on one."))}</dt><dd>${fmt(b.divTaxRate || 0, { maximumFractionDigits: 2 })}%</dd></div>
         </dl>
       </details>
       ${b.notes ? `<p class="bc-notes muted">${esc(b.notes)}</p>` : ""}</article>`;
@@ -5810,7 +5792,7 @@ function pageProfile() {
  * ========================================================================== */
 function pageSettings() {
   const html = `
-    ${panel(`${t("Currency & Exchange Rates")}${infoTip(`${t("All transactions keep their original currency; base-currency values are derived using stored exchange rates and never overwrite the original.")} ${t("Pull today's market rate or type your own.")}`)}`, `
+    ${panel(`${t("Currency & Exchange Rates")}${infoTip(`${t("Each record keeps its own currency. Base-currency amounts come from exchange rates.")} ${t("Pull today's market rate or type your own.")}`)}`, `
       <div class="fx-base-row">
         ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
       </div>
@@ -5830,7 +5812,7 @@ function pageSettings() {
         <span class="muted fx-status" id="fxStatus">${FX_STATUS}</span>
       </div>`)}
 
-    ${panel(`${t("Preferences")}${infoTip(t("Time zone sets which day counts as \"today\" for day counts and dividend forecasts; stored dates are never altered. Average Cost is the active cost-basis method for all gain/loss figures — more methods, including FIFO, are planned for a future update."))}`, `<div class="setting-rows">
+    ${panel(`${t("Preferences")}${infoTip(t("Time zone decides which day counts as \"today\". Gains and losses use the Average Cost method."))}`, `<div class="setting-rows">
       ${settingRow(t("Date format"), `<div style="width:200px">${styledSelect("dateFmt", DATE_FORMATS.map((f) => ({ value: f.k, label: f.label })), SETTINGS.dateFormat, { id: "dateFmt" })}</div>`)}
       ${settingRow(t("Time zone"), `<div style="width:200px">${styledSelect("tzSel", [{ value: "", label: t("Device local") }, ...TIME_ZONES.map((z) => ({ value: z, label: z }))], SETTINGS.timeZone || "", { id: "tzSel" })}</div>`)}
       ${settingRow(t("Default return view"), `<div style="width:200px">${styledSelect("returnMode", [
@@ -5860,7 +5842,7 @@ function pageSettings() {
       </div>
 
       <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border-soft)">
-        <div class="sub-head">${t("Import from CSV")}${infoTip(t("Bulk-add transactions (deposits, withdrawals, buys, sells, dividends) from a spreadsheet. Download the template, fill it in, then upload to preview before anything is saved."))}</div>
+        <div class="sub-head">${t("Import from CSV")}${infoTip(t("Add many records at once from a spreadsheet. You can preview before anything is saved."))}</div>
         <div class="form-actions">
           <button class="btn" id="dlTemplate">${t("Download CSV template")}</button>
           <button class="btn" id="impCsvBtn">${t("Upload CSV")}</button>
@@ -6533,7 +6515,7 @@ function pageHolding() {
       const stat = (label, val, valCls = "") => `<div class="plain-stat"><div class="mc-label">${label}</div><div class="mc-value ${valCls}">${val}</div></div>`;
       const multiYear = (tFc.year2 > 0 && yearsDiffer)
         ? `${stat(t("Year 2"), money(tFc.year2))}${stat(t("Year 3"), tFc.year3 > 0 ? money(tFc.year3) : "—")}` : "";
-      const yieldOnCostTip = ` <span class="col-info" data-tip="${esc(t("Based on what you originally paid (your average cost), not today's market value — shows the effective income dividend growth has earned you over time on your original investment."))}">${COL_INFO_ICON_SVG}</span>`;
+      const yieldOnCostTip = ` <span class="col-info" data-tip="${esc(t("Dividends as a % of what you originally paid, not today's price."))}">${COL_INFO_ICON_SVG}</span>`;
       const divYieldTtmPct = h.marketValue ? (tFc.ttm / h.marketValue) * 100 : 0;
       return panel(t("Dividend Summary"), `<div class="plain-stat-row">
         ${stat(t("Total Dividends Received"), money(totalDivReceived), "pos")}
@@ -6619,23 +6601,20 @@ function pageHolding() {
         { value: "past", label: t("Past") },
         { value: "upcoming", label: t("Upcoming") },
       ], holdingDivFilter, { id: "divCalFilterSel" })}</div>`;
-      const yieldTip = ` <span class="col-info tip-down" data-tip="${esc(t("This payment as a % of the current share price — a per-payment figure, not the annualized TTM yield shown above. Identical values across rows reflect a flat, no-growth projection, not an error."))}">${COL_INFO_ICON_SVG}</span>`;
       // Equal-width, center-aligned columns: every previous attempt at uneven widths (fixed
       // px, one flexible column) still left content visually clustered to one side, because
       // left/right-aligned text in an unevenly-sized column doesn't actually spread out — only
       // the invisible column boundary does. Centering in five equal columns means the leftover
       // space on each side of every value is symmetric, so the row reads as evenly filled.
-      const dateTip = ` <span class="col-info tip-down" data-tip="${esc(t("Buy before this date to qualify for this dividend — buy on or after it and you'll miss this specific payment. This is the ex-dividend date; market data sources don't report a separate payment date."))}">${COL_INFO_ICON_SVG}</span>`;
-      const estPayTip = ` <span class="col-info tip-down" data-tip="${esc(t("A rough estimate (Ex-Date + 14 days) of when the money would actually land in your account — not real data, since market sources don't report an actual payment date."))}">${COL_INFO_ICON_SVG}</span>`;
       const heads = [
-        { label: `${t("Ex-Date")}${dateTip}`, style: "width:16.6%;text-align:left" },
-        { label: `${t("Est. Payment")}${estPayTip}`, style: "width:16.6%;text-align:left" },
+        { label: t("Ex-Date"), style: "width:16.6%;text-align:left" },
+        { label: t("Est. Payment"), style: "width:16.6%;text-align:left" },
         { label: `${t("Per Share")} (${esc(ccyLabel(perShareCcy))})`, style: "width:16.6%;text-align:left" },
         { label: `${t("Total")} (${esc(ccyLabel(FX.base))})`, style: "width:16.6%;text-align:left" },
-        { label: `${t("Yield")}${yieldTip}`, style: "width:16.6%;text-align:left" },
+        { label: t("Yield"), style: "width:16.6%;text-align:left" },
         { label: t("Status"), style: "width:16.6%;text-align:left" },
       ];
-      const titleTip = `<span class="col-info tip-down" style="margin-left:10px" data-tip="${esc(t("Real dividend payments for this stock (fetched automatically from market data) flowing into the confirmed/estimated payments used for the forecast above."))}">${COL_INFO_ICON_SVG}</span>`;
+      const titleTip = `<span class="col-info tip-down" style="margin-left:10px" data-tip="${esc(t("Dividend dates and amounts for this stock from market data. They feed the forecast above."))}">${COL_INFO_ICON_SVG}</span>`;
       // Only scroll once there's more than 5 rows to show — a short list shouldn't sit
       // inside a scroll container it doesn't need.
       const scrollCls = filtered.length > 5 ? "dcc-table-scroll" : "";
