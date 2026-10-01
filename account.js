@@ -1,14 +1,15 @@
 /* =============================================================================
- * Account page (#/profile) — who you are, how you sign in, whether your data is backed up, and your
- * data itself, laid out like the account page of any website: a header card, then one panel per topic
- * with a "label + hint on the left, control on the right" row per setting.
+ * Account page (#/profile) — who you are, how you sign in, and whether your records are backed up to your
+ * account, laid out like the account page of any website: a header card, then one panel per topic with a
+ * "label + hint on the left, control on the right" row per setting.
  *
  *   header ...... photo, name, email, status, member-since, and quick counts (Brokers / Holdings / Transactions)
  *   Profile ..... photo, name, email, investing-since                      (one Save button for the lot)
  *   Security .... change password, sign out, sign out everywhere           (signed in only)
  *   Cloud sync .. status, last synced, Sync now                            (signed in only)
  *   Back up & sync  the create-account / sign-in form                      (when not signed in)
- *   Your data ... download a backup, link to Settings -> Data & Backup
+ *
+ * Backup files and CSV import/export are NOT here: Settings -> Data & Backup is their one home.
  *
  * A classic <script> loaded after sync.js, so it shares app.js's top-level scope (t(), toast(), render(),
  * USER, SYNC_USER, SUPABASE, wireAgEyes(), mapAuthError() ...). app.js's pageProfile() just calls
@@ -113,13 +114,7 @@ function pageAccount() {
       : `<p class="muted" style="margin:0">${t("Cloud sync isn't set up for this deployment yet.")}</p>`);
   }
 
-  /* ---------- your data */
-  const data = acctSection("acctData", t("Your data"), `<div class="ap-rows">
-    ${acctRow(t("Backup"), t("Download a copy of everything in Divz."), `<button type="button" class="btn" id="acctExport">${t("Download backup")}</button>`)}
-    ${acctRow(t("More options"), t("Restore a backup, import a spreadsheet or export CSV files."), `<a class="btn" href="#/settings">${t("Open Data & Backup")}</a>`)}
-  </div>`);
-
-  return { title: "Account", subtitle: "Your profile, security and sync.", html: `<div class="ap">${hero}${profile}${access}${data}</div>`,
+  return { title: "Account", subtitle: "Your profile, security and sync.", html: `<div class="ap">${hero}${profile}${access}</div>`,
     mount() {
       /* profile form */
       mountDatePickers($("#profileForm"));
@@ -142,8 +137,6 @@ function pageAccount() {
       fileInput.addEventListener("change", (e) => { if (e.target.files[0]) handleAvatarFile(e.target.files[0]); e.target.value = ""; });
       const removeBtn = $("#avatarRemoveBtn");
       if (removeBtn) removeBtn.addEventListener("click", () => { USER.avatar = ""; saveStore(); toast(t("Profile photo removed")); render(); });
-      /* backup */
-      $("#acctExport").addEventListener("click", () => exportBackupJSON());
 
       /* change password (signed in) */
       const pwForm = $("#pwForm"), pwToggle = $("#pwToggle");
@@ -216,7 +209,5 @@ const ACCT_ZH = {
   "Cloud sync": "云同步", "Status": "状态", "Your records are saved to your account and available on every device you sign in on.": "您的记录保存在账户中，可在您登录的每台设备上使用。",
   "Last synced": "上次同步", "Back up & sync": "备份与同步",
   "You're using Divz without an account, so your data lives only in this browser. Create a free account to back it up and use Divz on all your devices.": "您目前没有使用账户，数据只保存在这个浏览器里。创建免费账户即可备份数据，并在所有设备上使用 Divz。",
-  "Your data": "您的数据", "Backup": "备份", "Download a copy of everything in Divz.": "下载 Divz 中全部数据的副本。", "Download backup": "下载备份",
-  "More options": "更多选项", "Restore a backup, import a spreadsheet or export CSV files.": "恢复备份、导入表格或导出 CSV 文件。", "Open Data & Backup": "打开“数据与备份”",
 };
 Object.keys(ACCT_ZH).forEach((k) => { if (!I18N.zh[k]) I18N.zh[k] = ACCT_ZH[k]; });
