@@ -1316,7 +1316,7 @@ function loadStore() {
 function resetStore() {
   try { localStorage.removeItem(STORE_KEY); } catch (e) {}
   // The Dashboard's cached net-worth history is derived from this data (see dashboard.js) — it must go with it.
-  try { localStorage.removeItem("il-hist-v1"); } catch (e) {}
+  try { localStorage.removeItem("il-hist-v1"); localStorage.removeItem("il-hist-v2"); } catch (e) {}
 }
 loadStore();  // hydrate from the browser before the first calculation
 

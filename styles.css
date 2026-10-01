@@ -50,9 +50,9 @@
   /* ---- Redesign tokens (Oct 2026): brand violet + cyan, used by the shell and the Dashboard ---- */
   --accent2:   #0a93b8;   /* cyan, the second end of the brand gradient (text-safe on white) */
   --page: radial-gradient(900px 520px at 6% -6%, rgba(91,84,232,.13), transparent 62%), radial-gradient(820px 480px at 100% -4%, rgba(25,182,222,.09), transparent 60%), linear-gradient(180deg, #ebe9fc 0, #f4f3fb 380px);
-  --btn:       linear-gradient(135deg, #8b7cff, #3dd8f5);   /* the one brand gradient: logo, Add, primary buttons — same in both themes */
-  --on-btn:    #14122b;                                       /* dark ink: white on the bright cyan end fails contrast */
-  --btn-sh:    0 10px 26px -10px #8b7cff, inset 0 1px 0 rgba(255,255,255,.35);
+  --btn:       linear-gradient(135deg, #6a5ee9 0%, #5b54e8 42%, #3f6fe0 100%);   /* brand violet deepening to blue: logo, Add, primary buttons (dark theme: violet to cyan) */
+  --on-btn:    #ffffff;                                                            /* white on every stop of it clears 4.5:1 */
+  --btn-sh:    0 8px 18px -8px rgba(91,84,232,.60), inset 0 1px 0 rgba(255,255,255,.25);
   --sb:        #ffffff;   --sb-bd: rgba(49,40,120,.08);
   --nav:       #4a4670;
   --nav-on-bg: linear-gradient(135deg, rgba(91,84,232,.14), rgba(25,182,222,.12)); --nav-on-bd: rgba(91,84,232,.30); --nav-on-tx: #3b33c4; --nav-on-ic: #5b54e8;
@@ -2034,19 +2034,18 @@ body { background-image: var(--page); background-repeat: no-repeat; }
 .dz-legend { display: flex; gap: 20px; font-size: 13px; color: var(--text-soft); margin: -4px 0 8px; font-weight: 600; flex-wrap: wrap; }
 .dz-legend span { display: flex; align-items: center; gap: 8px; }
 .dz-legend i { display: inline-block; flex: none; }
-.lg-nw { width: 18px; height: 4px; border-radius: 4px; background: var(--brand); }
-.lg-inv { width: 14px; height: 10px; border-radius: 3px; background: var(--dz-base); box-shadow: inset 0 0 0 1px var(--dz-bd2); }
-.lg-gain { width: 14px; height: 10px; border-radius: 3px; background: linear-gradient(90deg, var(--brand), var(--accent2)); opacity: .85; }
+.lg-gain { width: 14px; height: 10px; border-radius: 3px; background: var(--pos); opacity: .8; }
 .dz-chartbox { position: relative; min-width: 0; }
 .dz-chart { display: block; width: 100%; height: auto; touch-action: pan-y; }
 .dz-grid { stroke: var(--dz-grid); stroke-width: 1; }
 .dz-ylab, .dz-xlab { fill: var(--muted); font-family: var(--font); font-size: 11px; font-weight: 500; }
-.dz-nw { fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.8; }
-.dz-base { fill: var(--dz-base); stroke: none; }
-.dz-edge { fill: none; stroke: var(--text); stroke-opacity: .35; stroke-width: 1.2; }
-.dz-loss path { fill: var(--dz-loss); }
-.dz-s1 { stop-color: var(--brand); } .dz-s2 { stop-color: var(--accent2); }
-.dz-g1 { stop-color: var(--brand); stop-opacity: .50; } .dz-g2 { stop-color: var(--accent2); stop-opacity: .30; }
+.dz-zero { stroke: var(--text); stroke-opacity: .28; stroke-width: 1; }
+.dz-pg1 { stop-color: var(--pos); stop-opacity: .38; } .dz-pg2 { stop-color: var(--pos); stop-opacity: 0; }
+.dz-gneg { fill: var(--dz-loss); stroke: none; }
+.dz-gline { fill: none; stroke: var(--pos); stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.6; }
+.dz-peak { fill: var(--surface); stroke: var(--pos); stroke-width: 2; }
+.dz-ann { fill: var(--text-soft); font-family: var(--font); font-size: 11px; font-weight: 600; }
+.dz-ann.now { fill: var(--pos); }
 .dz-halo { fill: var(--brand); fill-opacity: .2; }
 .dz-dot { fill: var(--surface); stroke: var(--brand); stroke-width: 3; }
 .dz-guide { stroke: var(--text); stroke-opacity: .3; stroke-width: 1; pointer-events: none; }
@@ -2058,9 +2057,8 @@ body { background-image: var(--page); background-repeat: no-repeat; }
 .dz-tip-r { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .dz-tip-r i { width: 12px; height: 6px; border-radius: 3px; }
 .dz-tip-r b { font-weight: 700; font-variant-numeric: tabular-nums; margin-left: 14px; }
-.sw-nw { background: var(--brand); }
-.sw-inv { background: var(--dz-base); box-shadow: inset 0 0 0 1px var(--dz-bd2); }
-.sw-gain { background: linear-gradient(90deg, var(--brand), var(--accent2)); }
+.sw-g { background: var(--pos); }
+.sw-n { background: var(--brand); }
 .dz-notes p { margin: 8px 0 0; font-size: 11.5px; color: var(--muted); }
 .dz-skel { position: relative; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: var(--dz-tile); overflow: hidden; }
 .dz-skel-bars { position: absolute; inset: 22px 20px 30px; display: flex; align-items: flex-end; gap: 5%; }
@@ -2215,9 +2213,9 @@ body { background-image: var(--page); background-repeat: no-repeat; }
   .dz-chartcard .dz-seg button { flex: 1; height: 34px; padding: 0; font-size: 12px; border-radius: 9px; }
   .dz-legend { gap: 12px; font-size: 11.5px; margin: 0 0 6px; }
   .dz-legend span { gap: 6px; }
-  .lg-nw { width: 13px; } .lg-inv, .lg-gain { width: 12px; height: 9px; }
-  .dz-ylab, .dz-xlab { font-size: 10px; }
-  .dz-nw { stroke-width: 2.3; } .dz-dot { stroke-width: 2.4; }
+  .lg-gain { width: 12px; height: 9px; }
+  .dz-ylab, .dz-xlab, .dz-ann { font-size: 10px; }
+  .dz-gline { stroke-width: 2.3; } .dz-dot { stroke-width: 2.4; }
   .dz-alloc { flex-direction: row; justify-content: flex-start; gap: 14px; }
   .dz-dnw { width: 118px; height: 118px; }
   .dz-dnc small { font-size: 10px; } .dz-dnc b { font-size: 14px; }
@@ -2246,7 +2244,7 @@ body { background-image: var(--page); background-repeat: no-repeat; }
 }
 @media (max-width: 760px) {
   @container (max-width: 420px) { .dz-ct small { display: inline; margin: 0 0 0 7px; } }
-  @container (max-width: 340px) { .dz-ct small { display: block; margin: 1px 0 0; } }
+  @container (max-width: 300px) { .dz-ct small { display: block; margin: 1px 0 0; } }
 }
 @media (max-width: 380px) {
   .dz-glance { gap: 8px; }

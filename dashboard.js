@@ -10,7 +10,7 @@
  * Two jobs:
  *  1. The page itself — greeting, net-worth card, "at a glance", the chart, allocation,
  *     holdings, upcoming dividends, portfolio health, recent activity.
- *  2. "Net worth over time". The old chart only had one point per visit to the app, so it
+ *  2. "Your gain over time". The old chart only had one point per visit to the app, so it
  *     was a flat line for weeks. This one REBUILDS the past: it replays the user's own
  *     transactions through the app's own computeTotals() (the same maths that produces
  *     today's numbers, so the two can never disagree) against real daily closing prices from
@@ -39,7 +39,9 @@ const DZ_ZH = {
   "{n} expected in 12 months": "未来12个月预计 {n}",
   "Cash available": "可用现金",
   "{pct} of your net worth": "占净资产的 {pct}",
-  "Net worth over time": "净资产变化",
+  "Your gain over time": "您的收益走势", "Your unrealized gain over time": "您的未实现收益走势",
+  "your total profit so far, dividends included": "您目前的总盈利（含股息）", "profit on what you hold right now": "当前持仓的未实现盈利",
+  "Peak": "最高", "Now": "目前",
   "Time range": "时间范围", "Gain": "收益",
   "Building your history…": "正在生成历史走势…",
   "Price history wasn't available for {list}. Their cost is used for earlier dates.": "{list} 暂无历史价格，较早日期按成本计算。",
@@ -64,8 +66,6 @@ const DZ_ZH = {
   "latest first": "最新在前", "All transactions": "全部交易",
   "Bought": "买入", "Sold": "卖出", "Dividend reinvested": "股息再投资",
   "Net worth, holdings and cash": "净资产、持仓与现金",
-  "Money invested includes the {n} you already held when you started recording.": "已投入本金包含您开始记录前已持有的 {n}。",
-  "Gain here is net worth minus money invested. Total return is worked out from your trades, dividends and fees, so the two can differ slightly (by {n} now).": "此处的收益 = 净资产 − 已投入本金。总收益由交易、股息和费用计算得出，两者可能略有差异（目前相差 {n}）。",
 };
 Object.keys(DZ_ZH).forEach((k) => { if (!(k in I18N.zh)) I18N.zh[k] = DZ_ZH[k]; });
 /* Label that follows the main dictionary's Title-Case wording in Chinese (so the new page speaks the same
@@ -91,8 +91,8 @@ const dzSprite = (id, size = 20) => `<svg class="icon dz-ic" style="width:${size
 /* =============================================================================
  * 1. HISTORY ENGINE — rebuild "what was it worth on each past day"
  * ========================================================================== */
-const DZ_HIST_KEY = "il-hist-v1";
-const DZ_HIST_VERSION = 1;
+const DZ_HIST_KEY = "il-hist-v2";
+const DZ_HIST_VERSION = 2;
 const DZ_HIST = { cache: undefined, sig: null, series: null, missing: [], state: "idle", promise: null, failedSig: null, failedAt: 0 };
 
 const dzDays = (iso) => { const [y, m, d] = iso.split("-").map(Number); return Date.UTC(y, m - 1, d) / 86400000; };   // whole days since 1970
@@ -110,7 +110,7 @@ function dzSignature() {
   for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
   return (h >>> 0).toString(36) + "." + ALL_TRANSACTIONS.length;
 }
-function dzLoadCache() { try { const c = JSON.parse(localStorage.getItem(DZ_HIST_KEY)); return c && c.v === DZ_HIST_VERSION && Array.isArray(c.points) ? c : null; } catch (e) { return null; } }
+function dzLoadCache() { try { localStorage.removeItem("il-hist-v1"); } catch (e) { /* the first version of this cache had another shape */ } try { const c = JSON.parse(localStorage.getItem(DZ_HIST_KEY)); return c && c.v === DZ_HIST_VERSION && Array.isArray(c.points) ? c : null; } catch (e) { return null; } }
 function dzSaveCache(c) { try { localStorage.setItem(DZ_HIST_KEY, JSON.stringify(c)); } catch (e) { /* storage full — the chart simply rebuilds next time */ } }
 
 async function dzFetchHistory(symbol, from) {
@@ -136,13 +136,13 @@ async function dzPool(items, n, fn) {
   return out;
 }
 
-/* Positions held BEFORE the first record (Portfolio > opening holdings) are money that was already invested: without them the grey
- * "money invested" block would start at zero and their whole value would be drawn as gain. Cost in base currency, as computeTotals() books it. */
+/* Cost of the positions held BEFORE the first record (Portfolio > opening holdings), in base currency as computeTotals() books it.
+ * Only the offline fallback needs it: net worth minus money invested would otherwise count that whole cost as profit. */
 function dzOpeningCost() {
   return HOLDINGS.reduce((s, h) => s + (+h.shares || 0) * (+h.avgCost || 0) * (h.openingFxRate || FX.rates[h.currency] || 1), 0);
 }
 
-/* Returns { points: [[date, netWorth, moneyInvested], ...], missing: [tickers without price history] }
+/* Returns { points: [[date, netWorth, totalReturn, unrealizedPL], ...], missing: [tickers without price history] }
  * or null when nothing could be built. Today is deliberately left out — it is always drawn live. */
 async function dzBuildHistory() {
   const txs = ALL_TRANSACTIONS.filter((x) => x.date).slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
@@ -150,7 +150,6 @@ async function dzBuildHistory() {
   const today = todayISO();
   const openDates = HOLDINGS.map((h) => h.asOfDate).filter(Boolean).sort();
   const first = openDates.length && openDates[0] < txs[0].date ? openDates[0] : txs[0].date;
-  const openCost = dzOpeningCost();
 
   // What needs a price history: every ticker that was ever held, from the day it first mattered.
   const since = {};
@@ -192,7 +191,7 @@ async function dzBuildHistory() {
       fxOf: (c) => { if (c === FX.base) return 1; const h = fxHists[c]; const r = h ? dzLookup(h, d) : null; return r || FX.rates[c] || 1; },
       skipXirr: true,
     });
-    points.push([d, +(X.portfolioValue + X.totalCash).toFixed(2), +(X.netCapitalInvested + openCost).toFixed(2)]);
+    points.push([d, +(X.portfolioValue + X.totalCash).toFixed(2), +X.totalReturn.toFixed(2), +X.unrealizedPL.toFixed(2)]);
     if (i % 12 === 11) await new Promise((res) => setTimeout(res, 0));   // let the page breathe between batches
   }
   return { points, missing };
@@ -229,23 +228,34 @@ function dzOnHistoryChanged() {
   dzRenderChart();
 }
 
-/* The series to draw: the rebuilt history if there is one, else the values saved on each visit (old behaviour,
- * still better than nothing offline), always ending with today's live number. */
+/* The series to draw: the rebuilt history if there is one, else the values saved on each visit (old behaviour, still better than
+ * nothing offline), always ending with today's live number. Each point: date, day number, net worth, and the gain to plot —
+ * Total return, or Unrealized P/L when that is the chosen view (same choice as the cards above). */
 function dzSeries() {
   const today = todayISO();
-  let pts = DZ_HIST.series, fallback = false;
-  if (!pts) {
+  const unreal = SETTINGS.returnMode === "price";
+  let pts, fallback = false;
+  if (DZ_HIST.series) {
+    pts = DZ_HIST.series.filter((p) => p[0] < today).map((p) => ({ d: p[0], t: dzDays(p[0]), nw: p[1], g: unreal ? p[3] : p[2] }));
+  } else {
     fallback = true;
     const open = dzOpeningCost();
-    pts = PV_HISTORY.filter((p) => p.date && p.date < today && (p.value > 0 || p.principal > 0)).map((p) => [p.date, p.value != null ? p.value : p.mv, (p.principal || 0) + open]);
+    pts = PV_HISTORY.filter((p) => p.date && p.date < today && (p.value > 0 || p.principal > 0)).map((p) => {
+      const nw = p.value != null ? p.value : p.mv;
+      return { d: p.date, t: dzDays(p.date), nw, g: nw - (p.principal || 0) - open };   // net worth minus what was put in: the best a saved snapshot can say
+    });
   }
-  pts = pts.filter((p) => p[0] < today);
-  pts.push([today, (T.portfolioValue || 0) + (T.totalCash || 0), (T.netCapitalInvested || 0) + dzOpeningCost()]);
-  return { fallback, pts: pts.map((p) => ({ d: p[0], t: dzDays(p[0]), nw: p[1], p: p[2] })) };
+  pts.push({ d: today, t: dzDays(today), nw: (T.portfolioValue || 0) + (T.totalCash || 0), g: unreal ? (T.unrealizedPL || 0) : (T.totalReturn || 0) });
+  return { fallback, pts };
 }
 
 /* =============================================================================
- * 2. THE CHART — net worth (line) over money invested (grey) with the gain as a coloured band
+ * 2. THE CHART — "Your gain over time"
+ * -----------------------------------------------------------------------------
+ * One smooth line: how much you have earned so far — the same Total return as the card above (trades, dividends and
+ * fees), or Unrealized P/L when that is the chosen view — with a soft green fill down to the zero line (red when below it).
+ * Deposits and withdrawals never move it, so unlike a net-worth line it has no cliffs; the line ends exactly on the
+ * figure shown in the cards. Peak and Now are called out in words.
  * ========================================================================== */
 const DZ_RANGES = { "1M": 31, "3M": 92, "6M": 183, "1Y": 366, "All": Infinity };
 let dzRange = (() => { try { const v = localStorage.getItem("il-dash-range"); return DZ_RANGES[v] ? v : "All"; } catch (e) { return "All"; } })();
@@ -308,71 +318,101 @@ function dzXTicks(t0, t1, maxN) {
   }
   return [];
 }
+/* A smooth curve through the points that never overshoots between two samples (monotone cubic). */
+function dzMonotone(P) {
+  const n = P.length;
+  if (n < 2) return "";
+  const f = (v) => v.toFixed(1);
+  const dx = [], m = [];
+  for (let i = 0; i < n - 1; i++) { dx.push(P[i + 1][0] - P[i][0]); m.push(dx[i] ? (P[i + 1][1] - P[i][1]) / dx[i] : 0); }
+  const tg = [m[0]];
+  for (let i = 1; i < n - 1; i++) tg.push(m[i - 1] * m[i] <= 0 ? 0 : (m[i - 1] + m[i]) / 2);
+  tg.push(m[n - 2]);
+  for (let i = 0; i < n - 1; i++) {
+    if (m[i] === 0) { tg[i] = tg[i + 1] = 0; continue; }
+    const a = tg[i] / m[i], b = tg[i + 1] / m[i], s2 = a * a + b * b;
+    if (s2 > 9) { const k = 3 / Math.sqrt(s2); tg[i] = k * a * m[i]; tg[i + 1] = k * b * m[i]; }
+  }
+  let d = `M${f(P[0][0])},${f(P[0][1])}`;
+  for (let i = 0; i < n - 1; i++) {
+    const h = dx[i] / 3;
+    d += ` C${f(P[i][0] + h)},${f(P[i][1] + tg[i] * h)} ${f(P[i + 1][0] - h)},${f(P[i + 1][1] - tg[i + 1] * h)} ${f(P[i + 1][0])},${f(P[i + 1][1])}`;
+  }
+  return d;
+}
 
 /* Returns { svg, geom }. W is the real pixel width of the box, so text keeps its true size at any screen width. */
-function dzChartSVG(pts, W, H) {
+function dzGainChartSVG(pts, W, H) {
   const compact = W < 520;
-  const padL = compact ? 38 : 48, padR = compact ? 12 : 20, padT = 14, padB = 26;
-  const n = pts.length, plotW = W - padL - padR;
-  const t0 = pts[0].t, t1 = pts[n - 1].t, span = Math.max(1, t1 - t0);
-  const vals = pts.flatMap((p) => [p.nw, p.p]);
+  const padL = compact ? 38 : 48, padR = compact ? 16 : 26, padT = 24, padB = 26;
+  const n = pts.length, plotW = W - padL - padR, last = n - 1;
+  const t0 = pts[0].t, t1 = pts[last].t, span = Math.max(1, t1 - t0);
+  const vals = pts.map((p) => p.g);
   const hi = Math.max(...vals, 0), lo = Math.min(...vals, 0);
-  const { step, top, bottom } = dzNiceScale(hi, lo, compact ? 5 : 6);
+  // never zoom in further than a hundred (or 1% of net worth): a few sen of profit must not be blown up into a dramatic line, and a flat zero still gets a sensible axis
+  const floor = Math.max(100, 0.01 * Math.max(...pts.map((p) => Math.abs(p.nw)), 0));
+  const sc = dzNiceScale(Math.max(hi, floor), lo, compact ? 5 : 6), step = sc.step, top = sc.top;
+  let bottom = sc.bottom;
+  if (lo < 0 && lo > -0.4 * step) bottom = lo * 1.3;       // a small dip below zero gets a little room, not a whole extra labelled step
   const X = (tt) => padL + ((tt - t0) / span) * plotW;
   const Y = (v) => padT + (1 - (v - bottom) / (top - bottom)) * (H - padT - padB);
   const f = (v) => v.toFixed(1);
-  const xs = pts.map((p) => X(p.t)), yN = pts.map((p) => Y(p.nw)), yP = pts.map((p) => Y(p.p)), y0 = Y(0);
+  const P = pts.map((p) => [X(p.t), Y(p.g)]);
+  const y0 = Y(0), yBase = H - padB, [lx, ly] = P[last];
+  const line = dzMonotone(P);
+  const area = `${line} L${f(lx)},${f(y0)} L${f(P[0][0])},${f(y0)} Z`;
 
   let grid = "";
-  for (let v = bottom; v <= top + step * 1e-6; v += step) {
+  for (let v = Math.ceil(bottom / step - 1e-9) * step; v <= top + step * 1e-6; v += step) {
     const y = Y(v);
     grid += `<line class="dz-grid" x1="${padL}" x2="${W - padR}" y1="${f(y)}" y2="${f(y)}"/><text class="dz-ylab" x="${padL - 8}" y="${f(y + 4)}" text-anchor="end">${dzAxisNum(v)}</text>`;
   }
-  const xl = dzXTicks(t0, t1, Math.max(2, Math.floor(plotW / (compact ? 56 : 84)))).map((k) => `<text class="dz-xlab" x="${f(X(k.t))}" y="${H - 7}" text-anchor="middle">${k.label}</text>`).join("");
+  const xl = dzXTicks(t0, t1, Math.max(2, Math.floor(plotW / (compact ? 50 : 84)))).map((k) => `<text class="dz-xlab" x="${f(X(k.t))}" y="${H - 7}" text-anchor="middle">${k.label}</text>`).join("");
 
-  // money invested: a grey block that steps up/down on the day of each deposit or withdrawal
-  let base = `M${f(xs[0])},${f(y0)} L${f(xs[0])},${f(yP[0])}`, edge = `M${f(xs[0])},${f(yP[0])}`;
-  for (let i = 1; i < n; i++) { base += ` H${f(xs[i])} V${f(yP[i])}`; edge += ` H${f(xs[i])} V${f(yP[i])}`; }
-  base += ` V${f(y0)} Z`;
-
-  // the band between the two: gain (net worth above what was put in) and loss (below it) are separate shapes
-  const bands = { gain: "", loss: "" };
-  let a = 1;
-  while (a < n) {
-    const sign = (i) => ((pts[i - 1].nw + pts[i].nw) / 2 - pts[i - 1].p >= 0 ? "gain" : "loss");
-    const kind = sign(a); let b = a;
-    while (b + 1 < n && sign(b + 1) === kind) b++;
-    let d = `M${f(xs[a - 1])},${f(yN[a - 1])}`;
-    for (let i = a; i <= b; i++) d += ` L${f(xs[i])},${f(yN[i])}`;
-    d += ` L${f(xs[b])},${f(yP[b - 1])}`;
-    for (let i = b; i >= a; i--) { d += ` L${f(xs[i - 1])},${f(yP[i - 1])}`; if (i > a) d += ` L${f(xs[i - 1])},${f(yP[i - 2])}`; }
-    bands[kind] += `<path d="${d} Z"/>`;
-    a = b + 1;
+  // the highest point so far, called out when it is clearly above where you are now
+  let iPk = 0;
+  vals.forEach((v, i) => { if (v > vals[iPk]) iPk = i; });
+  const cw = compact ? 5.6 : 6.2;   // rough width of one character of the call-outs, to keep the two labels apart
+  let peak = "", peakBox = null;
+  if (iPk !== last && vals[iPk] > 0 && vals[iPk] - vals[last] > 0.03 * top) {
+    const [px, py] = P[iPk], d = new Date(pts[iPk].t * 86400000);
+    const when = span <= 130 ? `${d.getUTCDate()} ${DZ_MON[d.getUTCMonth()]}` : `${DZ_MON[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+    const txt = `${t("Peak")} ${dzMoneyS(vals[iPk])} · ${when}`, cx = Math.min(Math.max(px, padL + 72), W - padR - 72);
+    peak = `<circle class="dz-peak" cx="${f(px)}" cy="${f(py)}" r="3.6"/><text class="dz-ann" x="${f(cx)}" y="${f(py - 12)}" text-anchor="middle">${txt}</text>`;
+    peakBox = [cx - txt.length * cw / 2, cx + txt.length * cw / 2, py - 24, py - 8];
   }
-  const line = xs.map((x, i) => `${i ? "L" : "M"}${f(x)},${f(yN[i])}`).join(" ");
-  const last = n - 1;
-  const aria = `${t("Net worth over time")}: ${dzMoney0(pts[last].nw)}, ${dzL("Money invested", "Principal Invested")} ${dzMoney0(pts[last].p)}`;
+  const nowTxt = `${t("Now")} ${dzMoneyS(vals[last])}`;
+  // "Now" goes under the line when it is falling into today and above it when it is rising (so the text never sits on the line)
+  const back = Math.max(1, Math.min(last, Math.round(n * 0.06)));
+  const rising = vals[last] - vals[last - back] > 0.01 * (top - bottom);
+  const nowBox = (y) => [lx - 12 - nowTxt.length * cw, lx - 12, y - 12, y + 3];
+  const clash = (a, b) => !!(a && b) && a[0] < b[1] && b[0] < a[1] && a[2] < b[3] && b[2] < a[3];
+  const below = ly + 22, above = ly - 14;
+  let nowY = rising ? above : below;
+  if (nowY < padT - 6 || nowY > yBase - 4 || clash(nowBox(nowY), peakBox)) nowY = nowY === above ? below : above;
+  if (nowY > yBase - 4 || nowY < padT - 6) nowY = below > yBase - 4 ? above : below;
+  const aria = `${t("Your gain over time")}: ${nowTxt}${peak ? `, ${t("Peak")} ${dzMoneyS(vals[iPk])}` : ""}`;
   const svg = `<svg class="dz-chart" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(aria)}">
-    <defs><linearGradient id="dzGs" gradientUnits="userSpaceOnUse" x1="${padL}" y1="0" x2="${W - padR}" y2="0"><stop offset="0" class="dz-s1"/><stop offset="1" class="dz-s2"/></linearGradient>
-    <linearGradient id="dzGg" gradientUnits="userSpaceOnUse" x1="${padL}" y1="0" x2="${W - padR}" y2="0"><stop offset="0" class="dz-g1"/><stop offset="1" class="dz-g2"/></linearGradient></defs>
+    <defs><linearGradient id="dzGp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="dz-pg1"/><stop offset="1" class="dz-pg2"/></linearGradient>
+    <clipPath id="dzGu"><rect x="${padL}" y="${padT - 8}" width="${plotW}" height="${f(Math.max(0, y0 - padT + 8))}"/></clipPath>
+    <clipPath id="dzGd"><rect x="${padL}" y="${f(y0)}" width="${plotW}" height="${f(Math.max(0, yBase - y0 + 4))}"/></clipPath></defs>
     ${grid}${xl}
-    <path class="dz-base" d="${base}"/>
-    <g class="dz-gain" fill="url(#dzGg)">${bands.gain}</g><g class="dz-loss">${bands.loss}</g>
-    <path class="dz-edge" d="${edge}"/>
-    <path class="dz-nw" d="${line}" stroke="url(#dzGs)"/>
-    <circle class="dz-halo" cx="${f(xs[last])}" cy="${f(yN[last])}" r="9"/><circle class="dz-dot" cx="${f(xs[last])}" cy="${f(yN[last])}" r="4.2"/>
+    <line class="dz-zero" x1="${padL}" x2="${W - padR}" y1="${f(y0)}" y2="${f(y0)}"/>
+    <path d="${area}" fill="url(#dzGp)" clip-path="url(#dzGu)"/><path class="dz-gneg" d="${area}" clip-path="url(#dzGd)"/>
+    <path class="dz-gline" d="${line}"/>
+    ${peak}
+    <circle class="dz-halo" cx="${f(lx)}" cy="${f(ly)}" r="9"/><circle class="dz-dot" cx="${f(lx)}" cy="${f(ly)}" r="4.2"/>
+    <text class="dz-ann now" x="${f(lx - 12)}" y="${f(nowY)}" text-anchor="end">${nowTxt}</text>
     <line class="dz-guide" y1="${padT}" y2="${H - padB}" x1="0" x2="0" style="display:none"/><circle class="dz-hdot" r="4.6" cx="0" cy="0" style="display:none"/>
     <rect class="dz-hit" x="${padL}" y="0" width="${plotW}" height="${H}"/>
   </svg>`;
-  return { svg, geom: { xs, yN, pts, W, H } };
+  return { svg, geom: { xs: P.map((q) => q[0]), ys: P.map((q) => q[1]), pts, W, H } };
 }
 
-function dzTipHTML(p, isToday) {
-  const gain = p.nw - p.p;
+function dzGainTipHTML(p, isToday) {
   return `<div class="dz-tip-d">${isToday ? t("Today") : fmtDate(p.d)}</div>
-    <div class="dz-tip-r"><i class="sw-nw"></i><span>${dzL("Net worth", "Net Worth")}</span><b>${dzMoney0(p.nw)}</b></div>
-    <div class="dz-tip-r"><i class="sw-inv"></i><span>${dzL("Money invested", "Principal Invested")}</span><b>${dzMoney0(p.p)}</b></div>
-    <div class="dz-tip-r"><i class="sw-gain"></i><span>${t("Gain")}</span><b class="${gain > 0 ? "pos" : gain < 0 ? "neg" : ""}">${dzSigned0(gain)}</b></div>`;
+    <div class="dz-tip-r"><i class="sw-g"></i><span>${t("Gain")}</span><b class="${p.g > 0 ? "pos" : p.g < 0 ? "neg" : ""}">${dzSigned0(p.g)}</b></div>
+    <div class="dz-tip-r"><i class="sw-n"></i><span>${dzL("Net worth", "Net Worth")}</span><b>${dzMoney0(p.nw)}</b></div>`;
 }
 
 let dzHideTip = null;   // hides the tooltip of the chart currently on screen
@@ -381,7 +421,7 @@ function dzBindChartHover(box, geom) {
   const svg = box.querySelector("svg"), tip = box.querySelector(".dz-tip");
   if (!svg || !tip) return;
   const guide = svg.querySelector(".dz-guide"), dot = svg.querySelector(".dz-hdot");
-  const { xs, yN, pts, W } = geom;
+  const { xs, ys, pts, W } = geom;
   let hideTimer = null;
   const hide = () => { tip.hidden = true; guide.style.display = "none"; dot.style.display = "none"; };
   dzHideTip = hide;
@@ -393,11 +433,11 @@ function dzBindChartHover(box, geom) {
     while (hi - lo > 1) { const m = (lo + hi) >> 1; if (xs[m] <= x) lo = m; else hi = m; }
     const i = Math.abs(xs[lo] - x) <= Math.abs(xs[hi] - x) ? lo : hi;
     guide.setAttribute("x1", xs[i]); guide.setAttribute("x2", xs[i]); guide.style.display = "";
-    dot.setAttribute("cx", xs[i]); dot.setAttribute("cy", yN[i]); dot.style.display = "";
-    tip.innerHTML = dzTipHTML(pts[i], i === pts.length - 1);
+    dot.setAttribute("cx", xs[i]); dot.setAttribute("cy", ys[i]); dot.style.display = "";
+    tip.innerHTML = dzGainTipHTML(pts[i], i === pts.length - 1);
     tip.hidden = false;
     const bw = box.clientWidth, tw = tip.offsetWidth, th = tip.offsetHeight;
-    const px = xs[i] * sx, py = yN[i] * sx;
+    const px = xs[i] * sx, py = ys[i] * sx;
     tip.style.left = Math.max(0, Math.min(bw - tw, px - tw / 2)) + "px";
     tip.style.top = (py - th - 14 >= 0 ? py - th - 14 : py + 16) + "px";
   };
@@ -416,7 +456,7 @@ function dzRenderChart() {
   if (!box) return;
   const note = document.getElementById("dzChartNote");
   const W = Math.max(260, Math.round(box.clientWidth || 0)) || 600;
-  const H = W < 520 ? Math.round(W * 0.54) : Math.max(240, Math.min(340, Math.round(W * 0.42)));
+  const H = W < 520 ? Math.round(W * 0.56) : Math.max(250, Math.min(350, Math.round(W * 0.43)));
   const { fallback, pts: all } = dzSeries();
   const loading = DZ_HIST.state === "loading" && fallback;
   if (loading) {
@@ -432,7 +472,7 @@ function dzRenderChart() {
     return;
   }
   const pts = dzRangeSlice(all, dzRange);
-  const { svg, geom } = dzChartSVG(pts, W, H);
+  const { svg, geom } = dzGainChartSVG(pts, W, H);
   box.style.minHeight = "";
   box.innerHTML = `${svg}<div class="dz-tip" hidden></div>`;
   dzBindChartHover(box, geom);
@@ -440,11 +480,6 @@ function dzRenderChart() {
     const lines = [];
     if (fallback) lines.push(t("Showing the values saved each time you opened Divz. Go online once to build the full history."));
     else if (DZ_HIST.missing.length) lines.push(dzF("Price history wasn't available for {list}. Their cost is used for earlier dates.", { list: DZ_HIST.missing.join(", ") }));
-    const open = dzOpeningCost();
-    if (open > 0.005) lines.push(dzF("Money invested includes the {n} you already held when you started recording.", { n: dzMoney0(open) }));
-    // The band is net worth minus money invested; Total return is built from trades, dividends and fees — say so if they visibly differ.
-    const last = all[all.length - 1], gap = (last.nw - last.p) - (T.totalReturn || 0);
-    if (Math.abs(gap) >= 1 && SETTINGS.returnMode !== "price") lines.push(dzF("Gain here is net worth minus money invested. Total return is worked out from your trades, dividends and fees, so the two can differ slightly (by {n} now).", { n: money(Math.abs(gap)) }));
     note.innerHTML = lines.map((l) => `<p>${esc(l)}</p>`).join("");
   }
   if (!dzChartObserver && typeof ResizeObserver === "function") {
@@ -465,6 +500,7 @@ function dzRenderChart() {
  * ========================================================================== */
 const dzMoney0 = (n) => `${ccyLabel(FX.base)} ${fmt(n, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 const dzSigned0 = (n) => (n > 0 ? "+" : n < 0 ? "−" : "") + dzMoney0(Math.abs(n));
+const dzMoneyS = (n) => (n < 0 ? "−" : "") + dzMoney0(Math.abs(n));   // no plus sign: "Peak RM 6,294", "Now −RM 120"
 const dzTriangle = (up) => `<svg viewBox="0 0 10 10" width="9" height="9" aria-hidden="true"><path d="${up ? "M5 1.3 9 8.6H1z" : "M5 8.7 1 1.4h8z"}" fill="currentColor"/></svg>`;
 
 /* What to call a holding: the Malaysian trading symbol (as the rest of the app does), else the company, else the code. */
@@ -546,13 +582,14 @@ function dzGlanceHTML(c) {
 function dzChartCardHTML() {
   const hasTxn = ALL_TRANSACTIONS.some((x) => x.type === "Buy" || x.type === "Deposit") || HOLDINGS.length > 0;
   if (!hasTxn) {
-    return `<section class="dz-card dz-pad dz-chartcard"><div class="dz-ch"><div class="dz-ct">${t("Net worth over time")}</div></div>
+    return `<section class="dz-card dz-pad dz-chartcard"><div class="dz-ch"><div class="dz-ct">${t("Your gain over time")}</div></div>
       ${emptyState(`${t("Record your first deposit or Buy to start tracking.")}<div style="margin-top:14px"><a class="btn primary" href="#/add">${t("Add a transaction")} →</a></div>`)}</section>`;
   }
   const pills = Object.keys(DZ_RANGES).map((k) => `<button type="button" class="${k === dzRange ? "on" : ""}" data-dz-range="${k}" aria-pressed="${k === dzRange}">${k === "All" ? t("All") : k}</button>`).join("");
+  const total = SETTINGS.returnMode !== "price";
   return `<section class="dz-card dz-pad dz-chartcard">
-    <div class="dz-ch"><div class="dz-ct">${t("Net worth over time")}</div><div class="dz-seg" role="group" aria-label="${esc(t("Time range"))}">${pills}</div></div>
-    <div class="dz-legend"><span><i class="lg-nw"></i>${dzL("Net worth", "Net Worth")}</span><span><i class="lg-inv"></i>${dzL("Money invested", "Principal Invested")}</span><span><i class="lg-gain"></i>${t("Gain")}</span></div>
+    <div class="dz-ch"><div class="dz-ct">${total ? t("Your gain over time") : t("Your unrealized gain over time")}</div><div class="dz-seg" role="group" aria-label="${esc(t("Time range"))}">${pills}</div></div>
+    <div class="dz-legend"><span><i class="lg-gain"></i>${t("Gain")}</span><span class="mu">${total ? t("your total profit so far, dividends included") : t("profit on what you hold right now")}</span></div>
     <div class="dz-chartbox" id="dzChartBox"></div>
     <div class="dz-notes" id="dzChartNote"></div>
   </section>`;
