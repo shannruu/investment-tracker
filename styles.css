@@ -42,7 +42,7 @@
   /* Softer divider — blended toward the surface it sits on, so it stays the
      right weight in both themes without a second hardcoded color per theme. */
   --border-soft: color-mix(in srgb, var(--border) 45%, var(--surface));
-  --font: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  --font: Arial, Helvetica, "Liberation Sans", Arimo, sans-serif;   /* Arial everywhere (your choice); the others only matter on a device that has no Arial */
   /* Symbol font for all icon glyphs — keeps them the SAME size in every language
      (prevents the browser swapping to a CJK font when lang="zh-CN"). */
   --icon-font: "Segoe UI Symbol", "Segoe UI", system-ui, sans-serif;
@@ -1959,7 +1959,6 @@ body { background-image: var(--page); background-repeat: no-repeat; }
 .dz .mu { color: var(--muted); }
 .dz .dz-n { font-variant-numeric: tabular-nums; letter-spacing: -.015em; }
 .dz .dz-big { font-variant-numeric: proportional-nums; letter-spacing: -.04em; }   /* one big figure: proportional digits look tighter than tabular ones */
-.dz .pos, .dz .neg { font-weight: inherit; }
 .dz a { color: inherit; }
 .dz-card { background: var(--dz-card); border: 1px solid var(--dz-card-bd); box-shadow: var(--dz-card-sh); border-radius: 26px; min-width: 0; container-type: inline-size; }
 .dz-pad { padding: 24px 26px 22px; }
@@ -2250,3 +2249,10 @@ body { background-image: var(--page); background-repeat: no-repeat; }
   .dz-glance { gap: 8px; }
   .dz-gl { padding: 11px; }
 }
+
+/* ---------- Part 3 — typography ---------- */
+/* Arial has only a regular and a bold: anything weighted 600 or more shows bold, 500 or less shows regular. Buttons, inputs, selects and
+   text areas don't inherit the page font on their own, so say so once for all of them. --icon-font stays as it is: it only draws glyph
+   icons such as the close cross, never words. */
+button, input, select, textarea { font-family: inherit; }
+.nav-item, button.nav-item { font-weight: 500; }   /* regular, so the active item (bold) still stands out */
