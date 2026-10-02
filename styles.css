@@ -2452,3 +2452,68 @@ button, input, select, textarea { font-family: inherit; }
 .pfx .table-wrap::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 20%, transparent); border-radius: 99px; border: 3px solid transparent; background-clip: padding-box; min-height: 40px; min-width: 40px; }
 .pfx .table-wrap::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--text) 38%, transparent); border: 3px solid transparent; background-clip: padding-box; }
 @supports not selector(::-webkit-scrollbar) { .pfx .table-wrap { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text) 28%, transparent) transparent; } }
+
+/* =============================================================================
+   STOCK PAGE REDESIGN — same system as Dashboard / Portfolio (.pfx-*), with Overview / Dividends / Transactions tabs.
+   ============================================================================= */
+.pfx-sum4 { grid-template-columns: minmax(0, 1.25fr) repeat(3, minmax(0, 1fr)); }
+.pfx-sc.pfx-static { cursor: default; }
+.pfx-sc.pfx-static:hover { border-color: var(--dz-card-bd); }
+.pfx-lbl .col-info { margin-left: 6px; }
+.pfx-two2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.pfx-stock .dz-sub { color: var(--muted); }
+.pfx-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.pfx-pp { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: 99px; background: var(--dz-live); border: 1px solid var(--border); font-weight: 700; font-size: 13px; white-space: nowrap; }
+.pfx-pp small { font-size: 12px; font-weight: 700; }
+.pfx-btn { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: 99px; border: 1px solid var(--border); background: var(--dz-live); color: var(--text); font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.pfx-btn:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); }
+.pfx-pr-l { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.pfx-bigprice { font-size: 40px; line-height: 1.1; font-weight: 700; letter-spacing: -.04em; margin: 6px 0 18px; }
+.pfx-bigprice .fx-note { font-size: 12px; letter-spacing: 0; margin-left: 8px; vertical-align: middle; }
+.pfx-lst > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+.pfx-lst > div:last-child { border-bottom: 0; }
+.pfx-lst span { color: var(--muted); font-weight: 600; }
+.pfx-lst b { font-weight: 700; text-align: right; }
+.pfx-lst > .pfx-lst-t { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 14px; }
+.pfx-lst > .pfx-lst-t span { color: var(--text); font-weight: 700; }
+.pfx-note2 { font-size: 12.5px; color: var(--muted); margin: 12px 0 0; line-height: 1.5; }
+.pfx-note2 b { color: var(--text); }
+.pfx-ol { display: flex; flex-direction: column; gap: 16px; }
+.pfx-olr { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto 110px; gap: 14px; align-items: center; }
+.pfx-oll { font-size: 13px; font-weight: 700; color: var(--muted); }
+.pfx-olb { height: 12px; border-radius: 99px; background: var(--dz-track); overflow: hidden; }
+.pfx-olb i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--brand), var(--dz-lnk)); }
+.pfx-olr b { font-size: 15px; text-align: right; }
+.pfx-olr small { font-size: 12px; color: var(--muted); font-weight: 600; text-align: right; white-space: nowrap; }
+.pfx-next { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 24px; }
+.pfx-next .pfx-v { margin-top: 4px; }
+.pfx-next-r { text-align: right; display: flex; flex-direction: column; gap: 3px; }
+.pfx-next-r b { font-size: 16px; }
+.pfx-next-r span { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.pfx-stock .range52 { margin-top: 4px; }
+.pfx-sum4 .pfx-v { font-size: 22px; }
+.pfx-sum4 .pfx-vr { flex-wrap: nowrap; gap: 10px; }
+.pfx-stock .chart svg { display: block; max-width: 640px; width: 100%; margin: 0 auto; }
+.pfx-stock .chart svg text { font-size: 13.5px; }
+.pfx-stock .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 1180px) {
+  .pfx-sum4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pfx-sum4 .pfx-hero { grid-column: 1 / -1; }
+  .pfx-sum4 > .pfx-sc:last-child { grid-column: 1 / -1; }
+}
+@media (max-width: 1000px) { .pfx-two2, .pfx-stock .grid-2 { grid-template-columns: 1fr; gap: 12px; } }
+@media (max-width: 760px) {
+  .pfx-stock .dz-sub { display: block; margin-top: 2px; }
+  .pfx-stock .dz-topr { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .pfx-stock .dz-topr .dz-ib { display: none; }
+  .pfx-pp, .pfx-btn { height: 36px; padding: 0 13px; font-size: 12.5px; }
+  .pfx-bigprice { font-size: 34px; margin-bottom: 14px; }
+  .pfx-olr { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; }
+  .pfx-olr .pfx-olb { grid-column: 1 / -1; grid-row: 2; }
+  .pfx-olr small { grid-column: 2; }
+  .pfx-next { padding: 14px; }
+  .pfx-lst > div { font-size: 13px; }
+  .pfx-stock .chart svg text { font-size: 16px; }
+  .pfx-stock .grid-2 { grid-template-columns: 1fr; gap: 12px; }
+  .pfx-sum4 .pfx-vr { flex-wrap: wrap; }
+}

@@ -24,7 +24,12 @@
 /* ---------- Chinese strings for this page ----------
  * Only keys the main dictionary doesn't already have are added, so nothing existing is overridden. */
 const DZ_ZH = {
-  "Your holdings": "我的持仓", "Gained": "盈利", "Lost": "亏损", "{n} stock": "{n} 只股票", "{n} stocks": "{n} 只股票", "current holdings": "当前持仓", "Filters": "筛选", "By holding": "按持仓", "Breakdowns": "分布", "Sector": "行业", "Brokerage": "券商",
+  "Your holdings": "我的持仓", "Stock": "股票", "Overview": "概览", "Price & range": "价格与区间", "Dividends received": "已收股息", "yield": "收益率",
+  "Where your return comes from": "收益来源", "Price change": "价格变动", "Sold shares": "卖出股份", "Fees & other": "费用及其他", "All of your profit so far came from dividends.": "到目前为止，您的全部收益都来自股息。",
+  "{p}% of your return came from dividends.": "您的收益中有 {p}% 来自股息。", "Your holding": "您的持仓", "Held for": "持有时间", "Since": "起始日", "Dividends so far": "累计股息", "of what you paid": "（占成本）",
+  "{y} yr {m} mo": "{y} 年 {m} 个月", "{m} mo": "{m} 个月", "{d} days": "{d} 天", "in {d} days": "{d} 天后", "today": "今天", "What you could earn": "预估股息收入", "Next 12 months": "未来 12 个月",
+  "In 2 years": "第 2 年", "In 3 years": "第 3 年", "3-year total": "3 年合计", "of cost": "（占成本）", "Estimate, not a promise — based on your dividend pattern.": "仅为预估，不是承诺——根据您的股息规律推算。",
+  "No dividend data for this holding yet.": "此持仓暂无股息数据。", "Gained": "盈利", "Lost": "亏损", "{n} stock": "{n} 只股票", "{n} stocks": "{n} 只股票", "current holdings": "当前持仓", "Filters": "筛选", "By holding": "按持仓", "Breakdowns": "分布", "Sector": "行业", "Brokerage": "券商",
   "Sector is not known for stocks added by CSV import. It fills in only when the price feed supplies it.": "通过 CSV 导入的股票没有行业信息，仅当价格来源提供时才会显示。",
   "Total return here covers current holdings only; the Dashboard also counts sold stocks.": "此处的总回报只包含当前持仓；仪表盘还包含已卖出的股票。",
   "Good morning": "早上好", "Good afternoon": "下午好", "Good evening": "晚上好",
@@ -551,7 +556,7 @@ function dzTopHTML(o = {}) {
       <div class="dz-act"><button type="button" class="dz-ib" id="dzBell" aria-label="${esc(t("Notifications"))}">${dzSprite("bell", 19)}<span class="notif-badge notif-badge-target dz-badge" hidden>0</span></button>${refresh}</div>
     </div>
     <header class="dz-top"><div class="dz-greet"><div class="dz-eyebrow">${o.eyebrow || t("Dashboard")}</div><h1 class="dz-h1">${o.h1 || dzGreeting()}</h1><div class="dz-sub">${o.sub || t("Here is how your investments are doing today.")}</div></div>
-      <div class="dz-topr">${dzLiveHTML(live)}${refresh}</div></header>`;
+      <div class="dz-topr">${o.noLive ? "" : dzLiveHTML(live)}${o.actions || ""}${refresh}</div></header>`;
 }
 
 function dzHeroHTML(c) {

@@ -5904,6 +5904,7 @@ function pageTerms() {
  * PAGE: HOLDING DETAIL  (#/holding/<encoded brokerId|ticker>)
  * ========================================================================== */
 let holdingDivFilter = "upcoming";   // all | past | upcoming
+let holdingTab = "overview", holdingTabFor = "";   // Stock page tab: overview | dividends | tx (reset when you open another stock)
 function pageHolding() {
   const key = decodeURIComponent((location.hash.split("/")[2] || ""));
   const [brokerId, ticker] = key.split("|");
@@ -5994,11 +5995,6 @@ function pageHolding() {
   // bottom line), Current Price (the live data point) — same Dashboard card system, 3-per-row
   // via its default span. The static/derived facts move to one plain descriptive line below.
   const openedRecently = earliestTxDate && (todayDate() - new Date(earliestTxDate + "T00:00:00")) < 7 * 86400000;
-  const posStat = (label, val, valCls = "", wrapCls = "", sub = "", tip = "") => `<div class="stat ${wrapCls}">
-      <div class="stat-head"><span class="stat-label">${label}</span>${tip ? `<span class="col-info tip-down" data-tip="${esc(tip)}">${COL_INFO_ICON_SVG}</span>` : ""}</div>
-      <div class="stat-value ${valCls}">${val}</div>
-      ${sub ? `<div class="stat-sub ${valCls}">${sub}</div>` : ""}
-    </div>`;
   const priceReturnPct = h.costBasis ? (h.priceUnrealized / h.costBasis) * 100 : 0;
   // 52-week range — only meaningful once we have both bounds and a live current price
   // in the same currency (fetched together from the same quote call, so they always
@@ -6024,42 +6020,7 @@ function pageHolding() {
   // independent facts worth their own stat card (same reasoning the comment above already
   // applies to Shares/Average Cost/Cost Basis), so they join that same description line.
   const commissionPaid = txs.reduce((s, x) => s + (+x.fee || 0) * (x.fxRate || FX.rates[x.currency] || 1), 0);
-  const positionPanel = panel(t("Position"), `
-    <div class="metrics pos-metrics">
-      ${posStat(t("Market Value"), money(h.marketValue), "", "net", "", t("Shares × current price."))}
-      ${posStat(t("Total Return"), moneySigned(h.totalReturn), cls(h.totalReturn), "", "", t("Unrealized P/L, plus profit from shares you sold, plus every dividend you have received."))}
-      ${posStat(t("Price Return"), moneySigned(h.priceUnrealized), cls(h.priceUnrealized), "", `${signed(priceReturnPct)}%`, t("Profit or loss from the share price alone, against your cost (fees included). Dividends are not counted."))}
-      ${posStat(t("Current Price"), priceLbl, "", "", "", h.hasPrice ? (h.priceSource === "live" ? t("From Yahoo Finance, which can run about 15 minutes behind your broker's live price.") : t("You set this price by hand.")) : "")}
-    </div>
-    <div class="hc-detail">${holdingFactsHTML(h, { commission: commissionPaid })}</div>
-    <div class="setting-row" style="padding:11px 0 0;border-bottom:0">
-      <span class="sr-label">${t("Asset type")}</span>
-      <span class="sr-value"><div style="width:160px">${styledSelect("holdingAssetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), holdingType(h.ticker), { id: "holdingAssetType" })}</div></span>
-    </div>
-    ${range52Html}
-    ${openedRecently ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}
-  `);
-
-  const html = `
-    <p style="margin:-4px 0 12px"><a class="link" href="#/portfolio">← ${t("Back to Portfolio")}</a></p>
-    <div class="holding-head">
-      <div>
-        <div class="ticker" style="font-size:20px">${esc(h.ticker)}</div>
-        <div class="sub">${esc(h.company) || ""}</div>
-        <div class="holding-chips">
-          <span class="chip">${esc(brokerName(h.brokerId))}</span>
-          <span class="chip">${esc(meta.country || h.country) || "—"}</span>
-          ${meta.sector ? `<span class="chip">${esc(meta.sector)}</span>` : ""}
-        </div>
-      </div>
-      <div class="holding-actions">
-        <button class="btn" id="dtlPrice">＄ ${t("Set price")}</button>
-        ${LIVE_ENABLED ? `<button class="btn" id="dtlLive">⟳ ${t("Live")}</button>` : ""}
-      </div>
-    </div>
-    ${positionPanel}
-
-    ${(() => {
+  const dvSummaryHTML = (() => {
       const tInfo = (tFc.tickerInfo || {})[h.ticker];
       const patternNote = tInfo
         ? `${t("Pattern detected")}: ${tInfo.freq}${tInfo.growthPct ? `, ${tInfo.growthPct > 0 ? "+" : ""}${fmt(tInfo.growthPct, { maximumFractionDigits: 1 })}%/${t("payment")}` : ""} (${tInfo.source === "market history" ? t("from market dividend history") : t("from your logged dividends")}).`
@@ -6084,11 +6045,10 @@ function pageHolding() {
         ${stat(`${t("Yield on Cost")}${yieldOnCostTip}`, h.costBasis ? fmt(tFc.ttm / h.costBasis * 100, { maximumFractionDigits: 2 }) + "%" : "—")}
         ${stat(t("Next Month"), tFc.nextMonth > 0 ? money(tFc.nextMonth) : "—")}
         ${stat(t("Next Quarter"), tFc.nextQuarter > 0 ? money(tFc.nextQuarter) : "—")}
-        ${stat(t("Next Year"), tFc.nextYear > 0 ? money(tFc.nextYear) : "—")}${multiYear}</div>
+        ${stat(t("Next Year"), tFc.nextYear > 0 ? money(tFc.nextYear) : "—")}</div>
         ${alertNote}<p class="muted" style="font-size:12px;margin:20px 0 0">${patternNote}</p>`);
-    })()}
-
-    ${(() => {
+  })();
+  const dvCalendarHTML = (() => {
       if (!marketHist.length && !(tFc.nextPayments && tFc.nextPayments.length)) return "";
       // One continuous timeline: real past payments (market data) flow straight into
       // future confirmed/estimated ones, so the calendar reads as a single history-to-forecast line
@@ -6180,9 +6140,8 @@ function pageHolding() {
       // inside a scroll container it doesn't need.
       const scrollCls = filtered.length > 5 ? "dcc-table-scroll" : "";
       return panel(`${t("Dividend Calendar")}${titleTip}`, `<div class="${scrollCls}">${table(heads, rows, { fixed: true })}</div>`, `<div class="panel-head-actions">${filterSel}</div>`);
-    })()}
-
-    ${(() => {
+  })();
+  const dvHistoryHTML = (() => {
       // Yearly dividend growth — the headline "is this actually growing" view. Needs 2+
       // distinct years to read as a trend at all; a single bar isn't history yet.
       if (divYearSeries.length < 2) return "";
@@ -6193,9 +6152,8 @@ function pageHolding() {
       const streak = dividendGrowthStreak(divByYear, curYear);
       const streakBadge = streak >= 2 ? `<span class="badge pos">${streak} ${t("consecutive years of growth")}</span>` : "";
       return panel(t("Dividend History by Year"), `<div class="chart">${barChartSVG(divYearSeries, { ariaLabel: t("Dividend history by year") })}</div>${legend}`, streakBadge);
-    })()}
-
-    ${(() => {
+  })();
+  const chartsHTML = (() => {
       // Each chart is omitted entirely (no box at all) when there isn't enough data to draw
       // it, instead of a full-height panel that just says "not enough data" — a freshly-opened
       // position hits this on every visit until a second trade / first dividend exists.
@@ -6206,22 +6164,93 @@ function pageHolding() {
       const divPanel = panel(t("Dividend Income Over Time"), `<div class="chart">${lineChartSVG(divSeries)}</div>`);
       if (showCost && showDiv) return `<section class="grid-2">${costPanel}${divPanel}</section>`;
       return showCost ? costPanel : divPanel;
-    })()}
+  })();
 
-    <details class="panel addhold">
-      <summary><span class="addhold-head"><span class="addhold-title">${t("Transactions")} (${txs.length})</span><span class="addhold-sub">${t("Full trade history for this holding")}</span></span></summary>
-      <div class="addhold-body">${txRows ? table([
-        {label:t("Date"), style:"width:16.6%"},{label:t("Type"), style:"width:16.6%"},{label:t("Qty"), style:"width:16.6%"},
-        {label:t("Price"), style:"width:16.6%"},{label:t("Gross"), style:"width:16.6%"},{label:t("Fee"), style:"width:16.6%"},
-      ], txRows) : emptyState(t("No transactions for this holding."))}</div>
-    </details>`;
+  /* ---- Stock page layout: header, tabs (Overview / Dividends / Transactions), insight panels ---- */
+  if (holdingTabFor !== key) { holdingTab = "overview"; holdingTabFor = key; }
+  const stName = h.company || h.ticker;
+  const chg = h.hasPrice && h.changePct != null ? h.changePct : null;
+  const stActions = `${h.hasPrice ? `<span class="pfx-pp">${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}${chg != null ? ` <small class="${cls(chg)}">${pctTxt(chg)} ${t("today")}</small>` : ""}</span>` : ""}
+    <button type="button" class="pfx-btn" id="dtlPrice">＄ ${t("Set price")}</button>`;
+  const stHeader = dzTopHTML({ eyebrow: `${t("Stock")}${h.market ? " · " + esc(h.market) : ""}`, h1: esc(stName),
+    sub: `${esc(h.ticker)}<div class="pfx-chips"><span class="chip">${esc(brokerName(h.brokerId))}</span><span class="chip">${esc(meta.country || h.country) || "—"}</span>${meta.sector ? `<span class="chip">${esc(meta.sector)}</span>` : ""}</div>`,
+    actions: stActions, refreshAttr: "data-dtl-live", noLive: true });
+
+  const costB = h.costBasis;
+  const pct1 = (v) => (costB > 0 ? `<span class="pfx-pl ${cls(v)}">${pctTxt((v / costB) * 100)}</span>` : "");
+  const [mvInt, mvDec] = fmt(h.marketValue).split(".");
+  const stCard = (label, tip, v, pillHtml, c = "") => `<div class="pfx-card pfx-sc pfx-static"><div class="pfx-lbl"><span>${label}${tip ? hcTip(tip) : ""}</span></div><div class="pfx-vr"><div class="pfx-v dz-n ${c}">${v}</div>${pillHtml}</div></div>`;
+  const ttmYield = h.marketValue ? (tFc.ttm / h.marketValue) * 100 : null;
+  const stSum = `<div class="pfx-sum pfx-sum4"><div class="pfx-card pfx-hero"><div class="pfx-lbl">${t("Market Value")}</div>
+      <div class="pfx-big"><span class="cur">${ccyLabel(FX.base)}</span>${mvInt}<span class="dec">.${mvDec || "00"}</span></div>
+      <span class="pfx-pill">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} × ${h.hasPrice ? fmt(h.currentPrice) : "—"}</span></div>
+    ${stCard(t("Total Return"), t("Unrealized P/L, plus profit from shares you sold, plus every dividend you have received."), moneySigned(h.totalReturn), pct1(h.totalReturn), cls(h.totalReturn))}
+    ${stCard(t("Price Return"), t("Profit or loss from the share price alone, against your cost (fees included). Dividends are not counted."), moneySigned(h.priceUnrealized), pct1(h.priceUnrealized), cls(h.priceUnrealized))}
+    ${stCard(t("Dividends received"), "", money(totalDivReceived), ttmYield != null && ttmYield > 0 ? `<span class="pfx-pl pos">${fmt(ttmYield, { maximumFractionDigits: 2 })}% ${t("yield")}</span>` : "", totalDivReceived > 0 ? "pos" : "")}</div>`;
+
+  const priceBlock = panel(t("Price & range"), `<div class="pfx-pr-l">${t("Current Price")}</div><div class="pfx-bigprice dz-n">${priceLbl}</div>${range52Html}`);
+  const positionPanel = panel(t("Position"), `<div class="hc-detail">${holdingFactsHTML(h, { commission: commissionPaid })}</div>
+    <div class="setting-row" style="padding:11px 0 0;border-bottom:0">
+      <span class="sr-label">${t("Asset type")}</span>
+      <span class="sr-value"><div style="width:160px">${styledSelect("holdingAssetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), holdingType(h.ticker), { id: "holdingAssetType" })}</div></span>
+    </div>
+    ${openedRecently ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}`);
+
+  // Where the return comes from: dividends vs price change (vs sold shares / fees)
+  const rbDiv = totalDivReceived, rbPrice = h.priceUnrealized || 0, rbSold = h.realized || 0;
+  const rbOther = h.totalReturn - rbDiv - rbPrice - rbSold;
+  const rbLine = (label, v) => `<div><span>${label}</span><b class="dz-n ${cls(v)}">${moneySigned(v)}</b></div>`;
+  const rbShare = h.totalReturn > 0 && rbDiv > 0
+    ? (rbDiv >= h.totalReturn ? t("All of your profit so far came from dividends.") : dzF("{p}% of your return came from dividends.", { p: fmt((rbDiv / h.totalReturn) * 100, { maximumFractionDigits: 0 }) })) : "";
+  const returnPanel = panel(t("Where your return comes from"), `<div class="pfx-lst">${rbLine(t("Dividends"), rbDiv)}${rbLine(t("Price change"), rbPrice)}${Math.abs(rbSold) > 0.004 ? rbLine(t("Sold shares"), rbSold) : ""}${Math.abs(rbOther) > 0.5 ? rbLine(t("Fees & other"), rbOther) : ""}
+    <div class="pfx-lst-t"><span>${t("Total Return")}</span><b class="dz-n ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</b></div></div>${rbShare ? `<p class="pfx-note2">${rbShare}</p>` : ""}`);
+
+  // How long you have held it + next payment
+  const todayIso = todayISO();
+  const nextPay = (tFc.nextPayments || []).filter((p) => p.payDate >= todayIso).sort((a, b) => (a.payDate < b.payDate ? -1 : 1))[0];
+  let heldTxt = "";
+  if (earliestTxDate) {
+    const sd = new Date(earliestTxDate + "T00:00:00"), nd = todayDate();
+    let months = (nd.getFullYear() - sd.getFullYear()) * 12 + nd.getMonth() - sd.getMonth(); if (nd.getDate() < sd.getDate()) months--;
+    months = Math.max(0, months);
+    heldTxt = months >= 12 ? dzF("{y} yr {m} mo", { y: Math.floor(months / 12), m: months % 12 }) : months > 0 ? dzF("{m} mo", { m: months }) : dzF("{d} days", { d: Math.max(0, Math.round((nd - sd) / 864e5)) });
+  }
+  const heldPanel = earliestTxDate ? panel(t("Your holding"), `<div class="pfx-lst"><div><span>${t("Held for")}</span><b>${heldTxt}</b></div><div><span>${t("Since")}</span><b>${fmtDate(earliestTxDate)}</b></div>
+    ${h.costBasis > 0 ? `<div><span>${t("Dividends so far")}</span><b class="dz-n">${fmt((totalDivReceived / h.costBasis) * 100, { maximumFractionDigits: 1 })}% ${t("of what you paid")}</b></div>` : ""}
+    ${nextPay ? `<div><span>${t("Next payment")}</span><b class="dz-n">${fmtDate(nextPay.payDate)} · ${money(nextPay.amtMYR)}</b></div>` : ""}</div>`) : "";
+
+  // Dividends tab: next payment, 3-year outlook (estimate), then the existing summary / calendar / history
+  const daysTo = nextPay ? Math.round((new Date(nextPay.payDate + "T00:00:00") - todayDate()) / 864e5) : 0;
+  const nextBanner = nextPay ? `<div class="pfx-card pfx-next"><div><div class="pfx-lbl">${t("Next payment")}</div><div class="pfx-v dz-n pos">${money(nextPay.amtMYR)}</div></div>
+    <div class="pfx-next-r"><b>${fmtDate(nextPay.payDate)}</b><span>${daysTo <= 0 ? t("today") : dzF("in {d} days", { d: daysTo })} · ${nextPay.confirmed ? t("Confirmed") : t("Estimated")}</span></div></div>` : "";
+  const ol = [[t("Next 12 months"), tFc.nextYear]];
+  if (Math.abs(tFc.year2 - tFc.nextYear) > 0.5 || Math.abs(tFc.year3 - tFc.nextYear) > 0.5) { if (tFc.year2 > 0) ol.push([t("In 2 years"), tFc.year2]); if (tFc.year2 > 0 && tFc.year3 > 0) ol.push([t("In 3 years"), tFc.year3]); }
+  const olMax = Math.max(...ol.map((x) => x[1]));
+  const outlook = tFc.nextYear > 0 ? panel(t("What you could earn"), `<div class="pfx-ol">${ol.map(([l, v]) => `<div class="pfx-olr"><span class="pfx-oll">${l}</span><div class="pfx-olb"><i style="width:${((v / olMax) * 100).toFixed(1)}%"></i></div>
+      <b class="dz-n">${money(v)}</b>${h.costBasis > 0 ? `<small class="dz-n">${fmt((v / h.costBasis) * 100, { maximumFractionDigits: 1 })}% ${t("of cost")}</small>` : ""}</div>`).join("")}</div>
+    ${ol.length === 3 ? `<p class="pfx-note2"><b>${t("3-year total")}: ${money(ol.reduce((sum, x) => sum + x[1], 0))}</b></p>` : ""}<p class="pfx-note2">${t("Estimate, not a promise — based on your dividend pattern.")}</p>`) : "";
+
+  const txPanel = panel(`${t("Transactions")} (${txs.length})`, txRows ? `<div class="pfx-tx">${table([
+    { label: t("Date"), style: "width:16.6%" }, { label: t("Type"), style: "width:16.6%" }, { label: t("Qty"), style: "width:16.6%" },
+    { label: t("Price"), style: "width:16.6%" }, { label: t("Gross"), style: "width:16.6%" }, { label: t("Fee"), style: "width:16.6%" },
+  ], txRows)}</div>` : emptyState(t("No transactions for this holding.")));
+
+  const stTabs = [["overview", t("Overview")], ["dividends", t("Dividends")], ["tx", `${t("Transactions")} (${txs.length})`]];
+  const stNav = `<div class="pfx-tabs"><div class="dz-seg" role="tablist">${stTabs.map(([k, l]) =>
+    `<button type="button" role="tab" aria-selected="${holdingTab === k}" class="${holdingTab === k ? "on" : ""}" data-sttab="${k}">${l}</button>`).join("")}</div></div>`;
+  const divTabBody = `${nextBanner}${outlook}${dvSummaryHTML}${dvCalendarHTML}${dvHistoryHTML}`;
+  const stBody = holdingTab === "dividends" ? (divTabBody.trim() ? divTabBody : panel(t("Dividends"), emptyState(t("No dividend data for this holding yet."))))
+    : holdingTab === "tx" ? txPanel
+    : `${stSum}<div class="pfx-two2">${priceBlock}${positionPanel}</div><div class="pfx-two2">${returnPanel}${heldPanel}</div>${chartsHTML}`;
+  const html = `<div class="pfx pfx-stock"><p style="margin:-4px 0 0"><a class="link" href="#/portfolio">← ${t("Back to Portfolio")}</a></p>${stHeader}${stNav}${stBody}</div>`;
 
   return { title: h.ticker, subtitle: h.company || t("Holding detail"), html,
     mount() {
       const p = $("#dtlPrice");
       if (p) p.addEventListener("click", () => showSetPriceModal(h));
-      const lv = $("#dtlLive");
-      if (lv) lv.addEventListener("click", async () => {
+      const stBell = $("#dzBell"); if (stBell) stBell.addEventListener("click", () => toggleMoreSheet());
+      $$("[data-sttab]").forEach((b) => b.addEventListener("click", () => { holdingTab = b.dataset.sttab; render(); }));
+      $$("[data-dtl-live]").forEach((lv) => lv.addEventListener("click", async () => {
         if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
         // Same re-entry guard as Portfolio's refresh button (pfRefreshBtn) — without it, a
         // second click before the first fetch resolves fires a concurrent duplicate
@@ -6233,7 +6262,7 @@ function pageHolding() {
         const ok = await refreshLivePrice(h.ticker);
         if (ok) { saveStore(); toast(`${h.ticker} ${t("updated")}`); render(); }
         else { lv.disabled = false; lv.classList.remove("spin"); toast(`${t("Couldn't fetch")} ${h.ticker}`); }
-      });
+      }));
       const dcf = $("#divCalFilterSel");
       if (dcf) dcf.addEventListener("change", () => { holdingDivFilter = dcf.value; render(); });
       const atSel = $("#holdingAssetType");
