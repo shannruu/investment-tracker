@@ -563,7 +563,7 @@ const ZH = {
   "Pick what to record": "选择要记录的内容", "Change type": "更改类型", "Withdraw": "取款",
   "Fees, taxes & details": "费用、税费与明细",
   "Add a transaction": "添加交易", "Edit": "编辑", "Record a transaction": "记录一笔交易",
-  "Your brokers": "你的券商",
+  "Your brokers": "你的券商", "Total value": "总价值",
   "in total": "合计",
   "Share of total": "占比",
   "Selected broker": "所选券商",
@@ -3457,6 +3457,14 @@ function matchesCashSubFilter(x) {
   return !!sf && sf[2].includes(x.type);
 }
 
+// Hero + summary cards for the Transactions / Brokers tops: the same markup the Dividends page uses.
+function pfxHeroCard(label, amount, pill) {
+  const [i, d] = fmt(amount).split(".");
+  return `<div class="pfx-card pfx-hero"><div class="pfx-lbl">${label}</div><div class="pfx-big"><span class="cur">${ccyLabel(FX.base)}</span>${i}<span class="dec">.${d || "00"}</span></div>${pill ? `<span class="pfx-pill">${pill}</span>` : ""}</div>`;
+}
+function pfxStatCard(label, value, pill = "", c = "", attrs = "") {
+  return `<div class="pfx-card pfx-sc${attrs ? "" : " pfx-static"}" ${attrs}><div class="pfx-lbl"><span>${label}</span></div><div class="pfx-vr"><div class="pfx-v dz-n ${c}">${value}</div>${pill}</div></div>`;
+}
 // Transactions page (redesign): header, totals strip, tabs, search, table + detail panel (a bottom sheet on phones).
 let recSearch = "", recSel = null, recLimit = 40;
 const REC_IN = ["Deposit", "Sell", "Dividend", "Interest", "Interest / cash yield"];
@@ -3563,7 +3571,9 @@ function pageRecords() {
     `<button type="button" role="tab" aria-selected="${recordsTab === k}" class="${recordsTab === k ? "on" : ""}" data-rectab="${k}">${t(lbl)}<em>${count(k)}</em></button>`).join("")}</div></div>`;
   const sumOf = (types) => ALL_TRANSACTIONS.filter((x) => types.includes(x.type)).reduce((s, x) => s + recBase(x), 0);
   const sIn = sumOf(["Deposit"]), sOut = sumOf(["Withdrawal"]), sBuy = sumOf(["Buy"]), sSell = sumOf(["Sell"]), sDiv = sumOf(["Dividend"]);
-  const strip = ALL_TRANSACTIONS.length ? `<div class="rc-strip"><span><i>${t("Money in")}</i><b class="pos dz-n">${money(sIn)}</b></span><span><i>${t("Money out")}</i><b class="dz-n">${money(sOut)}</b></span><span><i>${t("Bought")}</i><b class="dz-n">${money(sBuy)}</b></span><span><i>${t("Sold")}</i><b class="dz-n">${money(sSell)}</b></span><span><i>${t("Dividends")}</i><b class="pos dz-n">${money(sDiv)}</b></span></div>` : "";
+  const nOf = (ty) => ALL_TRANSACTIONS.filter((x) => x.type === ty).length;
+  const cPill = (n) => `<span class="pfx-pl pos">${n} ${t("records")}</span>`;
+  const strip = ALL_TRANSACTIONS.length ? `<div class="pfx-sum pfx-sum4">${pfxHeroCard(t("Money in"), sIn, `${t("Money out")} ${money(sOut)}`)}${pfxStatCard(t("Bought"), money(sBuy), cPill(nOf("Buy")))}${pfxStatCard(t("Sold"), money(sSell), cPill(nOf("Sell")))}${pfxStatCard(t("Dividends"), money(sDiv), cPill(nOf("Dividend")), sDiv > 0 ? "pos" : "")}</div>` : "";
   const first = ALL_TRANSACTIONS.reduce((m, x) => (x.date && (!m || x.date < m) ? x.date : m), "");
   const header = dzTopHTML({ eyebrow: t("Transactions"), h1: t("Your ledger"),
     sub: `${ALL_TRANSACTIONS.length} ${t("records")}${first ? ` · ${t("since")} ${fmtDate(first)}` : ""}`, refreshAttr: "data-rec-refresh", noLive: true });
@@ -5424,9 +5434,9 @@ function pageBrokers() {
   const subTxt = LANG === "zh" ? `已连接 ${active.length} 个投资平台 · ${money(totalNet)}` : `${active.length} investment apps connected · ${money(totalNet)} ${t("in total")}`;
   const header = dzTopHTML({ eyebrow: t("Brokers"), h1: t("Your brokers"), sub: subTxt, noLive: true,
     actions: `<button type="button" class="pfx-btn pfx-btn-p" id="addBrokerBtn">＋ ${t("Add Broker")}</button>` });
-  const card = (label, v, c = "", extra = "") => `<div class="pfx-card pfx-sc ${extra ? "" : "pfx-static"}" ${extra}><div class="pfx-lbl"><span>${label}</span></div><div class="pfx-vr"><div class="pfx-v dz-n ${c}">${v}</div></div></div>`;
-  const summary = active.length ? `<div class="pfx-sum pfx-sum3">${card(t("Market Value"), money(totalValue))}${card(t("Available Cash"), money(totalCash))}
-    ${card(t("Total Return"), moneySigned(totalReturn), cls(totalReturn), `data-brokers-return tabindex="0" role="button" aria-label="${t("Total Return")}, show calculation"`)}</div>` : "";
+  const costBasisAll = T.holdings.filter((h) => activeIds.has(h.brokerId)).reduce((s, h) => s + h.costBasis, 0);
+  const retPct = costBasisAll ? (totalReturn / costBasisAll) * 100 : 0;
+  const summary = active.length ? `<div class="pfx-sum pfx-sum4">${pfxHeroCard(t("Total value"), totalNet, `${t("Holdings")} ${money(totalValue)} · ${t("Cash")} ${money(totalCash)}`)}${pfxStatCard(t("Market Value"), money(totalValue))}${pfxStatCard(t("Available Cash"), money(totalCash))}${pfxStatCard(t("Total Return"), moneySigned(totalReturn), `<span class="pfx-pl ${retPct >= 0 ? "pos" : "neg"}">${pctTxt(retPct)}</span>`, cls(totalReturn), `data-brokers-return tabindex="0" role="button" aria-label="${t("Total Return")}, show calculation"`)}</div>` : "";
   const archToggle = archived.length ? `<button type="button" class="pfx-btn" id="toggleArchived">${showArchivedBrokers ? t("Hide archived") : `${t("Show archived")} (${archived.length})`}</button>` : "";
   const table = `<div class="table-wrap rc-desk"><table class="data-table pfx-txt rc-tbl"><thead><tr><th>${t("Broker")}</th><th class="pfn">${t("Market Value")}</th><th class="pfn">${t("Cash")}</th><th class="pfn">${t("Total Return")}</th><th>${t("Share of total")}</th></tr></thead>
       <tbody>${brRowsDesk(list, totalNet)}</tbody>

@@ -135,6 +135,7 @@ function decorateTableTitles(scope) {
 const LBL_TIPS = {
   "Market Value": "What your holdings here are worth at today's prices.",
   "Available Cash": "Cash ready to invest or withdraw.",
+  "Total value": "Holdings plus cash across your brokers.",
   "Money in": "Total you have deposited.",
   "Money out": "Total you have withdrawn.",
   "Money Left In This Broker": "Money in minus money out. Click to see the sum.",
@@ -171,7 +172,7 @@ function decorateLabels(scope) {
     if (el.querySelector(".col-info")) { el.dataset.tipDone = "1"; return; }
     const label = _lblKey(el.textContent);
     if (!label) return;
-    const ctx = el.closest(".rc-strip") ? "strip" : "";
+    const ctx = el.closest(".rc-strip, .pfx-rec .pfx-sum") ? "strip" : "";
     const en = _lblLookup.get(ctx + "|" + label) || _lblLookup.get("|" + label);
     if (!en) return;
     const text = t(en).replace(/\{base\}/g, ccyLabel(FX.base));
@@ -265,6 +266,7 @@ const TH_ZH = {
   "Total you have withdrawn.": "您累计提取的金额。",
   "Money in minus money out. Click to see the sum.": "存入减去提取。点击查看计算。",
   "Whether your calculated cash matches what the broker shows.": "根据记录算出的现金是否与券商显示的一致。",
+  "Holdings plus cash across your brokers.": "您所有券商的持仓加现金。",
   "Commission and fees on the trade.": "这笔交易的佣金和费用。",
   "Price for one share on that trade.": "该笔交易中一股的价格。",
   "Amount in the record's own currency.": "这条记录自己货币的金额。",
