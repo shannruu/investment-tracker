@@ -563,6 +563,24 @@ const ZH = {
   "Pick what to record": "选择要记录的内容", "Change type": "更改类型", "Withdraw": "取款",
   "Fees, taxes & details": "费用、税费与明细",
   "Add a transaction": "添加交易", "Edit": "编辑", "Record a transaction": "记录一笔交易",
+  "Your ledger": "你的账本",
+  "records": "笔记录",
+  "since": "自",
+  "Money in": "转入资金",
+  "Money out": "转出资金",
+  "Bought": "买入",
+  "Sold": "卖出",
+  "Search stock, type or note": "搜索股票、类型或备注",
+  "All records": "全部记录",
+  "Select a record to see its details.": "选择一条记录查看详情。",
+  "Selected record": "所选记录",
+  "Price per share": "每股价格",
+  "Fees": "费用",
+  "Original amount": "原始金额",
+  "Exchange rate": "汇率",
+  "Show more": "显示更多",
+  "Showing {a} of {b} records": "显示 {b} 条中的 {a} 条",
+  "Removing a record recalculates your holdings, cash and returns. You will be asked to confirm first.": "删除记录会重新计算持仓、现金和回报，删除前会先请您确认。",
   "All your transactions, cash and dividends in one ledger.": "所有交易、现金和股息集中在一个账本中。",
   "Pick a type, then fill only what's needed.": "先选择类型，然后只填写所需字段。",
   // Dashboard hero
@@ -3429,70 +3447,167 @@ function matchesCashSubFilter(x) {
   return !!sf && sf[2].includes(x.type);
 }
 
+// Transactions page (redesign): header, totals strip, tabs, search, table + detail panel (a bottom sheet on phones).
+let recSearch = "", recSel = null, recLimit = 40;
+const REC_IN = ["Deposit", "Sell", "Dividend", "Interest", "Interest / cash yield"];
+const REC_OUT = ["Withdrawal", "Buy", "Fee", "Tax withholding"];
+const REC_ICON = { Buy: "i-buy", Sell: "i-sell", Deposit: "i-deposit", Withdrawal: "i-withdraw", Dividend: "i-dividends", "Currency Exchange": "i-fx" };
+function recBase(tx) { const fxr = tx.fxRate || FX.rates[tx.currency] || 1; return tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * fxr; }
+function recSign(tx) { return REC_IN.includes(tx.type) ? 1 : REC_OUT.includes(tx.type) ? -1 : 0; }
+function recAmt(tx, cls = "") { const v = recBase(tx), s = recSign(tx); return `<span class="${cls}${s > 0 ? " pos" : ""}">${s > 0 ? "+" : s < 0 ? "−" : ""}${fmt(Math.abs(v))}</span>`; }
+function recHasTicker(tx) { return !!(tx.ticker && tx.ticker !== "—"); }
+function recFiltered() {
+  const q = recSearch.trim().toLowerCase();
+  const list = ALL_TRANSACTIONS.filter((x) => recordMatchesTab(x, recordsTab) && matchesCashSubFilter(x) && (!q ||
+    [x.ticker, x.company, recHasTicker(x) ? tickerSubLabel(x.ticker, x.company) : "", x.type, t(x.type), brokerName(x.brokerId), x.notes].join(" ").toLowerCase().includes(q)));
+  return list.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+}
+function recRowsDesk(list) {
+  return list.map((tx) => `<tr class="rc-row${tx.id === recSel ? " sel" : ""}" data-rec-id="${tx.id}" tabindex="0">
+    <td>${fmtDate(tx.date)}</td><td>${typeChip(tx.type)}</td>
+    <td>${recHasTicker(tx) ? tickerCell(tx.ticker, null, tickerSubLabel(tx.ticker, tx.company)) : `<span class="muted">—</span>`}</td>
+    <td class="pfn pfx-tt">${recAmt(tx)}</td></tr>`).join("");
+}
+function recRowsMob(list) {
+  let cur = "", out = "";
+  list.forEach((tx) => {
+    const mk = (tx.date || "").slice(0, 7);
+    if (mk !== cur) {
+      cur = mk;
+      const lbl = new Date(mk + "-01T00:00:00").toLocaleDateString(LANG === "zh" ? "zh-CN" : "en-GB", { month: "long", year: "numeric" });
+      out += `<div class="rc-mh">${esc(lbl)}</div>`;
+    }
+    const s = recSign(tx), cls = tx.type === "Buy" ? "buy" : tx.type === "Sell" ? "sell" : s > 0 ? "in" : "neu";
+    const has = recHasTicker(tx), nm = has ? (typeof dzName === "function" ? dzName(tx.ticker, tickerSubLabel(tx.ticker, tx.company)) : tx.ticker) : "";
+    const sub = has && tx.qty != null && tx.price != null ? `${fmt(tx.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} × ${fmt(tx.price)}` : "";
+    out += `<div class="rc-ev${tx.id === recSel ? " sel" : ""}" data-rec-id="${tx.id}" role="button" tabindex="0">
+      <span class="rc-ib ${cls}"><svg class="icon"><use href="#${REC_ICON[tx.type] || "i-records"}"/></svg></span>
+      <div class="rc-tx"><div class="rc-t1">${t(tx.type)}${nm ? ` · ${esc(nm)}` : ""}</div><div class="rc-t2">${fmtDate(tx.date)} · ${esc(brokerName(tx.brokerId))}</div></div>
+      <div class="rc-am">${recAmt(tx)}${sub ? `<small>${sub}</small>` : ""}</div></div>`;
+  });
+  return out;
+}
+function recBodyHTML(list) {
+  if (!ALL_TRANSACTIONS.length) return recordsTable(list);
+  if (!list.length) return emptyState(t("No records in this view yet."));
+  const shown = list.slice(0, recLimit);
+  const more = list.length > shown.length ? `<div class="rc-more"><span>${dzF("Showing {a} of {b} records", { a: shown.length, b: list.length })}</span><button type="button" class="pfx-btn" data-rec-more>${t("Show more")}</button></div>` : "";
+  return `<div class="table-wrap rc-desk"><table class="data-table pfx-txt rc-tbl"><thead><tr><th>${t("Date")}</th><th>${t("Type")}</th><th>${t("Holding")}</th><th class="pfn">${t("Amount")} (${ccyLabel(FX.base)})</th></tr></thead><tbody>${recRowsDesk(shown)}</tbody></table></div>
+    <div class="rc-mob">${recRowsMob(shown)}</div>${more}`;
+}
+function recDetailHTML(tx) {
+  if (!tx) return `<div class="pfx-note2">${t("Select a record to see its details.")}</div>`;
+  const s = recSign(tx), v = recBase(tx), has = recHasTicker(tx);
+  const rz = tx.type === "Sell" ? (T.realizedSales || []).find((x) => x.id === tx.id) : null;
+  const row = (k, val, c = "") => `<div class="rc-sr"><span>${t(k)}</span><b class="${c}">${val}</b></div>`;
+  const cc = ccyLabel(tx.currency);
+  const rows = [row("Date", fmtDate(tx.date)),
+    row("Broker", esc(brokerName(tx.brokerId)) + (tx.type === "Transfer between brokers" && tx.toBrokerId ? ` → ${esc(brokerName(tx.toBrokerId))}` : "")),
+    tx.qty != null ? row("Shares", fmt(tx.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })) : "",
+    tx.price != null ? row("Price per share", `${cc} ${fmt(tx.price)}`) : "",
+    tx.fee ? row("Fees", `${cc} ${fmt(tx.fee)}`) : "",
+    rz ? row("Realized P/L", moneySigned(rz.pl), rz.pl > 0 ? "pos" : rz.pl < 0 ? "neg" : "") : "",
+    tx.currency !== FX.base && tx.gross != null ? row("Original amount", `${cc} ${fmt(tx.gross)}`) : "",
+    tx.currency !== FX.base && (tx.fxRate || FX.rates[tx.currency]) ? row("Exchange rate", fmt(tx.fxRate || FX.rates[tx.currency], { maximumFractionDigits: 6 })) : "",
+    tx.notes ? row("Notes", esc(tx.notes)) : ""].join("");
+  return `<div class="rc-dh"><span class="pfx-lbl">${t("Selected record")}</span>${typeChip(tx.type)}<button type="button" class="rc-close" data-rec-close aria-label="${t("Close")}">×</button></div>
+    <div class="rc-dn">${has ? tickerCell(tx.ticker, tx.brokerId, tickerSubLabel(tx.ticker, tx.company)) : `<span class="ticker tk-name">${t(tx.type)}</span>`}</div>
+    <div class="rc-big dz-n${s > 0 ? " pos" : ""}">${s > 0 ? "+" : s < 0 ? "−" : ""}${money(Math.abs(v))}</div>
+    <div class="rc-rows">${rows}</div>
+    <div class="rc-acts"><button type="button" class="pfx-btn pfx-btn-p" data-rec-edit>${t("Edit")}</button><button type="button" class="pfx-btn rc-del" data-rec-del>${t("Remove")}</button></div>
+    <p class="pfx-note2">${t("Removing a record recalculates your holdings, cash and returns. You will be asked to confirm first.")}</p>`;
+}
+
+async function deleteTransaction(id) {
+  const tx = ALL_TRANSACTIONS.find((x) => x.id === id);
+  // Deleting a Buy that has later Sells of the same stock distorts realized P/L.
+  const buyWithSells = tx && tx.type === "Buy" && ALL_TRANSACTIONS.some((x) =>
+    x.type === "Sell" && x.brokerId === tx.brokerId && (x.ticker || "").toUpperCase() === (tx.ticker || "").toUpperCase());
+  // Names the actual record — date, type, ticker if any, amount — so the confirm can be double-checked.
+  const txDesc = tx ? `${t(tx.type)}${tx.ticker && tx.ticker !== "—" ? ` · ${tx.ticker}` : ""} · ${fmtDate(tx.date)} · ${money(recBase(tx))}` : "";
+  const msg = buyWithSells && tx.dripPairId
+    ? `${txDesc}. ${t("This Buy has later Sell transactions for the same stock, and is also one half of a DRIP reinvestment whose paired record won't be deleted automatically. Deleting it will make those sells exceed shares held and distort realized P/L. Delete anyway?")}`
+    : buyWithSells
+    ? `${txDesc}. ${t("This Buy has later Sell transactions for the same stock. Deleting it will make those sells exceed shares held and distort realized P/L. Delete anyway?")}`
+    : (tx && tx.dripPairId
+      ? `${txDesc}. ${t("This is one half of a DRIP reinvestment. Its paired record won't be deleted automatically. Delete anyway?")}`
+      : `${txDesc}. ${t("Delete this transaction? Holdings and balances will be recalculated.")}`);
+  if (!(await showConfirmModal(msg, { danger: true, okLabel: "Remove" }))) return false;
+  const i = ALL_TRANSACTIONS.findIndex((x) => x.id === id);
+  if (i >= 0) ALL_TRANSACTIONS.splice(i, 1);
+  if (editingTxId === id) editingTxId = null;
+  // A Dividend transaction can carry a linked UPCOMING_DIVIDENDS entry (status:"confirmed"); revert it to "upcoming"
+  // so it is not orphaned (excluded from every upcoming view while still holding a ticker+ex-date slot).
+  UPCOMING_DIVIDENDS.forEach((u) => {
+    if (u.confirmedTransactionId === id) { u.status = "upcoming"; u.confirmedTransactionId = undefined; }
+  });
+  pruneOrphans();
+  saveStore(); toast(t("Transaction removed")); render();
+  return true;
+}
+
 function pageRecords() {
   const tabs = [["all", "All"], ["buysell", "Buy / Sell"], ["cash", "Cash"], ["dividends", "Dividends"], ["fx", "FX"]];
-  // Same pill-tab-inside-the-panel layout as the Add page (type-selector + add-sep),
-  // rather than a separate segmented control floating above its own panel.
-  const nav = `<div class="type-selector"><div class="type-tabs" role="tablist">${tabs.map(([k, lbl]) =>
-    `<button class="tp-tab ${recordsTab === k ? "on" : ""}" data-rectab="${k}">${t(lbl)}</button>`).join("")}</div></div>`;
-  // Cash-tab type filter: same corner dropdown used by the Dividend Calendar / Dividend
-  // Income filters (styledSelect inside panel-head-actions), not a second pill row.
+  const count = (k) => ALL_TRANSACTIONS.filter((x) => recordMatchesTab(x, k)).length;
+  const nav = `<div class="pfx-tabs rc-tabs"><div class="dz-seg" role="tablist">${tabs.map(([k, lbl]) =>
+    `<button type="button" role="tab" aria-selected="${recordsTab === k}" class="${recordsTab === k ? "on" : ""}" data-rectab="${k}">${t(lbl)}<em>${count(k)}</em></button>`).join("")}</div></div>`;
+  const sumOf = (types) => ALL_TRANSACTIONS.filter((x) => types.includes(x.type)).reduce((s, x) => s + recBase(x), 0);
+  const sIn = sumOf(["Deposit"]), sOut = sumOf(["Withdrawal"]), sBuy = sumOf(["Buy"]), sSell = sumOf(["Sell"]), sDiv = sumOf(["Dividend"]);
+  const strip = ALL_TRANSACTIONS.length ? `<div class="rc-strip"><span><i>${t("Money in")}</i><b class="pos dz-n">${money(sIn)}</b></span><span><i>${t("Money out")}</i><b class="dz-n">${money(sOut)}</b></span><span><i>${t("Bought")}</i><b class="dz-n">${money(sBuy)}</b></span><span><i>${t("Sold")}</i><b class="dz-n">${money(sSell)}</b></span><span><i>${t("Dividends")}</i><b class="pos dz-n">${money(sDiv)}</b></span></div>` : "";
+  const first = ALL_TRANSACTIONS.reduce((m, x) => (x.date && (!m || x.date < m) ? x.date : m), "");
+  const header = dzTopHTML({ eyebrow: t("Transactions"), h1: t("Your ledger"),
+    sub: `${ALL_TRANSACTIONS.length} ${t("records")}${first ? ` · ${t("since")} ${fmtDate(first)}` : ""}`, refreshAttr: "data-rec-refresh", noLive: true });
+  // Cash-tab type filter: the same corner dropdown used by the Dividend filters.
   const cashFilterSel = recordsTab === "cash" ? `<div style="width:150px">${styledSelect("cashSubFilter",
     CASH_SUBFILTERS.map(([k, lbl]) => ({ value: k, label: t(lbl) })), cashSubFilter, { id: "cashSubFilterSel" })}</div>` : "";
-  const list = ALL_TRANSACTIONS.filter((x) => recordMatchesTab(x, recordsTab) && matchesCashSubFilter(x));
-  // No local "Add" button or record-count badge here — the global +Add in the
-  // sidebar already covers this, and a second one right above the table it opens
-  // over was redundant clutter (plus sat right against the table's own edge/rule).
-  const html = `<section class="panel add-panel">
-      ${nav}
-      <div class="add-sep"></div>
-      <div class="panel-head"><h2>${t("Transactions")}</h2><div class="panel-head-actions">${cashFilterSel}</div></div>
-      ${recordsTab === "cash" ? cashExtrasHTML(list) : ""}
-      <div id="recBody">${recordsTable(list)}</div>
-    </section>`;
+  const list = recFiltered();
+  if (!recSel || !list.some((x) => x.id === recSel)) recSel = list.length ? list[0].id : null;
+  const tools = ALL_TRANSACTIONS.length ? `<div class="rc-tools"><input type="search" id="recSearch" class="rc-search" placeholder="${esc(t("Search stock, type or note"))}" value="${escAttr(recSearch)}" autocomplete="off">${cashFilterSel}</div>` : "";
+  const html = `<div class="pfx pfx-rec">${header}${strip}${nav}
+    <div class="rc-grid">
+      <section class="pfx-card rc-main"><div class="rc-head"><h2>${t("All records")}<span class="pfx-sm" id="recCount">${list.length}</span></h2></div>${tools}${recordsTab === "cash" ? cashExtrasHTML(list) : ""}<div id="recBody">${recBodyHTML(list)}</div></section>
+      <aside class="pfx-card rc-det" id="recDet">${recDetailHTML(ALL_TRANSACTIONS.find((x) => x.id === recSel))}</aside>
+    </div><div class="rc-back" id="recBack"></div></div>`;
 
   return { title: "Transactions", subtitle: "All your transactions, cash and dividends in one ledger.", html,
     mount() {
-      $$("[data-rectab]").forEach((b) => b.addEventListener("click", () => { recordsTab = b.dataset.rectab; cashSubFilter = "all"; render(); }));
+      const bell = $("#dzBell"); if (bell) bell.addEventListener("click", () => toggleMoreSheet());
+      $$("[data-rec-refresh]").forEach((b) => b.addEventListener("click", () => {
+        if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
+        fetchAllMySymbols().then(() => { if (document.querySelector(".pfx-rec")) render(); });
+      }));
+      $$("[data-rectab]").forEach((b) => b.addEventListener("click", () => { recordsTab = b.dataset.rectab; cashSubFilter = "all"; recLimit = 40; render(); }));
       const cashFilterEl = $("#cashSubFilterSel");
-      if (cashFilterEl) cashFilterEl.addEventListener("change", () => { cashSubFilter = cashFilterEl.value; render(); });
-      $("#recBody").addEventListener("click", async (e) => {
-        const ed = e.target.closest("[data-edit-tx]");
-        if (ed) { editingTxId = ed.dataset.editTx; location.hash = "#/add"; return; }
-        const b = e.target.closest("[data-del-tx]");
-        if (!b) return;
-        const tx = ALL_TRANSACTIONS.find((x) => x.id === b.dataset.delTx);
-        // Deleting a Buy that has later Sells of the same stock distorts realized P/L.
-        const buyWithSells = tx && tx.type === "Buy" && ALL_TRANSACTIONS.some((x) =>
-          x.type === "Sell" && x.brokerId === tx.brokerId && (x.ticker || "").toUpperCase() === (tx.ticker || "").toUpperCase());
-        // Names the actual record — date, type, ticker if any, amount — not just "this
-        // transaction". Adjacent rows in a real ledger (several dividends, several buys of
-        // the same stock on different dates) read alike at a glance; the confirm used to
-        // give no way to double-check it's about to delete the RIGHT one.
-        const txDesc = tx ? `${t(tx.type)}${tx.ticker && tx.ticker !== "—" ? ` · ${tx.ticker}` : ""} · ${fmtDate(tx.date)} · ${money(tx.myrEquivalent != null ? tx.myrEquivalent : (+tx.gross || 0) * (tx.fxRate || FX.rates[tx.currency] || 1))}` : "";
-        const msg = buyWithSells && tx.dripPairId
-          ? `${txDesc}. ${t("This Buy has later Sell transactions for the same stock, and is also one half of a DRIP reinvestment whose paired record won't be deleted automatically. Deleting it will make those sells exceed shares held and distort realized P/L. Delete anyway?")}`
-          : buyWithSells
-          ? `${txDesc}. ${t("This Buy has later Sell transactions for the same stock. Deleting it will make those sells exceed shares held and distort realized P/L. Delete anyway?")}`
-          : (tx && tx.dripPairId
-            ? `${txDesc}. ${t("This is one half of a DRIP reinvestment. Its paired record won't be deleted automatically. Delete anyway?")}`
-            : `${txDesc}. ${t("Delete this transaction? Holdings and balances will be recalculated.")}`);
-        if (!(await showConfirmModal(msg, { danger: true, okLabel: "Remove" }))) return;
-        const i = ALL_TRANSACTIONS.findIndex((x) => x.id === b.dataset.delTx);
-        if (i >= 0) ALL_TRANSACTIONS.splice(i, 1);
-        if (editingTxId === b.dataset.delTx) editingTxId = null;
-        // A Dividend transaction can carry a linked UPCOMING_DIVIDENDS entry
-        // (status:"confirmed", confirmedTransactionId pointing at it) — deleting the
-        // transaction without unlinking would leave that entry orphaned: excluded from
-        // every "upcoming" view forever (nothing lists confirmed entries) yet still
-        // occupying a ticker+ex-date slot, so re-recording the same dividend later
-        // creates a second ghost instead of reusing it. Revert it to "upcoming" so it's
-        // visible and manageable again, same as before it was ever confirmed.
-        UPCOMING_DIVIDENDS.forEach((u) => {
-          if (u.confirmedTransactionId === b.dataset.delTx) { u.status = "upcoming"; u.confirmedTransactionId = undefined; }
-        });
-        pruneOrphans();
-        saveStore(); toast(t("Transaction removed")); render();
+      if (cashFilterEl) cashFilterEl.addEventListener("change", () => { cashSubFilter = cashFilterEl.value; recLimit = 40; render(); });
+      const root = $(".pfx-rec"), det = $("#recDet");
+      const paint = () => {   // redraw rows + detail in place (keeps focus in the search box)
+        const l = recFiltered();
+        if (!l.some((x) => x.id === recSel)) recSel = l.length ? l[0].id : null;
+        $("#recBody").innerHTML = recBodyHTML(l);
+        const c = $("#recCount"); if (c) c.textContent = l.length;
+        det.innerHTML = recDetailHTML(ALL_TRANSACTIONS.find((x) => x.id === recSel));
+      };
+      const openSheet = (on) => root.classList.toggle("rc-sheet", on);
+      const search = $("#recSearch");
+      if (search) search.addEventListener("input", () => { recSearch = search.value; recLimit = 40; openSheet(false); paint(); });
+      const pick = (el) => {
+        const row = el.closest("[data-rec-id]"); if (!row) return false;
+        recSel = row.dataset.recId;
+        $$("#recBody [data-rec-id]").forEach((r) => r.classList.toggle("sel", r.dataset.recId === recSel));
+        det.innerHTML = recDetailHTML(ALL_TRANSACTIONS.find((x) => x.id === recSel));
+        openSheet(true);   // only visible on phones (CSS); on desktop the panel is always there
+        return true;
+      };
+      $("#recBody").addEventListener("click", (e) => {
+        if (e.target.closest("[data-rec-more]")) { recLimit += 40; paint(); return; }
+        pick(e.target);
+      });
+      $("#recBody").addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-rec-id]")) { e.preventDefault(); pick(e.target); } });
+      $("#recBack").addEventListener("click", () => openSheet(false));
+      det.addEventListener("click", async (e) => {
+        if (e.target.closest("[data-rec-close]")) { openSheet(false); return; }
+        if (e.target.closest("[data-rec-edit]")) { editingTxId = recSel; location.hash = "#/add"; return; }
+        if (e.target.closest("[data-rec-del]")) { if (await deleteTransaction(recSel)) openSheet(false); }
       });
       $$("[data-cashcard]").forEach((el) => {
         const open = () => showCalc(cashCardCalc(el.dataset.cashcard, list));

@@ -2650,3 +2650,77 @@ a.ticker.tk-name:hover { color: var(--brand); }
 }
 .pfx-chipd { overflow-wrap: normal; }
 .pfx-chipd .nm { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
+
+/* =============================================================================
+   TRANSACTIONS PAGE REDESIGN — totals strip, tabs, search, table + detail panel (a bottom sheet on phones).
+   ============================================================================= */
+.rc-strip { display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 13px 22px; border-radius: 99px; background: var(--dz-card); border: 1px solid var(--dz-card-bd); font-size: 13.5px; }
+.rc-strip span { display: inline-flex; gap: 8px; align-items: baseline; }
+.rc-strip i { font-style: normal; color: var(--muted); }
+.rc-strip b { font-weight: 700; }
+.rc-tabs em { font-style: normal; color: var(--muted); margin-left: 7px; font-size: 12px; font-weight: 600; }
+.rc-tabs .on em { color: inherit; opacity: .8; }
+.rc-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
+.rc-main { padding: 22px 24px; }
+.rc-head h2 { font-size: 17px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 14px; }
+.rc-tools { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; }
+.rc-search { flex: 1; max-width: 340px; height: 40px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; font-size: 13.5px; }
+.rc-search:focus { outline: 2px solid var(--brand); outline-offset: 1px; }
+.rc-desk.table-wrap { max-height: none; overflow-y: visible; }
+.rc-tbl th { text-align: left; }
+.rc-tbl th.pfn { text-align: right; }
+.rc-tbl td:first-child, .rc-tbl th:first-child { padding-left: 26px; }
+.rc-row { cursor: pointer; }
+.rc-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.rc-row.sel td { background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--text); }
+.rc-row.sel td:first-child { position: relative; border-radius: 10px 0 0 10px; }
+.rc-row.sel td:last-child { border-radius: 0 10px 10px 0; }
+.rc-row.sel td:first-child::before { content: ""; position: absolute; left: 11px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 10px var(--brand); }
+.rc-mob { display: none; }
+.rc-more { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 16px; font-size: 13px; font-weight: 600; color: var(--muted); }
+.rc-det { position: sticky; top: 20px; padding: 22px 24px; }
+.rc-dh { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.rc-dh .pfx-lbl { flex: 1; }
+.rc-close { display: none; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-size: 20px; line-height: 1; cursor: pointer; }
+.rc-dn { margin-bottom: 4px; }
+.rc-big { font-size: 28px; font-weight: 700; letter-spacing: -.03em; margin: 10px 0 12px; white-space: nowrap; }
+.rc-sr { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.rc-sr:last-child { border-bottom: 0; }
+.rc-sr span { color: var(--muted); }
+.rc-sr b { font-weight: 700; text-align: right; }
+.rc-acts { display: flex; gap: 10px; margin-top: 18px; }
+.rc-acts .pfx-btn { flex: 1; justify-content: center; }
+.rc-acts .rc-del { flex: 0 0 auto; color: var(--neg); }
+.rc-back { display: none; }
+@media (max-width: 1000px) { .rc-grid { grid-template-columns: minmax(0, 1fr) 340px; } }
+@media (max-width: 760px) {
+  .rc-strip { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; border-radius: 18px; padding: 14px 16px; font-size: 12.5px; }
+  .rc-strip span { flex-direction: column; gap: 2px; }
+  .rc-strip span:last-child { grid-column: 1 / -1; }
+  .rc-tabs .dz-seg { display: flex; width: 100%; box-sizing: border-box; }
+  .rc-tabs .dz-seg button { flex: 1; min-width: 0; padding: 8px 0; font-size: 12.5px; text-align: center; white-space: nowrap; }
+  .rc-tabs em { display: none; }
+  .rc-grid { grid-template-columns: minmax(0, 1fr); }
+  .rc-main { padding: 16px 14px; }
+  .rc-search { max-width: none; }
+  .rc-desk { display: none; }
+  .rc-mob { display: block; }
+  .rc-mh { padding: 14px 0 6px; font-size: 12.5px; font-weight: 700; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .rc-ev { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 11px; align-items: center; padding: 11px 6px; border-bottom: 1px solid var(--border); border-radius: 12px; cursor: pointer; }
+  .rc-sheet .rc-ev.sel { background: color-mix(in srgb, var(--text) 7%, transparent); }
+  .rc-ev:active { background: color-mix(in srgb, var(--text) 5%, transparent); }
+  .rc-ib { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 13px; background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--muted); }
+  .rc-ib .icon { width: 18px; height: 18px; }
+  .rc-ib.in { background: var(--pos-bg); color: var(--pos); }
+  .rc-ib.sell { background: var(--neg-bg); color: var(--neg); }
+  .rc-ib.buy { background: color-mix(in srgb, var(--brand) 16%, transparent); color: var(--brand); }
+  .rc-t1 { font-size: 13.5px; font-weight: 700; }
+  .rc-t2 { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .rc-am { text-align: right; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .rc-am small { display: block; font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 2px; }
+  .rc-more { justify-content: center; flex-direction: column; gap: 10px; }
+  .rc-det { position: fixed; left: 0; right: 0; bottom: 0; top: auto; max-height: 80vh; overflow-y: auto; border-radius: 24px 24px 0 0; z-index: 95; padding: 18px 18px calc(22px + env(safe-area-inset-bottom)); transform: translateY(110%); transition: transform .22s ease; box-shadow: 0 -20px 50px rgba(0, 0, 0, .45); }
+  .rc-sheet .rc-det { transform: none; }
+  .rc-close { display: grid; place-items: center; }
+  .rc-sheet .rc-back { display: block; position: fixed; inset: 0; background: rgba(0, 0, 0, .5); z-index: 90; }
+}
