@@ -66,7 +66,7 @@
   --dz-dd: #eceafd; --dz-dd-bd: transparent; --dz-dd-tx: #3b33c4; --dz-dd-sm: #3b33c4;
   --dz-seg: #f0effa; --dz-seg-bd: rgba(49,40,120,.06); --dz-seg-on: #ffffff; --dz-seg-on-bd: transparent; --dz-seg-on-tx: #14122b; --dz-seg-on-sh: 0 1px 3px rgba(40,30,110,.16);
   --dz-live: #ffffff; --dz-live-sh: 0 1px 2px rgba(40,30,110,.08);
-  --dz-grid: #e6e4f4; --dz-track: #e0def3; --dz-dn-track: #eeecf9;
+  --dz-card-base: #ffffff; --dz-grid: #e6e4f4; --dz-track: #e0def3; --dz-dn-track: #eeecf9;
   --dz-ti: #f6f5fc; --dz-ti-bd: transparent; --dz-ti-tx: #403c62; --dz-ti-in: #ddf6ec; --dz-ti-in-bd: transparent; --dz-ti-out: #fde4e8; --dz-ti-out-bd: transparent;
   --dz-lnk: #463cce; --dz-est: #8f5f0a; --dz-est-bg: #fcefd3; --dz-eyebrow: #5b54e8;
   --dz-gi-g: #ddf6ec; --dz-gi-g-t: #0a7a55; --dz-gi-b: #eceafd; --dz-gi-b-t: #4a41d6; --dz-gi-a: #fcefd3; --dz-gi-a-t: #8f5f0a; --dz-gi-t: #d8f3f9; --dz-gi-t-t: #08728a;
@@ -120,7 +120,7 @@
   --dz-dd: rgba(255,255,255,.045); --dz-dd-bd: rgba(255,255,255,.075); --dz-dd-tx: #eef0f8; --dz-dd-sm: #8189a6;
   --dz-seg: rgba(255,255,255,.045); --dz-seg-bd: rgba(255,255,255,.075); --dz-seg-on: linear-gradient(135deg, rgba(139,124,255,.30), rgba(61,216,245,.14)); --dz-seg-on-bd: rgba(139,124,255,.45); --dz-seg-on-tx: #eef0f8; --dz-seg-on-sh: 0 0 0 0 transparent;
   --dz-live: rgba(255,255,255,.04); --dz-live-sh: 0 0 0 0 transparent;
-  --dz-grid: rgba(255,255,255,.07); --dz-track: rgba(255,255,255,.08); --dz-dn-track: rgba(255,255,255,.06);
+  --dz-card-base: #0c0e16; --dz-grid: rgba(255,255,255,.07); --dz-track: rgba(255,255,255,.08); --dz-dn-track: rgba(255,255,255,.06);
   --dz-ti: rgba(255,255,255,.05); --dz-ti-bd: rgba(255,255,255,.075); --dz-ti-tx: #aab0c6; --dz-ti-in: rgba(52,214,163,.11); --dz-ti-in-bd: rgba(52,214,163,.26); --dz-ti-out: rgba(255,111,142,.11); --dz-ti-out-bd: rgba(255,111,142,.26);
   --dz-lnk: #3dd8f5; --dz-est: #f6bd60; --dz-est-bg: rgba(246,189,96,.13); --dz-eyebrow: #a99dff;
   --dz-gi-g: rgba(52,214,163,.14); --dz-gi-g-t: #34d6a3; --dz-gi-b: rgba(139,124,255,.20); --dz-gi-b-t: #b3a9ff; --dz-gi-a: rgba(246,189,96,.15); --dz-gi-a-t: #f6bd60; --dz-gi-t: rgba(61,216,245,.15); --dz-gi-t-t: #3dd8f5;
@@ -2256,3 +2256,160 @@ body { background-image: var(--page); background-repeat: no-repeat; }
    icons such as the close cross, never words. */
 button, input, select, textarea { font-family: inherit; }
 .nav-item, button.nav-item { font-weight: 500; }   /* regular, so the active item (bold) still stands out */
+
+/* =============================================================================
+   PORTFOLIO REDESIGN — header, compact summary cards, pill tabs, aligned table with a totals row, allocation rings/bars,
+   realized sales. Reuses the Dashboard's tokens (--dz-*), so it follows light/dark automatically.
+   ============================================================================= */
+.pfx { display: flex; flex-direction: column; gap: 20px; min-width: 0; font-size: 14px; }
+.pfx .dz-live-slot { display: contents; }
+.pfx-card { background: var(--dz-card); border: 1px solid var(--dz-card-bd); box-shadow: var(--dz-card-sh); border-radius: 26px; min-width: 0; }
+.pfx .panel { background: var(--dz-card-base); border-color: var(--dz-card-bd); box-shadow: var(--dz-card-sh); border-radius: 26px; padding: 24px 26px 22px; margin-bottom: 0; }
+.pfx .panel-head { margin-bottom: 14px; }
+.pfx .panel-head h2 { font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
+.pfx-foot { font-size: 12.5px; color: var(--muted); text-align: right; }
+.pfx-only-m { display: none; }
+
+/* summary: one gradient Market Value card + two clickable cards (each opens its calculation) */
+.pfx-sum { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+.pfx-lbl { font-size: 12.5px; font-weight: 700; color: var(--muted); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pfx-hero { position: relative; overflow: hidden; color: #fff; padding: 18px 22px; display: flex; flex-direction: column; justify-content: center; background: var(--dz-hero); border-color: var(--dz-hero-bd); }
+.pfx-hero:before { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(420px 260px at 100% -8%, var(--dz-hero-glow), transparent 66%), radial-gradient(380px 260px at -6% 110%, rgba(20,10,90,.40), transparent 70%); }
+.pfx-hero > * { position: relative; }
+.pfx-hero .pfx-lbl { color: rgba(255,255,255,.86); justify-content: flex-start; }
+.pfx-big { font-size: 32px; line-height: 1.05; font-weight: 600; letter-spacing: -.04em; margin: 6px 0 8px; white-space: nowrap; font-variant-numeric: proportional-nums; }
+.pfx-big .cur { font-size: 15px; font-weight: 600; opacity: .85; margin-right: 6px; letter-spacing: 0; }
+.pfx-big .dec { font-size: .6em; opacity: .82; }
+.pfx-pill { align-self: flex-start; padding: 5px 12px; border-radius: 99px; font-size: 13px; font-weight: 700; background: rgba(255,255,255,.2); color: #fff; white-space: nowrap; }
+.pfx-sc { padding: 18px 22px; display: flex; flex-direction: column; justify-content: center; gap: 4px; cursor: pointer; transition: border-color .12s; }
+.pfx-sc:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--dz-card-bd)); }
+.pfx-sc:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.pfx-go { color: var(--muted); display: grid; place-items: center; }
+.pfx-vr { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.pfx-v { font-size: 26px; font-weight: 700; letter-spacing: -.03em; white-space: nowrap; }
+.pfx-pl { display: inline-flex; padding: 3px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 700; white-space: nowrap; }
+.pfx-pl.pos { background: var(--pos-bg); color: var(--pos); }
+.pfx-pl.neg { background: var(--neg-bg); color: var(--neg); }
+
+/* tabs reuse the Dashboard's pill switch */
+.pfx-tabs { display: flex; }
+.pfx-tabs .dz-seg button { padding: 8px 20px; font-size: 13.5px; }
+
+/* holdings table */
+.pfx-filters { border-bottom: 0; padding-bottom: 4px; }
+.pfx-fsel { display: contents; }
+.pfx-ftoggle { display: none; }
+.pfx-fcount { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 8px; padding: 0 5px; border-radius: 99px; background: var(--btn); color: var(--on-btn); font-size: 11px; }
+.pfx .pf-table { font-variant-numeric: tabular-nums; }
+.pfx .pf-table th, .pfx .pf-table td { padding: 14px; }
+.pfx .pf-table th { padding-top: 10px; padding-bottom: 10px; }
+.pfx .pf-table th:first-child, .pfx .pf-table td:first-child { background: var(--dz-card-base); padding-left: 0; }
+.pfx .pf-table tbody tr:hover td:first-child { background: var(--dz-card-base); }
+.pfx .pf-table th.pfn, .pfx .pf-table td.pfn { text-align: right; }
+.pfx-hc { display: flex; align-items: center; gap: 12px; }
+.pfx-chip { width: 40px; height: 40px; border-radius: 14px; font-size: 12.5px; }
+.pfx-hcn { min-width: 0; }
+.pfx-hn { font-weight: 700; font-size: 14.5px; text-transform: none; letter-spacing: 0; color: var(--text); }
+.pfx-hn:hover { color: var(--brand); }
+.pfx .pf-table th { text-transform: none; letter-spacing: 0; font-size: 12.5px; }
+.pfx-c2 { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.pfx-sub { font-size: 12px; font-weight: 600; color: var(--muted); }
+.pfx-sub.pos { color: var(--pos); } .pfx-sub.neg { color: var(--neg); }
+.pfx-mv { font-weight: 700; }
+.pfx .pf-table tr.pfx-tot td, .pfx-rz tr.pfx-tot td { font-weight: 700; border-top: 1px solid var(--border); border-bottom: 0; padding-top: 16px; }
+.pfx .pf-table tr.pfx-tot td:first-child, .pfx-rz tr.pfx-tot td:first-child, .pfx-rz-sale tr.pfx-tot td:nth-child(2) { color: var(--muted); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.pfx-rz .data-table th.num, .pfx-rz .data-table td.pfn { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* allocation */
+.pfx-two { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: start; }
+.pfx-alloc { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.pfx-ring { position: relative; width: 190px; height: 190px; }
+.pfx-ring svg { width: 100%; height: 100%; display: block; }
+.pfx-ring-track { stroke: var(--dz-dn-track); }
+.pfx-ringc { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.pfx-ringc small { font-size: 12px; color: var(--muted); font-weight: 700; }
+.pfx-ringc b { font-size: 19px; font-weight: 700; letter-spacing: -.03em; }
+.pfx-legend { width: 100%; display: flex; flex-direction: column; gap: 14px; }
+.pfx-lr { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto auto; gap: 12px; align-items: center; font-size: 14px; }
+.pfx-lr i { width: 12px; height: 12px; border-radius: 5px; }
+.pfx-ln { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pfx-lv { color: var(--muted); }
+.pfx-bks { display: flex; flex-direction: column; gap: 22px; }
+.pfx-bk h3 { margin: 0 0 10px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.pfx-bar { display: flex; height: 14px; border-radius: 99px; overflow: hidden; gap: 3px; background: var(--dz-track); }
+.pfx-bar i { display: block; height: 100%; }
+.pfx-bl { display: flex; gap: 6px 18px; flex-wrap: wrap; margin-top: 10px; font-size: 13.5px; font-weight: 600; }
+.pfx-bl span { display: inline-flex; align-items: center; gap: 8px; }
+.pfx-bl s { width: 10px; height: 10px; border-radius: 4px; display: inline-block; text-decoration: none; }
+.pfx-bl em { font-style: normal; color: var(--muted); }
+.pfx-note { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: var(--dz-est-bg); color: var(--dz-est); font-size: 12.5px; line-height: 1.45; font-weight: 600; }
+.pfx-note .icon { flex: none; margin-top: 1px; }
+
+/* realized tab */
+.pfx .mini-cards { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; margin-bottom: 0 !important; }
+.pfx .mini-card { background: var(--dz-card); border: 1px solid var(--dz-card-bd); box-shadow: var(--dz-card-sh); border-radius: 26px; padding: 18px 22px; }
+.pfx .mini-card .mc-value { font-size: 24px; font-weight: 700; letter-spacing: -.03em; }
+
+@media (max-width: 1000px) {
+  .pfx-two { grid-template-columns: 1fr; }
+  .pfx-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pfx-hero { grid-column: 1 / -1; }
+  .pfx .mini-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+}
+@media (max-width: 760px) {
+  .pfx { gap: 12px; font-size: 13px; }
+  .pfx-card, .pfx .mini-card, .pfx .panel { border-radius: 22px; }
+  .pfx-sum { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .pfx-hero { grid-column: 1 / -1; padding: 18px 16px 15px; }
+  .pfx-big { font-size: 34px; margin: 8px 0 10px; }
+  .pfx-pill { padding: 4px 10px; font-size: 12px; }
+  .pfx-sc { padding: 14px; }
+  .pfx-lbl { font-size: 11px; }
+  .pfx-vr { flex-direction: column; align-items: flex-start; gap: 6px; }
+  .pfx-v { font-size: 19px; }
+  .pfx-go, .pfx-scope { display: none; }
+  .pfx-tabs .dz-seg { display: flex; width: 100%; padding: 3px; border-radius: 12px; }
+  .pfx-tabs .dz-seg button { flex: 1; height: 36px; padding: 0; border-radius: 9px; font-size: 12.5px; }
+  .pfx .panel { padding: 14px 12px 12px; }
+  .pfx .panel-head h2 { font-size: 14.5px; }
+  .pfx-foot { text-align: center; font-size: 11px; }
+  .pfx .filters { gap: 8px; padding-bottom: 8px; }
+  .pfx-ftoggle { display: inline-flex; align-items: center; justify-content: center; order: 1; flex: 1; height: 40px; }
+  .pfx .filters-col-panel { order: 2; flex: 1; margin-left: 0; }
+  .pfx .filters-col-panel > .btn { width: 100%; height: 40px; }
+  .pfx-fsel { display: none; order: 3; flex-basis: 100%; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pfx-fsel.open { display: grid; }
+  .pfx .filters .sel { max-width: none; min-width: 0; flex: none; }
+  .pfx .pf-table th, .pfx .pf-table td { padding: 11px 6px; }
+  .pfx .pf-table th:first-child, .pfx .pf-table td:first-child { padding-left: 0; }
+  .pfx .pf-table td.pfn { font-size: 11.5px; }
+  .pfx .pf-table th .col-info svg { width: 12px; height: 12px; }
+  .pfx .pf-table th:last-child, .pfx .pf-table td:last-child { padding-right: 14px; }
+  .pfx .pf-table th:first-child { min-width: 76px !important; width: 76px !important; }
+  .pfx .pf-table td:first-child, .pfx .pf-table td.td-holding { min-width: 76px; max-width: 110px; }
+  .pfx .pf-table th { min-width: 0; font-size: 10.5px; white-space: normal; line-height: 1.25; vertical-align: bottom; }
+  .pfx .pf-table th .col-info { margin-left: 3px; }
+  .pfx-hc { gap: 8px; }
+  .pfx-chip { display: none; }
+  .pfx .pf-table th, .pfx .pf-table td { padding-left: 3px; padding-right: 3px; }
+  .pfx-hn { font-size: 12.5px; }
+  .pfx-sub { font-size: 10.5px; }
+  .pfx-pl { padding: 3px 6px; font-size: 11px; }
+  .pfx-two { gap: 12px; }
+  .pfx-ring { width: 150px; height: 150px; }
+  .pfx-ringc b { font-size: 15px; }
+  .pfx-lr { font-size: 13px; gap: 9px; }
+  .pfx-bks { gap: 18px; }
+  .pfx-bar { height: 12px; }
+  .pfx-bl { font-size: 12.5px; gap: 5px 14px; }
+  .pfx .mini-cards { gap: 10px; }
+  .pfx .mini-card { padding: 13px 14px; }
+  .pfx .mini-card .mc-value { font-size: 18px; }
+  .pfx-only-m { display: block; }
+  .pfx-rz-sale th:nth-child(1), .pfx-rz-sale td:nth-child(1), .pfx-rz-sale th:nth-child(3), .pfx-rz-sale td:nth-child(3),
+  .pfx-rz-sale th:nth-child(4), .pfx-rz-sale td:nth-child(4), .pfx-rz-sale th:nth-child(5), .pfx-rz-sale td:nth-child(5),
+  .pfx-rz-stock th:nth-child(2), .pfx-rz-stock td:nth-child(2), .pfx-rz-stock th:nth-child(3), .pfx-rz-stock td:nth-child(3),
+  .pfx-rz-stock th:nth-child(4), .pfx-rz-stock td:nth-child(4) { display: none; }
+  .pfx-rz .data-table th, .pfx-rz .data-table td { padding: 10px 6px; font-size: 12.5px; }
+  .pfx-rz .data-table th:first-child, .pfx-rz .data-table td:first-child { width: auto !important; }
+}

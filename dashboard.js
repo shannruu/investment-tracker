@@ -24,6 +24,9 @@
 /* ---------- Chinese strings for this page ----------
  * Only keys the main dictionary doesn't already have are added, so nothing existing is overridden. */
 const DZ_ZH = {
+  "Your holdings": "我的持仓", "current holdings": "当前持仓", "Filters": "筛选", "By holding": "按持仓", "Breakdowns": "分布", "Sector": "行业", "Brokerage": "券商",
+  "Sector is not known for stocks added by CSV import. It fills in only when the price feed supplies it.": "通过 CSV 导入的股票没有行业信息，仅当价格来源提供时才会显示。",
+  "Total return here covers current holdings only; the Dashboard also counts sold stocks.": "此处的总回报只包含当前持仓；仪表盘还包含已卖出的股票。",
   "Good morning": "早上好", "Good afternoon": "下午好", "Good evening": "晚上好",
   "Here is how your investments are doing today.": "这是您今天的投资概况。",
   "Live prices": "实时价格", "Prices from": "价格来自", "Prices set manually": "价格为手动设置",
@@ -536,15 +539,19 @@ function dzLiveInfo() {
   return { live: hoursSince(latest) < 36, text: sameDay ? `${t("Live prices")} · ${dt.toTimeString().slice(0, 5)}` : `${t("Prices from")} ${fmtDate(dateToISO(dt))}` };
 }
 
-function dzTopHTML() {
+/* The "Live prices · 15:04" pill (empty when there are no holdings). Wrapped in a span so a page can swap it in place. */
+function dzLiveHTML(live) {
+  return `<span class="dz-live-slot">${live ? `<span class="dz-live${live.live ? "" : " off"}"><i></i>${esc(live.text)}</span>` : ""}</span>`;
+}
+function dzTopHTML(o = {}) {
   const live = dzLiveInfo();
-  const refresh = `<button type="button" class="dz-ib" data-dz-refresh aria-label="${esc(t("Refresh prices"))}" title="${esc(t("Refresh prices"))}">${dzIcon("refresh", 17)}</button>`;
+  const refresh = `<button type="button" class="dz-ib" ${o.refreshAttr || "data-dz-refresh"} aria-label="${esc(t("Refresh prices"))}" title="${esc(t("Refresh prices"))}">${dzIcon("refresh", 17)}</button>`;
   return `<div class="dz-bar">
       <div class="dz-brand"><span class="dz-logo" aria-hidden="true">D</span><span class="dz-bn">Divz</span></div>
       <div class="dz-act"><button type="button" class="dz-ib" id="dzBell" aria-label="${esc(t("Notifications"))}">${dzSprite("bell", 19)}<span class="notif-badge notif-badge-target dz-badge" hidden>0</span></button>${refresh}</div>
     </div>
-    <header class="dz-top"><div class="dz-greet"><div class="dz-eyebrow">${t("Dashboard")}</div><h1 class="dz-h1">${dzGreeting()}</h1><div class="dz-sub">${t("Here is how your investments are doing today.")}</div></div>
-      <div class="dz-topr">${live ? `<span class="dz-live${live.live ? "" : " off"}"><i></i>${esc(live.text)}</span>` : ""}${refresh}</div></header>`;
+    <header class="dz-top"><div class="dz-greet"><div class="dz-eyebrow">${o.eyebrow || t("Dashboard")}</div><h1 class="dz-h1">${o.h1 || dzGreeting()}</h1><div class="dz-sub">${o.sub || t("Here is how your investments are doing today.")}</div></div>
+      <div class="dz-topr">${dzLiveHTML(live)}${refresh}</div></header>`;
 }
 
 function dzHeroHTML(c) {

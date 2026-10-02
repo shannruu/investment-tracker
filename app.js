@@ -2703,6 +2703,7 @@ function plural(n, one, many) { return `${n} ${n === 1 ? one : many}`; }
  * ========================================================================== */
 const portfolioFilters = { broker: "", market: "", currency: "", sort: "" };
 let portfolioTab = "holdings";   // holdings | allocation | realized
+let pfFiltersOpen = false;       // phone only: whether the filter dropdowns are unfolded
 let realizedView = { mode: "stock", sort: "high" };   // mode: stock | sale ; sort: high | low | new
 const EXCHANGE_NAMES = { NMS:"NASDAQ", NGM:"NASDAQ", NCM:"NASDAQ", NYQ:"NYSE", PCX:"NYSE Arca", KLS:"Bursa Malaysia", KLSE:"Bursa Malaysia", LSE:"London SE", HKG:"Hong Kong SE", ASX:"ASX", TSX:"TSX" };
 function exchangeName(code) { return code ? (EXCHANGE_NAMES[code] || code) : ""; }
@@ -2739,10 +2740,15 @@ const COL_DEFAULTS = {
   unrealizedAmt: false, unrealizedPct: true, realizedPL: false, totalReturnAmt: true, totalReturnPct: false,
   marketValue: true, pctPortfolio: false, netDiv: false,
 };
+// On a phone the table starts with the four figures that matter (Holding, P/L %, Total Return, Market Value) so nothing
+// important sits off-screen; anything saved from the Edit-columns panel still wins, and every column stays available there.
+const COL_DEFAULTS_PHONE = Object.assign({}, COL_DEFAULTS, { broker: false, shares: false, avgCost: false, price: false });
 function loadPortfolioPrefs() {
   try {
-    const s = JSON.parse(localStorage.getItem(PORTFOLIO_PREFS_KEY) || "{}");
-    const cols = Object.assign({}, COL_DEFAULTS, s.cols || {});
+    const raw = localStorage.getItem(PORTFOLIO_PREFS_KEY);
+    const s = JSON.parse(raw || "{}");
+    const phone = !raw && typeof matchMedia === "function" && matchMedia("(max-width: 760px)").matches;
+    const cols = Object.assign({}, phone ? COL_DEFAULTS_PHONE : COL_DEFAULTS, s.cols || {});
     const allIds = COL_DEFS.map((d) => d.id);
     const saved = Array.isArray(s.colOrder) ? s.colOrder.filter((id) => allIds.includes(id)) : [];
     const colOrder = [...saved, ...allIds.filter((id) => !saved.includes(id))];
@@ -2843,7 +2849,8 @@ function pagePortfolio() {
       </div>
     </div>
   </div>`;
-  const filterBar = `<div class="filters">
+  const nActive = ["broker", "market", "currency", "sort"].filter((k) => portfolioFilters[k]).length;
+  const filterBar = `<div class="filters pfx-filters"><div class="pfx-fsel${pfFiltersOpen ? " open" : ""}" id="pfFsel">
     ${styledSelect("fBroker", [{ value: "", label: t("All brokers") }, ...BROKERS.map((b) => ({ value: b.id, label: b.name }))], portfolioFilters.broker, { id: "fBroker" })}
     ${styledSelect("fMarket", [{ value: "", label: t("All stocks") }, ...regions.map((r) => ({ value: r, label: regionLabels[r] }))], portfolioFilters.market, { id: "fMarket" })}
     ${styledSelect("fCurrency", [{ value: "", label: t("All currencies") }, ...currencies.map((c) => ({ value: c, label: c }))], portfolioFilters.currency, { id: "fCurrency" })}
@@ -2855,19 +2862,14 @@ function pagePortfolio() {
       { value: "shares",      label: t("Shares") },
       { value: "marketValue", label: t("Market Value") },
     ], portfolioFilters.sort, { id: "fSort" })}
-    <button class="btn ghost btn-reset${filtersActive ? " active" : ""}" id="fReset">${t("Reset")}</button>
+    <button class="btn ghost btn-reset${filtersActive ? " active" : ""}" id="fReset">${t("Reset")}</button></div>
+    <button type="button" class="btn ghost pfx-ftoggle" id="pfFilterToggle" aria-expanded="${pfFiltersOpen}">${t("Filters")}${nActive ? `<b class="pfx-fcount">${nActive}</b>` : ""}</button>
     ${colPanelHtml}</div>`;
 
   // Allocation breakdowns — moved here from the old Reports page (which was mostly a
   // mirror of other pages); this is genuinely-not-shown-elsewhere info, so it belongs
   // on the page it's actually about. See allocationPanel.
-  const distinctBrokers = new Set(T.holdings.map((h) => h.brokerId)).size;
-  const allocA = allocationData();
-  const breakdowns = has ? `<div class="pf-breakdowns">
-      ${allocationPanel(t("By Country"), allocA.byCountry, allocA.total)}
-      ${allocationPanel(t("By Sector"), allocA.bySector, allocA.total)}
-      ${allocationPanel(t("By Currency"), allocA.byCurrency, allocA.total)}
-      ${distinctBrokers >= 2 ? allocationPanel(t("By Brokerage"), allocA.byBroker, allocA.total) : ""}</div>` : "";
+  const breakdowns = has ? pfAllocationHTML() : "";
 
   const emptyContent = BROKERS.length
     ? `<div class="portfolio-empty">
@@ -2881,20 +2883,20 @@ function pagePortfolio() {
 
   const latestFetch = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();
   const priceStampHtml = `<span id="pfPriceStamp">${latestFetch ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${fmtDateTime(latestFetch)}`) : ""}</span>`;
-  const refreshBtn = `<button class="icon-btn pf-refresh" id="pfRefreshBtn" title="${t("Refresh live prices")}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></button>`;
   // Holdings table vs. allocation breakdowns — same tp-tab pills as the Records page,
   // so switching doesn't feel like a different component elsewhere in the app.
   const pfTabs = [["holdings", "Holdings"], ["allocation", "Allocation"], ["realized", "Realized P/L"]];
-  const pfNav = `<div class="type-tabs" role="tablist" style="margin-bottom:16px">${pfTabs.map(([k, lbl]) =>
-    `<button class="tp-tab ${portfolioTab === k ? "on" : ""}" data-pftab="${k}">${t(lbl)}</button>`).join("")}</div>`;
+  const pfNav = `<div class="pfx-tabs"><div class="dz-seg" role="tablist">${pfTabs.map(([k, lbl]) =>
+    `<button type="button" role="tab" aria-selected="${portfolioTab === k}" class="${portfolioTab === k ? "on" : ""}" data-pftab="${k}">${t(lbl)}</button>`).join("")}</div></div>`;
   const hasSales = (T.realizedSales || []).length > 0;
   const html = (has || hasSales)
-    ? `${has ? `<div id="pfSummary">${portfolioSummaryHTML()}</div>` : ""}
+    ? `<div class="pfx">${pfHeaderHTML()}${has ? `<div id="pfSummary">${portfolioSummaryHTML()}</div>` : ""}
        ${pfNav}
        ${portfolioTab === "realized" ? realizedPLHTML() : !has ? panel(t("Holdings"), emptyContent)
           : portfolioTab === "allocation" ? breakdowns
           : panel(t("All Holdings"), filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
-              `<div class="panel-head-actions">${priceStampHtml}${refreshBtn}</div>`)}`
+              `<div class="panel-head-actions">${priceStampHtml}</div>`)}
+       <div class="pfx-foot">${t("Total return here covers current holdings only; the Dashboard also counts sold stocks.")}</div></div>`
     : panel(t("Holdings"), emptyContent);
 
   return { title: "Portfolio", subtitle: LANG === "zh"
@@ -2907,6 +2909,7 @@ function pagePortfolio() {
       const apply = () => {
         const hb = $("#holdingsBody"); if (hb) hb.innerHTML = portfolioTable();
         const sm = $("#pfSummary"); if (sm) sm.innerHTML = portfolioSummaryHTML();
+        $$(".pfx .dz-live-slot").forEach((el) => { el.outerHTML = dzLiveHTML(dzLiveInfo()); });
         const ps = $("#pfPriceStamp");
         if (ps) {
           const latestFetch = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();
@@ -2943,11 +2946,16 @@ function pagePortfolio() {
         document.addEventListener("click", _colPanelCloseHandler);
       }
       // Refresh button (panel head)
-      const pfRefreshBtn = $("#pfRefreshBtn");
-      if (pfRefreshBtn) pfRefreshBtn.addEventListener("click", async () => {
+      const pfBell = $("#dzBell"); if (pfBell) pfBell.addEventListener("click", () => toggleMoreSheet());
+      const pfFt = $("#pfFilterToggle");
+      if (pfFt) pfFt.addEventListener("click", () => {
+        pfFiltersOpen = !pfFiltersOpen;
+        $("#pfFsel").classList.toggle("open", pfFiltersOpen); pfFt.setAttribute("aria-expanded", pfFiltersOpen);
+      });
+      $$("[data-pf-refresh]").forEach((pfRefreshBtn) => pfRefreshBtn.addEventListener("click", async () => {
         if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
         pfRefreshBtn.disabled = true;
-        pfRefreshBtn.querySelector("svg").classList.add("spinning");
+        pfRefreshBtn.classList.add("spin");
         const pfPriceStamp = $("#pfPriceStamp");
         if (pfPriceStamp) pfPriceStamp.textContent = t("Updating prices…");
         const tickers = [...new Set(T.holdings.map((h) => h.ticker))];
@@ -2960,9 +2968,9 @@ function pagePortfolio() {
         }
         saveStore(); apply();
         pfRefreshBtn.disabled = false;
-        pfRefreshBtn.querySelector("svg").classList.remove("spinning");
+        pfRefreshBtn.classList.remove("spin");
         toast(ok ? `${ok}/${tickers.length} ${t("prices updated")}` : t("Couldn't fetch prices — check the ticker symbols (Yahoo format)."));
-      });
+      }));
       // Auto-refresh prices without waiting for the manual button — same pattern as the
       // dividend auto-fetch elsewhere. Uses the same in-place apply() as a filter change
       // rather than a full render(): this fires whenever it fires, with no regard for
@@ -2972,9 +2980,9 @@ function pagePortfolio() {
       // node render() just discarded, not in any tracked variable.
       if (LIVE_ENABLED) {
         fetchAllLivePrices().then(({ fetched }) => {
-          if (fetched && document.getElementById("pfRefreshBtn")) apply();
+          if (fetched && document.querySelector("[data-pf-refresh]")) apply();
         });
-        fetchAllMySymbols().then((found) => { if (found && document.getElementById("pfRefreshBtn")) apply(); });
+        fetchAllMySymbols().then((found) => { if (found && document.querySelector("[data-pf-refresh]")) apply(); });
       }
       // Panel drag-to-reorder
       if (colPanel) {
@@ -3081,13 +3089,16 @@ function realizedPLHTML() {
   const pct = (pl, cost) => cost > 0 ? `<span>${pctTxt((pl / cost) * 100)}</span>` : `<span class="muted">—</span>`;
   const sortFn = (a, b) => realizedView.sort === "low" ? a.pl - b.pl : realizedView.sort === "new" ? (b.date < a.date ? -1 : b.date > a.date ? 1 : 0) : b.pl - a.pl;
   let rows, headers;
+  const tCost = sales.reduce((s, x) => s + x.costMYR, 0), tProc = sales.reduce((s, x) => s + x.proceedsMYR, 0), tPl = sales.reduce((s, x) => s + x.pl, 0);
+  const numFrom = realizedView.mode === "sale" ? 2 : 1;
   if (realizedView.mode === "sale") {
     rows = [...sales].sort(sortFn).map((x) => `<tr>
       <td class="dcc-c">${fmtDate(x.date)}</td>
-      <td class="dcc-c td-holding">${tickerCell(x.ticker, null, tickerSubLabel(x.ticker, x.company))}<div class="sub">${esc(brokerName(x.brokerId))}</div></td>
-      <td class="dcc-c">${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} @ ${fmt(x.price)} ${ccyLabel(x.currency)}</td>
-      <td class="dcc-c">${money(x.costMYR)}</td><td class="dcc-c">${money(x.proceedsMYR)}</td>
-      <td class="dcc-c ${cls(x.pl)}">${moneySigned(x.pl)}</td><td class="dcc-c ${cls(x.pl)}">${pct(x.pl, x.costMYR)}</td></tr>`).join("");
+      <td class="dcc-c td-holding">${tickerCell(x.ticker, null, tickerSubLabel(x.ticker, x.company))}<div class="sub">${esc(brokerName(x.brokerId))}</div><div class="sub pfx-only-m">${fmtDate(x.date)} · ${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")}</div></td>
+      <td class="dcc-c pfn">${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} @ ${fmt(x.price)} ${ccyLabel(x.currency)}</td>
+      <td class="dcc-c pfn">${money(x.costMYR)}</td><td class="dcc-c pfn">${money(x.proceedsMYR)}</td>
+      <td class="dcc-c pfn ${cls(x.pl)}">${moneySigned(x.pl)}</td><td class="dcc-c pfn ${cls(x.pl)}">${pct(x.pl, x.costMYR)}</td></tr>`).join("")
+      + `<tr class="pfx-tot"><td class="dcc-c"></td><td class="dcc-c">${t("Total")}</td><td class="dcc-c pfn"></td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`;
     headers = [t("Date"), t("Holding"), t("Sold"), t("Cost"), t("Proceeds"), t("Realized P/L"), t("Return %")];
   } else {
     const by = {};
@@ -3098,8 +3109,9 @@ function realizedPLHTML() {
     });
     rows = Object.values(by).sort(sortFn).map((g) => `<tr>
       <td class="dcc-c td-holding">${tickerCell(g.ticker, null, tickerSubLabel(g.ticker, g.company))}</td>
-      <td class="dcc-c">${g.n}</td><td class="dcc-c">${money(g.cost)}</td><td class="dcc-c">${money(g.proceeds)}</td>
-      <td class="dcc-c ${cls(g.pl)}">${moneySigned(g.pl)}</td><td class="dcc-c ${cls(g.pl)}">${pct(g.pl, g.cost)}</td></tr>`).join("");
+      <td class="dcc-c pfn">${g.n}</td><td class="dcc-c pfn">${money(g.cost)}</td><td class="dcc-c pfn">${money(g.proceeds)}</td>
+      <td class="dcc-c pfn ${cls(g.pl)}">${moneySigned(g.pl)}</td><td class="dcc-c pfn ${cls(g.pl)}">${pct(g.pl, g.cost)}</td></tr>`).join("")
+      + `<tr class="pfx-tot"><td class="dcc-c">${t("Total")}</td><td class="dcc-c pfn">${sales.length}</td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`;
     headers = [t("Holding"), t("Sales"), t("Cost"), t("Proceeds"), t("Realized P/L"), t("Return %")];
   }
   const best = [...sales].sort((a, b) => b.pl - a.pl)[0], worst = [...sales].sort((a, b) => a.pl - b.pl)[0];
@@ -3117,20 +3129,73 @@ function realizedPLHTML() {
   const w = (100 / headers.length).toFixed(1) + "%";
   return summary + panel(t("Realized P/L"),
     `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${modeBtns}${sortSel}</div>
-     <div class="dcc-table-scroll" style="max-height:480px">${table(headers.map((h) => ({ label: h, style: "width:" + w })), rows)}</div>
+     <div class="dcc-table-scroll" style="max-height:480px">${`<div class="pfx-rz pfx-rz-${realizedView.mode}">${table(headers.map((h, i) => ({ label: h, num: i >= numFrom, style: "width:" + w })), rows)}</div>`}</div>
      <p class="muted" style="font-size:12px;margin:10px 0 0">${t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.")}</p>`);
+}
+
+function pfHeaderHTML() {
+  const n = T.holdings.length;
+  const sub = LANG === "zh"
+    ? `${n} 个持仓，${BROKERS.length} 个券商 · ${money(T.portfolioValue)}`
+    : `${plural(n, "holding", "holdings")} across ${plural(BROKERS.length, "broker", "brokers")} · ${money(T.portfolioValue)}`;
+  return dzTopHTML({ eyebrow: t("Portfolio"), h1: t("Your holdings"), sub, refreshAttr: "data-pf-refresh" });
 }
 
 function portfolioSummaryHTML() {
   const rows = filteredHoldings();
   const mv = rows.reduce((s, h) => s + h.marketValue, 0);
+  const cost = rows.reduce((s, h) => s + h.costBasis, 0);
   const unrealized = rows.reduce((s, h) => s + h.unrealized, 0);
   const totalReturn = rows.reduce((s, h) => s + h.totalReturn, 0);
-  return `<div class="mini-cards" style="margin-bottom:16px">
-    <div class="mini-card"><div class="mc-label">${t("Market Value")}</div><div class="mc-value">${money(mv)}</div></div>
-    <div class="mini-card" role="button" tabindex="0" data-card="pfUnrealized" aria-label="${t("Unrealized P/L")}, show calculation"><div class="mc-label">${t("Unrealized P/L")}</div><div class="mc-value ${cls(unrealized)}">${moneySigned(unrealized)}</div></div>
-    <div class="mini-card" role="button" tabindex="0" data-card="pfTotalReturn" aria-label="${t("Total Return")}, show calculation"><div class="mc-label">${t("Total Return")}</div><div class="mc-value ${cls(totalReturn)}">${moneySigned(totalReturn)}</div></div>
+  const pill = (v) => cost > 0 ? `<span class="pfx-pl ${cls(v)}">${pctTxt((v / cost) * 100)}</span>` : "";
+  const [int, dec] = fmt(mv).split(".");
+  const card = (key, label, scope, v) => `<div class="pfx-card pfx-sc" role="button" tabindex="0" data-card="${key}" aria-label="${label}, ${t("show calculation")}">
+      <div class="pfx-lbl"><span>${label}${scope ? `<span class="pfx-scope"> · ${scope}</span>` : ""}</span><span class="pfx-go">${dzIcon("info", 15)}</span></div>
+      <div class="pfx-vr"><div class="pfx-v dz-n ${cls(v)}">${moneySigned(v)}</div>${pill(v)}</div></div>`;
+  return `<div class="pfx-sum">
+    <div class="pfx-card pfx-hero"><div class="pfx-lbl">${t("Market Value")}</div>
+      <div class="pfx-big"><span class="cur">${ccyLabel(FX.base)}</span>${int}<span class="dec">.${dec || "00"}</span></div>
+      <span class="pfx-pill">${t("Cost")} ${money(cost)}</span></div>
+    ${card("pfUnrealized", t("Unrealized P/L"), "", unrealized)}
+    ${card("pfTotalReturn", t("Total Return"), t("current holdings"), totalReturn)}
   </div>`;
+}
+
+/* Allocation tab: one ring for "what share each stock is", then one stacked bar per breakdown. A ring per breakdown showed
+ * three full 100% circles when everything is one country / currency / broker, which said nothing. */
+const PF_PAL = ["#8b7cff", "#3dd8f5", "#f6bd60", "#34d6a3", "#ff6f8e", "#5b6285"];
+function pfAllocationHTML() {
+  const al = allocationData();
+  const agg = aggregateHoldingsByTicker(T.holdings).filter((h) => h.marketValue > 0).sort((a, b) => b.marketValue - a.marketValue);
+  const total = agg.reduce((s, h) => s + h.marketValue, 0);
+  if (!total) return panel(t("Allocation"), emptyState(t("No priced holdings yet.")));
+  let items = agg.map((h) => ({ label: dzName(h.ticker, h.company), value: h.marketValue }));
+  if (items.length > PF_PAL.length) {
+    const rest = items.slice(PF_PAL.length - 1);
+    items = items.slice(0, PF_PAL.length - 1).concat({ label: t("Others"), value: rest.reduce((s, x) => s + x.value, 0) });
+  }
+  const pc = (v) => fmt((v / total) * 100, { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+  const size = 190, thick = 17, r = (size - thick) / 2, C = 2 * Math.PI * r, gap = items.length > 1 ? C * 3.4 / 360 : 0;
+  let off = 0;
+  const arcs = items.map((x, i) => {
+    const L = (C * x.value) / total, seg = Math.max(0.1, L - gap);
+    const el = `<circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke="${PF_PAL[i % PF_PAL.length]}" stroke-width="${thick}" stroke-dasharray="${seg.toFixed(2)} ${(C - seg).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 ${size / 2} ${size / 2})"/>`;
+    off += L; return el;
+  }).join("");
+  const legend = items.map((x, i) => `<div class="pfx-lr"><i style="background:${PF_PAL[i % PF_PAL.length]}"></i><span class="pfx-ln">${esc(x.label)}</span><span class="pfx-lv dz-n">${money(x.value)}</span><b class="dz-n">${pc(x.value)}</b></div>`).join("");
+  const ring = `<div class="pfx-alloc"><div class="pfx-ring"><svg viewBox="0 0 ${size} ${size}" role="img" aria-label="${t("By holding")}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" class="pfx-ring-track" stroke-width="${thick}"/>${arcs}</svg>
+    <div class="pfx-ringc"><small>${t("Market Value")}</small><b class="dz-n">${money(total)}</b></div></div><div class="pfx-legend">${legend}</div></div>`;
+  const stack = (title, list, extra = "") => {
+    const sorted = [...list].filter((x) => x.value > 0).sort((a, b) => b.value - a.value);
+    if (!sorted.length) return "";
+    return `<div class="pfx-bk"><h3>${title}</h3><div class="pfx-bar">${sorted.map((x, i) => `<i style="width:${(x.value / total) * 100}%;background:${PF_PAL[i % PF_PAL.length]}"></i>`).join("")}</div>
+      <div class="pfx-bl">${sorted.map((x, i) => `<span><s style="background:${PF_PAL[i % PF_PAL.length]}"></s>${esc(x.label)} <em class="dz-n">${pc(x.value)}</em></span>`).join("")}</div>${extra}</div>`;
+  };
+  const noSector = al.bySector.length === 1 && al.bySector[0].label === "Others"
+    ? `<div class="pfx-note">${dzIcon("info", 15)}<span>${t("Sector is not known for stocks added by CSV import. It fills in only when the price feed supplies it.")}</span></div>` : "";
+  const brokers = new Set(T.holdings.map((h) => h.brokerId)).size >= 2 || al.byBroker.length;
+  const bks = `<div class="pfx-bks">${stack(t("Country"), al.byCountry)}${stack(t("Sector"), al.bySector, noSector)}${stack(t("Currency"), al.byCurrency)}${brokers ? stack(t("Brokerage"), al.byBroker) : ""}</div>`;
+  return `<div class="pfx-two">${panel(t("By holding"), ring)}${panel(t("Breakdowns"), bks)}</div>`;
 }
 
 /* Fresh-computed at click time (not baked in at render) since #pfSummary can be
@@ -3227,46 +3292,71 @@ function portfolioTable() {
     totalReturnAmt: t("Total Return"), totalReturnPct: t("Return %"),
     marketValue: t("Market Value"), netDiv: t("Net Dividends"),
   };
+  // Every figure column is right-aligned with a fixed number of decimals, so the digits line up down the column;
+  // only Holding and Broker stay on the left. The % columns are coloured pills.
+  const LEFT = new Set(["broker"]);
+  const dash = `<span class="muted">—</span>`;
+  const pill = (v, txt) => `<span class="pfx-pl ${cls(v)}">${txt}</span>`;
+  const rate = (n) => `${ccyLabel(FX.base)} ${fmt(n, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
+  const sub = (c, txt) => `<small class="pfx-sub ${c}">${txt}</small>`;
+  const retPctOf = (h) => (h.costBasis > 0 ? (h.totalReturn / h.costBasis) * 100 : null);
 
-  // Left-aligned columns. Each title stays on ONE line with its info icon right after it, and every
-  // column simply sizes to its widest content (auto table layout) — so a title is never cut off or
-  // wrapped over two or three lines, and the whole header row lines up. A table with many columns
-  // enabled grows past 100% and scrolls sideways (via .table-wrap) instead of overlapping.
-  const body = rows.map((h) => {
-    const totalReturnPct = h.costBasis > 0 ? (h.totalReturn / h.costBasis) * 100 : null;
+  const body = rows.map((h, i) => {
+    const trPct = retPctOf(h);
+    const name = dzName(h.ticker, h.company);
+    const td = (id, inner, c = "") => `<td class="dcc-c${LEFT.has(id) ? "" : " pfn"}${c ? " " + c : ""}">${inner}</td>`;
     const cellMap = {
-      broker:         `<td class="dcc-c"><div class="broker-pills">${(h._brokerNames || [brokerName(h.brokerId)]).map((n) => `<span class="chip chip-pill">${esc(n)}</span>`).join("")}</div></td>`,
-      shares:         `<td class="dcc-c">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</td>`,
-      avgCost:        `<td class="dcc-c">${ccyLabel(FX.base)} ${fmt(h.avgCost, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}</td>`,
-      avgCostEx:      `<td class="dcc-c">${h.shares > 0 && h.priceCostMYR != null ? `${ccyLabel(FX.base)} ${fmt(h.priceCostMYR / h.shares, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : `<span class="muted">—</span>`}</td>`,
-      buyFees:        `<td class="dcc-c">${h.feeCostMYR > 0.004 ? money(h.feeCostMYR) : `<span class="muted">—</span>`}</td>`,
-      costBasis:      `<td class="dcc-c">${money(h.costBasis)}</td>`,
-      todayPct:       `<td class="dcc-c ${h.hasPrice && h.changePct != null ? cls(h.changePct) : ""}">${h.hasPrice && h.changePct != null ? pctTxt(h.changePct) : `<span class="muted">—</span>`}</td>`,
-      realizedPL:     `<td class="dcc-c ${cls(h.realized || 0)}">${Math.abs(h.realized || 0) > 0.004 ? moneySigned(h.realized) : `<span class="muted">—</span>`}</td>`,
-      pctPortfolio:   `<td class="dcc-c">${T.portfolioValue > 0 ? `${fmt((h.marketValue / T.portfolioValue) * 100, { maximumFractionDigits: 2 })}%` : `<span class="muted">—</span>`}</td>`,
-      price:          `<td class="dcc-c">${h.hasPrice ? `${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}` : `<span class="muted">—</span>`}</td>`,
-      priceMyr:       `<td class="dcc-c">${(h.hasPrice && h.currency !== FX.base) ? `${ccyLabel(FX.base)} ${fmt(h.currentPrice * (FX.rates[h.currency] || 1))}` : `<span class="muted">—</span>`}</td>`,
-      unrealizedAmt:  `<td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? moneySigned(h.unrealized) : `<span class="muted">—</span>`}</td>`,
-      unrealizedPct:  `<td class="dcc-c ${h.hasPrice ? cls(h.unrealized) : ""}">${h.hasPrice ? pctTxt(h.unrealizedPct) : `<span class="muted">—</span>`}</td>`,
-      totalReturnAmt: `<td class="dcc-c ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</td>`,
-      totalReturnPct: `<td class="dcc-c ${cls(h.totalReturn)}">${totalReturnPct == null ? `<span class="muted">-</span>` : pctTxt(totalReturnPct)}</td>`,
-      marketValue:    `<td class="dcc-c">${h.hasPrice ? money(h.marketValue) : `<span class="muted">—</span>`}</td>`,
-      netDiv:         `<td class="dcc-c">${h.netDividends ? money(h.netDividends) : `<span class="muted">—</span>`}</td>`,
+      broker:         td("broker", `<div class="broker-pills">${(h._brokerNames || [brokerName(h.brokerId)]).map((n) => `<span class="chip chip-pill">${esc(n)}</span>`).join("")}</div>`),
+      shares:         td("shares", fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })),
+      avgCost:        td("avgCost", rate(h.avgCost)),
+      avgCostEx:      td("avgCostEx", h.shares > 0 && h.priceCostMYR != null ? rate(h.priceCostMYR / h.shares) : dash),
+      buyFees:        td("buyFees", h.feeCostMYR > 0.004 ? money(h.feeCostMYR) : dash),
+      costBasis:      td("costBasis", money(h.costBasis)),
+      todayPct:       td("todayPct", h.hasPrice && h.changePct != null ? pctTxt(h.changePct) : dash, h.hasPrice && h.changePct != null ? cls(h.changePct) : ""),
+      realizedPL:     td("realizedPL", Math.abs(h.realized || 0) > 0.004 ? moneySigned(h.realized) : dash, cls(h.realized || 0)),
+      pctPortfolio:   td("pctPortfolio", T.portfolioValue > 0 ? `${fmt((h.marketValue / T.portfolioValue) * 100, { maximumFractionDigits: 2 })}%` : dash),
+      price:          td("price", h.hasPrice ? `<div class="pfx-c2"><span>${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}</span>${!cols.todayPct && h.changePct != null ? sub(cls(h.changePct), `${pctTxt(h.changePct)} ${t("today")}`) : ""}</div>` : dash),
+      priceMyr:       td("priceMyr", (h.hasPrice && h.currency !== FX.base) ? `${ccyLabel(FX.base)} ${fmt(h.currentPrice * (FX.rates[h.currency] || 1))}` : dash),
+      unrealizedAmt:  td("unrealizedAmt", h.hasPrice ? moneySigned(h.unrealized) : dash, h.hasPrice ? cls(h.unrealized) : ""),
+      unrealizedPct:  td("unrealizedPct", h.hasPrice ? pill(h.unrealized, pctTxt(h.unrealizedPct)) : dash),
+      totalReturnAmt: td("totalReturnAmt", `<div class="pfx-c2"><span class="${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</span>${!cols.totalReturnPct && trPct != null ? sub(cls(h.totalReturn), pctTxt(trPct)) : ""}</div>`),
+      totalReturnPct: td("totalReturnPct", trPct == null ? `<span class="muted">-</span>` : pill(h.totalReturn, pctTxt(trPct))),
+      marketValue:    td("marketValue", h.hasPrice ? money(h.marketValue) : dash, "pfx-mv"),
+      netDiv:         td("netDiv", h.netDividends ? money(h.netDividends) : dash),
     };
     return `<tr>
-      <td class="dcc-c td-holding">
-        <a class="ticker ticker-link" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${esc(h.ticker)}</a>
-        ${holdingSubLabel(h) ? `<div class="sub">${esc(holdingSubLabel(h))}</div>` : ""}
-      </td>
+      <td class="dcc-c td-holding"><div class="pfx-hc"><span class="dz-chip pfx-chip${i % 2 ? " b" : ""}" aria-hidden="true">${dzInitials(name)}</span>
+        <div class="pfx-hcn"><a class="ticker ticker-link pfx-hn" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${esc(name)}</a>
+        ${name !== h.ticker ? `<div class="sub">${esc(h.ticker)}</div>` : ""}</div></div></td>
       ${orderedColIds.map((id) => cellMap[id] || "").join("")}</tr>`;
   }).join("");
 
-  const thCols = orderedColIds.map((id) => {
-    return `<th style="text-align:left" data-col-id="${id}">${colLabels[id] || id}</th>`;
-  }).join("");
+  // Totals row (only worth showing with 2+ rows). Percentages are blended over the summed cost.
+  let totals = "";
+  if (rows.length > 1) {
+    const sum = (f) => rows.reduce((s, h) => s + (f(h) || 0), 0);
+    const priced = rows.filter((h) => h.hasPrice);
+    const cost = sum((h) => h.costBasis), pcost = priced.reduce((s, h) => s + h.costBasis, 0);
+    const un = priced.reduce((s, h) => s + h.unrealized, 0), tr = sum((h) => h.totalReturn);
+    const T_ = {
+      costBasis: money(cost), buyFees: sum((h) => h.feeCostMYR) > 0.004 ? money(sum((h) => h.feeCostMYR)) : "",
+      unrealizedAmt: moneySigned(un), unrealizedPct: pcost > 0 ? pill(un, pctTxt((un / pcost) * 100)) : "",
+      realizedPL: Math.abs(sum((h) => h.realized)) > 0.004 ? moneySigned(sum((h) => h.realized)) : "",
+      totalReturnAmt: `<div class="pfx-c2"><span class="${cls(tr)}">${moneySigned(tr)}</span>${!cols.totalReturnPct && cost > 0 ? sub(cls(tr), pctTxt((tr / cost) * 100)) : ""}</div>`,
+      totalReturnPct: cost > 0 ? pill(tr, pctTxt((tr / cost) * 100)) : "",
+      marketValue: money(priced.reduce((s, h) => s + h.marketValue, 0)),
+      pctPortfolio: T.portfolioValue > 0 ? `${fmt((priced.reduce((s, h) => s + h.marketValue, 0) / T.portfolioValue) * 100, { maximumFractionDigits: 2 })}%` : "",
+      netDiv: sum((h) => h.netDividends) ? money(sum((h) => h.netDividends)) : "",
+    };
+    const tcls = { unrealizedAmt: cls(un), realizedPL: cls(sum((h) => h.realized)) };
+    totals = `<tr class="pfx-tot"><td class="dcc-c">${t("Total")}</td>${orderedColIds.map((id) =>
+      `<td class="dcc-c${LEFT.has(id) ? "" : " pfn"}${tcls[id] ? " " + tcls[id] : ""}${id === "marketValue" ? " pfx-mv" : ""}">${T_[id] || ""}</td>`).join("")}</tr>`;
+  }
+
+  const thCols = orderedColIds.map((id) => `<th class="${LEFT.has(id) ? "" : "pfn"}" data-col-id="${id}">${colLabels[id] || id}</th>`).join("");
   const thead = `<thead><tr><th>${t("Holding")}</th>${thCols}</tr></thead>`;
 
-  return `<div class="table-wrap"><table class="data-table pf-table">${thead}<tbody>${body}</tbody></table></div>`;
+  return `<div class="table-wrap"><table class="data-table pf-table">${thead}<tbody>${body}${totals}</tbody></table></div>`;
 }
 
 /* =============================================================================
