@@ -668,6 +668,13 @@ const ZH = {
   "What you paid": "您的买入成本",
   "Total value": "总价值",
   "dividends received, by month, quarter, year or stock": "按月、季、年或股票的已收股息",
+  "Currency shown": "显示货币",
+  "In": "以",
+  "Original currency": "原始货币",
+  "own currency": "原始货币",
+  "Value": "价值",
+  "Income": "收益",
+  "Money": "资金",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -3023,7 +3030,7 @@ function pagePortfolio() {
        ${portfolioTab === "realized" ? realizedPLHTML() : !has ? panel(t("Holdings"), emptyContent)
           : portfolioTab === "allocation" ? breakdowns
           : panel(`${t("All Holdings")}<small class="pfx-sm">${priceStampHtml}</small>`, filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
-              `<div class="panel-head-actions">${filterToggleBtn}${colPanelHtml}</div>`)}
+              `<div class="panel-head-actions">${ccySwitchHTML()}${filterToggleBtn}${colPanelHtml}</div>`)}
        <div class="pfx-foot">${t("Total return here covers current holdings only; the Dashboard also counts sold stocks.")}</div></div>`
     : panel(t("Holdings"), emptyContent);
 
@@ -3489,9 +3496,9 @@ function portfolioTable() {
       priceMyr:       td("priceMyr", (h.hasPrice && h.currency !== FX.base) ? `${ccyLabel(FX.base)} ${fmt(h.currentPrice * (FX.rates[h.currency] || 1))}` : dash),
       unrealizedAmt:  td("unrealizedAmt", h.hasPrice ? moneySigned(h.unrealized) : dash, h.hasPrice ? cls(h.unrealized) : ""),
       unrealizedPct:  td("unrealizedPct", h.hasPrice ? pill(h.unrealized, pctTxt(h.unrealizedPct)) : dash),
-      totalReturnAmt: td("totalReturnAmt", `<div class="pfx-c2"><span class="${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</span>${!cols.totalReturnPct && trPct != null ? sub(cls(h.totalReturn), pctTxt(trPct)) : ""}</div>`),
+      totalReturnAmt: td("totalReturnAmt", `<div class="pfx-c2"><span class="${cls(h.totalReturn)}">${ownAmt(h.totalReturn, h.currency, true)}</span>${!cols.totalReturnPct && trPct != null ? sub(cls(h.totalReturn), pctTxt(trPct)) : ""}</div>`),
       totalReturnPct: td("totalReturnPct", trPct == null ? `<span class="muted">-</span>` : pill(h.totalReturn, pctTxt(trPct))),
-      marketValue:    td("marketValue", h.hasPrice ? `<div class="pfx-c2"><span>${money(h.marketValue)}</span>${!cols.pctPortfolio && T.portfolioValue > 0 ? sub("", `${fmt((h.marketValue / T.portfolioValue) * 100, { maximumFractionDigits: 0 })}% ${t("of portfolio")}`) : ""}</div>` : dash, "pfx-mv"),
+      marketValue:    td("marketValue", h.hasPrice ? `<div class="pfx-c2"><span>${ownAmt(h.marketValue, h.currency)}</span>${!cols.pctPortfolio && T.portfolioValue > 0 ? sub("", `${fmt((h.marketValue / T.portfolioValue) * 100, { maximumFractionDigits: 0 })}% ${t("of portfolio")}`) : ""}</div>` : dash, "pfx-mv"),
       netDiv:         td("netDiv", h.netDividends ? money(h.netDividends) : dash),
     };
     return `<tr>
@@ -3588,6 +3595,16 @@ function matchesCashSubFilter(x) {
 // Hero + summary cards for the Transactions / Brokers tops: the same markup the Dividends page uses.
 /* Top cards. Every card: label on the left, the "i" (what it is) at the top right, the number, and only a small data pill (a %, a date).
  * Anything that needs explaining goes in the "i". A card with a calculation opens it on click (pfxCalc). */
+let CCY_OWN = (() => { try { return localStorage.getItem("il-ccy-own") === "1"; } catch (e) { return false; } })();   // false = everything in your own currency, true = each amount in its original currency
+/* An amount that is stored in your own currency, shown either as it is or in the currency it came from. */
+function ownAmt(baseAmt, ccy, signed) {
+  if (!CCY_OWN || !ccy || ccy === FX.base) return signed ? moneySigned(baseAmt) : money(baseAmt);
+  const v = baseAmt / (FX.rates[ccy] || 1);
+  return `${signed ? (v > 0 ? "+" : v < 0 ? "−" : "") : ""}${ccyLabel(ccy)} ${fmt(Math.abs(v))}`;
+}
+function ccySwitchHTML() {
+  return `<div class="dz-seg ccy-sw" role="group" aria-label="${esc(t("Currency shown"))}"><button type="button" class="${CCY_OWN ? "" : "on"}" data-ccymode="base">${t("In")} ${ccyLabel(FX.base)}</button><button type="button" class="${CCY_OWN ? "on" : ""}" data-ccymode="own">${t("Original currency")}</button></div>`;
+}
 const CARD_CALC = {};
 function pfxCalc(key, fn) { CARD_CALC[key] = fn; return `data-calc="${key}" role="button" tabindex="0" aria-label="${esc(t("Show how this is worked out"))}"`; }
 function goTo(hash, setup) { return () => { if (setup) setup(); closeModal(); if (location.hash === hash) render(); else location.hash = hash; }; }
@@ -5314,6 +5331,7 @@ function pageDividends() {
   const monthTitle = new Date(cy, cm - 1, 1).toLocaleString(LANG === "zh" ? "zh-CN" : "en", { month: "long", year: "numeric" });
   const calNav = `<div class="dz-seg" role="group"><button type="button" data-dvcal="prev" aria-label="${t("Previous month")}">‹</button><button type="button" class="on" data-dvcal="today">${t("Today")}</button><button type="button" data-dvcal="next" aria-label="${t("Next month")}">›</button></div>`;
   const monthCard = panel(`${monthTitle}<small class="pfx-sm">${t("your dividend dates")}</small>`, `<div class="pfx-cal7">${cells}</div><div class="pfx-leg" style="margin-top:12px"><span><i class="pfx-leg-ex"></i>${t("Ex-date: own the stock before this day")}</span><span><i style="background:var(--brand)"></i>${t("Payout: the money arrives")}</span></div>`, calNav);
+  const dvAmt = (d) => (CCY_OWN && d.ccy && d.ccy !== FX.base && d.amtLocal != null ? `${ccyLabel(d.ccy)} ${fmt(d.amtLocal)}` : money(d.amtMYR));
   const dvLocal = (d) => (d.ccy && d.ccy !== FX.base && d.amtLocal != null ? `<small class="dv-ccy">${ccyLabel(d.ccy)} ${fmt(d.amtLocal)}</small>` : "");
   const comingList = allDivEntries.filter((d) => (d.payDisplay || d.payDate) >= today).slice(0, 4).map((d) => { const pay = d.payDisplay || d.payDate, dt = new Date(pay + "T00:00:00");
     return `<div class="pfx-nx" role="button" tabindex="0" data-dvdetail="${dvIdx.get(d)}"><div class="pfx-dd" title="${t("Payout date")}"><small>${dt.toLocaleString("en", { month: "short" }).toUpperCase()}</small><b class="dz-n">${dt.getDate()}</b></div>
@@ -5328,15 +5346,15 @@ function pageDividends() {
   const payShown = payList.slice(0, divPayLimit);
   const payDel = (d) => (d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" aria-label="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : "");
   const payDeskRows = payShown.map((d) => `<tr><td class="dcc-c">${tickerCell(d.ticker, d.brokerId, tickerSubLabel(d.ticker))}</td><td class="dcc-c">${fmtDate(d.payDisplay || d.payDate)}</td>
-      <td class="dcc-c pfn pos">${money(d.amtMYR)}${dvLocal(d)}</td><td class="dcc-c">${statusBadge(d.status)}</td><td class="dcc-c">${payDel(d)}</td></tr>`).join("");
+      <td class="dcc-c pfn pos">${dvAmt(d)}${CCY_OWN ? "" : dvLocal(d)}</td><td class="dcc-c">${statusBadge(d.status)}</td><td class="dcc-c">${payDel(d)}</td></tr>`).join("");
   const payMobRows = payShown.map((d) => { const pd = d.payDisplay || d.payDate, dt = new Date(pd + "T00:00:00");
     return `<div class="pfx-nx"><div class="pfx-dd"><small>${dt.toLocaleString("en", { month: "short" }).toUpperCase()}</small><b class="dz-n">${dt.getDate()}</b></div>
-      <div class="pfx-nxt"><b>${esc(dvNameOf(d.ticker))}</b><span>${dt.getFullYear()} · ${statusBadge(d.status).replace(/<[^>]+>/g, "")}</span></div><div class="pfx-nxa dz-n pos">+${money(d.amtMYR)}${dvLocal(d)}${payDel(d)}</div></div>`; }).join("");
+      <div class="pfx-nxt"><b>${esc(dvNameOf(d.ticker))}</b><span>${dt.getFullYear()} · ${statusBadge(d.status).replace(/<[^>]+>/g, "")}</span></div><div class="pfx-nxa dz-n pos">+${dvAmt(d)}${CCY_OWN ? "" : dvLocal(d)}${payDel(d)}</div></div>`; }).join("");
   const payMore = payList.length > payShown.length ? `<div class="rc-more"><span>${dzF("Showing {a} of {b} records", { a: payShown.length, b: payList.length })}</span><button type="button" class="pfx-btn" data-dvpaymore>${t("Show more")}</button></div>` : "";
   const listPanel = panel(`${t("All payments")}<small class="pfx-sm">${payList.length}</small>`, allDivEntries.length
-      ? `<div class="table-wrap pfx-dvt-wrap dv-pay-desk"><table class="data-table pfx-txt"><thead><tr><th>${t("Holding")}</th><th>${t("Paid on")}</th><th class="pfn">${t("Amount")} (${ccyLabel(FX.base)})</th><th>${t("Status")}</th><th></th></tr></thead><tbody>${payDeskRows}</tbody></table></div><div class="dv-pay-mob">${payMobRows}</div>${payMore}`
+      ? `<div class="table-wrap pfx-dvt-wrap dv-pay-desk"><table class="data-table pfx-txt"><thead><tr><th>${t("Holding")}</th><th>${t("Paid on")}</th><th class="pfn">${t("Amount")} (${CCY_OWN ? t("own currency") : ccyLabel(FX.base)})</th><th>${t("Status")}</th><th></th></tr></thead><tbody>${payDeskRows}</tbody></table></div><div class="dv-pay-mob">${payMobRows}</div>${payMore}`
       : `<p class="muted" style="margin:0 0 12px;font-size:13px">${!LIVE_ENABLED ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.") : t("No dividends yet. Record one to get started.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
-    `${paySeg}<small class="muted" id="divFetchStatus"></small>`);
+    `${ccySwitchHTML()}${paySeg}<small class="muted" id="divFetchStatus"></small>`);
   const calendarTab = `<div class="pfx-two pfx-two-cal">${monthCard}<div class="dv-pay-wrap" id="divUpcomingSection">${listPanel}</div></div>${exDivPanel}`;
 
   // --- History
@@ -5515,10 +5533,10 @@ function brSub(b, s) {
 function brRowsDesk(list, totalNet) {
   return list.map((b) => {
     const s = brStats(b), share = totalNet > 0 ? (s.net / totalNet) * 100 : 0;
-    const ret = !s.holdings.length && !s.ret ? "—" : moneySigned(s.ret);
+    const ret = !s.holdings.length && !s.ret ? "—" : ownAmt(s.ret, b.currency, true);
     return `<tr class="rc-row${b.id === brSel ? " sel" : ""}${b.archived ? " archived" : ""}" data-br-id="${b.id}" tabindex="0">
       <td><div class="bk-id"><span class="brand-mark sm">${esc(b.name.slice(0, 2).toUpperCase())}</span><div><div class="ticker tk-name">${esc(b.name)}${b.archived ? ` <span class="badge subtle">${t("Archived")}</span>` : ""}</div><div class="sub">${brSub(b, s)}</div></div></div></td>
-      <td class="pfn">${money(s.mv)}</td><td class="pfn">${money(s.cash)}</td><td class="pfn ${cls(s.ret)}">${ret}</td>
+      <td class="pfn">${ownAmt(s.mv, b.currency)}</td><td class="pfn">${ownAmt(s.cash, b.currency)}</td><td class="pfn ${cls(s.ret)}">${ret}</td>
       <td><div class="bk-share"><span class="bk-bar"><i style="width:${share.toFixed(1)}%"></i></span>${fmt(share, { maximumFractionDigits: 1 })}%</div></td></tr>`;
   }).join("");
 }
@@ -5528,7 +5546,7 @@ function brRowsMob(list) {
     return `<div class="rc-ev${b.id === brSel ? " sel" : ""}${b.archived ? " archived" : ""}" data-br-id="${b.id}" role="button" tabindex="0">
       <span class="brand-mark sm">${esc(b.name.slice(0, 2).toUpperCase())}</span>
       <div class="rc-tx"><div class="rc-t1">${esc(b.name)}${b.archived ? ` <span class="badge subtle">${t("Archived")}</span>` : ""}</div><div class="rc-t2">${brSub(b, s)}</div></div>
-      <div class="rc-am">${money(s.net)}${s.holdings.length || s.ret ? `<small class="${cls(s.ret)}">${moneySigned(s.ret)}</small>` : ""}</div></div>`;
+      <div class="rc-am">${ownAmt(s.net, b.currency)}${s.holdings.length || s.ret ? `<small class="${cls(s.ret)}">${ownAmt(s.ret, b.currency, true)}</small>` : ""}</div></div>`;
   }).join("");
 }
 function brDetailHTML(b) {
@@ -5544,17 +5562,17 @@ function brDetailHTML(b) {
   const neg = (T.negativeCash || []).filter((n) => n.brokerId === b.id);
   const negNote = neg.length ? `<p class="pfx-note2 neg">${neg.map((n) => `${ccyLabel(n.currency)} ${t("balance is negative")} (${ccyLabel(n.currency)} ${fmt(Math.abs(n.amount))}) — ${t("a buy, fee, or withdrawal has no matching")} ${ccyLabel(n.currency)} ${t("deposit. Record one to balance this.")}`).join(" ")}</p>` : "";
   const row = (k, v, c = "", attrs = "") => `<div class="rc-sr"${attrs}><span>${k}</span><b class="${c}">${v}</b></div>`;
-  const rows = [row(t("Market Value"), money(s.mv)), row(t("Available Cash"), money(s.cash)),
-    row(t("Total Return"), moneySigned(s.ret), cls(s.ret), ` data-broker-return="${b.id}" tabindex="0" role="button" style="cursor:pointer"`),
-    row(t("Net Dividends"), money(s.div), s.div > 0 ? "pos" : ""), row(t("Unrealized P/L"), moneySigned(s.unr), cls(s.unr)),
-    row(t("Money in"), money(s.dep)), row(t("Money out"), money(s.wd)),
-    row(t("Money Left In This Broker"), money(s.dep - s.wd), "", ` data-broker-netcash="${b.id}" tabindex="0" role="button" style="cursor:pointer"`),
-    SETTINGS.showReconciliation ? row(t("Reconciliation"), `<span class="badge ${reconCls}">${reconStatus}</span>`) : "",
-    row(t("Dividends paid to"), b.divPaidTo === "bank" ? t("Bank") : t("Broker")),
-    row(t("Default dividend tax rate"), `${fmt(b.divTaxRate || 0, { maximumFractionDigits: 2 })}%`)].join("");
+  const A = (v, sg) => ownAmt(v, b.currency, sg);
+  const grp = (title, list) => `<div class="rc-grp"><h5>${title}</h5>${list.join("")}</div>`;
+  const rows = grp(t("Value"), [row(t("Market Value"), A(s.mv)), row(t("Available Cash"), A(s.cash)),
+      row(t("Total Return"), A(s.ret, true), cls(s.ret), ` data-broker-return="${b.id}" tabindex="0" role="button" style="cursor:pointer"`)])
+    + grp(t("Income"), [row(t("Net Dividends"), A(s.div), s.div > 0 ? "pos" : ""), row(t("Unrealized P/L"), A(s.unr, true), cls(s.unr))])
+    + grp(t("Money"), [row(t("Money in"), A(s.dep)), row(t("Money out"), A(s.wd)),
+      row(t("Money Left In This Broker"), A(s.dep - s.wd), "", ` data-broker-netcash="${b.id}" tabindex="0" role="button" style="cursor:pointer"`),
+      ...(SETTINGS.showReconciliation ? [row(t("Reconciliation"), `<span class="badge ${reconCls}">${reconStatus}</span>`)] : [])]);
   return `<div class="rc-dh"><span class="pfx-lbl">${t("Selected broker")}</span><button type="button" class="rc-close" data-br-close aria-label="${t("Close")}">×</button></div>
     <div class="bk-id"><span class="brand-mark">${esc(b.name.slice(0, 2).toUpperCase())}</span><div><div class="ticker tk-name">${esc(b.name)}</div><div class="sub">${brSub(b, s)}</div></div></div>
-    <div class="rc-big dz-n">${money(s.net)}</div><div class="pfx-note2" style="margin:-6px 0 8px">${t("Holdings plus cash")}</div>
+    <div class="rc-big dz-n">${A(s.net)}</div><div class="pfx-note2" style="margin:-6px 0 8px">${t("Holdings plus cash")}</div>
     <div class="rc-rows">${rows}</div>${negNote}${b.notes ? `<p class="pfx-note2">${esc(b.notes)}</p>` : ""}
     <div class="rc-acts"><button type="button" class="pfx-btn pfx-btn-p" data-br-edit>${t("Edit")}</button><button type="button" class="pfx-btn" data-br-archive>${b.archived ? t("Unarchive") : t("Archive")}</button><button type="button" class="pfx-btn rc-del" data-br-del>${t("Remove")}</button></div>`;
 }
@@ -5626,14 +5644,13 @@ function pageBrokers() {
   const summary = active.length ? `<div class="pfx-sum pfx-sum4">${pfxHeroCard(t("Total value"), totalNet, "", pfxCalc("brTotal", () => ({ title: "Total value", rows: [{ op: "", label: "Market Value", val: money(totalValue) }, { op: "+", label: "Available Cash", val: money(totalCash) }], total: totalNet, totalFmt: money(totalNet) })), t("Holdings plus cash across your brokers."))}${pfxStatCard(t("Market Value"), money(totalValue), "", "", pfxCalc("brMV", () => ({ title: "Market Value", rows: brRows((b) => brStats(b).mv), total: totalValue, totalFmt: money(totalValue) })), t("What your holdings are worth at today's prices."))}${pfxStatCard(t("Available Cash"), money(totalCash), "", "", pfxCalc("brCash", () => ({ title: "Available Cash", rows: brRows((b) => brStats(b).cash), total: totalCash, totalFmt: money(totalCash) })), t("Cash ready to invest or withdraw."))}${pfxStatCard(t("Total Return"), moneySigned(totalReturn), `<span class="pfx-pl ${retPct >= 0 ? "pos" : "neg"}">${pctTxt(retPct)}</span>`, cls(totalReturn), pfxCalc("brReturn", allBrokersReturnCalc), t("Unrealized and realized profit, plus dividends and interest, minus fees."))}</div>` : "";
   const archToggle = archived.length ? `<button type="button" class="pfx-btn" id="toggleArchived">${showArchivedBrokers ? t("Hide archived") : `${t("Show archived")} (${archived.length})`}</button>` : "";
   const table = `<div class="table-wrap rc-desk"><table class="data-table pfx-txt rc-tbl"><thead><tr><th>${t("Broker")}</th><th class="pfn">${t("Market Value")}</th><th class="pfn">${t("Cash")}</th><th class="pfn">${t("Total Return")}</th><th>${t("Share of total")}</th></tr></thead>
-      <tbody>${brRowsDesk(list, totalNet)}</tbody>
-      <tfoot><tr class="rc-tot"><td>${t("Total")}</td><td class="pfn">${money(totalValue)}</td><td class="pfn">${money(totalCash)}</td><td class="pfn ${cls(totalReturn)}">${moneySigned(totalReturn)}</td><td></td></tr></tfoot></table></div>
+      <tbody>${brRowsDesk(list, totalNet)}</tbody></table></div>
     <div class="rc-mob">${brRowsMob(list)}</div>`;
   const body = list.length ? `<div class="rc-grid">
-      <section class="pfx-card rc-main"><div class="rc-head bk-head"><h2>${t("All brokers")}<span class="pfx-sm">${list.length}</span></h2>${archToggle}</div>${table}</section>
+      <section class="pfx-card rc-main"><div class="rc-head bk-head"><h2>${t("All brokers")}<span class="pfx-sm">${list.length}</span></h2><div class="bk-tools">${ccySwitchHTML()}${archToggle}</div></div>${table}</section>
       <aside class="pfx-card rc-det" id="brDet">${brDetailHTML(BROKERS.find((b) => b.id === brSel))}</aside></div><div class="rc-back" id="brBack"></div>`
     : `<section class="pfx-card rc-main">${emptyState(`${t("No brokers yet — every transaction and holding needs one.")}<div class="form-actions" style="margin-top:14px;justify-content:center"><button type="button" class="btn primary" id="emptyAddBroker">＋ ${t("Add Broker")}</button></div>`)}</section>`;
-  const html = `<div class="pfx pfx-br">${header}${summary}${body}${BROKERS.length ? `<div class="pfx-cashpanels">${brokerCashPanelsHTML()}</div>` : ""}</div>`;
+  const html = `<div class="pfx pfx-br">${header}${summary}${body}${BROKERS.length && SETTINGS.showReconciliation ? `<div class="pfx-cashpanels">${brokerCashPanelsHTML()}</div>` : ""}</div>`;
 
   return { title: "Brokers", subtitle: LANG === "zh" ? `已连接 ${active.length} 个投资平台。` : `${active.length} investment apps connected.`, html,
     mount() {
