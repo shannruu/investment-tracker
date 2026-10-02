@@ -2517,3 +2517,27 @@ button, input, select, textarea { font-family: inherit; }
   .pfx-stock .grid-2 { grid-template-columns: 1fr; gap: 12px; }
   .pfx-sum4 .pfx-vr { flex-wrap: wrap; }
 }
+
+/* Stock page round 2: bigger name, clean Position list, outlook by year, transaction filter */
+.pfx-stock .dz-h1 { font-size: 34px; }
+.pfx-stock .dz-sub { font-size: 13px; }
+.pfx-prows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
+.pfx-prow { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; min-height: 52px; }
+.pfx-prow > span { color: var(--muted); font-weight: 600; display: inline-flex; align-items: center; }
+.pfx-prow > span .col-info { margin-left: 6px; }
+.pfx-prow > b { font-weight: 700; text-align: right; }
+.pfx-olb { display: flex; }
+.pfx-olb i { flex: none; }
+.pfx-olb i.g { background: var(--pos); border-radius: 99px 0 0 99px; }
+.pfx-olb i.g + i { border-radius: 0 99px 99px 0; }
+.pfx-olr { grid-template-columns: 56px minmax(0, 1fr) auto 110px; }
+.pfx-txf { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+@media (max-width: 1000px) { .pfx-prows { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .pfx-stock .dz-h1 { font-size: 26px; }
+  .pfx-olr { grid-template-columns: 48px minmax(0, 1fr) auto; }
+  .pfx-olr .pfx-olb { grid-column: 1 / -1; grid-row: 2; }
+  .pfx-txf { gap: 8px; }
+  .pfx-txf .dz-seg { width: 100%; }
+  .pfx-txf .dz-seg button { flex: 1; padding: 6px 4px; font-size: 12px; }
+}

@@ -24,7 +24,9 @@
 /* ---------- Chinese strings for this page ----------
  * Only keys the main dictionary doesn't already have are added, so nothing existing is overridden. */
 const DZ_ZH = {
-  "Your holdings": "我的持仓", "Stock": "股票", "Overview": "概览", "Price & range": "价格与区间", "Dividends received": "已收股息", "yield": "收益率",
+  "Your holdings": "我的持仓", "Money invested over time": "投入金额变化", "Dividends collected so far": "累计已收股息",
+  "Total you have paid for this stock after each purchase, fees included.": "每次买入后，您为这只股票累计支付的金额（含手续费）。", "Each point is the total dividends you have collected up to that date.": "每个点代表截至该日期您累计收到的股息。",
+  "Green: received. Purple: expected.": "绿色：已收到。紫色：预期。", "All years": "全部年份", "No transactions match this filter.": "没有符合筛选的交易。", "Stock": "股票", "Overview": "概览", "Price & range": "价格与区间", "Dividends received": "已收股息", "yield": "收益率",
   "Where your return comes from": "收益来源", "Price change": "价格变动", "Sold shares": "卖出股份", "Fees & other": "费用及其他", "All of your profit so far came from dividends.": "到目前为止，您的全部收益都来自股息。",
   "{p}% of your return came from dividends.": "您的收益中有 {p}% 来自股息。", "Your holding": "您的持仓", "Held for": "持有时间", "Since": "起始日", "Dividends so far": "累计股息", "of what you paid": "（占成本）",
   "{y} yr {m} mo": "{y} 年 {m} 个月", "{m} mo": "{m} 个月", "{d} days": "{d} 天", "in {d} days": "{d} 天后", "today": "今天", "What you could earn": "预估股息收入", "Next 12 months": "未来 12 个月",

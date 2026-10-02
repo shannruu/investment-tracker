@@ -5904,6 +5904,7 @@ function pageTerms() {
  * PAGE: HOLDING DETAIL  (#/holding/<encoded brokerId|ticker>)
  * ========================================================================== */
 let holdingDivFilter = "upcoming";   // all | past | upcoming
+let holdingTxFilter = { type: "all", year: "" };
 let holdingTab = "overview", holdingTabFor = "";   // Stock page tab: overview | dividends | tx (reset when you open another stock)
 function pageHolding() {
   const key = decodeURIComponent((location.hash.split("/")[2] || ""));
@@ -5951,7 +5952,9 @@ function pageHolding() {
   const marketHist = (AUTO_DIV_CACHE[h.ticker] || []).slice().sort((a, b) => (a.date < b.date ? 1 : -1));
   // Dividend income over time (monthly, base ccy)
   const dPer = dividendByPeriod(tReceived).byMonth;
-  const divSeries = Object.keys(dPer).sort().map((k) => ({ month: k.slice(2), value: dPer[k] }));
+  const shortMon = (iso) => { const dt = new Date((iso || "") + "T00:00:00"); return isNaN(dt) ? "" : dt.toLocaleString("en", { month: "short" }) + " " + String(dt.getFullYear()).slice(2); };
+  let divCum = 0;   // running total, so the line only ever climbs: "how much have I collected so far"
+  const divSeries = [...tReceived].sort((a, b) => ((a.payDate || a.date) < (b.payDate || b.date) ? -1 : 1)).map((d) => { divCum += divNetMYR(d); return { month: shortMon(d.payDate || d.date), value: divCum }; });
   // Dividend history bar chart — one bar per calendar year, received amount stacked
   // with the current year's still-projected remainder (so a partial in-progress year
   // reads as "on track", not as a drop-off vs prior full years).
@@ -5981,7 +5984,7 @@ function pageHolding() {
       cum = Math.max(0, cum - avgCostPerShare * sellQty);
       cumShares = Math.max(0, cumShares - sellQty);
     }
-    if (x.type === "Buy" || x.type === "Sell") costSeries.push({ month: x.date.slice(2), value: cum });
+    if (x.type === "Buy" || x.type === "Sell") costSeries.push({ month: shortMon(x.date), value: cum });
   });
 
   const priceLbl = h.hasPrice
@@ -6160,20 +6163,20 @@ function pageHolding() {
       const showCost = costSeries.length >= 2;
       const showDiv = divSeries.length >= 2;
       if (!showCost && !showDiv) return "";
-      const costPanel = panel(t("Cost Basis Over Time"), `<div class="chart">${lineChartSVG(costSeries)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Cumulative cost — historical market prices are not stored.")}</p>`);
-      const divPanel = panel(t("Dividend Income Over Time"), `<div class="chart">${lineChartSVG(divSeries)}</div>`);
+      const costPanel = panel(t("Money invested over time"), `<div class="chart">${lineChartSVG(costSeries)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Total you have paid for this stock after each purchase, fees included.")}</p>`);
+      const divPanel = panel(t("Dividends collected so far"), `<div class="chart">${lineChartSVG(divSeries)}</div><p class="muted" style="font-size:11px;margin:6px 0 0">${t("Each point is the total dividends you have collected up to that date.")}</p>`);
       if (showCost && showDiv) return `<section class="grid-2">${costPanel}${divPanel}</section>`;
       return showCost ? costPanel : divPanel;
   })();
 
   /* ---- Stock page layout: header, tabs (Overview / Dividends / Transactions), insight panels ---- */
-  if (holdingTabFor !== key) { holdingTab = "overview"; holdingTabFor = key; }
-  const stName = h.company || h.ticker;
+  if (holdingTabFor !== key) { holdingTab = "overview"; holdingTabFor = key; holdingTxFilter = { type: "all", year: "" }; }
+  const stName = dzName(h.ticker, h.company);
   const chg = h.hasPrice && h.changePct != null ? h.changePct : null;
   const stActions = `${h.hasPrice ? `<span class="pfx-pp">${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}${chg != null ? ` <small class="${cls(chg)}">${pctTxt(chg)} ${t("today")}</small>` : ""}</span>` : ""}
     <button type="button" class="pfx-btn" id="dtlPrice">＄ ${t("Set price")}</button>`;
   const stHeader = dzTopHTML({ eyebrow: `${t("Stock")}${h.market ? " · " + esc(h.market) : ""}`, h1: esc(stName),
-    sub: `${esc(h.ticker)}<div class="pfx-chips"><span class="chip">${esc(brokerName(h.brokerId))}</span><span class="chip">${esc(meta.country || h.country) || "—"}</span>${meta.sector ? `<span class="chip">${esc(meta.sector)}</span>` : ""}</div>`,
+    sub: `${stName !== h.ticker ? esc(h.ticker) : ""}<div class="pfx-chips"><span class="chip">${esc(brokerName(h.brokerId))}</span><span class="chip">${esc(meta.country || h.country) || "—"}</span>${meta.sector ? `<span class="chip">${esc(meta.sector)}</span>` : ""}</div>`,
     actions: stActions, refreshAttr: "data-dtl-live", noLive: true });
 
   const costB = h.costBasis;
@@ -6189,11 +6192,19 @@ function pageHolding() {
     ${stCard(t("Dividends received"), "", money(totalDivReceived), ttmYield != null && ttmYield > 0 ? `<span class="pfx-pl pos">${fmt(ttmYield, { maximumFractionDigits: 2 })}% ${t("yield")}</span>` : "", totalDivReceived > 0 ? "pos" : "")}</div>`;
 
   const priceBlock = panel(t("Price & range"), `<div class="pfx-pr-l">${t("Current Price")}</div><div class="pfx-bigprice dz-n">${priceLbl}</div>${range52Html}`);
-  const positionPanel = panel(t("Position"), `<div class="hc-detail">${holdingFactsHTML(h, { commission: commissionPaid })}</div>
-    <div class="setting-row" style="padding:11px 0 0;border-bottom:0">
-      <span class="sr-label">${t("Asset type")}</span>
-      <span class="sr-value"><div style="width:160px">${styledSelect("holdingAssetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), holdingType(h.ticker), { id: "holdingAssetType" })}</div></span>
-    </div>
+  const prow = (label, val, tip) => `<div class="pfx-prow"><span>${label}${tip ? hcTip(tip) : ""}</span><b class="dz-n">${val}</b></div>`;
+  const rateF = (n) => `${ccyLabel(FX.base)} ${fmt(n, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+  const realizedV = h.realized || 0;
+  const positionPanel = panel(t("Position"), `<div class="pfx-prows">
+    ${prow(t("Shares"), fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }))}
+    ${prow(t("Cost Basis"), money(h.costBasis), t("Everything you paid for the shares you still hold, buying fees included."))}
+    ${prow(t("Avg Cost (incl. fees)"), rateF(h.avgCost), t("Average price you paid per share, including your buying fees. Most broker apps show it without fees."))}
+    ${(h.feeCostMYR || 0) > 0.004 && h.shares > 0 ? prow(t("Avg Cost (excl. fees)"), rateF(h.priceCostMYR / h.shares), t("Average price you paid per share, without buying fees — usually what your broker's app shows as cost.")) : ""}
+    ${prow(t("Commission Paid"), money(commissionPaid), t("Fees you paid on every buy and sell of this stock."))}
+    ${prow(t("Net Dividends"), h.netDividends ? money(h.netDividends) : "—", t("Every dividend you have received for this stock, after tax. Some broker apps count only recent dividends in their profit figure."))}
+    ${prow(t("Realized P/L"), Math.abs(realizedV) > 0.004 ? `<span class="${cls(realizedV)}">${moneySigned(realizedV)}</span>` : "—", t("Profit or loss already locked in by selling part of this stock."))}
+    ${prow(t("% of Portfolio"), T.portfolioValue > 0 ? `${fmt((h.marketValue / T.portfolioValue) * 100, { maximumFractionDigits: 2 })}%` : "—", t("This holding's share of your total market value."))}
+    <div class="pfx-prow"><span>${t("Asset type")}</span><div style="width:150px">${styledSelect("holdingAssetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), holdingType(h.ticker), { id: "holdingAssetType" })}</div></div></div>
     ${openedRecently ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}`);
 
   // Where the return comes from: dividends vs price change (vs sold shares / fees)
@@ -6215,25 +6226,42 @@ function pageHolding() {
     months = Math.max(0, months);
     heldTxt = months >= 12 ? dzF("{y} yr {m} mo", { y: Math.floor(months / 12), m: months % 12 }) : months > 0 ? dzF("{m} mo", { m: months }) : dzF("{d} days", { d: Math.max(0, Math.round((nd - sd) / 864e5)) });
   }
-  const heldPanel = earliestTxDate ? panel(t("Your holding"), `<div class="pfx-lst"><div><span>${t("Held for")}</span><b>${heldTxt}</b></div><div><span>${t("Since")}</span><b>${fmtDate(earliestTxDate)}</b></div>
-    ${h.costBasis > 0 ? `<div><span>${t("Dividends so far")}</span><b class="dz-n">${fmt((totalDivReceived / h.costBasis) * 100, { maximumFractionDigits: 1 })}% ${t("of what you paid")}</b></div>` : ""}
-    ${nextPay ? `<div><span>${t("Next payment")}</span><b class="dz-n">${fmtDate(nextPay.payDate)} · ${money(nextPay.amtMYR)}</b></div>` : ""}</div>`) : "";
+  const heldPanel = earliestTxDate ? panel(t("Your holding"), `<div class="pfx-prows">${prow(t("Held for"), heldTxt)}${prow(t("Since"), fmtDate(earliestTxDate))}
+    ${h.costBasis > 0 ? prow(t("Dividends so far"), `${fmt((totalDivReceived / h.costBasis) * 100, { maximumFractionDigits: 1 })}% ${t("of what you paid")}`) : ""}
+    ${nextPay ? prow(t("Next payment"), `${fmtDate(nextPay.payDate)} · ${money(nextPay.amtMYR)}`) : ""}</div>`) : "";
 
   // Dividends tab: next payment, 3-year outlook (estimate), then the existing summary / calendar / history
   const daysTo = nextPay ? Math.round((new Date(nextPay.payDate + "T00:00:00") - todayDate()) / 864e5) : 0;
   const nextBanner = nextPay ? `<div class="pfx-card pfx-next"><div><div class="pfx-lbl">${t("Next payment")}</div><div class="pfx-v dz-n pos">${money(nextPay.amtMYR)}</div></div>
     <div class="pfx-next-r"><b>${fmtDate(nextPay.payDate)}</b><span>${daysTo <= 0 ? t("today") : dzF("in {d} days", { d: daysTo })} · ${nextPay.confirmed ? t("Confirmed") : t("Estimated")}</span></div></div>` : "";
-  const ol = [[t("Next 12 months"), tFc.nextYear]];
-  if (Math.abs(tFc.year2 - tFc.nextYear) > 0.5 || Math.abs(tFc.year3 - tFc.nextYear) > 0.5) { if (tFc.year2 > 0) ol.push([t("In 2 years"), tFc.year2]); if (tFc.year2 > 0 && tFc.year3 > 0) ol.push([t("In 3 years"), tFc.year3]); }
-  const olMax = Math.max(...ol.map((x) => x[1]));
-  const outlook = tFc.nextYear > 0 ? panel(t("What you could earn"), `<div class="pfx-ol">${ol.map(([l, v]) => `<div class="pfx-olr"><span class="pfx-oll">${l}</span><div class="pfx-olb"><i style="width:${((v / olMax) * 100).toFixed(1)}%"></i></div>
-      <b class="dz-n">${money(v)}</b>${h.costBasis > 0 ? `<small class="dz-n">${fmt((v / h.costBasis) * 100, { maximumFractionDigits: 1 })}% ${t("of cost")}</small>` : ""}</div>`).join("")}</div>
-    ${ol.length === 3 ? `<p class="pfx-note2"><b>${t("3-year total")}: ${money(ol.reduce((sum, x) => sum + x[1], 0))}</b></p>` : ""}<p class="pfx-note2">${t("Estimate, not a promise — based on your dividend pattern.")}</p>`) : "";
+  // What you could earn, by calendar year: this year = already received + still expected, then the next two years
+  const yrNow = +todayIso.slice(0, 4);
+  const projByYear = {};
+  (tFc.nextPayments || []).forEach((p) => { const y = +p.payDate.slice(0, 4); projByYear[y] = (projByYear[y] || 0) + p.amtMYR; });
+  const olYears = [yrNow, yrNow + 1, yrNow + 2].map((y) => ({ y, got: y === yrNow ? (divByYear[String(y)] || 0) : 0, proj: projByYear[y] || 0 }));
+  const olTotal = olYears.reduce((sx, r) => sx + r.got + r.proj, 0);
+  const olMax = Math.max(...olYears.map((r) => r.got + r.proj), 1e-9);
+  const outlook = olYears.some((r) => r.proj > 0) ? panel(t("What you could earn"), `<div class="pfx-ol">${olYears.map((r) => {
+      const v = r.got + r.proj;
+      return `<div class="pfx-olr"><span class="pfx-oll">${r.y}</span><div class="pfx-olb"><i class="g" style="width:${((r.got / olMax) * 100).toFixed(1)}%"></i><i style="width:${((r.proj / olMax) * 100).toFixed(1)}%"></i></div>
+        <b class="dz-n">${money(v)}</b>${h.costBasis > 0 ? `<small class="dz-n">${fmt((v / h.costBasis) * 100, { maximumFractionDigits: 1 })}% ${t("of cost")}</small>` : ""}</div>`; }).join("")}</div>
+    <p class="pfx-note2"><b>${yrNow}–${yrNow + 2}: ${money(olTotal)}</b> · ${t("Green: received. Purple: expected.")}</p><p class="pfx-note2">${t("Estimate, not a promise — based on your dividend pattern.")}</p>`) : "";
 
-  const txPanel = panel(`${t("Transactions")} (${txs.length})`, txRows ? `<div class="pfx-tx">${table([
+  const txType = (x) => (x.type === "Buy" || x.type === "Sell" || x.type === "Dividend" ? x.type : "Other");
+  const txYears = [...new Set(txs.map((x) => (x.date || "").slice(0, 4)).filter(Boolean))].sort().reverse();
+  const txShown = txs.filter((x) => (holdingTxFilter.type === "all" || txType(x) === holdingTxFilter.type) && (!holdingTxFilter.year || (x.date || "").startsWith(holdingTxFilter.year)));
+  const txRowsF = txShown.map((x) => `<tr><td class="dcc-c">${fmtDate(x.date)}</td><td class="dcc-c">${typeChip(x.type)}</td>
+    <td class="dcc-c">${x.qty != null ? fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 }) : "—"}</td>
+    <td class="dcc-c">${x.price != null ? ccyLabel(x.currency) + " " + fmt(x.price) : "—"}</td>
+    <td class="dcc-c">${x.gross != null ? ccyLabel(x.currency) + " " + fmt(x.gross) : "—"}</td>
+    <td class="dcc-c">${x.fee ? ccyLabel(x.currency) + " " + fmt(x.fee) : "—"}</td></tr>`).join("");
+  const txBar = `<div class="pfx-txf"><div class="dz-seg" role="group">${[["all", t("All")], ["Buy", t("Buy")], ["Sell", t("Sell")], ["Dividend", t("Dividend")], ["Other", t("Other")]].map(([k, l]) =>
+      `<button type="button" class="${holdingTxFilter.type === k ? "on" : ""}" data-txf="${k}">${l}</button>`).join("")}</div>
+    <div style="width:150px">${styledSelect("txYear", [{ value: "", label: t("All years") }, ...txYears.map((y) => ({ value: y, label: y }))], holdingTxFilter.year, { id: "txYearSel" })}</div></div>`;
+  const txPanel = panel(`${t("Transactions")} (${txShown.length === txs.length ? txs.length : txShown.length + " / " + txs.length})`, txBar + (txRowsF ? `<div class="pfx-tx">${table([
     { label: t("Date"), style: "width:16.6%" }, { label: t("Type"), style: "width:16.6%" }, { label: t("Qty"), style: "width:16.6%" },
     { label: t("Price"), style: "width:16.6%" }, { label: t("Gross"), style: "width:16.6%" }, { label: t("Fee"), style: "width:16.6%" },
-  ], txRows)}</div>` : emptyState(t("No transactions for this holding.")));
+  ], txRowsF)}</div>` : emptyState(txs.length ? t("No transactions match this filter.") : t("No transactions for this holding."))));
 
   const stTabs = [["overview", t("Overview")], ["dividends", t("Dividends")], ["tx", `${t("Transactions")} (${txs.length})`]];
   const stNav = `<div class="pfx-tabs"><div class="dz-seg" role="tablist">${stTabs.map(([k, l]) =>
@@ -6241,7 +6269,7 @@ function pageHolding() {
   const divTabBody = `${nextBanner}${outlook}${dvSummaryHTML}${dvCalendarHTML}${dvHistoryHTML}`;
   const stBody = holdingTab === "dividends" ? (divTabBody.trim() ? divTabBody : panel(t("Dividends"), emptyState(t("No dividend data for this holding yet."))))
     : holdingTab === "tx" ? txPanel
-    : `${stSum}<div class="pfx-two2">${priceBlock}${positionPanel}</div><div class="pfx-two2">${returnPanel}${heldPanel}</div>${chartsHTML}`;
+    : `${stSum}<div class="pfx-two2">${priceBlock}${returnPanel}</div>${positionPanel}${heldPanel}${chartsHTML}`;
   const html = `<div class="pfx pfx-stock"><p style="margin:-4px 0 0"><a class="link" href="#/portfolio">← ${t("Back to Portfolio")}</a></p>${stHeader}${stNav}${stBody}</div>`;
 
   return { title: h.ticker, subtitle: h.company || t("Holding detail"), html,
@@ -6249,6 +6277,8 @@ function pageHolding() {
       const p = $("#dtlPrice");
       if (p) p.addEventListener("click", () => showSetPriceModal(h));
       const stBell = $("#dzBell"); if (stBell) stBell.addEventListener("click", () => toggleMoreSheet());
+      $$("[data-txf]").forEach((b) => b.addEventListener("click", () => { holdingTxFilter.type = b.dataset.txf; render(); }));
+      const txYr = $("#txYearSel"); if (txYr) txYr.addEventListener("change", (e) => { holdingTxFilter.year = e.target.value; render(); });
       $$("[data-sttab]").forEach((b) => b.addEventListener("click", () => { holdingTab = b.dataset.sttab; render(); }));
       $$("[data-dtl-live]").forEach((lv) => lv.addEventListener("click", async () => {
         if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
