@@ -335,13 +335,8 @@ Object.keys(TH_ZH).forEach((k) => { if (!I18N.zh[k]) I18N.zh[k] = TH_ZH[k]; });
   document.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches(".pfx-card[data-calc]")) { e.preventDefault(); open(e); } });
 })();
 
-/* ------------------------------------------------------------------ Currency switch ("In RM" / "Original currency"): one setting for every page, remembered. */
-document.addEventListener("click", (e) => {
-  const b = e.target.closest && e.target.closest("[data-ccymode]"); if (!b) return;
-  CCY_OWN = b.dataset.ccymode === "own";
-  try { localStorage.setItem("il-ccy-own", CCY_OWN ? "1" : "0"); } catch (err) {}
-  render();
-});
+/* ------------------------------------------------------------------ Eye button in every page header: hide / show amounts. */
+document.addEventListener("click", (e) => { if (e.target.closest && e.target.closest("[data-dz-privacy]")) togglePrivacy(); });
 
 /* ------------------------------------------------------------------ Date picker: our own calendar in place of the browser's grey one. */
 let dzCal = null;

@@ -556,13 +556,14 @@ function dzLiveHTML(live) {
 }
 function dzTopHTML(o = {}) {
   const live = dzLiveInfo();
+  const eye = `<button type="button" class="dz-ib dz-eye${SETTINGS.privacy ? " on" : ""}" data-dz-privacy aria-label="${esc(t("Hide amounts"))}" title="${esc(t(SETTINGS.privacy ? "Show amounts" : "Hide amounts"))}">${privacyEyeSVG()}</button>`;
   const refresh = `<button type="button" class="dz-ib" ${o.refreshAttr || "data-dz-refresh"} aria-label="${esc(t("Refresh prices"))}" title="${esc(t("Refresh prices"))}">${dzIcon("refresh", 17)}</button>`;
   return `<div class="dz-bar">
       <div class="dz-brand"><span class="dz-logo" aria-hidden="true">D</span><span class="dz-bn">Divz</span></div>
-      <div class="dz-act"><button type="button" class="dz-ib" id="dzBell" aria-label="${esc(t("Notifications"))}">${dzSprite("bell", 19)}<span class="notif-badge notif-badge-target dz-badge" hidden>0</span></button>${refresh}</div>
+      <div class="dz-act"><button type="button" class="dz-ib" id="dzBell" aria-label="${esc(t("Notifications"))}">${dzSprite("bell", 19)}<span class="notif-badge notif-badge-target dz-badge" hidden>0</span></button>${eye}${refresh}</div>
     </div>
     <header class="dz-top"><div class="dz-greet"><div class="dz-eyebrow">${o.eyebrow || t("Dashboard")}</div><h1 class="dz-h1">${o.h1 || dzGreeting()}</h1><div class="dz-sub">${o.sub || t("Here is how your investments are doing today.")}</div></div>
-      <div class="dz-topr">${o.noLive ? "" : dzLiveHTML(live)}${o.actions || ""}${refresh}</div></header>`;
+      <div class="dz-topr">${o.noLive ? "" : dzLiveHTML(live)}${o.actions || ""}${eye}${refresh}</div></header>`;
 }
 
 function dzHeroHTML(c) {

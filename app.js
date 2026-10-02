@@ -59,7 +59,7 @@ const fmt = (n, opts = {}) => {
   const o = { minimumFractionDigits: 2, maximumFractionDigits: 2, ...opts };
   // Guard: Intl throws if min > max (e.g. share counts pass maximumFractionDigits: 0).
   if (o.maximumFractionDigits < o.minimumFractionDigits) o.minimumFractionDigits = o.maximumFractionDigits;
-  return new Intl.NumberFormat("en-MY", o).format(n);
+  return new Intl.NumberFormat(({ de: "de-DE", fr: "fr-FR" })[SETTINGS.numFmt] || "en-MY", o).format(n);
 };
 /* Display-only currency label — "MYR" reads as "RM" everywhere in the UI (the common
  * Malaysian convention), while the underlying data (FX.rates keys, transaction .currency
@@ -713,6 +713,22 @@ const ZH = {
   "Australia": "澳大利亚",
   "Japan": "日本",
   "China": "中国",
+  "Number format": "数字格式",
+  "Dividend growth shown": "默认股息增长",
+  "The yearly growth the long-term dividend estimate starts with. You can still switch it on the Dividends page.": "长期股息估算默认使用的年增长率，您仍可在“股息”页面切换。",
+  "a year": "每年",
+  "Last backup": "上次备份",
+  "Never": "从未",
+  "Remind me to back up": "提醒我备份",
+  "Off": "关闭",
+  "Every week": "每周",
+  "Every month": "每月",
+  "Reset preferences": "重置偏好设置",
+  "Reset all preferences to their defaults? Your records are not touched.": "将所有偏好设置恢复为默认值？您的记录不会受影响。",
+  "Reset": "重置",
+  "Time for a backup — Settings → Data & backup.": "该备份了 — 设置 → 数据与备份。",
+  "Show amounts": "显示金额",
+  "Hide amounts": "隐藏金额",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -3068,7 +3084,7 @@ function pagePortfolio() {
        ${portfolioTab === "realized" ? realizedPLHTML() : !has ? panel(t("Holdings"), emptyContent)
           : portfolioTab === "allocation" ? breakdowns
           : panel(`${t("All Holdings")}<small class="pfx-sm">${priceStampHtml}</small>`, filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
-              `<div class="panel-head-actions">${ccySwitchHTML()}${filterToggleBtn}${colPanelHtml}</div>`)}
+              `<div class="panel-head-actions">${filterToggleBtn}${colPanelHtml}</div>`)}
        <div class="pfx-foot">${t("Total return here covers current holdings only; the Dashboard also counts sold stocks.")}</div></div>`
     : panel(t("Holdings"), emptyContent);
 
@@ -3633,15 +3649,12 @@ function matchesCashSubFilter(x) {
 // Hero + summary cards for the Transactions / Brokers tops: the same markup the Dividends page uses.
 /* Top cards. Every card: label on the left, the "i" (what it is) at the top right, the number, and only a small data pill (a %, a date).
  * Anything that needs explaining goes in the "i". A card with a calculation opens it on click (pfxCalc). */
-let CCY_OWN = (() => { try { return localStorage.getItem("il-ccy-own") === "1"; } catch (e) { return false; } })();   // false = everything in your own currency, true = each amount in its original currency
-/* An amount that is stored in your own currency, shown either as it is or in the currency it came from. */
-function ownAmt(baseAmt, ccy, signed) {
-  if (!CCY_OWN || !ccy || ccy === FX.base) return signed ? moneySigned(baseAmt) : money(baseAmt);
+/* An amount stored in your own currency; when the holding/broker is in another currency, that amount sits underneath in small type. */
+function ownAmt(baseAmt, ccy, signed, noSub) {
+  const main = signed ? moneySigned(baseAmt) : money(baseAmt);
+  if (noSub || !ccy || ccy === FX.base) return main;
   const v = baseAmt / (FX.rates[ccy] || 1);
-  return `${signed ? (v > 0 ? "+" : v < 0 ? "−" : "") : ""}${ccyLabel(ccy)} ${fmt(Math.abs(v))}`;
-}
-function ccySwitchHTML() {
-  return `<div class="dz-seg ccy-sw" role="group" aria-label="${esc(t("Currency shown"))}"><button type="button" class="${CCY_OWN ? "" : "on"}" data-ccymode="base">${t("In")} ${ccyLabel(FX.base)}</button><button type="button" class="${CCY_OWN ? "on" : ""}" data-ccymode="own">${t("Original currency")}</button></div>`;
+  return `${main}<small class="ccy-sub">${signed ? (v > 0 ? "+" : v < 0 ? "−" : "") : ""}${ccyLabel(ccy)} ${fmt(Math.abs(v))}</small>`;
 }
 const CARD_CALC = {};
 function pfxCalc(key, fn) { CARD_CALC[key] = fn; return `data-calc="${key}" role="button" tabindex="0" aria-label="${esc(t("Show how this is worked out"))}"`; }
@@ -4936,7 +4949,7 @@ function dividendForecast(received, upcoming, tickerScope) {
 let divCalendarFilter = "all";   // all | past | upcoming — filters the combined dividend calendar
 let divTab = (() => { try { const v = sessionStorage.getItem("il-div-tab"); return ["overview", "calendar", "history"].includes(v) ? v : "overview"; } catch (e) { return "overview"; } })();
 let divPayLimit = 25;   // History → All payments: how many rows are shown
-let divLtGrowth = 3;   // Dividends page, long-term section: assumed yearly growth of dividends (0 / 3 / 6 %)
+let divLtGrowth = [0, 3, 6].includes(SETTINGS.divGrowth) ? SETTINGS.divGrowth : 3;   // Dividends page, long-term section: assumed yearly growth of dividends (0 / 3 / 6 %)
 let divChartMode = "monthly", divCalMonth = "", divReviewOpen = false;   // Dividends page: tab, chart range, month shown on the calendar, review card open/closed
 let divCalScrollTop = null;      // calendar's scroll position — survives the page's background re-renders; null = not scrolled by the user yet, so jump to the next payment
 let divIncomePeriod = "monthly"; // monthly | quarterly | annual — which Dividend Income view is shown
@@ -5369,7 +5382,7 @@ function pageDividends() {
   const monthTitle = new Date(cy, cm - 1, 1).toLocaleString(LANG === "zh" ? "zh-CN" : "en", { month: "long", year: "numeric" });
   const calNav = `<div class="dz-seg" role="group"><button type="button" data-dvcal="prev" aria-label="${t("Previous month")}">‹</button><button type="button" class="on" data-dvcal="today">${t("Today")}</button><button type="button" data-dvcal="next" aria-label="${t("Next month")}">›</button></div>`;
   const monthCard = panel(`${monthTitle}<small class="pfx-sm">${t("your dividend dates")}</small>`, `<div class="pfx-cal7">${cells}</div><div class="pfx-leg" style="margin-top:12px"><span><i class="pfx-leg-ex"></i>${t("Ex-date: own the stock before this day")}</span><span><i style="background:var(--brand)"></i>${t("Payout: the money arrives")}</span></div>`, calNav);
-  const dvAmt = (d) => (CCY_OWN && d.ccy && d.ccy !== FX.base && d.amtLocal != null ? `${ccyLabel(d.ccy)} ${fmt(d.amtLocal)}` : money(d.amtMYR));
+  const dvAmt = (d) => money(d.amtMYR);
   const dvLocal = (d) => (d.ccy && d.ccy !== FX.base && d.amtLocal != null ? `<small class="dv-ccy">${ccyLabel(d.ccy)} ${fmt(d.amtLocal)}</small>` : "");
   const comingList = allDivEntries.filter((d) => (d.payDisplay || d.payDate) >= today).slice(0, 4).map((d) => { const pay = d.payDisplay || d.payDate, dt = new Date(pay + "T00:00:00");
     return `<div class="pfx-nx" role="button" tabindex="0" data-dvdetail="${dvIdx.get(d)}"><div class="pfx-dd" title="${t("Payout date")}"><small>${dt.toLocaleString("en", { month: "short" }).toUpperCase()}</small><b class="dz-n">${dt.getDate()}</b></div>
@@ -5384,15 +5397,15 @@ function pageDividends() {
   const payShown = payList.slice(0, divPayLimit);
   const payDel = (d) => (d._id ? `<button type="button" class="icon-btn" data-del-ud="${escAttr(d._id)}" title="${t("Remove")}" aria-label="${t("Remove")}" style="color:var(--muted);font-size:14px">✕</button>` : "");
   const payDeskRows = payShown.map((d) => `<tr><td class="dcc-c">${tickerCell(d.ticker, d.brokerId, tickerSubLabel(d.ticker))}</td><td class="dcc-c">${fmtDate(d.payDisplay || d.payDate)}</td>
-      <td class="dcc-c pfn pos">${dvAmt(d)}${CCY_OWN ? "" : dvLocal(d)}</td><td class="dcc-c">${statusBadge(d.status)}</td><td class="dcc-c">${payDel(d)}</td></tr>`).join("");
+      <td class="dcc-c pfn pos">${dvAmt(d)}${dvLocal(d)}</td><td class="dcc-c">${statusBadge(d.status)}</td><td class="dcc-c">${payDel(d)}</td></tr>`).join("");
   const payMobRows = payShown.map((d) => { const pd = d.payDisplay || d.payDate, dt = new Date(pd + "T00:00:00");
     return `<div class="pfx-nx"><div class="pfx-dd"><small>${dt.toLocaleString("en", { month: "short" }).toUpperCase()}</small><b class="dz-n">${dt.getDate()}</b></div>
-      <div class="pfx-nxt"><b>${esc(dvNameOf(d.ticker))}</b><span>${dt.getFullYear()} · ${statusBadge(d.status).replace(/<[^>]+>/g, "")}</span></div><div class="pfx-nxa dz-n pos">+${dvAmt(d)}${CCY_OWN ? "" : dvLocal(d)}${payDel(d)}</div></div>`; }).join("");
+      <div class="pfx-nxt"><b>${esc(dvNameOf(d.ticker))}</b><span>${dt.getFullYear()} · ${statusBadge(d.status).replace(/<[^>]+>/g, "")}</span></div><div class="pfx-nxa dz-n pos">+${dvAmt(d)}${dvLocal(d)}${payDel(d)}</div></div>`; }).join("");
   const payMore = payList.length > payShown.length ? `<div class="rc-more"><span>${dzF("Showing {a} of {b} records", { a: payShown.length, b: payList.length })}</span><button type="button" class="pfx-btn" data-dvpaymore>${t("Show more")}</button></div>` : "";
   const listPanel = panel(`${t("All payments")}<small class="pfx-sm">${payList.length}</small>`, allDivEntries.length
-      ? `<div class="table-wrap pfx-dvt-wrap dv-pay-desk"><table class="data-table pfx-txt"><thead><tr><th>${t("Holding")}</th><th>${t("Paid on")}</th><th class="pfn">${t("Amount")} (${CCY_OWN ? t("own currency") : ccyLabel(FX.base)})</th><th>${t("Status")}</th><th></th></tr></thead><tbody>${payDeskRows}</tbody></table></div><div class="dv-pay-mob">${payMobRows}</div>${payMore}`
+      ? `<div class="table-wrap pfx-dvt-wrap dv-pay-desk"><table class="data-table pfx-txt"><thead><tr><th>${t("Holding")}</th><th>${t("Paid on")}</th><th class="pfn">${t("Amount")} (${ccyLabel(FX.base)})</th><th>${t("Status")}</th><th></th></tr></thead><tbody>${payDeskRows}</tbody></table></div><div class="dv-pay-mob">${payMobRows}</div>${payMore}`
       : `<p class="muted" style="margin:0 0 12px;font-size:13px">${!LIVE_ENABLED ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.") : t("No dividends yet. Record one to get started.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
-    `${ccySwitchHTML()}${paySeg}<small class="muted" id="divFetchStatus"></small>`);
+    `${paySeg}<small class="muted" id="divFetchStatus"></small>`);
   const calendarTab = `<div class="pfx-two pfx-two-cal">${monthCard}<div class="dv-pay-wrap" id="divUpcomingSection">${listPanel}</div></div>${exDivPanel}`;
 
   // --- History
@@ -5584,7 +5597,7 @@ function brRowsMob(list) {
     return `<div class="rc-ev${b.id === brSel ? " sel" : ""}${b.archived ? " archived" : ""}" data-br-id="${b.id}" role="button" tabindex="0">
       <span class="brand-mark sm">${esc(b.name.slice(0, 2).toUpperCase())}</span>
       <div class="rc-tx"><div class="rc-t1">${esc(b.name)}${b.archived ? ` <span class="badge subtle">${t("Archived")}</span>` : ""}</div><div class="rc-t2">${brSub(b, s)}</div></div>
-      <div class="rc-am">${ownAmt(s.net, b.currency)}${s.holdings.length || s.ret ? `<small class="${cls(s.ret)}">${ownAmt(s.ret, b.currency, true)}</small>` : ""}</div></div>`;
+      <div class="rc-am">${ownAmt(s.net, b.currency, false, true)}${s.holdings.length || s.ret ? `<small class="${cls(s.ret)}">${ownAmt(s.ret, b.currency, true, true)}</small>` : ""}</div></div>`;
   }).join("");
 }
 function brDetailHTML(b) {
@@ -5685,7 +5698,7 @@ function pageBrokers() {
       <tbody>${brRowsDesk(list, totalNet)}</tbody></table></div>
     <div class="rc-mob">${brRowsMob(list)}</div>`;
   const body = list.length ? `<div class="rc-grid">
-      <section class="pfx-card rc-main"><div class="rc-head bk-head"><h2>${t("All brokers")}<span class="pfx-sm">${list.length}</span></h2><div class="bk-tools">${ccySwitchHTML()}${archToggle}</div></div>${table}</section>
+      <section class="pfx-card rc-main"><div class="rc-head bk-head"><h2>${t("All brokers")}<span class="pfx-sm">${list.length}</span></h2><div class="bk-tools">${archToggle}</div></div>${table}</section>
       <aside class="pfx-card rc-det" id="brDet">${brDetailHTML(BROKERS.find((b) => b.id === brSel))}</aside></div><div class="rc-back" id="brBack"></div>`
     : `<section class="pfx-card rc-main">${emptyState(`${t("No brokers yet — every transaction and holding needs one.")}<div class="form-actions" style="margin-top:14px;justify-content:center"><button type="button" class="btn primary" id="emptyAddBroker">＋ ${t("Add Broker")}</button></div>`)}</section>`;
   const html = `<div class="pfx pfx-br">${header}${summary}${body}${BROKERS.length && SETTINGS.showReconciliation ? `<div class="pfx-cashpanels">${brokerCashPanelsHTML()}</div>` : ""}</div>`;
@@ -5857,6 +5870,8 @@ function pageSettings() {
         { value: "total", label: t("Total Return") },
         { value: "price", label: t("Unrealized") },
       ], SETTINGS.returnMode === "price" ? "price" : "total", { id: "returnModeSel" })}</div>`)}
+      ${settingRow(t("Number format"), `<div style="width:200px">${styledSelect("numFmt", [{ value: "en", label: "1,234.56" }, { value: "de", label: "1.234,56" }, { value: "fr", label: "1 234,56" }], SETTINGS.numFmt || "en", { id: "numFmtSel" })}</div>`)}
+      ${settingRow(`<span class="lbl-t">${t("Dividend growth shown")}${hcTip(t("The yearly growth the long-term dividend estimate starts with. You can still switch it on the Dividends page."))}</span>`, `<div style="width:200px">${styledSelect("divGrowth", [0, 3, 6].map((n) => ({ value: String(n), label: `${n}% ${t("a year")}` })), String([0, 3, 6].includes(SETTINGS.divGrowth) ? SETTINGS.divGrowth : 3), { id: "divGrowthSel" })}</div>`)}
       ${settingRow(t("Start page"), `<div style="width:200px">${styledSelect("startPage", [["dashboard", t("Dashboard")], ["portfolio", t("Portfolio")], ["dividends", t("Dividends")], ["records", t("Transactions")], ["brokers", t("Brokers")]].map(([value, label]) => ({ value, label })), SETTINGS.startPage || "dashboard", { id: "startPageSel" })}</div>`)}
       ${settingRow(`<span class="lbl-t">${t("Default broker for new records")}${hcTip(t("The broker the Add record panel starts with. Its currency is used too."))}</span>`, `<div style="width:200px">${styledSelect("defBroker", [{ value: "", label: t("Last used") }, ...BROKERS.filter((b) => !b.archived).map((b) => ({ value: b.id, label: b.name }))], SETTINGS.defBroker || "", { id: "defBrokerSel" })}</div>`)}
       ${settingRow(t("Cost basis method"), `<div style="width:200px">${styledSelect("costBasis", [{ value: "average", label: t("Average Cost") }], "average", { id: "costBasis" })}</div>`)}
@@ -5873,6 +5888,10 @@ function pageSettings() {
         ? t("Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.")
         : t("Your investment data is stored only in this browser on this device. Clearing browser data may remove it. Export a JSON backup regularly.");
       return panel(`${t("Data & Backup")}${infoTip(dataTip)}`, `
+      <div class="setting-rows" style="margin-bottom:14px">
+        ${settingRow(t("Last backup"), `<span class="muted">${SETTINGS.lastBackup ? fmtDate(SETTINGS.lastBackup) : t("Never")}</span>`)}
+        ${settingRow(t("Remind me to back up"), `<div style="width:200px">${styledSelect("backupRemind", [{ value: "off", label: t("Off") }, { value: "weekly", label: t("Every week") }, { value: "monthly", label: t("Every month") }], SETTINGS.backupRemind || "off", { id: "backupRemindSel" })}</div>`)}
+      </div>
       <div class="form-actions">
         <button class="btn" id="expJson">${t("Export full backup (JSON)")}</button>
         <button class="btn" id="impJsonBtn">${t("Import backup (JSON)")}</button>
@@ -5900,6 +5919,7 @@ function pageSettings() {
     ${panel(t("Danger Zone"), `
       <p class="muted" style="margin:-2px 0 12px">${t("Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.")}</p>
       <div class="form-actions">
+        <button class="btn" id="resetPrefs">${t("Reset preferences")}</button>
         <button class="btn danger" id="clearData">${t("Clear all data")}</button>
       </div>`)}
     </div></div></div></div>`;
@@ -5949,6 +5969,14 @@ function pageSettings() {
       $("#tzSel").addEventListener("change", (e) => { SETTINGS.timeZone = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#returnModeSel").addEventListener("change", (e) => { SETTINGS.returnMode = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#costBasis").addEventListener("change", () => { SETTINGS.costBasis = "average"; saveStore(); });
+      $("#numFmtSel").addEventListener("change", (e) => { SETTINGS.numFmt = e.target.value; saveStore(); toast(t("Preferences saved")); render(); });
+      $("#divGrowthSel").addEventListener("change", (e) => { SETTINGS.divGrowth = +e.target.value; divLtGrowth = SETTINGS.divGrowth; saveStore(); toast(t("Preferences saved")); });
+      $("#backupRemindSel").addEventListener("change", (e) => { SETTINGS.backupRemind = e.target.value; saveStore(); toast(t("Preferences saved")); });
+      $("#resetPrefs").addEventListener("click", async () => {
+        if (!(await showConfirmModal(t("Reset all preferences to their defaults? Your records are not touched."), { okLabel: t("Reset") }))) return;
+        Object.assign(SETTINGS, { dateFormat: "D MMM YYYY", timeZone: "", returnMode: "total", startPage: "", defBroker: "", numFmt: "en", divGrowth: 3, privacy: false, backupRemind: "off", showReconciliation: false, showExDivScreener: false, divTaxByCountry: {} });
+        divLtGrowth = 3; saveStore(); applyPrivacy(); toast(t("Preferences saved")); render();
+      });
       $("#startPageSel").addEventListener("change", (e) => { SETTINGS.startPage = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#defBrokerSel").addEventListener("change", (e) => { SETTINGS.defBroker = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $$("[data-wht]").forEach((inp) => inp.addEventListener("change", () => {
@@ -5958,7 +5986,7 @@ function pageSettings() {
       }));
       $$("[data-settheme]").forEach((b) => b.addEventListener("click", () => { setTheme(b.dataset.settheme); $$("[data-settheme]").forEach((x) => x.classList.toggle("on", x === b)); }));
       $$("[data-setlang]").forEach((b) => b.addEventListener("click", () => { if (LANG === b.dataset.setlang) return; setLang(b.dataset.setlang); applyStaticI18n(); updateLangBtn(); render(); }));
-      $("#privacyMode").addEventListener("change", (e) => { SETTINGS.privacy = e.target.checked; saveStore(); applyPrivacy(); toast(t("Preferences saved")); });
+      $("#privacyMode").addEventListener("change", (e) => { togglePrivacy(e.target.checked); toast(t("Preferences saved")); });
       // CSV import
       $("#dlTemplate").addEventListener("click", downloadImportTemplate);
       $("#impCsvBtn").addEventListener("click", () => $("#impCsvFile").click());
@@ -5995,6 +6023,7 @@ function exportBackupJSON() {
   const a = document.createElement("a");
   a.href = url; a.download = `investment-ledger-backup-${todayISO()}.json`;
   document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  SETTINGS.lastBackup = todayISO(); saveStore();
   toast(t("Backup downloaded"));
 }
 function validBackup(s) {
@@ -7780,7 +7809,7 @@ function updateLangBtn() {
   });
 }
 
-/* Privacy mode: wrap every "RM 1,234.56"-style amount in a blurred span (and redo it whenever the page redraws). */
+/* Privacy mode: every "RM 1,234.56"-style amount shows as "RM ••••" (and comes back when it is switched off). */
 let privacyObs = null, privacyBusy = false;
 function privacyScan() {
   if (!SETTINGS.privacy || privacyBusy) return;
@@ -7793,27 +7822,44 @@ function privacyScan() {
     while (w.nextNode()) found.push(w.currentNode);
     found.forEach((n) => {
       const frag = document.createDocumentFragment(), s = n.nodeValue; let last = 0, m; re.lastIndex = 0;
-      while ((m = re.exec(s))) { frag.append(s.slice(last, m.index)); const sp = document.createElement("span"); sp.className = "pv"; sp.textContent = m[0]; frag.append(sp); last = m.index + m[0].length; }
+      while ((m = re.exec(s))) { frag.append(s.slice(last, m.index)); const sp = document.createElement("span"); sp.className = "pv"; sp.dataset.o = m[0]; sp.textContent = m[0].replace(/[\d,]+(?:\.\d+)?$/, "••••"); frag.append(sp); last = m.index + m[0].length; }
       frag.append(s.slice(last)); n.replaceWith(frag);
+    });
+    document.querySelectorAll(".dz-big:not([data-pvo]), .pfx-big:not([data-pvo])").forEach((el) => {
+      const cur = el.querySelector(".cur"); el.dataset.pvo = el.innerHTML;
+      el.innerHTML = `<span class="cur">${cur ? cur.textContent : ""}</span>••••`;
     });
   } finally { privacyBusy = false; }
 }
 function applyPrivacy() {
   document.documentElement.classList.toggle("pv-on", !!SETTINGS.privacy);
+  document.querySelectorAll("[data-dz-privacy]").forEach((b) => { b.classList.toggle("on", !!SETTINGS.privacy); b.innerHTML = privacyEyeSVG(); b.title = t(SETTINGS.privacy ? "Show amounts" : "Hide amounts"); });
+  const sw = document.getElementById("privacyMode"); if (sw) sw.checked = !!SETTINGS.privacy;
   if (SETTINGS.privacy) {
     if (!privacyObs) { let q = 0; privacyObs = new MutationObserver(() => { if (privacyBusy || q) return; q = requestAnimationFrame(() => { q = 0; privacyScan(); }); }); privacyObs.observe(document.body, { childList: true, subtree: true, characterData: true }); }
     privacyScan();
   } else {
     if (privacyObs) { privacyObs.disconnect(); privacyObs = null; }
-    document.querySelectorAll(".pv").forEach((s) => s.replaceWith(document.createTextNode(s.textContent)));
+    document.querySelectorAll(".pv").forEach((s) => s.replaceWith(document.createTextNode(s.dataset.o || s.textContent)));
+    document.querySelectorAll("[data-pvo]").forEach((el) => { el.innerHTML = el.dataset.pvo; el.removeAttribute("data-pvo"); });
     document.body.normalize();
   }
 }
+function privacyEyeSVG() {
+  return `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>${SETTINGS.privacy ? '<path d="M3 3l18 18"/>' : ""}</svg>`;
+}
+function togglePrivacy(on) { SETTINGS.privacy = on == null ? !SETTINGS.privacy : !!on; saveStore(); applyPrivacy(); }
 
 function init() {
   try { const saved = localStorage.getItem("il-theme"); if (saved) setTheme(saved); } catch (e) {}
   if (SETTINGS.startPage && (!location.hash || location.hash === "#" || location.hash === "#/")) history.replaceState(null, "", "#/" + SETTINGS.startPage);
   applyPrivacy();
+  // Backup reminder: once per visit, only when there is data worth saving
+  setTimeout(() => {
+    const every = { weekly: 7, monthly: 30 }[SETTINGS.backupRemind]; if (!every || !ALL_TRANSACTIONS.length) return;
+    const days = SETTINGS.lastBackup ? (Date.now() - new Date(SETTINGS.lastBackup + "T00:00:00").getTime()) / 86400000 : Infinity;
+    if (days >= every) toast(t("Time for a backup — Settings → Data & backup."));
+  }, 2500);
 
   setLang(LANG);            // sets <html lang> from the persisted choice
   applyStaticI18n();        // translate nav / sidebar / bottom-nav labels
