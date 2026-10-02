@@ -2704,7 +2704,7 @@ function plural(n, one, many) { return `${n} ${n === 1 ? one : many}`; }
 const portfolioFilters = { broker: "", market: "", currency: "", sort: "" };
 let portfolioTab = "holdings";   // holdings | allocation | realized
 let pfFiltersOpen = false;       // phone only: whether the filter dropdowns are unfolded
-let realizedView = { mode: "stock", sort: "high" };   // mode: stock | sale ; sort: high | low | new
+let realizedView = { mode: "stock", sort: "high", filter: "all" };   // mode: stock | sale ; sort: high | low | new
 const EXCHANGE_NAMES = { NMS:"NASDAQ", NGM:"NASDAQ", NCM:"NASDAQ", NYQ:"NYSE", PCX:"NYSE Arca", KLS:"Bursa Malaysia", KLSE:"Bursa Malaysia", LSE:"London SE", HKG:"Hong Kong SE", ASX:"ASX", TSX:"TSX" };
 function exchangeName(code) { return code ? (EXCHANGE_NAMES[code] || code) : ""; }
 // h.market stores the FRIENDLY exchange name ("Bursa Malaysia" — see EXCHANGE_NAMES /
@@ -2904,6 +2904,11 @@ function pagePortfolio() {
       : `${plural(T.holdings.length, "holding", "holdings")} across ${plural(BROKERS.length, "broker", "brokers")} · ${money(T.portfolioValue)}`, html,
     mount() {
       $$("[data-pftab]").forEach((b) => b.addEventListener("click", () => { portfolioTab = b.dataset.pftab; render(); }));
+      $$("[data-rzfilter]").forEach((el) => {
+        const go = () => { realizedView.filter = el.dataset.rzfilter; render(); };
+        el.addEventListener("click", go);
+        el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+      });
       $$("[data-rzmode]").forEach((b) => b.addEventListener("click", () => { realizedView.mode = b.dataset.rzmode; render(); }));
       const rzSort = $("#rzSort"); if (rzSort) rzSort.addEventListener("change", () => { realizedView.sort = rzSort.value; render(); });
       const apply = () => {
@@ -3089,46 +3094,62 @@ function realizedPLHTML() {
   const pct = (pl, cost) => cost > 0 ? `<span>${pctTxt((pl / cost) * 100)}</span>` : `<span class="muted">—</span>`;
   const sortFn = (a, b) => realizedView.sort === "low" ? a.pl - b.pl : realizedView.sort === "new" ? (b.date < a.date ? -1 : b.date > a.date ? 1 : 0) : b.pl - a.pl;
   let rows, headers;
-  const tCost = sales.reduce((s, x) => s + x.costMYR, 0), tProc = sales.reduce((s, x) => s + x.proceedsMYR, 0), tPl = sales.reduce((s, x) => s + x.pl, 0);
+  // Gained / Lost filter: applies to the rows AND to the Total row under them.
+  const rzf = realizedView.filter || "all";
+  const keep = (pl) => (rzf === "gain" ? pl > 0 : rzf === "loss" ? pl < 0 : true);
+  const tag = (pl) => (pl > 0 ? `<div class="pfx-tagrow"><span class="pfx-tag pos">${t("Gained")}</span></div>` : pl < 0 ? `<div class="pfx-tagrow"><span class="pfx-tag neg">${t("Lost")}</span></div>` : "");
+  const shown = sales.filter((x) => keep(x.pl));
+  const byStock = {};
+  sales.forEach((x) => {
+    const g = byStock[x.ticker] || (byStock[x.ticker] = { ticker: x.ticker, company: x.company, n: 0, cost: 0, proceeds: 0, pl: 0, date: "" });
+    g.n++; g.cost += x.costMYR; g.proceeds += x.proceedsMYR; g.pl += x.pl; if (x.date > g.date) g.date = x.date;
+    if (!g.company && x.company) g.company = x.company;
+  });
+  const groups = Object.values(byStock);
+  const shownGroups = groups.filter((g) => keep(g.pl));
+  const tSrc = realizedView.mode === "sale" ? shown : shownGroups;
+  const tCost = tSrc.reduce((s, x) => s + (x.costMYR != null ? x.costMYR : x.cost), 0), tProc = tSrc.reduce((s, x) => s + (x.proceedsMYR != null ? x.proceedsMYR : x.proceeds), 0), tPl = tSrc.reduce((s, x) => s + x.pl, 0);
+  const tN = shownGroups.reduce((s, g) => s + g.n, 0);
   const numFrom = realizedView.mode === "sale" ? 2 : 1;
   if (realizedView.mode === "sale") {
-    rows = [...sales].sort(sortFn).map((x) => `<tr>
+    rows = [...shown].sort(sortFn).map((x) => `<tr>
       <td class="dcc-c">${fmtDate(x.date)}</td>
-      <td class="dcc-c td-holding">${tickerCell(x.ticker, null, tickerSubLabel(x.ticker, x.company))}<div class="sub">${esc(brokerName(x.brokerId))}</div><div class="sub pfx-only-m">${fmtDate(x.date)} · ${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")}</div></td>
+      <td class="dcc-c td-holding">${tickerCell(x.ticker, null, tickerSubLabel(x.ticker, x.company))}<div class="sub">${esc(brokerName(x.brokerId))}</div>${tag(x.pl)}<div class="sub pfx-only-m">${fmtDate(x.date)} · ${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")}</div></td>
       <td class="dcc-c pfn">${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} @ ${fmt(x.price)} ${ccyLabel(x.currency)}</td>
       <td class="dcc-c pfn">${money(x.costMYR)}</td><td class="dcc-c pfn">${money(x.proceedsMYR)}</td>
       <td class="dcc-c pfn ${cls(x.pl)}">${moneySigned(x.pl)}</td><td class="dcc-c pfn ${cls(x.pl)}">${pct(x.pl, x.costMYR)}</td></tr>`).join("")
-      + `<tr class="pfx-tot"><td class="dcc-c"></td><td class="dcc-c">${t("Total")}</td><td class="dcc-c pfn"></td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`;
+      + (!shown.length ? "" : `<tr class="pfx-tot"><td class="dcc-c"></td><td class="dcc-c">${t("Total")}</td><td class="dcc-c pfn"></td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`);
     headers = [t("Date"), t("Holding"), t("Sold"), t("Cost"), t("Proceeds"), t("Realized P/L"), t("Return %")];
   } else {
-    const by = {};
-    sales.forEach((x) => {
-      const g = by[x.ticker] || (by[x.ticker] = { ticker: x.ticker, company: x.company, n: 0, cost: 0, proceeds: 0, pl: 0, date: "" });
-      g.n++; g.cost += x.costMYR; g.proceeds += x.proceedsMYR; g.pl += x.pl; if (x.date > g.date) g.date = x.date;
-      if (!g.company && x.company) g.company = x.company;
-    });
-    rows = Object.values(by).sort(sortFn).map((g) => `<tr>
-      <td class="dcc-c td-holding">${tickerCell(g.ticker, null, tickerSubLabel(g.ticker, g.company))}</td>
+    rows = [...shownGroups].sort(sortFn).map((g) => `<tr>
+      <td class="dcc-c td-holding">${tickerCell(g.ticker, null, tickerSubLabel(g.ticker, g.company))}${tag(g.pl)}</td>
       <td class="dcc-c pfn">${g.n}</td><td class="dcc-c pfn">${money(g.cost)}</td><td class="dcc-c pfn">${money(g.proceeds)}</td>
       <td class="dcc-c pfn ${cls(g.pl)}">${moneySigned(g.pl)}</td><td class="dcc-c pfn ${cls(g.pl)}">${pct(g.pl, g.cost)}</td></tr>`).join("")
-      + `<tr class="pfx-tot"><td class="dcc-c">${t("Total")}</td><td class="dcc-c pfn">${sales.length}</td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`;
+      + (!shownGroups.length ? "" : `<tr class="pfx-tot"><td class="dcc-c">${t("Total")}</td><td class="dcc-c pfn">${tN}</td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`);
     headers = [t("Holding"), t("Sales"), t("Cost"), t("Proceeds"), t("Realized P/L"), t("Return %")];
   }
   const best = [...sales].sort((a, b) => b.pl - a.pl)[0], worst = [...sales].sort((a, b) => a.pl - b.pl)[0];
-  const wins = sales.filter((x) => x.pl > 0).length;
-  const mc = (label, val, c = "") => `<div class="mini-card"><div class="mc-label">${label}</div><div class="mc-value ${c}">${val}</div></div>`;
-  const summary = `<div class="mini-cards" style="margin-bottom:16px">
+  const gainG = groups.filter((g) => g.pl > 0), lossG = groups.filter((g) => g.pl < 0);
+  const sumPl = (l) => l.reduce((s, g) => s + g.pl, 0);
+  const nStocks = (n) => dzF(n === 1 ? "{n} stock" : "{n} stocks", { n });
+  const mc = (label, val, c = "", attr = "") => `<div class="mini-card"${attr}><div class="mc-label">${label}</div><div class="mc-value ${c}">${val}</div></div>`;
+  const fcard = (label, key, list) => mc(label, moneySigned(sumPl(list)) + `<div class="sub">${nStocks(list.length)}</div>`, list.length ? cls(sumPl(list)) : "",
+    ` role="button" tabindex="0" data-rzfilter="${key}" aria-label="${label}"`);
+  const summary = `<div class="mini-cards pfx-rzcards" style="margin-bottom:16px">
     ${mc(t("Total Realized P/L"), moneySigned(T.realizedPL), cls(T.realizedPL))}
+    ${fcard(t("Gained"), "gain", gainG)}
+    ${fcard(t("Lost"), "loss", lossG)}
     ${mc(t("Best sale"), `${moneySigned(best.pl)}<div class="sub">${esc(best.ticker)} · ${fmtDate(best.date)}</div>`, cls(best.pl))}
-    ${mc(t("Worst sale"), `${moneySigned(worst.pl)}<div class="sub">${esc(worst.ticker)} · ${fmtDate(worst.date)}</div>`, cls(worst.pl))}
-    ${mc(t("Winning sales"), `${wins} / ${sales.length}`)}</div>`;
+    ${mc(t("Worst sale"), `${moneySigned(worst.pl)}<div class="sub">${esc(worst.ticker)} · ${fmtDate(worst.date)}</div>`, cls(worst.pl))}</div>`;
+  const filterBtns = `<div class="seg" role="group" aria-label="${t("Gained")} / ${t("Lost")}">${[["all", t("All")], ["gain", t("Gained")], ["loss", t("Lost")]].map(([k, l]) =>
+    `<button class="seg-btn ${rzf === k ? "on" : ""}" data-rzfilter="${k}">${l}</button>`).join("")}</div>`;
   const modeBtns = `<div class="seg" role="group">${[["stock", "By stock"], ["sale", "Each sale"]].map(([k, l]) =>
     `<button class="seg-btn ${realizedView.mode === k ? "on" : ""}" data-rzmode="${k}">${t(l)}</button>`).join("")}</div>`;
   const sortSel = styledSelect("rzSort", [["high", "Highest profit first"], ["low", "Biggest loss first"], ["new", "Most recent first"]]
     .map(([value, label]) => ({ value, label: t(label) })), realizedView.sort, { id: "rzSort" });
   const w = (100 / headers.length).toFixed(1) + "%";
   return summary + panel(t("Realized P/L"),
-    `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${modeBtns}${sortSel}</div>
+    `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${modeBtns}${filterBtns}${sortSel}</div>
      <div class="dcc-table-scroll" style="max-height:480px">${`<div class="pfx-rz pfx-rz-${realizedView.mode}">${table(headers.map((h, i) => ({ label: h, num: i >= numFrom, style: "width:" + w })), rows)}</div>`}</div>
      <p class="muted" style="font-size:12px;margin:10px 0 0">${t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.")}</p>`);
 }

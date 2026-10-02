@@ -24,7 +24,7 @@
 /* ---------- Chinese strings for this page ----------
  * Only keys the main dictionary doesn't already have are added, so nothing existing is overridden. */
 const DZ_ZH = {
-  "Your holdings": "我的持仓", "current holdings": "当前持仓", "Filters": "筛选", "By holding": "按持仓", "Breakdowns": "分布", "Sector": "行业", "Brokerage": "券商",
+  "Your holdings": "我的持仓", "Gained": "盈利", "Lost": "亏损", "{n} stock": "{n} 只股票", "{n} stocks": "{n} 只股票", "current holdings": "当前持仓", "Filters": "筛选", "By holding": "按持仓", "Breakdowns": "分布", "Sector": "行业", "Brokerage": "券商",
   "Sector is not known for stocks added by CSV import. It fills in only when the price feed supplies it.": "通过 CSV 导入的股票没有行业信息，仅当价格来源提供时才会显示。",
   "Total return here covers current holdings only; the Dashboard also counts sold stocks.": "此处的总回报只包含当前持仓；仪表盘还包含已卖出的股票。",
   "Good morning": "早上好", "Good afternoon": "下午好", "Good evening": "晚上好",
