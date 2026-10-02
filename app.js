@@ -3150,7 +3150,7 @@ function realizedPLHTML() {
   const w = (100 / headers.length).toFixed(1) + "%";
   return summary + panel(t("Realized P/L"),
     `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${modeBtns}${filterBtns}${sortSel}</div>
-     <div class="dcc-table-scroll" style="max-height:480px">${`<div class="pfx-rz pfx-rz-${realizedView.mode}">${table(headers.map((h, i) => ({ label: h, num: i >= numFrom, style: "width:" + w })), rows)}</div>`}</div>
+     <div class="dcc-table-scroll">${`<div class="pfx-rz pfx-rz-${realizedView.mode}">${table(headers.map((h, i) => ({ label: h, num: i >= numFrom, style: "width:" + w })), rows)}</div>`}</div>
      <p class="muted" style="font-size:12px;margin:10px 0 0">${t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.")}</p>`);
 }
 
