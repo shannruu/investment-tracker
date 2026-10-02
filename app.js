@@ -694,6 +694,25 @@ const ZH = {
   "Alerts that are still waiting for their price.": "仍在等待目标价格的提醒。",
   "Alerts that notify you every time the price crosses, not just once.": "价格每次触及都会通知您的提醒，而不只是一次。",
   "Alerts that already fired and are now switched off.": "已经触发并关闭的提醒。",
+  "Appearance": "外观",
+  "Theme": "主题",
+  "Dark": "深色",
+  "Privacy mode": "隐私模式",
+  "Blurs every money amount on screen, so nobody can read them over your shoulder. Your data is not changed.": "将屏幕上所有金额模糊显示，避免旁人偷看。您的数据不会改变。",
+  "Start page": "起始页面",
+  "Default broker for new records": "新记录的默认券商",
+  "The broker the Add record panel starts with. Its currency is used too.": "“添加记录”面板默认选中的券商，其货币也会一并使用。",
+  "Last used": "上次使用",
+  "Dividend tax by country": "各国股息税",
+  "Withholding tax taken from dividends, by the country of the stock's market. Used when dividends are logged automatically, unless the broker has its own rate. Leave blank for 0.": "按股票所在市场的国家扣除的股息预扣税。自动记录股息时使用，除非券商有自己的税率。留空表示 0。",
+  "Malaysia": "马来西亚",
+  "United States": "美国",
+  "Singapore": "新加坡",
+  "Hong Kong": "香港",
+  "United Kingdom": "英国",
+  "Australia": "澳大利亚",
+  "Japan": "日本",
+  "China": "中国",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -1832,7 +1851,7 @@ function computePendingAutoDividends() {
       const sharesThen = sharesAsOf(h.ticker, h.brokerId, d.date);
       if (sharesThen <= 0) return;   // sold out entirely by the time this dividend priced — not eligible
       const gross = (d.amount || 0) * sharesThen;
-      const tax = gross * ((broker && broker.divTaxRate ? broker.divTaxRate : 0) / 100);
+      const tax = gross * ((broker && broker.divTaxRate ? broker.divTaxRate : ((SETTINGS.divTaxByCountry || {})[marketInfo(h.ticker).country] || 0)) / 100);
       candidates.push({
         key: dismissKey, brokerId: h.brokerId, brokerName: broker ? broker.name : "",
         ticker: h.ticker, company: h.company || "", market: h.market || "",
@@ -4039,7 +4058,7 @@ function addForm2(type, editing) {
   const v = (x) => esc(x);
   const draft = editing ? {} : addDraft;   // preserve shared fields across type switches (new records only)
   const selectable = BROKERS.filter((b) => !b.archived || b.id === e.brokerId || b.id === e.toBrokerId);
-  const defBroker = e.brokerId || draft.broker || (selectable[0] && selectable[0].id) || "";
+  const defBroker = e.brokerId || draft.broker || (selectable.some((b) => b.id === SETTINGS.defBroker) ? SETTINGS.defBroker : "") || (selectable[0] && selectable[0].id) || "";
   const brokerCcy = (id) => { const b = BROKERS.find((x) => x.id === id); return b ? b.currency : FX.base; };
   const defCcy = e.currency || draft.currency || brokerCcy(defBroker) || FX.base;
   const brokerList = selectable.map((b) => ({ value: b.id, label: b.name }));
@@ -5800,7 +5819,7 @@ function pageProfile() {
 let settingsTab = "currency";
 function pageSettings() {
   const stHead = dzTopHTML({ eyebrow: t("Settings"), h1: t("Settings"), sub: t("Currency, preferences and your data"), noLive: true });
-  const stNav = `<nav class="st-nav" role="tablist">${[["currency", t("Currency")], ["prefs", t("Preferences")], ["data", t("Data & backup")], ["danger", t("Danger zone")]].map(([k, l]) =>
+  const stNav = `<nav class="st-nav" role="tablist">${[["currency", t("Currency")], ["look", t("Appearance")], ["prefs", t("Preferences")], ["data", t("Data & backup")], ["danger", t("Danger zone")]].map(([k, l]) =>
     `<button type="button" role="tab" class="${settingsTab === k ? "on" : ""}${k === "danger" ? " dng" : ""}" data-sttab2="${k}">${l}</button>`).join("")}</nav>`;
   const html = `<div class="pfx pfx-set">${stHead}<div class="st-wrap" data-tab="${settingsTab}">${stNav}<div class="st-main"><div class="st-sec" data-sec="currency">
     ${panel(`${t("Currency & Exchange Rates")}${infoTip(`${t("Each record keeps its own currency. Base-currency amounts come from exchange rates.")} ${t("Pull today's market rate or type your own.")}`)}`, `
@@ -5823,6 +5842,13 @@ function pageSettings() {
         <span class="muted fx-status" id="fxStatus">${FX_STATUS}</span>
       </div>`)}
 
+    </div><div class="st-sec" data-sec="look">
+    ${panel(t("Appearance"), `<div class="setting-rows">
+      ${settingRow(t("Theme"), `<div class="dz-seg" role="group">${[["light", t("Light")], ["dark", t("Dark")]].map(([k, l]) => `<button type="button" class="${document.documentElement.getAttribute("data-theme") === k ? "on" : ""}" data-settheme="${k}">${l}</button>`).join("")}</div>`)}
+      ${settingRow(t("Language"), `<div class="dz-seg" role="group">${[["en", "English"], ["zh", "中文"]].map(([k, l]) => `<button type="button" class="${LANG === k ? "on" : ""}" data-setlang="${k}">${l}</button>`).join("")}</div>`)}
+      ${settingRow(`<span class="lbl-t">${t("Privacy mode")}${hcTip(t("Blurs every money amount on screen, so nobody can read them over your shoulder. Your data is not changed."))}</span>`, `<label class="switch"><input type="checkbox" id="privacyMode" aria-label="${escAttr(t("Privacy mode"))}" ${SETTINGS.privacy ? "checked" : ""}><span class="switch-track"></span></label>`)}
+      </div>`)}
+
     </div><div class="st-sec" data-sec="prefs">
     ${panel(`${t("Preferences")}${infoTip(t("Time zone decides which day counts as \"today\". Gains and losses use the Average Cost method."))}`, `<div class="setting-rows">
       ${settingRow(t("Date format"), `<div style="width:200px">${styledSelect("dateFmt", DATE_FORMATS.map((f) => ({ value: f.k, label: f.label })), SETTINGS.dateFormat, { id: "dateFmt" })}</div>`)}
@@ -5831,9 +5857,14 @@ function pageSettings() {
         { value: "total", label: t("Total Return") },
         { value: "price", label: t("Unrealized") },
       ], SETTINGS.returnMode === "price" ? "price" : "total", { id: "returnModeSel" })}</div>`)}
+      ${settingRow(t("Start page"), `<div style="width:200px">${styledSelect("startPage", [["dashboard", t("Dashboard")], ["portfolio", t("Portfolio")], ["dividends", t("Dividends")], ["records", t("Transactions")], ["brokers", t("Brokers")]].map(([value, label]) => ({ value, label })), SETTINGS.startPage || "dashboard", { id: "startPageSel" })}</div>`)}
+      ${settingRow(`<span class="lbl-t">${t("Default broker for new records")}${hcTip(t("The broker the Add record panel starts with. Its currency is used too."))}</span>`, `<div style="width:200px">${styledSelect("defBroker", [{ value: "", label: t("Last used") }, ...BROKERS.filter((b) => !b.archived).map((b) => ({ value: b.id, label: b.name }))], SETTINGS.defBroker || "", { id: "defBrokerSel" })}</div>`)}
       ${settingRow(t("Cost basis method"), `<div style="width:200px">${styledSelect("costBasis", [{ value: "average", label: t("Average Cost") }], "average", { id: "costBasis" })}</div>`)}
       ${settingRow(t("Show reconciliation on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" aria-label="${escAttr(t("Show reconciliation on Brokers page"))}" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
       ${settingRow(t("Show Ex-Dividend Screener on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" aria-label="${escAttr(t("Show Ex-Dividend Screener on Dividends page"))}" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
+      </div>`)}
+    ${panel(`${t("Dividend tax by country")}${infoTip(t("Withholding tax taken from dividends, by the country of the stock's market. Used when dividends are logged automatically, unless the broker has its own rate. Leave blank for 0."))}`, `<div class="setting-rows">
+      ${["Malaysia", "United States", "Singapore", "Hong Kong", "United Kingdom", "Australia", "Japan", "China"].map((c) => settingRow(t(c), `<span class="input-prefix"><input type="number" step="any" min="0" max="100" data-wht="${c}" value="${(SETTINGS.divTaxByCountry || {})[c] != null ? esc((SETTINGS.divTaxByCountry || {})[c]) : ""}" placeholder="0" style="width:90px"> %</span>`)).join("")}
       </div>`)}
 
     </div><div class="st-sec" data-sec="data">
@@ -5918,6 +5949,16 @@ function pageSettings() {
       $("#tzSel").addEventListener("change", (e) => { SETTINGS.timeZone = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#returnModeSel").addEventListener("change", (e) => { SETTINGS.returnMode = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#costBasis").addEventListener("change", () => { SETTINGS.costBasis = "average"; saveStore(); });
+      $("#startPageSel").addEventListener("change", (e) => { SETTINGS.startPage = e.target.value; saveStore(); toast(t("Preferences saved")); });
+      $("#defBrokerSel").addEventListener("change", (e) => { SETTINGS.defBroker = e.target.value; saveStore(); toast(t("Preferences saved")); });
+      $$("[data-wht]").forEach((inp) => inp.addEventListener("change", () => {
+        const m = SETTINGS.divTaxByCountry || (SETTINGS.divTaxByCountry = {}), v = parseFloat(inp.value);
+        if (isNaN(v)) delete m[inp.dataset.wht]; else m[inp.dataset.wht] = Math.max(0, Math.min(100, v));
+        saveStore(); toast(t("Preferences saved"));
+      }));
+      $$("[data-settheme]").forEach((b) => b.addEventListener("click", () => { setTheme(b.dataset.settheme); $$("[data-settheme]").forEach((x) => x.classList.toggle("on", x === b)); }));
+      $$("[data-setlang]").forEach((b) => b.addEventListener("click", () => { if (LANG === b.dataset.setlang) return; setLang(b.dataset.setlang); applyStaticI18n(); updateLangBtn(); render(); }));
+      $("#privacyMode").addEventListener("change", (e) => { SETTINGS.privacy = e.target.checked; saveStore(); applyPrivacy(); toast(t("Preferences saved")); });
       // CSV import
       $("#dlTemplate").addEventListener("click", downloadImportTemplate);
       $("#impCsvBtn").addEventListener("click", () => $("#impCsvFile").click());
@@ -7739,8 +7780,40 @@ function updateLangBtn() {
   });
 }
 
+/* Privacy mode: wrap every "RM 1,234.56"-style amount in a blurred span (and redo it whenever the page redraws). */
+let privacyObs = null, privacyBusy = false;
+function privacyScan() {
+  if (!SETTINGS.privacy || privacyBusy) return;
+  privacyBusy = true;
+  try {
+    const re = /[+−-]?(?:RM|[A-Z]{3})\s[\d,]+(?:\.\d+)?/g, found = [];
+    const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: (n) => {
+      const p = n.parentElement; if (!p || /^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(p.tagName) || p.closest(".pv")) return NodeFilter.FILTER_REJECT;
+      re.lastIndex = 0; return re.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });
+    while (w.nextNode()) found.push(w.currentNode);
+    found.forEach((n) => {
+      const frag = document.createDocumentFragment(), s = n.nodeValue; let last = 0, m; re.lastIndex = 0;
+      while ((m = re.exec(s))) { frag.append(s.slice(last, m.index)); const sp = document.createElement("span"); sp.className = "pv"; sp.textContent = m[0]; frag.append(sp); last = m.index + m[0].length; }
+      frag.append(s.slice(last)); n.replaceWith(frag);
+    });
+  } finally { privacyBusy = false; }
+}
+function applyPrivacy() {
+  document.documentElement.classList.toggle("pv-on", !!SETTINGS.privacy);
+  if (SETTINGS.privacy) {
+    if (!privacyObs) { let q = 0; privacyObs = new MutationObserver(() => { if (privacyBusy || q) return; q = requestAnimationFrame(() => { q = 0; privacyScan(); }); }); privacyObs.observe(document.body, { childList: true, subtree: true, characterData: true }); }
+    privacyScan();
+  } else {
+    if (privacyObs) { privacyObs.disconnect(); privacyObs = null; }
+    document.querySelectorAll(".pv").forEach((s) => s.replaceWith(document.createTextNode(s.textContent)));
+    document.body.normalize();
+  }
+}
+
 function init() {
   try { const saved = localStorage.getItem("il-theme"); if (saved) setTheme(saved); } catch (e) {}
+  if (SETTINGS.startPage && (!location.hash || location.hash === "#" || location.hash === "#/")) history.replaceState(null, "", "#/" + SETTINGS.startPage);
+  applyPrivacy();
 
   setLang(LANG);            // sets <html lang> from the persisted choice
   applyStaticI18n();        // translate nav / sidebar / bottom-nav labels
