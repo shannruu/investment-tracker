@@ -19,7 +19,7 @@
  *    the shell stays current online, falling back to the last cached copy only
  *    when there's no connection at all.
  * ========================================================================== */
-const CACHE_NAME = "il-shell-v144";
+const CACHE_NAME = "il-shell-v145";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -59,25 +59,25 @@ self.addEventListener("fetch", (e) => {
   );
 });
 
-/* ===================== Price alert push notifications ===================== */
-// Payload shape (set by api/check-alerts.js): { title, body, url, tag }.
+/* ===================== Dividend reminder push notifications ===================== */
+// Payload shape (set by api/send-reminders.js): { title, body, url, tag }.
 // `tag` is the alert's own id, so a repeat trigger of the same alert replaces
 // the earlier notification instead of stacking a new one.
 self.addEventListener("push", (e) => {
   let data = {};
   try { data = e.data ? e.data.json() : {}; } catch (err) { /* malformed payload — show a generic fallback below */ }
-  e.waitUntil(self.registration.showNotification(data.title || "Divz price alert", {
+  e.waitUntil(self.registration.showNotification(data.title || "Divz", {
     body: data.body || "",
     icon: "/icons/icon-192.png",
     badge: "/icons/icon-192.png",
     tag: data.tag,
-    data: { url: data.url || "/#/alerts" },
+    data: { url: data.url || "/#/dividends" },
   }));
 });
 
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
-  const url = (e.notification.data && e.notification.data.url) || "/#/alerts";
+  const url = (e.notification.data && e.notification.data.url) || "/#/dividends";
   e.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
       for (const c of list) {

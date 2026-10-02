@@ -783,6 +783,16 @@ const ZH = {
   "No dividends received this year.": "今年没有收到股息。",
   "No shares sold this year.": "今年没有卖出股票。",
   "Couldn't open the print window.": "无法打开打印窗口。",
+  "Choose currency": "选择货币",
+  "Choose country": "选择国家",
+  "Choose a currency first.": "请先选择货币。",
+  "Search…": "搜索…",
+  "Nothing matches": "没有匹配项",
+  "Notifications are on — you will also get them when the app is closed.": "通知已开启 — 应用关闭时您也会收到。",
+  "Notifications are on while the app is open. Closed-app notifications could not be set up on this device.": "应用打开时会收到通知。此设备无法设置应用关闭时的通知。",
+  "Notifications are on while the app is open. Sign in to also get them when the app is closed.": "应用打开时会收到通知。登录后，应用关闭时也能收到。",
+  "A pop-up from your phone or computer. When you are signed in it also arrives while the app is closed (sent every morning by the server). On iPhone, open Divz from its Home Screen icon first.": "来自手机或电脑的弹出通知。登录后，应用关闭时也会收到（服务器每天早上发送）。iPhone 请先从主屏幕图标打开 Divz。",
+  "Ex-dividend date": "除息日",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -2819,6 +2829,63 @@ function dividendReminderItems() {
   });
   return out;
 }
+/* ---- Reminders while the app is CLOSED: the browser is subscribed to Web Push and the upcoming reminders are copied to the account,
+ * where a daily server job (api/send-reminders.js) sends them. Needs an account (cloud sync) — see DEPLOY.md. */
+const VAPID_PUBLIC_KEY = "BA2GJXo7Hz2vOj1axNfEqzFzaMmMVq53vrE2VFtFzMJhU6FXkvjoBRJmPcX4fgI9QmDI8W8BEbkqvM4d-1siZZY";
+let PUSH_SUBSCRIBED = null;   // null = not checked yet, else true/false
+function pushCanSync() { return typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && !!SYNC_USER && "serviceWorker" in navigator && "PushManager" in window; }
+function urlBase64ToUint8Array(b64) {
+  const s = (b64 + "=".repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/"), raw = atob(s), out = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+  return out;
+}
+async function checkPushSubscribed() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) { PUSH_SUBSCRIBED = false; return false; }
+  try { const reg = await navigator.serviceWorker.ready; PUSH_SUBSCRIBED = !!(await reg.pushManager.getSubscription()); } catch (e) { PUSH_SUBSCRIBED = false; }
+  return PUSH_SUBSCRIBED;
+}
+/* Subscribes this device and saves it to the account. Returns true when closed-app notifications are on. Must run from a click. */
+async function enableDividendPush() {
+  if (!pushCanSync()) return false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
+    const j = sub.toJSON();
+    const { error } = await SUPABASE.from("push_subscriptions").upsert({ user_id: SYNC_USER.id, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth }, { onConflict: "endpoint" });
+    if (error) return false;
+    PUSH_SUBSCRIBED = true; return true;
+  } catch (e) { return false; }
+}
+async function disableDividendPush(opts = {}) {
+  try {
+    const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
+    if (sub) { const ep = sub.endpoint; await sub.unsubscribe(); if (typeof SYNC_USER !== "undefined" && SYNC_USER) await SUPABASE.from("push_subscriptions").delete().eq("endpoint", ep); }
+  } catch (e) { /* best effort — the server drops dead subscriptions itself */ }
+  PUSH_SUBSCRIBED = false;
+  if (typeof SYNC_USER !== "undefined" && SYNC_USER && typeof SUPABASE !== "undefined") { try { await SUPABASE.from("dividend_reminders").delete().eq("user_id", SYNC_USER.id).eq("sent", false); } catch (e) {} }
+}
+function disablePriceAlertPush(o) { return disableDividendPush(o); }   // name sync.js calls on sign-out
+/* Copies the next reminders to the account so the server can send them. */
+async function syncDividendReminders() {
+  if (!pushCanSync() || !SETTINGS.divRemNotify || PUSH_SUBSCRIBED !== true) return;
+  const rows = [], today = todayISO(), span = SETTINGS.divRemDays || 3, plain = (h) => h.replace(/<[^>]+>/g, "");
+  const shift = (iso, days) => { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + days); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+  let list = []; try { list = allUpcomingDivs(); } catch (e) { return; }
+  list.forEach((d) => {
+    const name = dzName(d.ticker, null), amt = d.expectedNetMYR > 0 ? ` (≈ ${money(d.expectedNetMYR)})` : "";
+    if (SETTINGS.divRemEx !== false && d.exDate && d.exDate >= today) {
+      const on = shift(d.exDate, -span);
+      rows.push({ rid: `ex|${d.ticker}|${d.exDate}|${span}`, fire_on: on < today ? today : on, title: `${t("Ex-dividend")} — ${name}`, body: `${t("Ex-dividend date")}: ${fmtDate(d.exDate)}. ${t("Keep your shares until then to receive this dividend")}${amt}.` });
+    }
+    if (SETTINGS.divRemPay !== false && d.payDate && d.payDate >= today) rows.push({ rid: `pay|${d.ticker}|${d.payDate}`, fire_on: d.payDate, title: `${t("Dividend payment day")} — ${name}`, body: `${t("Check that it reached your account")}${amt}.` });
+  });
+  try {
+    await SUPABASE.from("dividend_reminders").delete().eq("user_id", SYNC_USER.id).eq("sent", false);
+    if (rows.length) await SUPABASE.from("dividend_reminders").upsert(rows.map((r) => ({ ...r, user_id: SYNC_USER.id })), { onConflict: "user_id,rid", ignoreDuplicates: true });
+  } catch (e) { /* retried next time the app opens */ }
+}
+
 /* A phone / computer notification for today's reminders, once each, while the app is open. */
 function dividendNotify() {
   if (!SETTINGS.divRemNotify || typeof Notification === "undefined" || Notification.permission !== "granted") return;
@@ -2854,7 +2921,35 @@ const WORLD_CCY = [
   ["ILS","Israeli Shekel"],["EGP","Egyptian Pound"],["NGN","Nigerian Naira"],["KES","Kenyan Shilling"],["PKR","Pakistani Rupee"],
   ["BDT","Bangladeshi Taka"],["LKR","Sri Lankan Rupee"],["MMK","Myanmar Kyat"],["KHR","Cambodian Riel"],["BND","Brunei Dollar"],
   ["MOP","Macanese Pataca"],["ISK","Icelandic Krona"],["UAH","Ukrainian Hryvnia"],["MAD","Moroccan Dirham"],["PEN","Peruvian Sol"],
+  ["NPR","Nepalese Rupee"],["LAK","Lao Kip"],["MNT","Mongolian Tugrik"],["KZT","Kazakhstani Tenge"],["GEL","Georgian Lari"],
+  ["JOD","Jordanian Dinar"],["LBP","Lebanese Pound"],["TND","Tunisian Dinar"],["DZD","Algerian Dinar"],["GHS","Ghanaian Cedi"],
+  ["UGX","Ugandan Shilling"],["TZS","Tanzanian Shilling"],["ETB","Ethiopian Birr"],["BGN","Bulgarian Lev"],["RSD","Serbian Dinar"],
+  ["FJD","Fijian Dollar"],["TTD","Trinidad Dollar"],["DOP","Dominican Peso"],["CRC","Costa Rican Colon"],["UYU","Uruguayan Peso"],
+  ["BOB","Bolivian Boliviano"],["PYG","Paraguayan Guarani"],["GTQ","Guatemalan Quetzal"],["IQD","Iraqi Dinar"],["IRR","Iranian Rial"],
+  ["AFN","Afghan Afghani"],["MVR","Maldivian Rufiyaa"],["BTN","Bhutanese Ngultrum"],["XOF","West African CFA Franc"],["XAF","Central African CFA Franc"],
 ];
+/* Countries a stock market can belong to (same names the app uses for a stock's country). */
+function countryNames() { return [...new Set(Object.values(MARKET_MAP).map((m) => m[0]).concat("United States"))].sort(); }
+/* A dropdown that only PICKS a value from a searchable list (kind "ccy" or "country") — nothing is added until you press Add. */
+function pickItems(kind, q) {
+  q = (q || "").trim().toLowerCase();
+  let list;
+  if (kind === "ccy") list = WORLD_CCY.filter(([c]) => !FX.rates[c]).filter(([c, n]) => !q || c.toLowerCase().includes(q) || n.toLowerCase().includes(q)).map(([c, n]) => [c, `<span class="sel-sym">${ccyLabel(c)}</span><span class="sel-name">${esc(n)}</span>`, c]);
+  else list = countryNames().filter((c) => !(SETTINGS.divTaxByCountry || {})[c]).filter((c) => !q || c.toLowerCase().includes(q) || t(c).toLowerCase().includes(q)).map((c) => [c, esc(t(c)), t(c)]);
+  if (!list.length) return `<div class="sel-empty">${t("Nothing matches")}</div>`;
+  return list.slice(0, 80).map(([v, html, label]) => `<button type="button" class="sel-opt sel-search-opt sel-pick-opt" data-val="${escAttr(v)}" data-label="${escAttr(label)}">${html}</button>`).join("");
+}
+function pickSelect(name, kind, placeholder) {
+  return `<div class="sel" data-pick="${kind}"><input type="hidden" id="${name}" name="${name}" value="">
+    <button type="button" class="sel-trigger"><span class="sel-val sel-ph">${esc(placeholder)}</span><span class="sel-caret" aria-hidden="true">▾</span></button>
+    <div class="sel-pop" role="listbox" hidden></div></div>`;
+}
+function openPickSearch(sel) {
+  const pop = sel.querySelector(".sel-pop");
+  pop.innerHTML = `<div class="sel-search"><input type="text" class="sel-search-input" placeholder="${t("Search…")}" autocomplete="off"></div><div class="sel-search-list">${pickItems(sel.dataset.pick, "")}</div>`;
+  openSel(sel);
+  const inp = pop.querySelector(".sel-search-input"); if (inp) setTimeout(() => inp.focus(), 0);
+}
 
 /* Currency options for a picker: base first, (future) recently-used, then all known rates. */
 function currencyItems() {
@@ -2929,14 +3024,23 @@ function initStyledSelects() {
   document.addEventListener("click", async (e) => {
     const trig = e.target.closest(".sel-trigger");
     const more = e.target.closest(".sel-more");
-    const sopt = e.target.closest(".sel-search-opt");
-    const opt = !sopt && e.target.closest(".sel-opt");
+    const popt = e.target.closest(".sel-pick-opt");
+    const sopt = !popt && e.target.closest(".sel-search-opt");
+    const opt = !popt && !sopt && e.target.closest(".sel-opt");
     $$(".sel.open").forEach((s) => { if (!s.contains(e.target)) closeSel(s); });
     if (trig) {
       const s = trig.closest(".sel");
       if (s.classList.contains("open")) { closeSel(s); return; }
+      if (s.dataset.pick) { openPickSearch(s); return; }
       if (s.dataset.more === "currency") rebuildCurrencyPop(s, s.querySelector('input[type="hidden"]').value);
       openSel(s); return;
+    }
+    if (popt) {
+      e.preventDefault();
+      const s = popt.closest(".sel"), input = s.querySelector('input[type="hidden"]');
+      input.value = popt.dataset.val;
+      const v = s.querySelector(".sel-val"); v.textContent = popt.dataset.label; v.classList.remove("sel-ph");
+      closeSel(s); input.dispatchEvent(new Event("change", { bubbles: true })); return;
     }
     if (more) { e.preventDefault(); openCurrencySearch(more.closest(".sel")); return; }
     if (sopt) { e.preventDefault(); await pickWorldCurrency(sopt.closest(".sel"), sopt.dataset.val); return; }
@@ -2953,8 +3057,8 @@ function initStyledSelects() {
   document.addEventListener("input", (e) => {
     const inp = e.target.closest(".sel-search-input");
     if (!inp) return;
-    const list = inp.closest(".sel-pop").querySelector(".sel-search-list");
-    if (list) list.innerHTML = worldCurrencyOptions(inp.value);
+    const sel = inp.closest(".sel"), list = inp.closest(".sel-pop").querySelector(".sel-search-list");
+    if (list) list.innerHTML = sel && sel.dataset.pick ? pickItems(sel.dataset.pick, inp.value) : worldCurrencyOptions(inp.value);
   });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") $$(".sel.open").forEach(closeSel); });
 }
@@ -5944,8 +6048,7 @@ function pageSettings() {
       <div class="fx-list">
         ${fxRows()}
         <div class="fx-row fx-row-add">
-          <input list="ccyList" id="newCcy" class="fx-input fx-ccy-input" placeholder="${t("Currency code")}" maxlength="3" autocomplete="off" style="text-transform:uppercase" />
-          <datalist id="ccyList">${[...new Set(COMMON_CCY)].map((c) => `<option value="${c}"></option>`).join("")}</datalist>
+          <span class="fx-pick">${pickSelect("newCcy", "ccy", t("Choose currency"))}</span>
           <span class="fx-row-controls">
             <input type="number" step="any" id="newRate" class="fx-input" placeholder="${t("Rate to")} ${ccyLabel(FX.base)}" />
             <button class="btn primary small" id="addCcyBtn">${t("Add")}</button>
@@ -5984,14 +6087,13 @@ function pageSettings() {
       ${settingRow(t("Before the ex-dividend date"), `<label class="switch"><input type="checkbox" id="divRemEx" aria-label="${escAttr(t("Before the ex-dividend date"))}" ${SETTINGS.divRemEx !== false ? "checked" : ""}><span class="switch-track"></span></label>`)}
       ${settingRow(t("How many days before"), `<div style="width:200px">${styledSelect("divRemDays", [1, 2, 3, 7].map((n) => ({ value: String(n), label: n === 1 ? t("1 day") : `${n} ${t("days")}` })), String(SETTINGS.divRemDays || 3), { id: "divRemDaysSel" })}</div>`)}
       ${settingRow(t("On the payment day"), `<label class="switch"><input type="checkbox" id="divRemPay" aria-label="${escAttr(t("On the payment day"))}" ${SETTINGS.divRemPay !== false ? "checked" : ""}><span class="switch-track"></span></label>`)}
-      ${settingRow(`<span class="lbl-t">${t("Also send a notification")}${hcTip(t("A pop-up from your phone or computer. It appears when you open the app; to get it while the app is closed the app needs a server, which isn't set up yet."))}</span>`, `<label class="switch"><input type="checkbox" id="divRemNotify" aria-label="${escAttr(t("Also send a notification"))}" ${SETTINGS.divRemNotify ? "checked" : ""}><span class="switch-track"></span></label>`)}
+      ${settingRow(`<span class="lbl-t">${t("Also send a notification")}${hcTip(t("A pop-up from your phone or computer. When you are signed in it also arrives while the app is closed (sent every morning by the server). On iPhone, open Divz from its Home Screen icon first."))}</span>`, `<label class="switch"><input type="checkbox" id="divRemNotify" aria-label="${escAttr(t("Also send a notification"))}" ${SETTINGS.divRemNotify ? "checked" : ""}><span class="switch-track"></span></label>`)}
       </div>`)}
     ${panel(`${t("Dividend tax by country")}${infoTip(t("Withholding tax taken from dividends, by the country of the stock's market. Used when dividends are logged automatically, unless the broker has its own rate. Leave blank for 0."))}`, `
       <div class="fx-list">
         ${Object.entries(SETTINGS.divTaxByCountry || {}).map(([c, r]) => `<div class="fx-row"><span class="fx-ccy">${esc(t(c))}</span><span class="fx-row-controls"><input class="fx-input" type="number" step="any" min="0" max="100" data-wht="${esc(c)}" value="${esc(r)}" style="width:90px"><span class="muted">%</span><button class="icon-btn" data-whtdel="${esc(c)}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></span></div>`).join("") || `<p class="muted" style="margin:0 0 6px">${t("No country added yet — every dividend is taken as 0% tax.")}</p>`}
         <div class="fx-row fx-row-add">
-          <input list="whtList" id="whtNew" class="fx-input fx-ccy-input" placeholder="${t("Country")}" autocomplete="off" style="width:190px" />
-          <datalist id="whtList">${[...new Set(Object.values(MARKET_MAP).map((m) => m[0]).concat("United States"))].sort().map((c) => `<option value="${esc(c)}"></option>`).join("")}</datalist>
+          <span class="fx-pick">${pickSelect("whtNew", "country", t("Choose country"))}</span>
           <span class="fx-row-controls">
             <input type="number" step="any" min="0" max="100" id="whtRate" class="fx-input" placeholder="${t("Tax %")}" style="width:90px" />
             <button class="btn primary small" id="whtAdd">${t("Add")}</button>
@@ -6095,7 +6197,7 @@ function pageSettings() {
       $("#tzSel").addEventListener("change", (e) => { SETTINGS.timeZone = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#returnModeSel").addEventListener("change", (e) => { SETTINGS.returnMode = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#costBasis").addEventListener("change", (e) => { SETTINGS.costBasis = e.target.value === "fifo" ? "fifo" : "average"; saveStore(); recompute(); toast(t("Preferences saved")); render(); });
-      const remSave = () => { saveStore(); toast(t("Preferences saved")); renderNotifications(); };
+      const remSave = () => { saveStore(); toast(t("Preferences saved")); renderNotifications(); syncDividendReminders(); };
       $("#divRemEx").addEventListener("change", (e) => { SETTINGS.divRemEx = e.target.checked; remSave(); });
       $("#divRemPay").addEventListener("change", (e) => { SETTINGS.divRemPay = e.target.checked; remSave(); });
       $("#divRemDaysSel").addEventListener("change", (e) => { SETTINGS.divRemDays = +e.target.value; remSave(); });
@@ -6106,7 +6208,12 @@ function pageSettings() {
           if (perm === "default") { try { perm = await Notification.requestPermission(); } catch (err) { perm = "denied"; } }
           if (perm !== "granted") { box.checked = false; SETTINGS.divRemNotify = false; saveStore(); toast(t("Notifications are blocked for this site — enable them in your browser's site settings, then reload this page.")); return; }
         }
-        SETTINGS.divRemNotify = box.checked; remSave(); dividendNotify();
+        SETTINGS.divRemNotify = box.checked; saveStore(); renderNotifications();
+        if (box.checked) {
+          dividendNotify();
+          if (pushCanSync() && (await enableDividendPush())) { syncDividendReminders(); toast(t("Notifications are on — you will also get them when the app is closed.")); }
+          else toast(typeof SYNC_USER !== "undefined" && SYNC_USER ? t("Notifications are on while the app is open. Closed-app notifications could not be set up on this device.") : t("Notifications are on while the app is open. Sign in to also get them when the app is closed."));
+        } else { await disableDividendPush({ silent: true }); toast(t("Preferences saved")); }
       });
       $("#taxXls").addEventListener("click", () => exportTaxReportCSV(+$("#taxYearSel").value));
       $("#taxPdf").addEventListener("click", () => printTaxReport(+$("#taxYearSel").value));
@@ -6130,7 +6237,7 @@ function pageSettings() {
       $("#defBrokerSel").addEventListener("change", (e) => { SETTINGS.defBroker = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#whtAdd").addEventListener("click", () => {
         const raw = $("#whtNew").value.trim().toLowerCase(), rate = parseFloat($("#whtRate").value);
-        const known = [...new Set(Object.values(MARKET_MAP).map((m) => m[0]).concat("United States"))].find((c) => c.toLowerCase() === raw);
+        const known = countryNames().find((c) => c.toLowerCase() === raw);
         if (!known) { toast(t("Pick a country from the list.")); return; }
         if (!(rate >= 0 && rate <= 100)) { toast(t("Enter a tax rate from 0 to 100.")); return; }
         (SETTINGS.divTaxByCountry || (SETTINGS.divTaxByCountry = {}))[known] = rate;
@@ -6304,7 +6411,7 @@ function mountFxControls() {
   $("#addCcyBtn").addEventListener("click", () => {
     const code = $("#newCcy").value.trim().toUpperCase();
     const rate = parseFloat($("#newRate").value);
-    if (code.length !== 3) { toast(t("Enter a 3-letter currency code.")); return; }
+    if (code.length !== 3) { toast(t("Choose a currency first.")); return; }
     if (!(rate > 0)) { toast(t("Enter a valid rate.")); return; }
     if (code === FX.base || FX.rates[code]) { toast(`${code} ${t("already has a rate — edit it in the list above instead.")}`); return; }
     FX.rates[code] = rate; saveStore(); render();
@@ -8063,7 +8170,8 @@ function init() {
   try { const saved = localStorage.getItem("il-theme"); if (saved) setTheme(saved); } catch (e) {}
   if (SETTINGS.startPage && (!location.hash || location.hash === "#" || location.hash === "#/")) history.replaceState(null, "", "#/" + SETTINGS.startPage);
   applyPrivacy();
-  setTimeout(dividendNotify, 5000); setTimeout(dividendNotify, 25000);   // dividend data loads in the background
+  const remindAll = () => { dividendNotify(); checkPushSubscribed().then(syncDividendReminders); };
+  setTimeout(remindAll, 5000); setTimeout(remindAll, 25000);   // dividend data loads in the background
   // Backup reminder: once per visit, only when there is data worth saving
   setTimeout(() => {
     const every = { weekly: 7, monthly: 30 }[SETTINGS.backupRemind]; if (!every || !ALL_TRANSACTIONS.length) return;

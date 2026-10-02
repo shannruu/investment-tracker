@@ -176,45 +176,16 @@ in or create an account, and the Account page will show Cloud sync instead of "n
 
 ---
 
-## Optional: Price Alerts setup (real push notifications)
+## Optional: Dividend reminder notifications while the app is closed
 
-Set a target price for any ticker and get a real push notification — even with the app
-fully closed — when it's crossed. **Requires Cloud Sync to be set up first** (above): a
-server has to check your alerts on a schedule with no browser open, so it needs to know
-*whose* alerts to check, which only works with an account.
+Divz always shows ex-dividend and payment-day reminders in the bell when you open it. To also get a
+real phone / computer notification with the app **closed**, a small server job sends them every
+morning. **Needs Cloud Sync set up first** (above) so the server knows whose reminders to send.
 
-This is the one part of Divz that isn't purely static: Vercel needs to install two small
-server-side libraries (`package.json`, already in the repo) for one function,
-`api/check-alerts.js`, that runs the check. Nothing else about how the site is served
-changes — Build Command and Output Directory stay empty exactly as in Method A above.
-
-### 1. Add two more tables to the same Supabase project
-In the same project's **SQL Editor** (the one `ledger_data` already lives in), run:
+### 1. Two tables in the same Supabase project (SQL Editor)
 
 ```sql
-create table price_alerts (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  ticker text not null,
-  direction text not null check (direction in ('above', 'below')),
-  target_price numeric not null check (target_price > 0),
-  recurring boolean not null default false,
-  enabled boolean not null default true,
-  armed boolean not null default true,
-  last_triggered_at timestamptz,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-alter table price_alerts enable row level security;
-create policy "select own" on price_alerts for select using (auth.uid() = user_id);
-create policy "insert own" on price_alerts for insert with check (auth.uid() = user_id);
-create policy "update own" on price_alerts for update using (auth.uid() = user_id);
-create policy "delete own" on price_alerts for delete using (auth.uid() = user_id);
-create trigger price_alerts_set_updated_at
-before update on price_alerts
-for each row execute function set_updated_at();  -- reuses the function ledger_data's SQL already created
-
-create table push_subscriptions (
+create table if not exists push_subscriptions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   endpoint text not null unique,
@@ -225,60 +196,46 @@ create table push_subscriptions (
 alter table push_subscriptions enable row level security;
 create policy "select own" on push_subscriptions for select using (auth.uid() = user_id);
 create policy "insert own" on push_subscriptions for insert with check (auth.uid() = user_id);
+create policy "update own" on push_subscriptions for update using (auth.uid() = user_id);
 create policy "delete own" on push_subscriptions for delete using (auth.uid() = user_id);
+
+create table if not exists dividend_reminders (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  rid text not null,
+  fire_on date not null,
+  title text not null,
+  body text not null,
+  sent boolean not null default false,
+  created_at timestamptz not null default now(),
+  unique (user_id, rid)
+);
+alter table dividend_reminders enable row level security;
+create policy "select own" on dividend_reminders for select using (auth.uid() = user_id);
+create policy "insert own" on dividend_reminders for insert with check (auth.uid() = user_id);
+create policy "update own" on dividend_reminders for update using (auth.uid() = user_id);
+create policy "delete own" on dividend_reminders for delete using (auth.uid() = user_id);
 ```
 
-### 2. Copy your project's service-role key
-In **Settings → API**, copy the **`service_role`** secret key (it already exists on every
-Supabase project — nothing to create). **This key bypasses Row Level Security — it must
-never appear in any file that ships to the browser** (not `supabase-client.js`, not
-`alerts.js`, nowhere client-side). It only ever belongs in a Vercel environment variable,
-read server-side by `api/check-alerts.js`.
-
-### 3. Set the Vercel environment variables
-Vercel → your project → **Settings → Environment Variables**, add all five (Production):
+### 2. Vercel environment variables (Settings -> Environment Variables, Production)
 
 | Name | Value |
 |---|---|
 | `SUPABASE_URL` | Same Project URL as `supabase-client.js` |
-| `SUPABASE_SERVICE_ROLE_KEY` | From step 2 above |
-| `VAPID_PUBLIC_KEY` | Provided alongside this setup — also already in `alerts.js` |
-| `VAPID_PRIVATE_KEY` | Provided alongside this setup — **never put this one in any file** |
-| `CRON_SECRET` | Any random string — also provided alongside this setup |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase -> Settings -> API -> `service_role` secret. **Never put it in any file in the repo.** |
+| `VAPID_PUBLIC_KEY` | The public key that is in `app.js` (`VAPID_PUBLIC_KEY`) |
+| `VAPID_PRIVATE_KEY` | The matching private key. **Never put it in any file.** |
+| `CRON_SECRET` | Any long random string |
 
-Re-deploy after adding these (Vercel → Deployments → **⋯ → Redeploy**, or just push any
-commit) so the function actually picks them up.
+Then redeploy (Deployments -> ... -> Redeploy). `vercel.json` already schedules the job every day at
+01:00 UTC (09:00 Malaysia time); Vercel sends `CRON_SECRET` to it automatically.
 
-### 4. Point an external cron pinger at the checker
-Vercel's own free-tier cron only runs once a day, which is too coarse for a price alert —
-instead, a free external pinger calls the checker on a real schedule:
+To make a new VAPID key pair: `npx web-push generate-vapid-keys`. If you do, replace `VAPID_PUBLIC_KEY`
+in `app.js` with the new public key, too.
 
-1. Sign up free at [cron-job.org](https://cron-job.org) (no card needed).
-2. Create a new cron job:
-   - URL: `https://<your-domain>/api/check-alerts?key=<CRON_SECRET>` (the same
-     `CRON_SECRET` value from step 3)
-   - Schedule: every 5 minutes
-3. Only enable it once step 3's redeploy is confirmed live — otherwise it'll just hit a
-   500 until the environment variables are in place.
+### 3. Turn it on in the app
+Settings -> Preferences -> Dividend reminders -> switch on **Also send a notification** (signed in).
+On iPhone, open Divz from its **Home Screen** icon first (Web Push only works for the installed app).
 
-### 5. Use it on your iPhone
-Web Push for installed PWAs has worked on iOS since 16.4, so this needs no native app —
-but it only works from the **installed** app, not a regular Safari tab:
-
-1. Open Divz from its **Home Screen icon** (Add to Home Screen first if you haven't).
-2. Sign in (the opening page, or the Account page).
-3. Go to the new **Price Alerts** page, tap **Enable notifications**, accept the iOS
-   permission prompt.
-4. Add an alert — a ticker, a direction, and a target price.
-
-If push ever seems to stop working (e.g. after deleting and re-adding the Home Screen
-icon), the fix is just re-tapping "Enable notifications" on that page — no redeploy needed.
-
----
-
-## Notes
-
-- **Custom domain:** Vercel → Project → Settings → Domains, to add your own.
-- **It already works on mobile** (responsive layout + bottom nav).
-- **Updating data:** edit `data.js` and re-upload / push — no rebuild needed.
-- If a page ever looks stale after an update, hard-refresh with `Ctrl+Shift+R`.
+To test straight away: open `https://<your-domain>/api/send-reminders?key=<CRON_SECRET>` - it answers
+with how many reminders were due and sent.
