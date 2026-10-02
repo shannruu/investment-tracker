@@ -3129,3 +3129,23 @@ a.ticker.tk-name:hover { color: var(--brand); }
   .al-list .al-row .badge { display: none; }
 }
 .hp-grid { grid-template-columns: 1fr; gap: 10px; }
+
+/* =============================================================================
+   ADD RECORD / ADD BROKER PANELS (redesign): rounded panel, pill type tabs, buttons fixed at the bottom
+   ============================================================================= */
+.drawer-panel { width: min(580px, 100%); background: var(--dz-panel); border-radius: 26px 0 0 26px; border: 1px solid var(--dz-card-bd); border-right: 0; }
+.drawer-head { padding: 20px 26px; }
+.drawer-head h2 { font-size: 18px; font-weight: 700; letter-spacing: -.02em; }
+.drawer-head .icon-btn { width: 36px; height: 36px; border-radius: 50%; }
+.drawer-body { padding: 22px 26px 0; display: flex; flex-direction: column; }
+.drawer-body > form, .drawer-body .add-form { flex: 1; display: flex; flex-direction: column; max-width: none; gap: 18px; }
+.drawer-body .add-sep { margin: 4px -26px 4px; }
+.drawer-body .tp-tab { border-radius: 99px; padding: 8px 14px; font-size: 13px; font-weight: 700; background: var(--dz-seg); border-color: var(--dz-seg-bd); color: var(--text-soft); }
+.drawer-body .tp-tab.on { background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 34%, transparent), color-mix(in srgb, var(--accent2) 16%, transparent)); color: var(--text); border-color: color-mix(in srgb, var(--brand) 55%, transparent); }
+.drawer-body .tp-tab.on .icon { stroke: currentColor; }
+.drawer-body .form-actions { position: sticky; bottom: 0; margin: auto -26px 0; padding: 16px 26px calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--dz-panel); border-top: 1px solid var(--border); z-index: 3; flex-wrap: nowrap; }
+.drawer-body .form-actions .btn.primary { flex: 1; justify-content: center; }
+.drawer-body .form-actions .btn { height: 44px; }
+.drawer-body .form-actions .btn.primary { box-shadow: none; }
+@media (max-width: 760px) { .drawer-panel { border-radius: 22px 22px 0 0; border: 1px solid var(--dz-card-bd); border-bottom: 0; } .drawer-body { padding: 18px 18px 0; } .drawer-body .form-actions { margin: auto -18px 0; padding: 14px 18px calc(14px + env(safe-area-inset-bottom, 0px)); } .drawer-body .add-sep { margin: 4px -18px; } }
+.drawer-body .add-sep { margin: 8px -26px 16px; } .lbl-t { display: inline-flex; align-items: center; gap: 6px; }

@@ -5729,9 +5729,8 @@ function brokerFormHTML(editing) {
         { value: "broker", label: t("Broker account (adds to cash)") },
         { value: "bank", label: t("Bank account (income only)") },
       ], e.divPaidTo || "broker")}</label>
-      <label>${t("Default dividend tax rate")} (%)<input type="number" step="any" min="0" max="100" name="divTaxRate" value="${e.divTaxRate != null ? esc(e.divTaxRate) : ""}" placeholder="0"></label>
+      <label><span class="lbl-t">${t("Default dividend tax rate")} (%)${hcTip(t("Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward."))}</span><input type="number" step="any" min="0" max="100" name="divTaxRate" value="${e.divTaxRate != null ? esc(e.divTaxRate) : ""}" placeholder="0"></label>
     </div>
-    <p class="muted" style="margin:-8px 0 12px;font-size:12px">${t("Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward.")}</p>
     <label class="block">${t("Notes")}<input name="notes" value="${esc(e.notes)}" placeholder="${t("optional")}"></label>
     <div class="form-actions">
       <button class="btn primary" type="submit">${editing ? t("Update Broker") : t("Add Broker")}</button>
