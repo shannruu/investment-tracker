@@ -3206,14 +3206,15 @@ function pfAllocationHTML() {
   const legend = items.map((x, i) => `<div class="pfx-lr"><i style="background:${PF_PAL[i % PF_PAL.length]}"></i><span class="pfx-ln">${esc(x.label)}</span><span class="pfx-lv dz-n">${money(x.value)}</span><b class="dz-n">${pc(x.value)}</b></div>`).join("");
   const ring = `<div class="pfx-alloc"><div class="pfx-ring"><svg viewBox="0 0 ${size} ${size}" role="img" aria-label="${t("By holding")}"><circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" class="pfx-ring-track" stroke-width="${thick}"/>${arcs}</svg>
     <div class="pfx-ringc"><small>${t("Market Value")}</small><b class="dz-n">${money(total)}</b></div></div><div class="pfx-legend">${legend}</div></div>`;
-  const stack = (title, list, extra = "") => {
+  const stack = (title, list, tip = "") => {
     const sorted = [...list].filter((x) => x.value > 0).sort((a, b) => b.value - a.value);
     if (!sorted.length) return "";
-    return `<div class="pfx-bk"><h3>${title}</h3><div class="pfx-bar">${sorted.map((x, i) => `<i style="width:${(x.value / total) * 100}%;background:${PF_PAL[i % PF_PAL.length]}"></i>`).join("")}</div>
-      <div class="pfx-bl">${sorted.map((x, i) => `<span><s style="background:${PF_PAL[i % PF_PAL.length]}"></s>${esc(x.label)} <em class="dz-n">${pc(x.value)}</em></span>`).join("")}</div>${extra}</div>`;
+    return `<div class="pfx-bk"><h3>${title}${tip ? infoTip(tip) : ""}</h3><div class="pfx-bar">${sorted.map((x, i) => `<i style="width:${(x.value / total) * 100}%;background:${PF_PAL[i % PF_PAL.length]}"></i>`).join("")}</div>
+      <div class="pfx-bl">${sorted.map((x, i) => `<span><s style="background:${PF_PAL[i % PF_PAL.length]}"></s>${esc(x.label)} <em class="dz-n">${pc(x.value)}</em></span>`).join("")}</div></div>`;
   };
+  // Sector is unknown for CSV-imported stocks: a small "i" next to the title explains it instead of a permanent warning box.
   const noSector = al.bySector.length === 1 && al.bySector[0].label === "Others"
-    ? `<div class="pfx-note">${dzIcon("info", 15)}<span>${t("Sector is not known for stocks added by CSV import. It fills in only when the price feed supplies it.")}</span></div>` : "";
+    ? t("Sector is not known for stocks added by CSV import. It fills in only when the price feed supplies it.") : "";
   const brokers = new Set(T.holdings.map((h) => h.brokerId)).size >= 2 || al.byBroker.length;
   const bks = `<div class="pfx-bks">${stack(t("Country"), al.byCountry)}${stack(t("Sector"), al.bySector, noSector)}${stack(t("Currency"), al.byCurrency)}${brokers ? stack(t("Brokerage"), al.byBroker) : ""}</div>`;
   return `<div class="pfx-two">${panel(t("By holding"), ring)}${panel(t("Breakdowns"), bks)}</div>`;

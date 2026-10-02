@@ -2316,9 +2316,16 @@ button, input, select, textarea { font-family: inherit; }
 .pfx-sub { font-size: 12px; font-weight: 600; color: var(--muted); }
 .pfx-sub.pos { color: var(--pos); } .pfx-sub.neg { color: var(--neg); }
 .pfx-mv { font-weight: 700; }
-.pfx .pf-table tr.pfx-tot td, .pfx-rz tr.pfx-tot td { font-weight: 700; border-top: 1px solid var(--border); border-bottom: 0; padding-top: 16px; }
-.pfx .pf-table tr.pfx-tot td:first-child, .pfx-rz tr.pfx-tot td:first-child, .pfx-rz-sale tr.pfx-tot td:nth-child(2) { color: var(--muted); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.pfx .pf-table tr.pfx-tot td, .pfx-rz tr.pfx-tot td { font-weight: 700; font-size: 14.5px; border-top: 0; border-bottom: 0; padding-top: 16px; padding-bottom: 16px; background: color-mix(in srgb, var(--brand) 11%, transparent); }
+.pfx .pf-table tr.pfx-tot td:first-child { background: color-mix(in srgb, var(--brand) 11%, var(--dz-card-base)); }
+.pfx .pf-table tr.pfx-tot td:first-child, .pfx-rz tr.pfx-tot td:first-child { border-radius: 14px 0 0 14px; padding-left: 14px; }
+.pfx .pf-table tr.pfx-tot td:last-child, .pfx-rz tr.pfx-tot td:last-child { border-radius: 0 14px 14px 0; }
+.pfx .pf-table tbody tr.pfx-tot:hover td:first-child { background: color-mix(in srgb, var(--brand) 11%, var(--dz-card-base)); }
+.pfx .pf-table tr.pfx-tot td:first-child, .pfx-rz tr.pfx-tot td:first-child, .pfx-rz-sale tr.pfx-tot td:nth-child(2) { color: var(--text-soft, var(--muted)); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
 .pfx-rz .data-table th.num, .pfx-rz .data-table td.pfn { text-align: right; font-variant-numeric: tabular-nums; }
+.pfx .dcc-table-scroll { padding-right: 18px; scrollbar-gutter: stable; }
+.pfx-rz .data-table th:last-child, .pfx-rz .data-table td:last-child { padding-right: 14px; }
+.pfx .pf-table th:last-child, .pfx .pf-table td:last-child { padding-right: 16px; }
 
 /* allocation */
 .pfx-two { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: start; }
