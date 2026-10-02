@@ -2723,3 +2723,23 @@ a.ticker.tk-name:hover { color: var(--brand); }
   .rc-close { display: grid; place-items: center; }
   .rc-sheet .rc-back { display: block; position: fixed; inset: 0; background: rgba(0, 0, 0, .5); z-index: 90; }
 }
+
+/* =============================================================================
+   BROKERS PAGE REDESIGN — reuses the Transactions table / detail panel / phone sheet (.rc-*).
+   ============================================================================= */
+.bk-id { display: flex; align-items: center; gap: 12px; text-align: left; }
+.bk-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.bk-head h2 { margin: 0; }
+.bk-share { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.bk-bar { flex: none; width: 90px; height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--text) 10%, transparent); overflow: hidden; }
+.bk-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--brand), var(--accent2)); }
+.rc-tbl tfoot td { padding: 14px; font-size: 14px; font-weight: 700; border-top: 1px solid var(--border); white-space: nowrap; }
+.rc-tbl tfoot td:first-child { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.rc-row.archived, .rc-ev.archived { opacity: .6; }
+.pfx-br .rc-det .brand-mark { flex: none; }
+@media (max-width: 760px) {
+  .pfx-br .pfx-sum3 { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pfx-br .pfx-sum3 .pfx-sc { padding: 13px 14px; }
+  .pfx-br .pfx-sum3 .pfx-sc:last-child { grid-column: 1 / -1; }
+  .pfx-br .pfx-sum3 .pfx-v { font-size: 18px; }
+}

@@ -563,6 +563,15 @@ const ZH = {
   "Pick what to record": "选择要记录的内容", "Change type": "更改类型", "Withdraw": "取款",
   "Fees, taxes & details": "费用、税费与明细",
   "Add a transaction": "添加交易", "Edit": "编辑", "Record a transaction": "记录一笔交易",
+  "Your brokers": "你的券商",
+  "in total": "合计",
+  "Share of total": "占比",
+  "Selected broker": "所选券商",
+  "Holdings plus cash": "持仓加现金",
+  "Cash only": "仅现金",
+  "All brokers": "全部券商",
+  "Select a broker to see its details.": "选择一个券商查看详情。",
+  "Total": "总计",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -5293,137 +5302,147 @@ function brokerNetCashCalc(b) {
     ], total: deposits - withdrawals };
 }
 
-function brokerCard(b) {
+// Brokers page (redesign): header, totals, broker table + detail panel (a bottom sheet on phones).
+let brSel = null;
+function brStats(b) {
   const holdings = T.holdings.filter((h) => h.brokerId === b.id);
-  const value = holdings.reduce((s, h) => s + h.marketValue, 0);
-  const calc = T.brokerCash[b.id] || 0;
-  const chk = RECON_CHECKS[b.id];
-  const hasActual = chk && chk.actual != null;
-  const diff = hasActual ? calc - (+chk.actual) : null;
+  const mv = holdings.reduce((s, h) => s + h.marketValue, 0), cash = T.brokerCash[b.id] || 0;
+  return { holdings, mv, cash, net: mv + cash, ret: T.totalReturnByBroker[b.id] || 0, div: T.dividendsByBroker[b.id] || 0,
+    unr: T.unrealizedByBroker[b.id] || 0, dep: T.depositsByBroker[b.id] || 0, wd: T.withdrawalsByBroker[b.id] || 0 };
+}
+function brSub(b, s) {
+  const n = s.holdings.length;
+  const h = !n ? t("Cash only") : LANG === "zh" ? `${n} 个持仓` : plural(n, "holding", "holdings");
+  return `${esc(ccyLabel(b.currency))} · ${h}${b.country ? ` · ${esc(b.country)}` : ""}`;
+}
+function brRowsDesk(list, totalNet) {
+  return list.map((b) => {
+    const s = brStats(b), share = totalNet > 0 ? (s.net / totalNet) * 100 : 0;
+    const ret = !s.holdings.length && !s.ret ? "—" : moneySigned(s.ret);
+    return `<tr class="rc-row${b.id === brSel ? " sel" : ""}${b.archived ? " archived" : ""}" data-br-id="${b.id}" tabindex="0">
+      <td><div class="bk-id"><span class="brand-mark sm">${esc(b.name.slice(0, 2).toUpperCase())}</span><div><div class="ticker tk-name">${esc(b.name)}${b.archived ? ` <span class="badge subtle">${t("Archived")}</span>` : ""}</div><div class="sub">${brSub(b, s)}</div></div></div></td>
+      <td class="pfn">${money(s.mv)}</td><td class="pfn">${money(s.cash)}</td><td class="pfn ${cls(s.ret)}">${ret}</td>
+      <td><div class="bk-share"><span class="bk-bar"><i style="width:${share.toFixed(1)}%"></i></span>${fmt(share, { maximumFractionDigits: 1 })}%</div></td></tr>`;
+  }).join("");
+}
+function brRowsMob(list) {
+  return list.map((b) => {
+    const s = brStats(b);
+    return `<div class="rc-ev${b.id === brSel ? " sel" : ""}${b.archived ? " archived" : ""}" data-br-id="${b.id}" role="button" tabindex="0">
+      <span class="brand-mark sm">${esc(b.name.slice(0, 2).toUpperCase())}</span>
+      <div class="rc-tx"><div class="rc-t1">${esc(b.name)}${b.archived ? ` <span class="badge subtle">${t("Archived")}</span>` : ""}</div><div class="rc-t2">${brSub(b, s)}</div></div>
+      <div class="rc-am">${money(s.net)}${s.holdings.length || s.ret ? `<small class="${cls(s.ret)}">${moneySigned(s.ret)}</small>` : ""}</div></div>`;
+  }).join("");
+}
+function brDetailHTML(b) {
+  if (!b) return `<div class="pfx-note2">${t("Select a broker to see its details.")}</div>`;
+  const s = brStats(b), chk = RECON_CHECKS[b.id], hasActual = chk && chk.actual != null;
   let reconStatus = t("Not checked"), reconCls = "subtle";
   if (hasActual) {
+    const diff = s.cash - (+chk.actual);
     if (Math.abs(diff) < 0.005) { reconStatus = t("Matched"); reconCls = "pos"; }
     else if (Math.abs(diff) <= (SETTINGS.reconTolerance || 0)) { reconStatus = t("Small difference"); reconCls = "warn"; }
     else { reconStatus = t("Needs review"); reconCls = "neg"; }
   }
+  const neg = (T.negativeCash || []).filter((n) => n.brokerId === b.id);
+  const negNote = neg.length ? `<p class="pfx-note2 neg">${neg.map((n) => `${ccyLabel(n.currency)} ${t("balance is negative")} (${ccyLabel(n.currency)} ${fmt(Math.abs(n.amount))}) — ${t("a buy, fee, or withdrawal has no matching")} ${ccyLabel(n.currency)} ${t("deposit. Record one to balance this.")}`).join(" ")}</p>` : "";
+  const row = (k, v, c = "", attrs = "") => `<div class="rc-sr"${attrs}><span>${k}</span><b class="${c}">${v}</b></div>`;
+  const rows = [row(t("Market Value"), money(s.mv)), row(t("Available Cash"), money(s.cash)),
+    row(t("Total Return"), moneySigned(s.ret), cls(s.ret), ` data-broker-return="${b.id}" tabindex="0" role="button" style="cursor:pointer"`),
+    row(t("Net Dividends"), money(s.div), s.div > 0 ? "pos" : ""), row(t("Unrealized P/L"), moneySigned(s.unr), cls(s.unr)),
+    row(t("Money in"), money(s.dep)), row(t("Money out"), money(s.wd)),
+    row(t("Money Left In This Broker"), money(s.dep - s.wd), "", ` data-broker-netcash="${b.id}" tabindex="0" role="button" style="cursor:pointer"`),
+    SETTINGS.showReconciliation ? row(t("Reconciliation"), `<span class="badge ${reconCls}">${reconStatus}</span>`) : "",
+    row(t("Dividends paid to"), b.divPaidTo === "bank" ? t("Bank") : t("Broker")),
+    row(t("Default dividend tax rate"), `${fmt(b.divTaxRate || 0, { maximumFractionDigits: 2 })}%`)].join("");
+  return `<div class="rc-dh"><span class="pfx-lbl">${t("Selected broker")}</span><button type="button" class="rc-close" data-br-close aria-label="${t("Close")}">×</button></div>
+    <div class="bk-id"><span class="brand-mark">${esc(b.name.slice(0, 2).toUpperCase())}</span><div><div class="ticker tk-name">${esc(b.name)}</div><div class="sub">${brSub(b, s)}</div></div></div>
+    <div class="rc-big dz-n">${money(s.net)}</div><div class="pfx-note2" style="margin:-6px 0 8px">${t("Holdings plus cash")}</div>
+    <div class="rc-rows">${rows}</div>${negNote}${b.notes ? `<p class="pfx-note2">${esc(b.notes)}</p>` : ""}
+    <div class="rc-acts"><button type="button" class="pfx-btn pfx-btn-p" data-br-edit>${t("Edit")}</button><button type="button" class="pfx-btn" data-br-archive>${b.archived ? t("Unarchive") : t("Archive")}</button><button type="button" class="pfx-btn rc-del" data-br-del>${t("Remove")}</button></div>`;
+}
 
-  // Negative currency balances: a small tappable pill next to Available Cash (reusing the
-  // app's .col-info tooltip mechanism) instead of a full-width banner per currency —
-  // the detail is still one tap/hover away, it just doesn't dominate the card at rest.
-  const negBalances = (T.negativeCash || []).filter((n) => n.brokerId === b.id);
-  const negTip = negBalances.map((n) =>
-    `${ccyLabel(n.currency)} ${t("balance is negative")} (${ccyLabel(n.currency)} ${fmt(Math.abs(n.amount))}) — ${t("a buy, fee, or withdrawal has no matching")} ${ccyLabel(n.currency)} ${t("deposit. Record one to balance this.")}`
-  ).join(" ");
-  const negLabel = LANG === "zh" ? `${negBalances.length}个问题` : `${negBalances.length} ${negBalances.length === 1 ? "issue" : "issues"}`;
-  const negPill = negBalances.length ? ` <span class="col-info warn-pill" data-tip="${esc(negTip)}">${WARN_TRIANGLE_ICON_SVG}${negLabel}</span>` : "";
-
-  // How this broker has performed, not just where it stands right now:
-  // money in/out, current value, gain/loss, income — the full story per broker.
-  const deposits = T.depositsByBroker[b.id] || 0;
-  const withdrawals = T.withdrawalsByBroker[b.id] || 0;
-  const unrealized = T.unrealizedByBroker[b.id] || 0;
-  const totalReturn = T.totalReturnByBroker[b.id] || 0;
-  const dividends = T.dividendsByBroker[b.id] || 0;
-  const holdingsLabel = LANG === "zh" ? `${holdings.length} 个持仓` : plural(holdings.length, "holding", "holdings");
-
-  return `<article class="broker-card ${b.archived ? "archived" : ""}">
-      <div class="bc-head"><span class="brand-mark sm">${esc(b.name.slice(0,2).toUpperCase())}</span>
-        <div><div class="bc-name">${esc(b.name)} ${b.archived ? `<span class="badge subtle">${t("Archived")}</span>` : ""}</div>
-          <div class="sub">${esc(b.country) || "—"} · ${esc(ccyLabel(b.currency))} · ${holdingsLabel}</div></div>
-        <div class="bc-menu">
-          <button type="button" class="icon-btn" data-broker-menu aria-haspopup="true" aria-expanded="false" title="${t("More actions")}" aria-label="${t("More actions")}">⋯</button>
-          <div class="bc-menu-pop" hidden>
-            <button type="button" data-edit-broker="${b.id}">${t("Edit")}</button>
-            <button type="button" data-archive-broker="${b.id}">${b.archived ? t("Unarchive") : t("Archive")}</button>
-            <button type="button" class="danger" data-del-broker="${b.id}">${t("Remove")}</button>
-          </div>
-        </div></div>
-
-      <div class="bc-hero">
-        <div><span class="bc-hero-label">${t("Market Value")}${infoTip(t("What your holdings here are worth at today's prices."))}</span><span class="bc-hero-value">${money(value)}</span></div>
-        <div class="bc-hero-return ${cls(totalReturn)}" data-broker-return="${b.id}" tabindex="0" role="button" aria-label="${t("Total Return")}, show calculation">
-          <span class="bc-hero-return-amt">${moneySigned(totalReturn)}</span>
-          <span class="bc-hero-return-pct">${t("Total Return")}</span>
-        </div>
-      </div>
-
-      <dl class="bc-list bc-list-2col">
-        <div><dt>${t("Available Cash")}${infoTip(t("Cash in this broker, ready to invest or withdraw."))}${negPill}</dt><dd>${money(calc)}</dd></div>
-        <div><dt>${t("Net Dividends")}${infoTip(t("Dividends received from this broker, after tax."))}</dt><dd class="${dividends > 0 ? "pos" : ""}">${money(dividends)}</dd></div>
-      </dl>
-
-      <details class="bc-more">
-        <summary>${t("More details")}</summary>
-        <dl class="bc-list">
-          <div><dt>${t("Unrealized P/L")}${infoTip(t("Profit or loss on shares you still hold. Not locked in until you sell."))}</dt><dd class="${cls(unrealized)}">${moneySigned(unrealized)}</dd></div>
-          <div class="bc-netcash" data-broker-netcash="${b.id}" tabindex="0" role="button" aria-label="${t("Money Left In This Broker")}, show calculation">
-            <dt>${t("Money Left In This Broker")}</dt>
-            <dd>${money(deposits - withdrawals)}</dd>
-          </div>
-          ${SETTINGS.showReconciliation ? `<div><dt>${t("Reconciliation")}</dt><dd><span class="badge ${reconCls}">${reconStatus}</span></dd></div>` : ""}
-          <div><dt>${t("Dividends paid to")}${infoTip(t("Whether dividends stay in this broker's cash or go to your bank."))}</dt><dd>${b.divPaidTo === "bank" ? t("Bank") : t("Broker")}</dd></div>
-          <div><dt>${t("Default dividend tax rate")}${infoTip(t("Used for new dividends from this broker unless you change it on one."))}</dt><dd>${fmt(b.divTaxRate || 0, { maximumFractionDigits: 2 })}%</dd></div>
-        </dl>
-      </details>
-      ${b.notes ? `<p class="bc-notes muted">${esc(b.notes)}</p>` : ""}</article>`;
+async function deleteBroker(id) {
+  // toBrokerId matters too — a broker that's only ever the DESTINATION of a "Transfer between brokers"
+  // transaction still has a real record pointing at it and needs the same warning + cleanup.
+  const ownTx = ALL_TRANSACTIONS.filter((x) => x.brokerId === id);
+  const destTx = ALL_TRANSACTIONS.filter((x) => x.toBrokerId === id && x.brokerId !== id);
+  const brokerHoldings = T.holdings.filter((h) => h.brokerId === id);
+  const used = brokerHoldings.length > 0 || ownTx.length > 0 || destTx.length > 0;
+  if (used) {
+    // Names exactly what is about to be destroyed — this cascade is permanent (it removes every transaction, not just archives the broker).
+    const mv = brokerHoldings.reduce((sum, h) => sum + (h.marketValue || 0), 0);
+    const parts = [`${ownTx.length} ${ownTx.length === 1 ? t("transaction") : t("transactions")}`];
+    if (brokerHoldings.length) parts.push(`${brokerHoldings.length} ${brokerHoldings.length === 1 ? t("holding") : t("holdings")} (${money(mv)})`);
+    if (destTx.length) parts.push(`${destTx.length} ${destTx.length === 1 ? t("transfer") : t("transfers")} into it`);
+    const msg = `${t("This will permanently delete")} ${parts.join(", ")}. ${t("This cannot be undone. Consider Archive instead, which keeps everything and can be reversed.")}`;
+    if (!(await showConfirmModal(msg, { danger: true, okLabel: t("Delete permanently") }))) return false;
+  }
+  const i = BROKERS.findIndex((b) => b.id === id);
+  if (i >= 0) BROKERS.splice(i, 1);
+  // A force-delete must take those records with it — otherwise they keep counting toward every total with a
+  // brokerId that no longer resolves, and a lingering RECON_CHECKS entry becomes a permanently stuck alert.
+  for (let j = ALL_TRANSACTIONS.length - 1; j >= 0; j--) { if (ALL_TRANSACTIONS[j].brokerId === id) ALL_TRANSACTIONS.splice(j, 1); }
+  for (let j = HOLDINGS.length - 1; j >= 0; j--) { if (HOLDINGS[j].brokerId === id) HOLDINGS.splice(j, 1); }
+  // A transfer TO the deleted broker isn't owned by it (the source broker keeps the transaction) — clearing toBrokerId
+  // turns it into a plain outflow instead of crediting a cash bucket under an id nothing points to anymore.
+  ALL_TRANSACTIONS.forEach((x) => { if (x.toBrokerId === id) x.toBrokerId = undefined; });
+  delete RECON_CHECKS[id];
+  // A manual upcoming-dividend entry can carry a specific brokerId — left behind it would show a $0 row forever.
+  for (let j = UPCOMING_DIVIDENDS.length - 1; j >= 0; j--) { if (UPCOMING_DIVIDENDS[j].brokerId === id) UPCOMING_DIVIDENDS.splice(j, 1); }
+  if (editingBrokerId === id) editingBrokerId = null;
+  saveStore(); toast(t("Broker removed")); render();
+  return true;
 }
 
 function pageBrokers() {
   const active = BROKERS.filter((b) => !b.archived);
   const archived = BROKERS.filter((b) => b.archived);
-  const cards = active.map(brokerCard).join("");
-  const archivedCards = (showArchivedBrokers ? archived : []).map(brokerCard).join("");
+  const list = showArchivedBrokers ? [...active, ...archived] : active;
+  if (!brSel || !list.some((b) => b.id === brSel)) brSel = list.length ? list[0].id : null;
 
-  // Page-level total across active brokers — each card shows its own numbers, but nothing
-  // previously summed Market Value + Cash + Return across all of them in one place here
-  // (same mini-cards pattern as the Portfolio page's own summary strip).
+  // Page-level totals across active brokers.
   const activeIds = new Set(active.map((b) => b.id));
-  const activeHoldings = T.holdings.filter((h) => activeIds.has(h.brokerId));
-  const totalValue = activeHoldings.reduce((s, h) => s + h.marketValue, 0);
-  const totalCostBasis = activeHoldings.reduce((s, h) => s + h.costBasis, 0);
+  const totalValue = T.holdings.filter((h) => activeIds.has(h.brokerId)).reduce((s, h) => s + h.marketValue, 0);
   const totalCash = active.reduce((s, b) => s + (T.brokerCash[b.id] || 0), 0);
   const totalReturn = active.reduce((s, b) => s + (T.totalReturnByBroker[b.id] || 0), 0);
-  const totalReturnPct = totalCostBasis ? (totalReturn / totalCostBasis) * 100 : 0;
-  const summary = active.length ? `<div class="mini-cards" style="margin-bottom:16px">
-      <div class="mini-card"><div class="mc-label">${t("Market Value")}</div><div class="mc-value">${money(totalValue)}</div></div>
-      <div class="mini-card"><div class="mc-label">${t("Available Cash")}</div><div class="mc-value">${money(totalCash)}</div></div>
-      <div class="mini-card" role="button" tabindex="0" data-brokers-return aria-label="${t("Total Return")}, show calculation"><div class="mc-label">${t("Total Return")}</div><div class="mc-value ${cls(totalReturn)}">${moneySigned(totalReturn)}</div></div>
-    </div>` : "";
+  const totalNet = totalValue + totalCash;
   const allBrokersReturnCalc = () => {
-    const unrealizedSum = active.reduce((s, b) => s + (T.unrealizedByBroker[b.id] || 0), 0);
-    const realizedSum = active.reduce((s, b) => s + (T.realizedByBroker[b.id] || 0), 0);
-    const divSum = active.reduce((s, b) => s + (T.dividendsByBroker[b.id] || 0), 0);
-    const intSum = active.reduce((s, b) => s + (T.interestByBroker[b.id] || 0), 0);
-    const feeSum = active.reduce((s, b) => s + (T.feesByBroker[b.id] || 0), 0);
+    const sumOf = (m) => active.reduce((s, b) => s + (m[b.id] || 0), 0);
+    const intSum = sumOf(T.interestByBroker), feeSum = sumOf(T.feesByBroker);
+    const costBasis = T.holdings.filter((h) => activeIds.has(h.brokerId)).reduce((s, h) => s + h.costBasis, 0);
     return { title: "Total Return", rows: [
-      { op: "+", label: "Unrealized P/L", val: moneySigned(unrealizedSum) },
-      { op: "+", label: "Realized P/L", val: moneySigned(realizedSum) },
-      { op: "+", label: "Net Dividends", val: moneySigned(divSum) },
+      { op: "+", label: "Unrealized P/L", val: moneySigned(sumOf(T.unrealizedByBroker)) },
+      { op: "+", label: "Realized P/L", val: moneySigned(sumOf(T.realizedByBroker)) },
+      { op: "+", label: "Net Dividends", val: moneySigned(sumOf(T.dividendsByBroker)) },
       ...(intSum ? [{ op: "+", label: "Interest Received", val: moneySigned(intSum) }] : []),
       { op: "−", label: "Total Fees", val: fmt(feeSum) },
-    ], total: totalReturn, totalFmt: moneySigned(totalReturn), pctFmt: pctTxt(totalReturnPct) };
+    ], total: totalReturn, totalFmt: moneySigned(totalReturn), pctFmt: pctTxt(costBasis ? (totalReturn / costBasis) * 100 : 0) };
   };
 
-  const archToggle = archived.length
-    ? `<button class="btn ghost" id="toggleArchived">${showArchivedBrokers ? t("Hide archived") : `${t("Show archived")} (${archived.length})`}</button>` : "";
-  // "Add Broker" lives here, on the Brokers page itself. The sidebar's "+ Add" always means "add a record"
-  // on every page — it used to turn into "Add Broker" on this page, which made it impossible to add a
-  // transaction from here.
-  const addBrokerBtn = `<button type="button" class="btn primary" id="addBrokerBtn"><svg class="icon" aria-hidden="true" style="width:14px;height:14px;flex:none"><use href="#i-add"/></svg>${t("Add Broker")}</button>`;
+  const subTxt = LANG === "zh" ? `已连接 ${active.length} 个投资平台 · ${money(totalNet)}` : `${active.length} investment apps connected · ${money(totalNet)} ${t("in total")}`;
+  const header = dzTopHTML({ eyebrow: t("Brokers"), h1: t("Your brokers"), sub: subTxt, noLive: true,
+    actions: `<button type="button" class="pfx-btn pfx-btn-p" id="addBrokerBtn">＋ ${t("Add Broker")}</button>` });
+  const card = (label, v, c = "", extra = "") => `<div class="pfx-card pfx-sc ${extra ? "" : "pfx-static"}" ${extra}><div class="pfx-lbl"><span>${label}</span></div><div class="pfx-vr"><div class="pfx-v dz-n ${c}">${v}</div></div></div>`;
+  const summary = active.length ? `<div class="pfx-sum pfx-sum3">${card(t("Market Value"), money(totalValue))}${card(t("Available Cash"), money(totalCash))}
+    ${card(t("Total Return"), moneySigned(totalReturn), cls(totalReturn), `data-brokers-return tabindex="0" role="button" aria-label="${t("Total Return")}, show calculation"`)}</div>` : "";
+  const archToggle = archived.length ? `<button type="button" class="pfx-btn" id="toggleArchived">${showArchivedBrokers ? t("Hide archived") : `${t("Show archived")} (${archived.length})`}</button>` : "";
+  const table = `<div class="table-wrap rc-desk"><table class="data-table pfx-txt rc-tbl"><thead><tr><th>${t("Broker")}</th><th class="pfn">${t("Market Value")}</th><th class="pfn">${t("Cash")}</th><th class="pfn">${t("Total Return")}</th><th>${t("Share of total")}</th></tr></thead>
+      <tbody>${brRowsDesk(list, totalNet)}</tbody>
+      <tfoot><tr class="rc-tot"><td>${t("Total")}</td><td class="pfn">${money(totalValue)}</td><td class="pfn">${money(totalCash)}</td><td class="pfn ${cls(totalReturn)}">${moneySigned(totalReturn)}</td><td></td></tr></tfoot></table></div>
+    <div class="rc-mob">${brRowsMob(list)}</div>`;
+  const body = list.length ? `<div class="rc-grid">
+      <section class="pfx-card rc-main"><div class="rc-head bk-head"><h2>${t("All brokers")}<span class="pfx-sm">${list.length}</span></h2>${archToggle}</div>${table}</section>
+      <aside class="pfx-card rc-det" id="brDet">${brDetailHTML(BROKERS.find((b) => b.id === brSel))}</aside></div><div class="rc-back" id="brBack"></div>`
+    : `<section class="pfx-card rc-main">${emptyState(`${t("No brokers yet — every transaction and holding needs one.")}<div class="form-actions" style="margin-top:14px;justify-content:center"><button type="button" class="btn primary" id="emptyAddBroker">＋ ${t("Add Broker")}</button></div>`)}</section>`;
+  const html = `<div class="pfx pfx-br">${header}${summary}${body}${BROKERS.length ? `<div class="pfx-cashpanels">${brokerCashPanelsHTML()}</div>` : ""}</div>`;
 
-  const html = `${summary}<div class="panel-head" style="margin-bottom:14px"><h2>${t("Your Brokers")}</h2><div class="panel-head-actions">${archToggle}${cards ? addBrokerBtn : ""}</div></div>
-    ${cards ? `<div class="broker-grid">${cards}</div>` : emptyState(`${t("No brokers yet — every transaction and holding needs one.")}<div class="form-actions" style="margin-top:14px;justify-content:center"><button type="button" class="btn primary" id="emptyAddBroker">＋ ${t("Add Broker")}</button></div>`)}
-    ${showArchivedBrokers && archivedCards ? `<div class="broker-grid" style="margin-top:14px">${archivedCards}</div>` : ""}
-    ${BROKERS.length ? brokerCashPanelsHTML() : ""}`;
-
-  return { title: "Brokers", subtitle: LANG === "zh"
-      ? `已连接 ${active.length} 个投资平台。`
-      : `${active.length} investment apps connected.`, html,
+  return { title: "Brokers", subtitle: LANG === "zh" ? `已连接 ${active.length} 个投资平台。` : `${active.length} investment apps connected.`, html,
     mount() {
-      const emptyAddBtn = $("#emptyAddBroker");
-      if (emptyAddBtn) emptyAddBtn.addEventListener("click", () => openBrokerDrawer());
-      const addBrokerEl = $("#addBrokerBtn");
-      if (addBrokerEl) addBrokerEl.addEventListener("click", () => openBrokerDrawer());
+      const bell = $("#dzBell"); if (bell) bell.addEventListener("click", () => toggleMoreSheet());
+      $$("[data-dz-refresh]").forEach((b) => b.addEventListener("click", () => dzRefreshPrices()));
+      const emptyAddBtn = $("#emptyAddBroker"); if (emptyAddBtn) emptyAddBtn.addEventListener("click", () => openBrokerDrawer());
+      const addBrokerEl = $("#addBrokerBtn"); if (addBrokerEl) addBrokerEl.addEventListener("click", () => openBrokerDrawer());
       const brokersReturnCard = $("[data-brokers-return]");
       if (brokersReturnCard) {
         const open = () => showCalc(allBrokersReturnCalc());
@@ -5432,86 +5451,34 @@ function pageBrokers() {
       }
       const tog = $("#toggleArchived");
       if (tog) tog.addEventListener("click", () => { showArchivedBrokers = !showArchivedBrokers; render(); });
-
-      // Per-card "⋯" menu (Edit/Archive/Remove) — same open/toggle + outside-click-close
-      // pattern as the Portfolio page's Edit Columns panel, just generalized to N cards.
-      $$("[data-broker-menu]").forEach((btn) => btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const pop = btn.nextElementSibling;
-        $$(".bc-menu-pop").forEach((p) => { if (p !== pop) { p.hidden = true; const b = p.previousElementSibling; if (b) b.setAttribute("aria-expanded", "false"); } });
-        pop.hidden = !pop.hidden;
-        // aria-expanded="false" was hardcoded in the markup and never updated here —
-        // always false regardless of the popover's real state.
-        btn.setAttribute("aria-expanded", String(!pop.hidden));
-      }));
-      if (_brokerMenuCloseHandler) document.removeEventListener("click", _brokerMenuCloseHandler);
-      _brokerMenuCloseHandler = () => { $$(".bc-menu-pop").forEach((p) => { p.hidden = true; const b = p.previousElementSibling; if (b) b.setAttribute("aria-expanded", "false"); }); };
-      document.addEventListener("click", _brokerMenuCloseHandler);
-
-      $$("[data-edit-broker]").forEach((btn) => btn.addEventListener("click", () => openBrokerDrawer(btn.dataset.editBroker)));
-      $$("[data-archive-broker]").forEach((btn) => btn.addEventListener("click", () => {
-        const b = BROKERS.find((x) => x.id === btn.dataset.archiveBroker);
-        if (b) { b.archived = !b.archived; saveStore(); toast(b.archived ? t("Broker archived") : t("Broker unarchived")); render(); }
-      }));
-      $$("[data-del-broker]").forEach((btn) => btn.addEventListener("click", async () => {
-        const id = btn.dataset.delBroker;
-        // toBrokerId matters too — a broker that's only ever the DESTINATION of a
-        // "Transfer between brokers" transaction (never its own brokerId) still has a
-        // real record pointing at it and needs the same warning + cleanup.
-        const ownTx = ALL_TRANSACTIONS.filter((x) => x.brokerId === id);
-        const destTx = ALL_TRANSACTIONS.filter((x) => x.toBrokerId === id && x.brokerId !== id);
-        const brokerHoldings = T.holdings.filter((h) => h.brokerId === id);
-        const used = brokerHoldings.length > 0 || ownTx.length > 0 || destTx.length > 0;
-        if (used) {
-          // Names exactly what is about to be destroyed — a bare "still has records" told
-          // the user nothing about scale, and this cascade is permanent (see below: it
-          // removes every transaction, not just archives the broker).
-          const mv = brokerHoldings.reduce((sum, h) => sum + (h.marketValue || 0), 0);
-          const parts = [`${ownTx.length} ${ownTx.length === 1 ? t("transaction") : t("transactions")}`];
-          if (brokerHoldings.length) parts.push(`${brokerHoldings.length} ${brokerHoldings.length === 1 ? t("holding") : t("holdings")} (${money(mv)})`);
-          if (destTx.length) parts.push(`${destTx.length} ${destTx.length === 1 ? t("transfer") : t("transfers")} into it`);
-          const msg = `${t("This will permanently delete")} ${parts.join(", ")}. ${t("This cannot be undone. Consider Archive instead, which keeps everything and can be reversed.")}`;
-          if (!(await showConfirmModal(msg, { danger: true, okLabel: t("Delete permanently") }))) return;
-        }
-        const i = BROKERS.findIndex((b) => b.id === id);
-        if (i >= 0) BROKERS.splice(i, 1);
-        // A force-delete (the "still has records" path above) must take those records
-        // with it — otherwise they keep counting toward every total forever with a
-        // brokerId that no longer resolves to anything, and a lingering RECON_CHECKS
-        // entry becomes a permanently stuck alert with no broker row left to clear it from.
-        for (let j = ALL_TRANSACTIONS.length - 1; j >= 0; j--) { if (ALL_TRANSACTIONS[j].brokerId === id) ALL_TRANSACTIONS.splice(j, 1); }
-        for (let j = HOLDINGS.length - 1; j >= 0; j--) { if (HOLDINGS[j].brokerId === id) HOLDINGS.splice(j, 1); }
-        // A transfer TO the deleted broker isn't owned by it (the source broker still
-        // exists and keeps the transaction) — clearing toBrokerId turns it into a plain
-        // outflow instead of crediting a cash bucket under an id nothing points to anymore.
-        ALL_TRANSACTIONS.forEach((x) => { if (x.toBrokerId === id) x.toBrokerId = undefined; });
-        delete RECON_CHECKS[id];
-        // A manual upcoming-dividend entry can carry a specific brokerId (see the
-        // "upcomingDividends schema" comment above allUpcomingDivs()) — left behind, it
-        // permanently shows a $0 row (its matching holding is gone, so shares resolves to
-        // 0) linking to a holding-detail page that always says "no longer exists," with
-        // nothing else in this cascade ever clearing it.
-        for (let j = UPCOMING_DIVIDENDS.length - 1; j >= 0; j--) { if (UPCOMING_DIVIDENDS[j].brokerId === id) UPCOMING_DIVIDENDS.splice(j, 1); }
-        if (editingBrokerId === id) editingBrokerId = null;
-        saveStore(); toast(t("Broker removed")); render();
-      }));
-      $$("[data-broker-return]").forEach((el) => {
-        const open = () => {
-          const b = BROKERS.find((x) => x.id === el.dataset.brokerReturn);
-          if (b) showCalc(brokerReturnCalc(b));
+      const root = $(".pfx-br"), det = $("#brDet");
+      if (det) {
+        const openSheet = (on) => root.classList.toggle("rc-sheet", on);
+        const pick = (el) => {
+          const row = el.closest("[data-br-id]"); if (!row) return;
+          brSel = row.dataset.brId;
+          $$("[data-br-id]").forEach((r) => r.classList.toggle("sel", r.dataset.brId === brSel));
+          det.innerHTML = brDetailHTML(BROKERS.find((b) => b.id === brSel));
+          openSheet(true);   // only visible on phones (CSS); on desktop the panel is always there
         };
-        el.addEventListener("click", open);
-        el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
-      });
-      $$("[data-broker-netcash]").forEach((el) => {
-        const open = (e) => {
-          if (e.target.closest(".col-info")) return;  // let the info-tip tap/hover through, don't also open the calc modal
-          const b = BROKERS.find((x) => x.id === el.dataset.brokerNetcash);
-          if (b) showCalc(brokerNetCashCalc(b));
-        };
-        el.addEventListener("click", open);
-        el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(e); } });
-      });
+        $$(".pfx-br .rc-main").forEach((m) => {
+          m.addEventListener("click", (e) => pick(e.target));
+          m.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches("[data-br-id]")) { e.preventDefault(); pick(e.target); } });
+        });
+        $("#brBack").addEventListener("click", () => openSheet(false));
+        det.addEventListener("click", async (e) => {
+          const b = BROKERS.find((x) => x.id === brSel);
+          if (e.target.closest("[data-br-close]")) { openSheet(false); return; }
+          if (!b) return;
+          if (e.target.closest("[data-br-edit]")) { openBrokerDrawer(b.id); return; }
+          if (e.target.closest("[data-br-archive]")) { b.archived = !b.archived; saveStore(); toast(b.archived ? t("Broker archived") : t("Broker unarchived")); render(); return; }
+          if (e.target.closest("[data-br-del]")) { if (await deleteBroker(b.id)) openSheet(false); return; }
+          const rt = e.target.closest("[data-broker-return]");
+          if (rt) { showCalc(brokerReturnCalc(b)); return; }
+          const nc = e.target.closest("[data-broker-netcash]");
+          if (nc) showCalc(brokerNetCashCalc(b));
+        });
+      }
       mountBrokerCashPanels();
     } };
 }
