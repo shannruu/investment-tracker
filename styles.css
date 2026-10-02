@@ -2794,3 +2794,26 @@ a.ticker.tk-name:hover { color: var(--brand); }
   background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 8%, transparent), transparent 70%), var(--dz-card); }
 .pfx-sum > .pfx-card::after, .dz-hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; pointer-events: none; opacity: .7;
   background: linear-gradient(90deg, transparent, var(--brand), var(--accent2), transparent); }
+
+/* =============================================================================
+   PORTFOLIO REDESIGN (2026-10-02): filters tucked behind one button, two-line cells, a list of rows on phones.
+   ============================================================================= */
+@media (min-width: 761px) {
+  .pfx-fsel { display: none; }
+  .pfx-fsel.open { display: contents; }
+  .pfx-ftoggle { display: inline-flex; align-items: center; gap: 6px; }
+  .pfx-filters { justify-content: flex-end; }
+  .pf-mob { display: none; }
+}
+.pf-mob a.rc-ev { color: inherit; text-decoration: none; }
+.pf-mob-tot { display: flex; justify-content: space-between; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12px; color: var(--muted); font-weight: 600; }
+.pf-mob-tot b { display: block; margin-top: 2px; font-size: 14px; color: var(--text); }
+.pf-mob-tot b.pos { color: var(--pos); } .pf-mob-tot b.neg { color: var(--neg); }
+@media (max-width: 760px) {
+  .pf-desk { display: none; }
+  .filters-col-panel { display: none; }
+  .pf-mob .rc-ev { margin: 0; }
+}
+.pf-chip { width: 38px; height: 38px; border-radius: 12px; font-size: 12px; }
+.pf-ev .rc-am small.pos { color: var(--pos); }
+.pf-ev .rc-am small.neg { color: var(--neg); }

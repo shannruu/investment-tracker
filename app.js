@@ -573,6 +573,8 @@ const ZH = {
   "Select a broker to see its details.": "选择一个券商查看详情。",
   "Total": "总计",
   "Click a line to see the records behind it.": "点击一行可查看背后的记录。",
+  "Avg": "均价",
+  "of portfolio": "占投资组合",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -2768,8 +2770,8 @@ const COL_DEFS = [
   { id: "netDiv",         label: "Net Dividends" },
 ];
 const COL_DEFAULTS = {
-  broker: true, shares: true, avgCost: true, avgCostEx: false, buyFees: false, costBasis: false, price: true, todayPct: false, priceMyr: false,
-  unrealizedAmt: false, unrealizedPct: true, realizedPL: false, totalReturnAmt: true, totalReturnPct: false,
+  broker: false, shares: true, avgCost: false, avgCostEx: false, buyFees: false, costBasis: false, price: true, todayPct: false, priceMyr: false,
+  unrealizedAmt: false, unrealizedPct: false, realizedPL: false, totalReturnAmt: true, totalReturnPct: false,
   marketValue: true, pctPortfolio: false, netDiv: false,
 };
 // On a phone the table starts with the four figures that matter (Holding, P/L %, Total Return, Market Value) so nothing
@@ -3361,7 +3363,7 @@ function portfolioTable() {
     const td = (id, inner, c = "") => `<td class="dcc-c${LEFT.has(id) ? "" : " pfn"}${c ? " " + c : ""}">${inner}</td>`;
     const cellMap = {
       broker:         td("broker", `<div class="broker-pills">${(h._brokerNames || [brokerName(h.brokerId)]).map((n) => `<span class="chip chip-pill">${esc(n)}</span>`).join("")}</div>`),
-      shares:         td("shares", fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })),
+      shares:         td("shares", `<div class="pfx-c2"><span>${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })}</span>${!cols.avgCost ? sub("", `${t("Avg")} ${fmt(h.avgCost, { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`) : ""}</div>`),
       avgCost:        td("avgCost", rate(h.avgCost)),
       avgCostEx:      td("avgCostEx", h.shares > 0 && h.priceCostMYR != null ? rate(h.priceCostMYR / h.shares) : dash),
       buyFees:        td("buyFees", h.feeCostMYR > 0.004 ? money(h.feeCostMYR) : dash),
@@ -3375,13 +3377,13 @@ function portfolioTable() {
       unrealizedPct:  td("unrealizedPct", h.hasPrice ? pill(h.unrealized, pctTxt(h.unrealizedPct)) : dash),
       totalReturnAmt: td("totalReturnAmt", `<div class="pfx-c2"><span class="${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</span>${!cols.totalReturnPct && trPct != null ? sub(cls(h.totalReturn), pctTxt(trPct)) : ""}</div>`),
       totalReturnPct: td("totalReturnPct", trPct == null ? `<span class="muted">-</span>` : pill(h.totalReturn, pctTxt(trPct))),
-      marketValue:    td("marketValue", h.hasPrice ? money(h.marketValue) : dash, "pfx-mv"),
+      marketValue:    td("marketValue", h.hasPrice ? `<div class="pfx-c2"><span>${money(h.marketValue)}</span>${!cols.pctPortfolio && T.portfolioValue > 0 ? sub("", `${fmt((h.marketValue / T.portfolioValue) * 100, { maximumFractionDigits: 0 })}% ${t("of portfolio")}`) : ""}</div>` : dash, "pfx-mv"),
       netDiv:         td("netDiv", h.netDividends ? money(h.netDividends) : dash),
     };
     return `<tr>
       <td class="dcc-c td-holding"><div class="pfx-hc"><span class="dz-chip pfx-chip${i % 2 ? " b" : ""}" aria-hidden="true">${dzInitials(name)}</span>
         <div class="pfx-hcn"><a class="ticker ticker-link pfx-hn" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}">${esc(name)}</a>
-        ${name !== h.ticker ? `<div class="sub">${esc(h.ticker)}</div>` : ""}</div></div></td>
+        ${(() => { const bits = [name !== h.ticker ? esc(h.ticker) : "", !cols.broker ? esc((h._brokerNames || [brokerName(h.brokerId)]).join(", ")) : ""].filter(Boolean); return bits.length ? `<div class="sub">${bits.join(" · ")}</div>` : ""; })()}</div></div></td>
       ${orderedColIds.map((id) => cellMap[id] || "").join("")}</tr>`;
   }).join("");
 
@@ -3410,7 +3412,19 @@ function portfolioTable() {
   const thCols = orderedColIds.map((id) => `<th class="${LEFT.has(id) ? "" : "pfn"}" data-col-id="${id}">${colLabels[id] || id}</th>`).join("");
   const thead = `<thead><tr><th>${t("Holding")}</th>${thCols}</tr></thead>`;
 
-  return `<div class="table-wrap"><table class="data-table pf-table">${thead}<tbody>${body}${totals}</tbody></table></div>`;
+  // On a phone the table becomes a simple list of rows (tap one to open the stock); the table stays for desktop.
+  const mob = rows.map((h, i) => {
+    const name = dzName(h.ticker, h.company), trPct = retPctOf(h);
+    const today = h.hasPrice && h.changePct != null ? ` <span class="${cls(h.changePct)}">${pctTxt(h.changePct)}</span>` : "";
+    return `<a class="rc-ev pf-ev" href="#/holding/${encodeURIComponent(h.brokerId + "|" + h.ticker)}"><span class="dz-chip pf-chip${i % 2 ? " b" : ""}" aria-hidden="true">${dzInitials(name)}</span>
+      <div class="rc-tx"><div class="rc-t1">${esc(name)}</div><div class="rc-t2">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")}${h.hasPrice ? ` · ${fmt(h.currentPrice)}${today}` : ""}</div></div>
+      <div class="rc-am">${h.hasPrice ? money(h.marketValue) : dash}<small class="${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}${trPct != null ? ` · ${pctTxt(trPct)}` : ""}</small></div></a>`;
+  }).join("");
+  const mobTot = rows.length > 1 ? (() => {
+    const tr = rows.reduce((s, h) => s + (h.totalReturn || 0), 0), mv = rows.filter((h) => h.hasPrice).reduce((s, h) => s + h.marketValue, 0);
+    return `<div class="pf-mob-tot"><span>${t("Total Return")}<b class="${cls(tr)}">${moneySigned(tr)}</b></span><span>${t("Market Value")}<b>${money(mv)}</b></span></div>`;
+  })() : "";
+  return `<div class="table-wrap pf-desk"><table class="data-table pf-table">${thead}<tbody>${body}${totals}</tbody></table></div><div class="pf-mob">${mob}${mobTot}</div>`;
 }
 
 /* =============================================================================
