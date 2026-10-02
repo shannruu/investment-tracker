@@ -749,6 +749,40 @@ const ZH = {
   "Keep your shares until then to receive this dividend": "持有股份至该日即可领取这笔股息",
   "Dividend payment day": "股息派发日",
   "Check that it reached your account": "请确认已到账",
+  "No country added yet — every dividend is taken as 0% tax.": "尚未添加国家 — 所有股息按 0% 税率计算。",
+  "Tax %": "税率 %",
+  "Pick a country from the list.": "请从列表中选择国家。",
+  "Enter a tax rate from 0 to 100.": "请输入 0 到 100 之间的税率。",
+  "Restore from cloud": "从云端恢复",
+  "Nothing found in your account yet.": "您的账户中还没有数据。",
+  "This replaces the data on this device with the copy in your account": "这会用您账户中的副本替换此设备上的数据",
+  "transactions": "笔交易",
+  "Continue?": "要继续吗？",
+  "Restore": "恢复",
+  "Restored from your account.": "已从您的账户恢复。",
+  "Yearly tax report": "年度税务报告",
+  "Dividends received (with the tax taken) and profit on shares you sold, for one calendar year. Excel opens the CSV file; for a PDF, choose Save as PDF in the print window. A record-keeping summary, not tax advice.": "某一公历年度收到的股息（含已扣税）及卖出股票的盈亏。CSV 文件可用 Excel 打开；PDF 请在打印窗口选择“另存为 PDF”。仅为记录汇总，不构成税务建议。",
+  "Excel (CSV)": "Excel (CSV)",
+  "PDF": "PDF",
+  "Amounts in": "金额单位",
+  "cost method": "成本方法",
+  "Stock": "股票",
+  "Code": "代码",
+  "Broker": "券商",
+  "Gross": "总额",
+  "Tax withheld": "已扣税",
+  "Net": "净额",
+  "FX rate": "汇率",
+  "Shares sold": "卖出股票",
+  "Quantity": "数量",
+  "Sale proceeds": "卖出所得",
+  "Cost of shares sold": "所卖股份成本",
+  "Fees and taxes": "费用和税项",
+  "Profit or loss": "盈亏",
+  "Cost, fees and taxes": "成本、费用和税项",
+  "No dividends received this year.": "今年没有收到股息。",
+  "No shares sold this year.": "今年没有卖出股票。",
+  "Couldn't open the print window.": "无法打开打印窗口。",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -5952,8 +5986,17 @@ function pageSettings() {
       ${settingRow(t("On the payment day"), `<label class="switch"><input type="checkbox" id="divRemPay" aria-label="${escAttr(t("On the payment day"))}" ${SETTINGS.divRemPay !== false ? "checked" : ""}><span class="switch-track"></span></label>`)}
       ${settingRow(`<span class="lbl-t">${t("Also send a notification")}${hcTip(t("A pop-up from your phone or computer. It appears when you open the app; to get it while the app is closed the app needs a server, which isn't set up yet."))}</span>`, `<label class="switch"><input type="checkbox" id="divRemNotify" aria-label="${escAttr(t("Also send a notification"))}" ${SETTINGS.divRemNotify ? "checked" : ""}><span class="switch-track"></span></label>`)}
       </div>`)}
-    ${panel(`${t("Dividend tax by country")}${infoTip(t("Withholding tax taken from dividends, by the country of the stock's market. Used when dividends are logged automatically, unless the broker has its own rate. Leave blank for 0."))}`, `<div class="setting-rows">
-      ${["Malaysia", "United States", "Singapore", "Hong Kong", "United Kingdom", "Australia", "Japan", "China"].map((c) => settingRow(t(c), `<span class="input-prefix"><input type="number" step="any" min="0" max="100" data-wht="${c}" value="${(SETTINGS.divTaxByCountry || {})[c] != null ? esc((SETTINGS.divTaxByCountry || {})[c]) : ""}" placeholder="0" style="width:90px"> %</span>`)).join("")}
+    ${panel(`${t("Dividend tax by country")}${infoTip(t("Withholding tax taken from dividends, by the country of the stock's market. Used when dividends are logged automatically, unless the broker has its own rate. Leave blank for 0."))}`, `
+      <div class="fx-list">
+        ${Object.entries(SETTINGS.divTaxByCountry || {}).map(([c, r]) => `<div class="fx-row"><span class="fx-ccy">${esc(t(c))}</span><span class="fx-row-controls"><input class="fx-input" type="number" step="any" min="0" max="100" data-wht="${esc(c)}" value="${esc(r)}" style="width:90px"><span class="muted">%</span><button class="icon-btn" data-whtdel="${esc(c)}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></span></div>`).join("") || `<p class="muted" style="margin:0 0 6px">${t("No country added yet — every dividend is taken as 0% tax.")}</p>`}
+        <div class="fx-row fx-row-add">
+          <input list="whtList" id="whtNew" class="fx-input fx-ccy-input" placeholder="${t("Country")}" autocomplete="off" style="width:190px" />
+          <datalist id="whtList">${[...new Set(Object.values(MARKET_MAP).map((m) => m[0]).concat("United States"))].sort().map((c) => `<option value="${esc(c)}"></option>`).join("")}</datalist>
+          <span class="fx-row-controls">
+            <input type="number" step="any" min="0" max="100" id="whtRate" class="fx-input" placeholder="${t("Tax %")}" style="width:90px" />
+            <button class="btn primary small" id="whtAdd">${t("Add")}</button>
+          </span>
+        </div>
       </div>`)}
 
     </div><div class="st-sec" data-sec="data">
@@ -5969,6 +6012,7 @@ function pageSettings() {
       <div class="form-actions">
         <button class="btn" id="expJson">${t("Export full backup (JSON)")}</button>
         <button class="btn" id="impJsonBtn">${t("Import backup (JSON)")}</button>
+        ${typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER ? `<button class="btn" id="restoreCloud">${t("Restore from cloud")}</button>` : ""}
         <input type="file" id="impJsonFile" accept="application/json,.json" hidden>
       </div>
       <p class="muted" style="margin:16px 0 8px;font-size:12.5px">${t("Or export just one part, as CSV")}:</p>
@@ -5978,6 +6022,14 @@ function pageSettings() {
         <button class="btn small" id="setExpDiv">${t("Dividends")}</button>
       </div>
 
+      <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border-soft)">
+        <div class="sub-head">${t("Yearly tax report")}${infoTip(t("Dividends received (with the tax taken) and profit on shares you sold, for one calendar year. Excel opens the CSV file; for a PDF, choose Save as PDF in the print window. A record-keeping summary, not tax advice."))}</div>
+        <div class="form-actions" style="align-items:center">
+          <div style="width:140px">${styledSelect("taxYear", taxReportYears().map((y) => ({ value: String(y), label: String(y) })), String(taxReportYears()[0]), { id: "taxYearSel" })}</div>
+          <button class="btn" id="taxXls">${t("Excel (CSV)")}</button>
+          <button class="btn" id="taxPdf">${t("PDF")}</button>
+        </div>
+      </div>
       <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border-soft)">
         <div class="sub-head">${t("Import from CSV")}${infoTip(t("Add many records at once from a spreadsheet. You can preview before anything is saved."))}</div>
         <div class="form-actions">
@@ -6056,6 +6108,16 @@ function pageSettings() {
         }
         SETTINGS.divRemNotify = box.checked; remSave(); dividendNotify();
       });
+      $("#taxXls").addEventListener("click", () => exportTaxReportCSV(+$("#taxYearSel").value));
+      $("#taxPdf").addEventListener("click", () => printTaxReport(+$("#taxYearSel").value));
+      const rc = $("#restoreCloud");
+      if (rc) rc.addEventListener("click", async () => {
+        const row = await pullFromCloud();
+        if (!row || !row.data) { toast(t("Nothing found in your account yet.")); return; }
+        const n = (row.data.ALL_TRANSACTIONS || []).length;
+        if (!(await showConfirmModal(`${t("This replaces the data on this device with the copy in your account")} (${n} ${t("transactions")}, ${row.updated_at ? fmtDateTime(row.updated_at) : "—"}). ${t("Continue?")}`, { danger: true, okLabel: t("Restore") }))) return;
+        applySnapshot(row.data); saveStore(); recompute(); toast(t("Restored from your account.")); render();
+      });
       $("#numFmtSel").addEventListener("change", (e) => { SETTINGS.numFmt = e.target.value; saveStore(); toast(t("Preferences saved")); render(); });
       $("#divGrowthSel").addEventListener("change", (e) => { SETTINGS.divGrowth = +e.target.value; divLtGrowth = SETTINGS.divGrowth; saveStore(); toast(t("Preferences saved")); });
       $("#backupRemindSel").addEventListener("change", (e) => { SETTINGS.backupRemind = e.target.value; saveStore(); toast(t("Preferences saved")); });
@@ -6066,9 +6128,19 @@ function pageSettings() {
       });
       $("#startPageSel").addEventListener("change", (e) => { SETTINGS.startPage = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#defBrokerSel").addEventListener("change", (e) => { SETTINGS.defBroker = e.target.value; saveStore(); toast(t("Preferences saved")); });
+      $("#whtAdd").addEventListener("click", () => {
+        const raw = $("#whtNew").value.trim().toLowerCase(), rate = parseFloat($("#whtRate").value);
+        const known = [...new Set(Object.values(MARKET_MAP).map((m) => m[0]).concat("United States"))].find((c) => c.toLowerCase() === raw);
+        if (!known) { toast(t("Pick a country from the list.")); return; }
+        if (!(rate >= 0 && rate <= 100)) { toast(t("Enter a tax rate from 0 to 100.")); return; }
+        (SETTINGS.divTaxByCountry || (SETTINGS.divTaxByCountry = {}))[known] = rate;
+        saveStore(); toast(t("Preferences saved")); render();
+      });
+      $$("[data-whtdel]").forEach((b) => b.addEventListener("click", () => { delete (SETTINGS.divTaxByCountry || {})[b.dataset.whtdel]; saveStore(); render(); }));
       $$("[data-wht]").forEach((inp) => inp.addEventListener("change", () => {
         const m = SETTINGS.divTaxByCountry || (SETTINGS.divTaxByCountry = {}), v = parseFloat(inp.value);
-        if (isNaN(v)) delete m[inp.dataset.wht]; else m[inp.dataset.wht] = Math.max(0, Math.min(100, v));
+        if (isNaN(v)) { delete m[inp.dataset.wht]; saveStore(); render(); return; }
+        m[inp.dataset.wht] = Math.max(0, Math.min(100, v));
         saveStore(); toast(t("Preferences saved"));
       }));
       $$("[data-settheme]").forEach((b) => b.addEventListener("click", () => { setTheme(b.dataset.settheme); $$("[data-settheme]").forEach((x) => x.classList.toggle("on", x === b)); }));
@@ -7281,6 +7353,56 @@ function exportTxCSV() {
     ALL_TRANSACTIONS.map((x) => [x.date, brokerName(x.brokerId), x.type, x.ticker || "", x.qty ?? "", x.price ?? "", x.gross ?? "", x.fee ?? 0, x.tax ?? 0, x.currency, x.fxRate ?? "",
       x.toBrokerId ? brokerName(x.toBrokerId) : "", x.toCurrency || "", x.toAmount ?? "",
       x.status || "", x.exDate || "", x.payDate || "", x.notes || ""]));
+}
+/* Yearly tax report: dividends received + profit on sales, one calendar year. */
+function taxReportYears() {
+  const ys = new Set([+todayISO().slice(0, 4)]);
+  ALL_TRANSACTIONS.forEach((x) => { if (x.type === "Dividend" || x.type === "Sell") { const y = +String(x.payDate || x.date).slice(0, 4); if (y) ys.add(y); } });
+  return [...ys].sort((p, q) => q - p);
+}
+function taxReportData(year) {
+  const y = String(year), when = (x) => x.payDate || x.date;
+  const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend" && x.status !== "Expected" && String(when(x)).slice(0, 4) === y)
+    .sort((p, q) => (when(p) < when(q) ? -1 : 1)).map((d) => {
+      const fx = d.fxRate || FX.rates[d.currency] || 1, gross = +d.gross || 0, tax = +d.tax || 0;
+      return { date: when(d), ticker: d.ticker, name: dzName(d.ticker, d.company), broker: brokerName(d.brokerId), ccy: d.currency, gross, tax, net: gross - tax, fx, grossB: gross * fx, taxB: tax * fx, netB: (gross - tax) * fx };
+    });
+  const sales = (T.realizedSales || []).filter((s) => String(s.date).slice(0, 4) === y).sort((p, q) => (p.date < q.date ? -1 : 1))
+    .map((s) => ({ date: s.date, ticker: s.ticker, name: dzName(s.ticker, s.company), broker: brokerName(s.brokerId), qty: s.qty, proceeds: s.proceedsMYR, cost: s.costMYR, fees: s.feesMYR, pl: s.pl }));
+  const sum = (arr, k) => arr.reduce((s, r) => s + r[k], 0);
+  return { year, divs, sales, tot: { grossB: sum(divs, "grossB"), taxB: sum(divs, "taxB"), netB: sum(divs, "netB"), proceeds: sum(sales, "proceeds"), cost: sum(sales, "cost"), fees: sum(sales, "fees"), pl: sum(sales, "pl") } };
+}
+function exportTaxReportCSV(year) {
+  const r = taxReportData(year), B = ccyLabel(FX.base), f2 = (n) => (+n).toFixed(2), q = (x) => `"${csvSafe(x)}"`;
+  const rows = [[`Divz — ${t("Yearly tax report")} ${year}`], [`${t("Amounts in")} ${B} (${t("cost method")}: ${SETTINGS.costBasis === "fifo" ? "FIFO" : t("Average Cost")})`], [],
+    [t("Dividends received")], [t("Date"), t("Stock"), t("Code"), t("Broker"), t("Currency"), t("Gross"), t("Tax withheld"), t("Net"), t("FX rate"), `${t("Gross")} (${B})`, `${t("Tax withheld")} (${B})`, `${t("Net")} (${B})`],
+    ...r.divs.map((d) => [d.date, d.name, d.ticker, d.broker, d.ccy, f2(d.gross), f2(d.tax), f2(d.net), d.fx, f2(d.grossB), f2(d.taxB), f2(d.netB)]),
+    [t("Total"), "", "", "", "", "", "", "", "", f2(r.tot.grossB), f2(r.tot.taxB), f2(r.tot.netB)], [],
+    [t("Shares sold")], [t("Date"), t("Stock"), t("Code"), t("Broker"), t("Quantity"), `${t("Sale proceeds")} (${B})`, `${t("Cost of shares sold")} (${B})`, `${t("Fees and taxes")} (${B})`, `${t("Profit or loss")} (${B})`],
+    ...r.sales.map((s) => [s.date, s.name, s.ticker, s.broker, s.qty, f2(s.proceeds), f2(s.cost), f2(s.fees), f2(s.pl)]),
+    [t("Total"), "", "", "", "", f2(r.tot.proceeds), f2(r.tot.cost), f2(r.tot.fees), f2(r.tot.pl)]];
+  const csv = "\uFEFF" + rows.map((row) => row.map((x) => (typeof x === "string" ? q(x) : q(x))).join(",")).join("\r\n");
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" })), el = document.createElement("a");
+  el.href = url; el.download = `divz-tax-report-${year}.csv`; document.body.appendChild(el); el.click(); el.remove(); URL.revokeObjectURL(url);
+  toast(el.download + " " + t("exported"));
+}
+function printTaxReport(year) {
+  const r = taxReportData(year), B = ccyLabel(FX.base), n2 = (n) => fmt(n), th = (x) => `<th>${x}</th>`, td = (x, c) => `<td${c ? ` class="${c}"` : ""}>${x}</td>`;
+  const divRows = r.divs.map((d) => `<tr>${td(esc(fmtDate(d.date)))}${td(esc(d.name) + `<small>${esc(d.ticker)} · ${esc(d.broker)}</small>`)}${td(esc(d.ccy) + " " + n2(d.gross), "r")}${td(n2(d.tax), "r")}${td(n2(d.netB), "r")}</tr>`).join("") || `<tr><td colspan="5" class="mu">${t("No dividends received this year.")}</td></tr>`;
+  const saleRows = r.sales.map((s) => `<tr>${td(esc(fmtDate(s.date)))}${td(esc(s.name) + `<small>${esc(s.ticker)} · ${esc(s.broker)}</small>`)}${td(fmt(s.qty, { maximumFractionDigits: 4, minimumFractionDigits: 0 }), "r")}${td(n2(s.proceeds), "r")}${td(n2(s.cost + s.fees), "r")}${td(`${s.pl < 0 ? "−" : ""}${n2(Math.abs(s.pl))}`, "r")}</tr>`).join("") || `<tr><td colspan="6" class="mu">${t("No shares sold this year.")}</td></tr>`;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Divz ${t("Yearly tax report")} ${year}</title><style>
+    body{font:13px/1.45 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#171a2b;margin:32px}h1{font-size:22px;margin:0 0 4px}h2{font-size:15px;margin:26px 0 8px}
+    .mu{color:#6b7088}table{width:100%;border-collapse:collapse}th,td{padding:7px 8px;border-bottom:1px solid #e3e5f0;text-align:left;vertical-align:top}th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b7088}
+    .r{text-align:right}small{display:block;color:#6b7088;font-size:11px}tfoot td{font-weight:700;border-top:2px solid #171a2b;border-bottom:0}.note{margin-top:28px;font-size:11px;color:#6b7088}</style></head><body>
+    <h1>Divz — ${t("Yearly tax report")} ${year}</h1><div class="mu">${t("Amounts in")} ${esc(B)} · ${t("cost method")}: ${SETTINGS.costBasis === "fifo" ? "FIFO" : t("Average Cost")}</div>
+    <h2>${t("Dividends received")}</h2><table><thead><tr>${th(t("Date"))}${th(t("Stock"))}${th(t("Gross"))}${th(`${t("Tax withheld")} (${esc(B)})`)}${th(`${t("Net")} (${esc(B)})`)}</tr></thead><tbody>${divRows}</tbody>
+    <tfoot><tr><td colspan="3">${t("Total")} · ${t("Gross")} ${esc(B)} ${n2(r.tot.grossB)}</td><td class="r">${n2(r.tot.taxB)}</td><td class="r">${n2(r.tot.netB)}</td></tr></tfoot></table>
+    <h2>${t("Shares sold")}</h2><table><thead><tr>${th(t("Date"))}${th(t("Stock"))}${th(t("Quantity"))}${th(`${t("Sale proceeds")} (${esc(B)})`)}${th(`${t("Cost, fees and taxes")} (${esc(B)})`)}${th(`${t("Profit or loss")} (${esc(B)})`)}</tr></thead><tbody>${saleRows}</tbody>
+    <tfoot><tr><td colspan="3">${t("Total")}</td><td class="r">${n2(r.tot.proceeds)}</td><td class="r">${n2(r.tot.cost + r.tot.fees)}</td><td class="r">${r.tot.pl < 0 ? "−" : ""}${n2(Math.abs(r.tot.pl))}</td></tr></tfoot></table>
+    <p class="note">${t("For personal record-keeping only. Not financial, tax, or investment advice.")}</p></body></html>`;
+  const fr = document.createElement("iframe"); fr.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+  document.body.appendChild(fr); fr.contentDocument.open(); fr.contentDocument.write(html); fr.contentDocument.close();
+  setTimeout(() => { try { fr.contentWindow.focus(); fr.contentWindow.print(); } catch (e) { toast(t("Couldn't open the print window.")); } setTimeout(() => fr.remove(), 60000); }, 300);
 }
 function exportDivCSV() {
   const divs = ALL_TRANSACTIONS.filter((x) => x.type === "Dividend");
