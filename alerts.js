@@ -113,24 +113,24 @@ function alertStatusBadge(a) {
   return `<span class="badge confirmed">${t("Active")}</span>`;
 }
 
-function alertRowHTML(a) {
+let alertFilter = "all";   // all | active | triggered
+function alertRowHTML(a, i) {
   const dirLabel = a.direction === "above" ? "≥" : "≤";
-  return `<div class="alert-row">
-    <div class="alert-row-main">
-      <span class="ticker">${esc(a.ticker)}</span>
-      <span class="muted">${dirLabel} ${fmt(a.target_price, { maximumFractionDigits: 4 })}</span>
-    </div>
-    <div class="alert-row-meta">
-      ${alertStatusBadge(a)}
-      ${a.last_triggered_at ? `<span class="muted" style="font-size:11px">${t("Last triggered")} ${fmtDateTime(a.last_triggered_at)}</span>` : ""}
-    </div>
+  const h = (typeof T !== "undefined" && T.holdings || []).find((x) => x.ticker === a.ticker);
+  const name = typeof dzName === "function" ? dzName(a.ticker, h ? h.company : null) : a.ticker;
+  const now = h && h.hasPrice ? `${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}` : "";
+  const initials = typeof dzInitials === "function" ? dzInitials(name) : name.slice(0, 2).toUpperCase();
+  return `<div class="al-row"><span class="dz-chip pf-chip${i % 2 ? " b" : ""}" aria-hidden="true">${initials}</span>
+    <div class="al-main"><div class="al-t1">${esc(name)}</div><div class="al-t2">${name !== a.ticker ? esc(a.ticker) : ""}${a.last_triggered_at ? `${name !== a.ticker ? " · " : ""}${t("Last triggered")} ${fmtDateTime(a.last_triggered_at)}` : ""}</div></div>
+    <div class="al-px">${dirLabel} ${fmt(a.target_price, { maximumFractionDigits: 4 })}${now ? `<small>${t("now")} ${now}</small>` : ""}</div>
+    ${alertStatusBadge(a)}
     <button type="button" class="icon-btn" data-del-alert="${escAttr(a.id)}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button>
   </div>`;
 }
 
 function addAlertFormHTML() {
-  return `<form id="addAlertForm" class="form" autocomplete="off">
-    <div class="form-grid">
+  return `<form id="addAlertForm" class="form al-form" autocomplete="off">
+    <div class="form-grid" style="grid-template-columns:1fr">
       <label>${t("Ticker")}<input name="ticker" placeholder="AAPL" required></label>
       <label>${t("Direction")}${styledSelect("direction", [
         { value: "above", label: t("Price rises above") },
@@ -169,16 +169,22 @@ function pageAlerts() {
     ? `<p class="alert-push-row"><span class="badge subtle">${t("Blocked")}</span> ${t("Notifications are blocked for this site — enable them in your browser's site settings, then reload this page.")}</p>`
     : `<p class="alert-push-row">${t("Push notifications aren't on for this device yet.")} <button type="button" class="btn primary small" id="enablePushBtn">${t("Enable notifications")}</button></p>`;
 
-  const rows = ALERTS_CACHE.map(alertRowHTML).join("");
-  const list = rows ? `<div class="alert-list">${rows}</div>` : `<p class="muted" style="margin:0">${t("No alerts yet — add one below.")}</p>`;
+  const nActive = ALERTS_CACHE.filter((a) => a.enabled).length, nDone = ALERTS_CACHE.length - nActive, nRec = ALERTS_CACHE.filter((a) => a.enabled && a.recurring).length;
+  const shown = ALERTS_CACHE.filter((a) => alertFilter === "all" || (alertFilter === "active" ? a.enabled : !a.enabled));
+  const rows = shown.map(alertRowHTML).join("");
+  const list = rows ? `<div class="al-list">${rows}</div>` : `<p class="muted" style="margin:0">${t("No alerts yet — add one on the right.")}</p>`;
+  const fseg = `<div class="dz-seg" role="group">${[["all", t("All")], ["active", t("Active")], ["triggered", t("Triggered")]].map(([k, l]) => `<button type="button" class="${alertFilter === k ? "on" : ""}" data-alfilter="${k}">${l}</button>`).join("")}</div>`;
+  const cards = `<div class="pfx-sum">${pfxStatCard(t("Active alerts"), String(nActive), "", "", "", t("Alerts that are still waiting for their price."))}${pfxStatCard(t("Recurring"), String(nRec), "", "", "", t("Alerts that notify you every time the price crosses, not just once."))}${pfxStatCard(t("Triggered"), String(nDone), "", "", "", t("Alerts that already fired and are now switched off."))}</div>`;
 
-  const html = `
-    ${panel(t("Price Alerts"), `${pushBanner}${addAlertFormHTML()}`)}
-    ${panel(t("Your Alerts"), list)}`;
+  const html = `<div class="pfx pfx-al">${dzTopHTML({ eyebrow: t("Price alerts"), h1: t("Your price alerts"), sub: t("Get a push when a price crosses your target"), noLive: true })}${cards}
+    <div class="pfx-two pfx-two-cal">${panel(`${t("Your Alerts")}<small class="pfx-sm">${ALERTS_CACHE.length}</small>`, list, fseg)}
+    ${panel(t("New alert"), `${addAlertFormHTML()}<div class="al-push">${pushBanner}</div>`)}</div></div>`;
 
   return {
     title: "Price Alerts", subtitle, html,
     mount() {
+      const alBell = $("#dzBell"); if (alBell) alBell.addEventListener("click", () => toggleMoreSheet());
+      $$("[data-alfilter]").forEach((b) => b.addEventListener("click", () => { alertFilter = b.dataset.alfilter; render(); }));
       const form = $("#addAlertForm");
       if (form) attachAutocomplete(form, null, { fillPrice: false });
 

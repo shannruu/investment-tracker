@@ -675,6 +675,25 @@ const ZH = {
   "Value": "价值",
   "Income": "收益",
   "Money": "资金",
+  "Data & backup": "数据与备份",
+  "Danger zone": "危险区域",
+  "How can we help?": "需要什么帮助？",
+  "Plain answers about your numbers": "用简单的话解释您的数字",
+  "Search a question": "搜索问题",
+  "{n} questions": "{n} 个问题",
+  "No question matches your search.": "没有符合搜索的问题。",
+  "Currency, preferences and your data": "货币、偏好设置与您的数据",
+  "Active alerts": "进行中的提醒",
+  "Recurring": "重复提醒",
+  "Price alerts": "价格提醒",
+  "Your price alerts": "您的价格提醒",
+  "Get a push when a price crosses your target": "价格触及目标时通知您",
+  "New alert": "新建提醒",
+  "now": "现价",
+  "No alerts yet — add one on the right.": "还没有提醒 — 请在右侧添加。",
+  "Alerts that are still waiting for their price.": "仍在等待目标价格的提醒。",
+  "Alerts that notify you every time the price crosses, not just once.": "价格每次触及都会通知您的提醒，而不只是一次。",
+  "Alerts that already fired and are now switched off.": "已经触发并关闭的提醒。",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -5779,8 +5798,12 @@ function pageProfile() {
 /* =============================================================================
  * PAGE: SETTINGS  (incl. theme switcher)
  * ========================================================================== */
+let settingsTab = "currency";
 function pageSettings() {
-  const html = `
+  const stHead = dzTopHTML({ eyebrow: t("Settings"), h1: t("Settings"), sub: t("Currency, preferences and your data"), noLive: true });
+  const stNav = `<nav class="st-nav" role="tablist">${[["currency", t("Currency")], ["prefs", t("Preferences")], ["data", t("Data & backup")], ["danger", t("Danger zone")]].map(([k, l]) =>
+    `<button type="button" role="tab" class="${settingsTab === k ? "on" : ""}${k === "danger" ? " dng" : ""}" data-sttab2="${k}">${l}</button>`).join("")}</nav>`;
+  const html = `<div class="pfx pfx-set">${stHead}<div class="st-wrap" data-tab="${settingsTab}">${stNav}<div class="st-main"><div class="st-sec" data-sec="currency">
     ${panel(`${t("Currency & Exchange Rates")}${infoTip(`${t("Each record keeps its own currency. Base-currency amounts come from exchange rates.")} ${t("Pull today's market rate or type your own.")}`)}`, `
       <div class="fx-base-row">
         ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
@@ -5801,6 +5824,7 @@ function pageSettings() {
         <span class="muted fx-status" id="fxStatus">${FX_STATUS}</span>
       </div>`)}
 
+    </div><div class="st-sec" data-sec="prefs">
     ${panel(`${t("Preferences")}${infoTip(t("Time zone decides which day counts as \"today\". Gains and losses use the Average Cost method."))}`, `<div class="setting-rows">
       ${settingRow(t("Date format"), `<div style="width:200px">${styledSelect("dateFmt", DATE_FORMATS.map((f) => ({ value: f.k, label: f.label })), SETTINGS.dateFormat, { id: "dateFmt" })}</div>`)}
       ${settingRow(t("Time zone"), `<div style="width:200px">${styledSelect("tzSel", [{ value: "", label: t("Device local") }, ...TIME_ZONES.map((z) => ({ value: z, label: z }))], SETTINGS.timeZone || "", { id: "tzSel" })}</div>`)}
@@ -5813,6 +5837,7 @@ function pageSettings() {
       ${settingRow(t("Show Ex-Dividend Screener on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" aria-label="${escAttr(t("Show Ex-Dividend Screener on Dividends page"))}" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
       </div>`)}
 
+    </div><div class="st-sec" data-sec="data">
     ${(() => {
       const dataTip = (typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && SYNC_USER)
         ? t("Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.")
@@ -5841,14 +5866,22 @@ function pageSettings() {
       </div>`);
     })()}
 
+    </div><div class="st-sec" data-sec="danger">
     ${panel(t("Danger Zone"), `
       <p class="muted" style="margin:-2px 0 12px">${t("Clearing removes all brokers, holdings and transactions saved in this browser. This cannot be undone — export a backup first.")}</p>
       <div class="form-actions">
         <button class="btn danger" id="clearData">${t("Clear all data")}</button>
-      </div>`)}`;
+      </div>`)}
+    </div></div></div></div>`;
 
   return { title: "Settings", subtitle: "Currency, preferences and data.", html,
     mount() {
+      const stBell = $("#dzBell"); if (stBell) stBell.addEventListener("click", () => toggleMoreSheet());
+      $$("[data-sttab2]").forEach((b) => b.addEventListener("click", () => {
+        settingsTab = b.dataset.sttab2;
+        $(".st-wrap").dataset.tab = settingsTab;
+        $$("[data-sttab2]").forEach((x) => x.classList.toggle("on", x === b));
+      }));
       // Change base currency — re-base every stored rate so values stay correct. FX.rates
       // alone isn't enough: every past transaction froze its own fxRate/myrEquivalent
       // relative to the OLD base at the time it was recorded (computeTotals()'s histFx()
@@ -6200,12 +6233,24 @@ function pageHelp() {
   // No outer panel() card per section — each FAQ item is already its own boxed
   // .help-item, so wrapping a whole section in a second card just double-boxes
   // it. A plain heading is enough to group them.
-  const html = sections.map((sec) => `<section class="help-section">
-    <h2 class="help-section-title">${sec.title}</h2>
-    <div class="help-list">${sec.items.map((it) => `
-      <details class="help-item"><summary>${it.q}</summary><p>${it.a}</p></details>`).join("")}</div>
-    </section>`).join("");
-  return { title: "Help", subtitle: "Getting started, how calculations work, and answers to common questions.", html };
+  const total = sections.reduce((n, s) => n + s.items.length, 0);
+  const pills = `<div class="hp-pills" role="tablist"><button type="button" class="on" data-hptopic="all">${t("All")}</button>${sections.map((sec, i) => `<button type="button" data-hptopic="${i}">${sec.title}</button>`).join("")}</div>`;
+  const items = sections.map((sec, i) => sec.items.map((it) => `<details class="help-item" data-hpsec="${i}"><summary>${it.q}</summary><p>${it.a}</p></details>`).join("")).join("");
+  const html = `<div class="pfx pfx-help">${dzTopHTML({ eyebrow: t("Help"), h1: t("How can we help?"), sub: t("Plain answers about your numbers"), noLive: true })}
+    <section class="pfx-card pfx-hp"><div class="rc-head"><h2>${t("Help")}<span class="pfx-sm">${dzF("{n} questions", { n: total })}</span></h2><div class="rc-tools"><input type="search" id="hpSearch" class="rc-search" placeholder="${esc(t("Search a question"))}" autocomplete="off"></div></div>
+      ${pills}<div class="hp-grid" id="hpGrid">${items}</div><p class="muted" id="hpNone" hidden style="margin:14px 0 0">${t("No question matches your search.")}</p></section></div>`;
+  return { title: "Help", subtitle: "Getting started, how calculations work, and answers to common questions.", html,
+    mount() {
+      const bell = $("#dzBell"); if (bell) bell.addEventListener("click", () => toggleMoreSheet());
+      let topic = "all";
+      const apply = () => {
+        const q = (($("#hpSearch") || {}).value || "").trim().toLowerCase(); let n = 0;
+        $$("#hpGrid .help-item").forEach((d) => { const ok = (topic === "all" || d.dataset.hpsec === topic) && (!q || d.textContent.toLowerCase().includes(q)); d.hidden = !ok; if (ok) n++; });
+        const none = $("#hpNone"); if (none) none.hidden = n > 0;
+      };
+      $$("[data-hptopic]").forEach((b) => b.addEventListener("click", () => { topic = b.dataset.hptopic; $$("[data-hptopic]").forEach((x) => x.classList.toggle("on", x === b)); apply(); }));
+      const s = $("#hpSearch"); if (s) s.addEventListener("input", apply);
+    } };
 }
 
 /* =============================================================================
@@ -7637,6 +7682,7 @@ function render() {
   if (key !== "holding") { holdingTabFor = ""; try { sessionStorage.removeItem("il-stock-tab"); } catch (e) {} }
   if (key !== "dividends") { divTab = "overview"; try { sessionStorage.removeItem("il-div-tab"); } catch (e) {} }
   if (key !== "records" && key !== "add") { recordsTab = "all"; cashSubFilter = "all"; recSearch = ""; recLimit = 40; }   // Transactions opens on All when entered from another page
+  if (key !== "settings") settingsTab = "currency";
   if (key !== "portfolio") portfolioTab = "holdings";   // Portfolio always opens on Holdings when entered from another page
   if (key !== "add") { editingTxId = null; addDraft = {}; closeAddDrawer(); }  // drop edit mode + draft + drawer when leaving Add
   if (key !== "brokers") closeBrokerDrawer();  // drop the broker drawer when leaving Brokers
