@@ -2945,9 +2945,9 @@ function pagePortfolio() {
       { value: "shares",      label: t("Shares") },
       { value: "marketValue", label: t("Market Value") },
     ], portfolioFilters.sort, { id: "fSort" })}
-    <button class="btn ghost btn-reset${filtersActive ? " active" : ""}" id="fReset">${t("Reset")}</button></div>
-    <button type="button" class="btn ghost pfx-ftoggle" id="pfFilterToggle" aria-expanded="${pfFiltersOpen}">${t("Filters")}${nActive ? `<b class="pfx-fcount">${nActive}</b>` : ""}</button>
-    ${colPanelHtml}</div>`;
+    <button class="btn ghost btn-reset${filtersActive ? " active" : ""}" id="fReset">${t("Reset")}</button></div></div>`;
+  // The Filters + Edit columns buttons live in the card's title row (right side); the dropdowns open under the title only when asked for.
+  const filterToggleBtn = `<button type="button" class="btn ghost pfx-ftoggle" id="pfFilterToggle" aria-expanded="${pfFiltersOpen}">${t("Filters")}${nActive ? `<b class="pfx-fcount">${nActive}</b>` : ""}</button>`;
 
   // Allocation breakdowns — moved here from the old Reports page (which was mostly a
   // mirror of other pages); this is genuinely-not-shown-elsewhere info, so it belongs
@@ -2977,8 +2977,8 @@ function pagePortfolio() {
        ${pfNav}
        ${portfolioTab === "realized" ? realizedPLHTML() : !has ? panel(t("Holdings"), emptyContent)
           : portfolioTab === "allocation" ? breakdowns
-          : panel(t("All Holdings"), filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
-              `<div class="panel-head-actions">${priceStampHtml}</div>`)}
+          : panel(`${t("All Holdings")}<small class="pfx-sm">${priceStampHtml}</small>`, filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
+              `<div class="panel-head-actions">${filterToggleBtn}${colPanelHtml}</div>`)}
        <div class="pfx-foot">${t("Total return here covers current holdings only; the Dashboard also counts sold stocks.")}</div></div>`
     : panel(t("Holdings"), emptyContent);
 
