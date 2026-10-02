@@ -2996,7 +2996,7 @@ a.ticker.tk-name:hover { color: var(--brand); }
   .pfx .data-table { width: max-content; min-width: 100%; table-layout: auto; }
   .pfx .data-table th, .pfx .data-table td { display: table-cell !important; white-space: nowrap !important; width: auto !important; max-width: none !important; padding: 12px 12px; font-size: 13px; }
   .pfx .data-table th { font-size: 12px; }
-  .pfx .data-table th:first-child, .pfx .data-table td:first-child { position: sticky; left: 0; z-index: 2; background: var(--dz-panel); padding-left: 2px; box-shadow: 7px 0 8px -7px rgba(0, 0, 0, .55); }
+  .pfx .data-table th:first-child, .pfx .data-table td:first-child { position: sticky; left: 0; z-index: 2; background: var(--dz-panel); padding-left: 2px; box-shadow: none; border-right: 1px solid color-mix(in srgb, var(--text) 16%, transparent); }
   .pfx .data-table thead th:first-child { z-index: 4; }
   .pfx .data-table .pfx-hc, .pfx .data-table .pfx-hcn { min-width: 0; }
   .pfx .pfx-chip { display: grid; }
