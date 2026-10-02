@@ -540,7 +540,8 @@ function dzShortDate(iso) {
 }
 function dzGreeting() {
   const h = new Date().getHours();
-  return h < 12 ? t("Good morning") : h < 18 ? t("Good afternoon") : t("Good evening");
+  const hi = h < 12 ? t("Good morning") : h < 18 ? t("Good afternoon") : t("Good evening"), first = String((typeof USER !== "undefined" && USER.name) || "").trim().split(/\s+/)[0];
+  return first ? `${hi}, ${esc(first)}` : hi;
 }
 function dzLiveInfo() {
   const latest = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();

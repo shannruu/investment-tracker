@@ -5961,6 +5961,7 @@ function pageProfile() {
  * PAGE: SETTINGS  (incl. theme switcher)
  * ========================================================================== */
 let settingsTab = "currency";
+var acctTab = "profile";   // Account page tab (var: account.js loads after this file)
 function pageSettings() {
   const stHead = dzTopHTML({ eyebrow: t("Settings"), h1: t("Settings"), sub: t("Currency, preferences and your data"), noLive: true });
   const stNav = `<nav class="st-nav" role="tablist">${[["currency", t("Currency")], ["look", t("Appearance")], ["prefs", t("Preferences")], ["data", t("Data & backup")], ["danger", t("Danger zone")]].map(([k, l]) =>
@@ -8002,6 +8003,7 @@ function render() {
   if (key !== "dividends") { divTab = "overview"; try { sessionStorage.removeItem("il-div-tab"); } catch (e) {} }
   if (key !== "records" && key !== "add") { recordsTab = "all"; cashSubFilter = "all"; recSearch = ""; recLimit = 40; }   // Transactions opens on All when entered from another page
   if (key !== "settings") settingsTab = "currency";
+  if (key !== "profile") acctTab = "profile";
   if (key !== "portfolio") portfolioTab = "holdings";   // Portfolio always opens on Holdings when entered from another page
   if (key !== "add") { editingTxId = null; addDraft = {}; closeAddDrawer(); }  // drop edit mode + draft + drawer when leaving Add
   if (key !== "brokers") closeBrokerDrawer();  // drop the broker drawer when leaving Brokers

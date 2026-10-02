@@ -43,8 +43,9 @@ function pageAccount() {
   const status = !signedIn ? `<span class="badge subtle">${t("Local only")}</span>`
     : needsChoice ? `<span class="badge warn">${t("Needs your attention")}</span>` : `<span class="badge pos">${t("Synced")}</span>`;
   const stat = (href, n, name) => `<a class="ap-stat" href="${href}"><span class="ap-stat-v">${n}</span><span class="ap-stat-k">${name}</span></a>`;
+  const head = dzTopHTML({ eyebrow: t("Account"), h1: t("Your account"), sub: t("Profile, security and sync"), noLive: true });
 
-  /* ---------- header card */
+  /* ---------- identity card */
   const hero = `<section class="ap-hero">
     <div class="avatar-upload">
       <span class="brand-mark xl" id="profileAvatarPreview" role="button" tabindex="0" aria-label="${escAttr(t("Change photo"))}">${avatarInnerHTML(label)}</span>
@@ -61,24 +62,40 @@ function pageAccount() {
     </div>
   </section>`;
 
-  /* ---------- profile */
+  /* ---------- profile form */
   const emailCtl = signedIn
     ? `<input type="email" value="${esc(SYNC_USER.email)}" readonly aria-readonly="true" class="ap-readonly">`
     : `<input name="email" type="email" value="${esc(USER.email)}" placeholder="you@example.com">`;
   const profile = acctSection("acctProfile", t("Profile"), `<form id="profileForm" class="form" autocomplete="off">
     <div class="ap-rows">
       ${acctRow(t("Photo"), t("A square picture works best."), `<button type="button" class="btn" id="avatarUploadBtn">${t("Upload photo")}</button>${USER.avatar ? `<button type="button" class="btn ghost" id="avatarRemoveBtn">${t("Remove photo")}</button>` : ""}`)}
-      ${acctRow(t("Name"), t("Shown in the sidebar and on this page."), `<input name="name" value="${esc(USER.name)}" placeholder="${escAttr(t("Your name"))}">`)}
-      ${acctRow(t("Email"), signedIn ? t("The email you sign in with.") : t("Optional. Only stored on this device."), emailCtl)}
+      ${acctRow(t("Name"), t("Shown in the sidebar, on this page and in your Dashboard greeting."), `<input name="name" value="${esc(USER.name)}" placeholder="${escAttr(t("Your name"))}">`)}
+      ${acctRow(t("Email"), signedIn ? t("The email you sign in with. Change it under Security.") : t("Optional. Only stored on this device."), emailCtl)}
       ${acctRow(t("Investing since"), t("When you started investing. Optional."), `<input name="joined" type="date" value="${esc(USER.joined)}">`)}
     </div>
     <div class="ap-actions"><button class="btn primary" type="submit">${t("Save changes")}</button></div>
   </form>`);
 
-  /* ---------- security + cloud sync (signed in)  /  the sign-in form (not signed in) */
-  let access = "";
+  /* ---------- your Divz at a glance */
+  const dates = ALL_TRANSACTIONS.map((x) => x.date).filter(Boolean).sort();
+  const glance = acctSection("acctGlance", t("Your Divz at a glance"), `<div class="ap-rows">
+    ${acctRow(t("Records"), "", `<span class="ap-val">${ALL_TRANSACTIONS.length}</span>`)}
+    ${acctRow(t("First record"), "", `<span class="ap-val">${dates.length ? fmtDate(dates[0]) : "—"}</span>`)}
+    ${acctRow(t("Latest record"), "", `<span class="ap-val">${dates.length ? fmtDate(dates[dates.length - 1]) : "—"}</span>`)}
+    ${acctRow(t("Last backup"), t("A backup file you saved from Settings."), `<span class="ap-val">${SETTINGS.lastBackup ? fmtDate(SETTINGS.lastBackup) : t("Never")}</span>`)}
+    ${acctRow(t("Your data"), t("Export, back up, or make a yearly tax report."), `<a class="btn" href="#/settings" id="acctToData">${t("Open Data & backup")}</a>`)}
+  </div>`);
+
+  /* ---------- security + sync (signed in)  /  the sign-in form (not signed in) */
+  let security = "", sync = "";
   if (signedIn) {
-    access += acctSection("acctSecurity", t("Security"), `<div class="ap-rows">
+    security = acctSection("acctSecurity", t("Security"), `<div class="ap-rows">
+      ${acctRow(t("Email"), t("The email you sign in with. We send a confirmation link to the new address."), `<span class="ap-val">${esc(SYNC_USER.email)}</span><button type="button" class="btn" id="emToggle" aria-expanded="false" aria-controls="emForm">${t("Change email")}</button>`)}
+      <form id="emForm" class="form ap-pw" hidden novalidate>
+        <div class="form-grid"><label>${t("New email")}<input id="acctNewEmail" name="newEmail" type="email" placeholder="you@example.com" autocomplete="email" required></label></div>
+        <p class="ap-status" id="emStatus" role="status"></p>
+        <div class="form-actions"><button class="btn primary" type="submit">${t("Send confirmation link")}</button><button class="btn ghost" type="button" id="emCancel">${t("Cancel")}</button></div>
+      </form>
       ${acctRow(t("Password"), t("Choose a new password for your account."), `<button type="button" class="btn" id="pwToggle" aria-expanded="false" aria-controls="pwForm">${t("Change password")}</button>`)}
       <form id="pwForm" class="form ap-pw" hidden novalidate>
         <div class="form-grid">
@@ -91,15 +108,16 @@ function pageAccount() {
       ${acctRow(t("Sign out"), t("Sign out of Divz on this device. Your data stays safe in your account."), `<button type="button" class="btn" id="signOutBtn">${t("Sign out")}</button>`)}
       ${acctRow(t("Sign out everywhere"), t("Sign out on every device where you're signed in."), `<button type="button" class="btn ghost" id="signOutAllBtn">${t("Sign out everywhere")}</button>`)}
     </div>`);
-    access += acctSection("acctSync", t("Cloud sync"), online ? `<div class="ap-rows">
+    sync = acctSection("acctSync", t("Cloud sync"), online ? `<div class="ap-rows">
       ${acctRow(t("Status"), t("Your records are saved to your account and available on every device you sign in on."),
         needsChoice ? `<span class="badge warn">${t("Needs your attention")}</span><a class="link" href="#" id="reopenReconcile">${t("Finish choosing which data to keep")}</a>`
           : `<span class="badge pos">${t("Synced")}</span>`)}
       ${acctRow(t("Last synced"), "", `<span class="ap-val">${LAST_SYNCED ? fmtDateTime(LAST_SYNCED) : t("Not yet synced")}</span><button type="button" class="btn" id="syncNowBtn">${t("Sync now")}</button>`)}
+      ${acctRow(t("Restore a copy"), t("Bring back the copy saved in your account. Find it in Data & backup."), `<a class="btn" href="#/settings" id="acctToRestore">${t("Open Data & backup")}</a>`)}
     </div>` : `<p class="muted" style="margin:0">${t("Cloud sync isn't set up for this deployment yet.")}</p>`);
   } else {
     const signup = SYNC_FORM_MODE === "signup";
-    access += acctSection("acctSync", t("Back up & sync"), online ? `
+    sync = acctSection("acctSync", t("Back up & sync"), online ? `
       <p class="ap-intro">${t("You're using Divz without an account, so your data lives only in this browser. Create a free account to back it up and use Divz on all your devices.")}</p>
       <form id="signInForm" class="form" autocomplete="off">
         <div class="form-grid">
@@ -114,8 +132,25 @@ function pageAccount() {
       : `<p class="muted" style="margin:0">${t("Cloud sync isn't set up for this deployment yet.")}</p>`);
   }
 
-  return { title: "Account", subtitle: "Your profile, security and sync.", html: `<div class="ap">${hero}${profile}${access}</div>`,
+  const tabs = signedIn ? [["profile", t("Profile")], ["security", t("Security")], ["sync", t("Cloud sync")]] : [["profile", t("Profile")], ["sync", t("Back up & sync")]];
+  if (!tabs.some((x) => x[0] === acctTab)) acctTab = "profile";
+  const nav = `<nav class="st-nav" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" class="${acctTab === k ? "on" : ""}" data-actab="${k}">${l}</button>`).join("")}</nav>`;
+  const html = `<div class="pfx pfx-set pfx-acct">${head}<div class="st-wrap" data-tab="ac${acctTab}">${nav}<div class="st-main">
+    <div class="st-sec" data-sec="acprofile">${hero}${profile}${glance}</div>
+    ${signedIn ? `<div class="st-sec" data-sec="acsecurity">${security}</div>` : ""}
+    <div class="st-sec" data-sec="acsync">${sync}</div>
+  </div></div></div>`;
+
+  return { title: "Account", subtitle: "Your profile, security and sync.", html,
     mount() {
+      const bell = $("#dzBell"); if (bell) bell.addEventListener("click", () => toggleMoreSheet());
+      $$("[data-actab]").forEach((b) => b.addEventListener("click", () => {
+        acctTab = b.dataset.actab;
+        $(".st-wrap").dataset.tab = "ac" + acctTab;
+        $$("[data-actab]").forEach((x) => x.classList.toggle("on", x === b));
+      }));
+      const toData = () => { settingsTab = "data"; };
+      ["#acctToData", "#acctToRestore"].forEach((s) => { const el = $(s); if (el) el.addEventListener("click", toData); });
       /* profile form */
       mountDatePickers($("#profileForm"));
       $("#profileForm").addEventListener("submit", (e) => {
@@ -137,7 +172,27 @@ function pageAccount() {
       fileInput.addEventListener("change", (e) => { if (e.target.files[0]) handleAvatarFile(e.target.files[0]); e.target.value = ""; });
       const removeBtn = $("#avatarRemoveBtn");
       if (removeBtn) removeBtn.addEventListener("click", () => { USER.avatar = ""; saveStore(); toast(t("Profile photo removed")); render(); });
-
+      /* change email (signed in) */
+      const emForm = $("#emForm"), emToggle = $("#emToggle");
+      if (emForm && emToggle) {
+        const msg = $("#emStatus");
+        const close = () => { emForm.hidden = true; emForm.reset(); msg.textContent = ""; emToggle.setAttribute("aria-expanded", "false"); };
+        emToggle.addEventListener("click", () => { emForm.hidden = !emForm.hidden; emToggle.setAttribute("aria-expanded", String(!emForm.hidden)); if (!emForm.hidden) $("#acctNewEmail").focus(); });
+        $("#emCancel").addEventListener("click", close);
+        emForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const em = emForm.newEmail.value.trim();
+          if (!/^\S+@\S+\.\S+$/.test(em)) { msg.textContent = t("Enter a valid email."); return; }
+          if (em.toLowerCase() === String(SYNC_USER.email).toLowerCase()) { msg.textContent = t("That is already your email."); return; }
+          const btn = emForm.querySelector("button[type=submit]"); btn.disabled = true; msg.textContent = "";
+          try {
+            const { error } = await SUPABASE.auth.updateUser({ email: em });
+            if (!error) { close(); toast(`${t("We sent a confirmation link to")} ${em}. ${t("Your sign-in email changes after you open it.")}`); }
+            else msg.textContent = mapAuthError(error, "reset");
+          } catch (err) { msg.textContent = t("Something went wrong — try again."); }
+          btn.disabled = false;
+        });
+      }
       /* change password (signed in) */
       const pwForm = $("#pwForm"), pwToggle = $("#pwToggle");
       if (pwForm && pwToggle) {
@@ -195,6 +250,29 @@ function pageAccount() {
 
 /* ------------------------------------------------------------------ Chinese (zh) — only adds keys the app doesn't already have */
 const ACCT_ZH = {
+  "Profile, security and sync": "个人资料、安全与同步",
+  "Account": "账户",
+  "Shown in the sidebar, on this page and in your Dashboard greeting.": "显示在侧边栏、本页面和仪表盘的问候语中。",
+  "The email you sign in with. Change it under Security.": "您登录时使用的邮箱。可在“安全”中修改。",
+  "Your Divz at a glance": "您的 Divz 一览",
+  "Records": "记录",
+  "First record": "第一笔记录",
+  "Latest record": "最近一笔记录",
+  "A backup file you saved from Settings.": "您在设置里保存的备份文件。",
+  "Your data": "您的数据",
+  "Export, back up, or make a yearly tax report.": "导出、备份，或生成年度税务报告。",
+  "Open Data & backup": "打开“数据与备份”",
+  "The email you sign in with. We send a confirmation link to the new address.": "您登录时使用的邮箱。我们会向新邮箱发送确认链接。",
+  "Change email": "修改邮箱",
+  "New email": "新邮箱",
+  "Send confirmation link": "发送确认链接",
+  "Enter a valid email.": "请输入有效的邮箱。",
+  "That is already your email.": "这已经是您的邮箱了。",
+  "We sent a confirmation link to": "我们已向以下邮箱发送确认链接：",
+  "Your sign-in email changes after you open it.": "打开链接后，您的登录邮箱才会更改。",
+  "Restore a copy": "恢复副本",
+  "Bring back the copy saved in your account. Find it in Data & backup.": "取回保存在您账户里的副本，请到“数据与备份”操作。",
+
   "Your account": "您的账户", "Not signed in": "未登录", "Needs your attention": "需要您处理",
   "Photo": "照片", "A square picture works best.": "正方形的图片效果最好。",
   "Shown in the sidebar and on this page.": "显示在侧边栏和本页面。", "The email you sign in with.": "您登录时使用的邮箱。",
