@@ -3034,3 +3034,7 @@ a.ticker.tk-name:hover { color: var(--brand); }
 .pfx .panel-head h2 .pfx-sm { margin-left: 10px; }
 .pfx .panel-head > h2 { margin: 0; }
 .pfx .panel-head { min-height: 40px; align-items: center; }
+/* cards side by side are always the same height; list rows have no curved bottom line */
+.pfx-two, .pfx-two2, .pfx-two-cal { align-items: stretch; }
+.pfx-nx { border-radius: 0; }
+.pfx .pfx-nx, .pfx .pfx-nx:hover { border-radius: 0; }

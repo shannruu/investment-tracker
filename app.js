@@ -5318,7 +5318,7 @@ function pageDividends() {
     return `<div class="pfx-nx" role="button" tabindex="0" data-dvdetail="${dvIdx.get(d)}"><div class="pfx-dd" title="${t("Payout date")}"><small>${dt.toLocaleString("en", { month: "short" }).toUpperCase()}</small><b class="dz-n">${dt.getDate()}</b></div>
       <div class="pfx-nxt"><b>${esc(dvNameOf(d.ticker))}</b><span>${fmtDate(pay)} · ${(d.status === "Estimated" ? t("Estimated") : t("Confirmed")).toLowerCase()}</span></div>
       <div class="pfx-nxa dz-n pos">+${money(d.amtMYR)}${dvLocal(d)}</div></div>`; }).join("");
-  const comingCard = panel(`${t("Coming up")}<small class="pfx-sm">${t("next payments")}</small>`, (comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`) + `<div class="pf-insight">${dzIcon("info", 16)}<span>${t("The full list of every payment is now in the History tab.")}</span></div>`);
+  const comingCard = panel(`${t("Coming up")}<small class="pfx-sm">${t("next payments")}</small>`, (comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`));
   const nextCard = panel(t("Next payments"), comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`, `<button type="button" class="pf-linkbtn" data-dvtab="calendar">${t("Calendar")} →</button>`);
   overview = `<div class="pfx-two pfx-two-cal">${incomeCard}${nextCard}</div>${ltCard || panel(t("Dividend Forecast"), forecastBody)}`;
   const payFilters = [["all", t("All")], ["past", t("Received")], ["upcoming", t("Upcoming")]];
@@ -5336,7 +5336,7 @@ function pageDividends() {
       ? `<div class="table-wrap pfx-dvt-wrap dv-pay-desk"><table class="data-table pfx-txt"><thead><tr><th>${t("Holding")}</th><th>${t("Paid on")}</th><th class="pfn">${t("Amount")} (${ccyLabel(FX.base)})</th><th>${t("Status")}</th><th></th></tr></thead><tbody>${payDeskRows}</tbody></table></div><div class="dv-pay-mob">${payMobRows}</div>${payMore}`
       : `<p class="muted" style="margin:0 0 12px;font-size:13px">${!LIVE_ENABLED ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.") : t("No dividends yet. Record one to get started.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
     `${paySeg}<small class="muted" id="divFetchStatus"></small>`);
-  const calendarTab = `<div class="pfx-two pfx-two-cal">${monthCard}${comingCard}</div>${exDivPanel}`;
+  const calendarTab = `<div class="pfx-two pfx-two-cal">${monthCard}${comingCard}</div><div id="divUpcomingSection">${listPanel}</div>${exDivPanel}`;
 
   // --- History
   const periodTabs = [["monthly", t("Monthly")], ["quarterly", t("Quarterly")], ["annual", t("Yearly")], ["stock", t("By stock")]];
@@ -5345,7 +5345,7 @@ function pageDividends() {
   const incomeByPeriod = panel(t("Income by period"), received.length
       ? `${lifeKv}<div class="table-wrap pfx-dvt-wrap dv-inc"><table class="data-table pfx-txt"><thead><tr><th>${incomeLabels[divIncomePeriod] || t("Month")}</th><th>${t("Size")}</th><th class="pfn">${t("Net")} (${ccyLabel(FX.base)})</th></tr></thead><tbody>${incomeRowsByPeriod[divIncomePeriod] || monthRows}</tbody></table></div>`
       : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`, periodSeg);
-  const historyTab = `<div class="pfx-two pfx-two-cal">${incomeByPeriod}<div id="divUpcomingSection">${listPanel}</div></div>`;
+  const historyTab = incomeByPeriod;
 
   const html = `<div class="pfx pfx-div">${dvHeader}${dvReview}${dvCards}${dvNav}${divTab === "calendar" ? calendarTab : divTab === "history" ? historyTab : overview}</div>`;
 
