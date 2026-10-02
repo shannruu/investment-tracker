@@ -322,3 +322,15 @@ const TH_ZH = {
   "Dividends as a % of what you originally paid, not today's price.": "股息占您原始买入成本的百分比，而不是今天的价格。",
 };
 Object.keys(TH_ZH).forEach((k) => { if (!I18N.zh[k]) I18N.zh[k] = TH_ZH[k]; });
+
+/* ------------------------------------------------------------------ Top cards: click the card (not the "i") to see how the number is worked out. */
+(function () {
+  const open = (e) => {
+    const c = e.target.closest && e.target.closest(".pfx-card[data-calc]");
+    if (!c || e.target.closest(".col-info")) return false;
+    const fn = CARD_CALC[c.dataset.calc]; if (!fn) return false;
+    showCalc(fn()); return true;
+  };
+  document.addEventListener("click", open);
+  document.addEventListener("keydown", (e) => { if ((e.key === "Enter" || e.key === " ") && e.target.matches && e.target.matches(".pfx-card[data-calc]")) { e.preventDefault(); open(e); } });
+})();

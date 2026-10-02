@@ -635,6 +635,38 @@ const ZH = {
   "Not enough dividends yet to draw a chart.": "股息记录还不够，暂时无法绘制图表。",
   "Dividends received so far this year. The green figure is what is still expected before the year ends.": "今年迄今收到的股息。绿色数字是今年年底前预计还会收到的金额。",
   "Average dividends per month over the last 12 months.": "过去 12 个月平均每月的股息。",
+  "Show how this is worked out": "查看计算方式",
+  "You paid {n} for these holdings.": "您为这些持仓投入了 {n}。",
+  "{n} records.": "{n} 条记录。",
+  "What your holdings are worth at today's prices. You paid {n} for them.": "您的持仓按今天价格的价值。您为它们投入了 {n}。",
+  "Profit or loss if you sold everything now. Not locked in until you sell.": "如果现在全部卖出的盈亏。卖出之前尚未锁定。",
+  "Unrealized and realized profit, plus dividends and interest, minus fees. Covers the stocks you hold now only.": "未实现和已实现盈亏，加上股息和利息，减去费用。仅包含您目前持有的股票。",
+  "Everything you have deposited into your brokers.": "您存入券商的全部金额。",
+  "Everything you have withdrawn from your brokers.": "您从券商提取的全部金额。",
+  "Cash ready to invest or withdraw.": "可随时投资或提取的现金。",
+  "Unrealized and realized profit, plus dividends and interest, minus fees.": "未实现和已实现盈亏，加上股息和利息，减去费用。",
+  "Everything you have received in dividends, after tax. Before tax it was {g}, with {x} tax withheld.": "您已收到的全部股息（税后）。税前为 {g}，被扣税 {x}。",
+  "Dividends received so far this year. About {n} more is still expected before the year ends.": "今年迄今收到的股息。年底前预计还会收到约 {n}。",
+  "Your next expected dividend. Estimated payments are a guess based on your past dividends.": "您预计收到的下一笔股息。估算的派息是根据过去股息推测的。",
+  "Dividends in {y}": "{y} 年的股息",
+  "Still expected this year: {n}.": "今年预计还会收到：{n}。",
+  "Gross dividends": "税前股息",
+  "Withholding tax": "预扣税",
+  "Received in the last 12 months": "过去 12 个月收到",
+  "Months": "月数",
+  "Shares you hold": "您持有的股数",
+  "Dividend per share": "每股股息",
+  "Price change": "价格变动",
+  "Dividends received": "已收股息",
+  "Sold shares": "已卖出股份",
+  "Fees & other": "费用及其他",
+  "What you paid for these shares": "您买入这些股份的成本",
+  "Latest price": "最新价格",
+  "{n} dividend payment": "{n} 笔股息",
+  "{n} dividend payments": "{n} 笔股息",
+  "Dividends in the last 12 months": "过去 12 个月的股息",
+  "What you paid": "您的买入成本",
+  "Total value": "总价值",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -3238,7 +3270,7 @@ function realizedPLHTML() {
   const rzMob = realizedView.mode === "sale"
     ? [...shown].sort(sortFn).map((x) => rzMobRow(dzName(x.ticker, x.company), `${fmtDate(x.date)} · ${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")}`, x.pl, x.costMYR)).join("")
     : [...shownGroups].sort(sortFn).map((g) => rzMobRow(dzName(g.ticker, g.company), `${dzF(g.n === 1 ? "{n} sale" : "{n} sales", { n: g.n })} · ${t("Cost")} ${fmt(g.cost, { maximumFractionDigits: 0 })}`, g.pl, g.cost)).join("");
-  const rzCard = (label, val, pillTxt, c, attrs = "", tip = "") => pfxStatCard(label, val, `<span class="pfx-pl ${c === "neg" ? "neg" : "pos"}">${pillTxt}</span>`, c, attrs, tip);
+  const rzCard = (label, val, pillTxt, c, attrs = "", tip = "") => pfxStatCard(label, val, "", c, attrs, `${tip}${pillTxt ? ` (${pillTxt})` : ""}`);
   const summary = `<div class="pfx-sum pfx-sum3">${rzCard(t("Total Realized P/L"), moneySigned(T.realizedPL), dzF(sales.length === 1 ? "from {n} sale" : "from {n} sales", { n: sales.length }), cls(T.realizedPL), `role="button" tabindex="0" data-rzfilter="all" aria-label="${t("All")}"`, t("Profit or loss you locked in by selling shares. Click to show all your sales."))}
     ${rzCard(t("Gained"), moneySigned(sumPl(gainG)), dzF(gainG.length === 1 ? "from {n} stock" : "from {n} stocks", { n: gainG.length }), cls(sumPl(gainG)), `role="button" tabindex="0" data-rzfilter="gain" aria-label="${t("Gained")}"`, t("What you made on the stocks you sold at a profit. Click to show only those."))}
     ${rzCard(t("Lost"), moneySigned(sumPl(lossG)), dzF(lossG.length === 1 ? "from {n} stock" : "from {n} stocks", { n: lossG.length }), cls(sumPl(lossG)), `role="button" tabindex="0" data-rzfilter="loss" aria-label="${t("Lost")}"`, t("What you lost on the stocks you sold at a loss. Click to show only those."))}</div>`;
@@ -3272,16 +3304,10 @@ function portfolioSummaryHTML() {
   const unrealized = rows.reduce((s, h) => s + h.unrealized, 0);
   const totalReturn = rows.reduce((s, h) => s + h.totalReturn, 0);
   const pill = (v) => cost > 0 ? `<span class="pfx-pl ${cls(v)}">${pctTxt((v / cost) * 100)}</span>` : "";
-  const [int, dec] = fmt(mv).split(".");
-  const card = (key, label, scope, v) => `<div class="pfx-card pfx-sc" role="button" tabindex="0" data-card="${key}" aria-label="${label}, ${t("show calculation")}">
-      <div class="pfx-lbl"><span>${label}${scope ? `<span class="pfx-scope"> · ${scope}</span>` : ""}</span>${pfxGo(t("Click the card to see how this is worked out."))}</div>
-      <div class="pfx-vr"><div class="pfx-v dz-n ${cls(v)}">${moneySigned(v)}</div>${pill(v)}</div></div>`;
   return `<div class="pfx-sum">
-    <div class="pfx-card pfx-hero"><div class="pfx-lbl">${t("Market Value")}</div>
-      <div class="pfx-big"><span class="cur">${ccyLabel(FX.base)}</span>${int}<span class="dec">.${dec || "00"}</span></div>
-      <span class="pfx-pill">${t("You paid")} ${money(cost)}</span></div>
-    ${card("pfUnrealized", t("Unrealized P/L"), "", unrealized)}
-    ${card("pfTotalReturn", t("Total Return"), t("current holdings"), totalReturn)}
+    ${pfxHeroCard(t("Market Value"), mv, "", pfxCalc("pfMarket", () => portfolioSummaryCalc("pfMarket")), dzF("What your holdings are worth at today's prices. You paid {n} for them.", { n: money(cost) }))}
+    ${pfxStatCard(t("Unrealized P/L"), moneySigned(unrealized), pill(unrealized), cls(unrealized), pfxCalc("pfUnrealized", () => portfolioSummaryCalc("pfUnrealized")), t("Profit or loss if you sold everything now. Not locked in until you sell."))}
+    ${pfxStatCard(t("Total Return"), moneySigned(totalReturn), pill(totalReturn), cls(totalReturn), pfxCalc("pfTotalReturn", () => portfolioSummaryCalc("pfTotalReturn")), t("Unrealized and realized profit, plus dividends and interest, minus fees. Covers the stocks you hold now only."))}
   </div>`;
 }
 
@@ -3348,6 +3374,11 @@ function portfolioSummaryCalc(key) {
   const totalReturn = rows.reduce((s, h) => s + h.totalReturn, 0);
   const unrealizedPct = costBasis ? (unrealized / costBasis) * 100 : 0;
   const totalReturnPct = costBasis ? (totalReturn / costBasis) * 100 : 0;
+  if (key === "pfMarket") {
+    return { title: "Market Value", intro: dzF("You paid {n} for these holdings.", { n: money(costBasis) }),
+      rows: rows.map((h) => ({ op: "+", label: dzName(h.ticker, h.company), val: money(h.marketValue), go: goStockTab(h.brokerId, h.ticker, "overview") })),
+      total: mv, totalFmt: money(mv) };
+  }
   if (key === "pfUnrealized") {
     return { title: "Unrealized P/L", rows: [
       { op: "", label: "Market Value", val: money(mv) },
@@ -3554,13 +3585,22 @@ function matchesCashSubFilter(x) {
 }
 
 // Hero + summary cards for the Transactions / Brokers tops: the same markup the Dividends page uses.
-function pfxHeroCard(label, amount, pill) {
+/* Top cards. Every card: label on the left, the "i" (what it is) at the top right, the number, and only a small data pill (a %, a date).
+ * Anything that needs explaining goes in the "i". A card with a calculation opens it on click (pfxCalc). */
+const CARD_CALC = {};
+function pfxCalc(key, fn) { CARD_CALC[key] = fn; return `data-calc="${key}" role="button" tabindex="0" aria-label="${esc(t("Show how this is worked out"))}"`; }
+function goTo(hash, setup) { return () => { if (setup) setup(); closeModal(); if (location.hash === hash) render(); else location.hash = hash; }; }
+function goStockTab(brokerId, ticker, tab) {
+  return () => { const k = brokerId + "|" + ticker; try { sessionStorage.setItem("il-stock-tab", JSON.stringify({ key: k, tab })); } catch (e) {}
+    holdingTab = tab; holdingTabFor = k; closeModal(); const hh = "#/holding/" + encodeURIComponent(k); if (location.hash === hh) render(); else location.hash = hh; };
+}
+function pfxHeroCard(label, amount, pill = "", attrs = "", tip = "") {
   const [i, d] = fmt(amount).split(".");
-  return `<div class="pfx-card pfx-hero"><div class="pfx-lbl">${label}</div><div class="pfx-big"><span class="cur">${ccyLabel(FX.base)}</span>${i}<span class="dec">.${d || "00"}</span></div>${pill ? `<span class="pfx-pill">${pill}</span>` : ""}</div>`;
+  return `<div class="pfx-card pfx-hero" ${attrs}><div class="pfx-lbl"><span>${label}</span>${tip || attrs ? pfxGo(tip || t("Click the card to see how this is worked out.")) : ""}</div><div class="pfx-big"><span class="cur">${ccyLabel(FX.base)}</span>${i}<span class="dec">.${d || "00"}</span></div>${pill ? `<span class="pfx-pill">${pill}</span>` : ""}</div>`;
 }
 function pfxGo(tip) { return `<span class="col-info tip-down pfx-go" data-tip="${esc(tip)}">${dzIcon("info", 15)}</span>`; }
 function pfxStatCard(label, value, pill = "", c = "", attrs = "", tip = "") {
-  return `<div class="pfx-card pfx-sc${attrs ? "" : " pfx-static"}" ${attrs}><div class="pfx-lbl"><span>${label}</span>${attrs ? pfxGo(tip || t("Click the card to see how this is worked out.")) : ""}</div><div class="pfx-vr"><div class="pfx-v dz-n ${c}">${value}</div>${pill}</div></div>`;
+  return `<div class="pfx-card pfx-sc${attrs ? "" : " pfx-static"}" ${attrs}><div class="pfx-lbl"><span>${label}</span>${tip || attrs ? pfxGo(tip || t("Click the card to see how this is worked out.")) : ""}</div><div class="pfx-vr"><div class="pfx-v dz-n ${c}">${value}</div>${pill}</div></div>`;
 }
 // Transactions page (redesign): header, totals strip, tabs, search, table + detail panel (a bottom sheet on phones).
 let recSearch = "", recSel = null, recLimit = 40;
@@ -3669,8 +3709,9 @@ function pageRecords() {
   const sumOf = (types) => ALL_TRANSACTIONS.filter((x) => types.includes(x.type)).reduce((s, x) => s + recBase(x), 0);
   const sIn = sumOf(["Deposit"]), sOut = sumOf(["Withdrawal"]), sBuy = sumOf(["Buy"]), sSell = sumOf(["Sell"]), sDiv = sumOf(["Dividend"]);
   const nOf = (ty) => ALL_TRANSACTIONS.filter((x) => x.type === ty).length;
-  const cPill = (n) => `<span class="pfx-pl pos">${n} ${t("records")}</span>`;
-  const strip = ALL_TRANSACTIONS.length ? `<div class="pfx-sum pfx-sum4">${pfxHeroCard(t("Money in"), sIn, `${t("Money out")} ${money(sOut)}`)}${pfxStatCard(t("Bought"), money(sBuy), cPill(nOf("Buy")))}${pfxStatCard(t("Sold"), money(sSell), cPill(nOf("Sell")))}${pfxStatCard(t("Dividends"), money(sDiv), cPill(nOf("Dividend")), sDiv > 0 ? "pos" : "")}</div>` : "";
+  const goTab = (tab, sub = "all") => goTo("#/records", () => { recordsTab = tab; cashSubFilter = sub; recSearch = ""; recLimit = 40; });
+  const typeCalc = (title, label, n, total, go) => () => ({ title, intro: dzF("{n} records.", { n }), rows: [{ op: "", label, val: money(total), go }], total, totalFmt: money(total) });
+  const strip = ALL_TRANSACTIONS.length ? `<div class="pfx-sum pfx-sum4">${pfxHeroCard(t("Money in"), sIn, "", pfxCalc("txIn", typeCalc(t("Money in"), t("Deposits"), nOf("Deposit"), sIn, goTab("cash", "deposit"))), t("Everything you have deposited into your brokers."))}${pfxStatCard(t("Money out"), money(sOut), "", "", pfxCalc("txOut", typeCalc(t("Money out"), t("Withdrawals"), nOf("Withdrawal"), sOut, goTab("cash", "withdrawal"))), t("Everything you have withdrawn from your brokers."))}${pfxStatCard(t("Bought"), money(sBuy), "", "", pfxCalc("txBuy", typeCalc(t("Bought"), t("Buys (incl. fees & tax)"), nOf("Buy"), sBuy, goTab("buysell"))), t("Total spent buying shares."))}${pfxStatCard(t("Sold"), money(sSell), "", "", pfxCalc("txSold", typeCalc(t("Sold"), t("Sells (net of fees)"), nOf("Sell"), sSell, goTab("buysell"))), t("Total received from selling shares."))}</div>` : "";
   const first = ALL_TRANSACTIONS.reduce((m, x) => (x.date && (!m || x.date < m) ? x.date : m), "");
   const header = dzTopHTML({ eyebrow: t("Transactions"), h1: t("Your ledger"),
     sub: `${ALL_TRANSACTIONS.length} ${t("records")}${first ? ` · ${t("since")} ${fmtDate(first)}` : ""}`, refreshAttr: "data-rec-refresh", noLive: true });
@@ -5178,14 +5219,19 @@ function pageDividends() {
 
   // --- Overview
   const [niInt, niDec] = fmt(netTotal).split(".");
-  const dvCard = (label, v, pillHtml, c = "", tip = "") => `<div class="pfx-card pfx-sc pfx-static"><div class="pfx-lbl"><span>${label}</span>${tip ? hcTip(tip) : ""}</div><div class="pfx-vr"><div class="pfx-v dz-n ${c}">${v}</div>${pillHtml}</div></div>`;
+  const dvCard = (label, v, pillHtml, c = "", tip = "", calc = null, key = "") => pfxStatCard(label, v, pillHtml, c, calc ? pfxCalc(key, calc) : "", tip);
   const ytd = netByYear[String(yrNow)] || 0, ytdExp = projByYear[String(yrNow)] || 0;
-  const dvCards = `<div class="pfx-sum pfx-sum4"><div class="pfx-card pfx-hero"><div class="pfx-lbl">${t("Net dividends received")}</div>
-      <div class="pfx-big"><span class="cur">${ccyLabel(FX.base)}</span>${niInt}<span class="dec">.${niDec || "00"}</span></div>
-      <span class="pfx-pill">${t("Before tax")} ${money(grossBase)}${taxBase > 0.004 ? ` · ${t("tax")} ${money(taxBase)}` : ""}</span></div>
-    ${dvCard(`${t("This year")} (${yrNow})`, money(ytd), ytdExp > 0.004 ? `<span class="pfx-pl pos">+${money(ytdExp)} ${t("still to come")}</span>` : "", ytd > 0 ? "pos" : "", t("Dividends received so far this year. The green figure is what is still expected before the year ends."))}
-    ${dvCard(t("Average per month"), money(fc.ttm / 12), "", fc.ttm > 0 ? "pos" : "", t("Average dividends per month over the last 12 months."))}
-    ${dvCard(t("Next payment"), nextEntry ? money(nextEntry.amtMYR) : "—", nextEntry ? `<span class="pfx-pl pos">${fmtDate(nextEntry.payDisplay || nextEntry.payDate)} · ${esc(dvNameOf(nextEntry.ticker))}</span>` : "", nextEntry ? "pos" : "")}</div>`;
+  const goDvHist = goTo("#/dividends", () => { divTab = "history"; try { sessionStorage.setItem("il-div-tab", "history"); } catch (e) {} });
+  const ytdByStock = {}; received.filter((d) => (d.payDate || d.date || "").slice(0, 4) === String(yrNow)).forEach((d) => { ytdByStock[d.ticker] = (ytdByStock[d.ticker] || 0) + divNetMYR(d); });
+  const nextShares = nextEntry ? sharesHeldForTicker(nextEntry.ticker) : 0;
+  const nextHold = nextEntry ? T.holdings.find((x) => x.ticker === nextEntry.ticker) : null;
+  const dvCards = `<div class="pfx-sum pfx-sum4">
+    ${pfxHeroCard(t("Net dividends received"), netTotal, "", pfxCalc("dvNet", () => ({ title: "Net dividends received", rows: [{ op: "", label: "Gross dividends", val: money(grossBase), go: goDvHist }, { op: "−", label: "Withholding tax", val: money(taxBase), go: goDvHist }], total: netTotal, totalFmt: money(netTotal) })), dzF("Everything you have received in dividends, after tax. Before tax it was {g}, with {x} tax withheld.", { g: money(grossBase), x: money(taxBase) }))}
+    ${dvCard(`${t("This year")} (${yrNow})`, money(ytd), "", ytd > 0 ? "pos" : "", dzF("Dividends received so far this year. About {n} more is still expected before the year ends.", { n: money(ytdExp) }), () => ({ title: dzF("Dividends in {y}", { y: yrNow }), intro: dzF("Still expected this year: {n}.", { n: money(ytdExp) }),
+      rows: Object.entries(ytdByStock).map(([tk, v]) => { const hh = T.holdings.find((x) => x.ticker === tk); return { op: "+", label: dvNameOf(tk), val: money(v), go: hh ? goStockTab(hh.brokerId, tk, "dividends") : null }; }), total: ytd, totalFmt: money(ytd) }), "dvYear")}
+    ${dvCard(t("Average per month"), money(fc.ttm / 12), "", fc.ttm > 0 ? "pos" : "", t("Average dividends per month over the last 12 months."), () => ({ title: "Average per month", rows: [{ op: "", label: "Received in the last 12 months", val: money(fc.ttm), go: goDvHist }, { op: "÷", label: "Months", val: "12" }], total: fc.ttm / 12, totalFmt: money(fc.ttm / 12) }), "dvAvg")}
+    ${dvCard(t("Next payment"), nextEntry ? money(nextEntry.amtMYR) : "—", nextEntry ? `<span class="pfx-pl pos">${fmtDate(nextEntry.payDisplay || nextEntry.payDate)} · ${esc(dvNameOf(nextEntry.ticker))}</span>` : "", nextEntry ? "pos" : "", t("Your next expected dividend. Estimated payments are a guess based on your past dividends."), nextEntry ? () => ({ title: "Next payment", intro: `${dvNameOf(nextEntry.ticker)} · ${fmtDate(nextEntry.payDisplay || nextEntry.payDate)}`,
+      rows: [{ op: "", label: "Shares you hold", val: fmt(nextShares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }), go: nextHold ? goStockTab(nextHold.brokerId, nextHold.ticker, "dividends") : null }, { op: "×", label: "Dividend per share", val: nextEntry.perShareAmt != null ? money(nextEntry.perShareAmt) : "—" }], total: nextEntry.amtMYR, totalFmt: money(nextEntry.amtMYR) }) : null, "dvNext")}</div>`;
 
   const pfxVBars = (items, W = 640, H = 240) => {
     const pl = 46, pb = 26, pt = 12, ih = H - pb - pt;
@@ -5576,7 +5622,8 @@ function pageBrokers() {
     actions: `<button type="button" class="pfx-btn pfx-btn-p" id="addBrokerBtn">＋ ${t("Add Broker")}</button>` });
   const costBasisAll = T.holdings.filter((h) => activeIds.has(h.brokerId)).reduce((s, h) => s + h.costBasis, 0);
   const retPct = costBasisAll ? (totalReturn / costBasisAll) * 100 : 0;
-  const summary = active.length ? `<div class="pfx-sum pfx-sum4">${pfxHeroCard(t("Total value"), totalNet, `${t("Holdings")} ${money(totalValue)} · ${t("Cash")} ${money(totalCash)}`)}${pfxStatCard(t("Market Value"), money(totalValue))}${pfxStatCard(t("Available Cash"), money(totalCash))}${pfxStatCard(t("Total Return"), moneySigned(totalReturn), `<span class="pfx-pl ${retPct >= 0 ? "pos" : "neg"}">${pctTxt(retPct)}</span>`, cls(totalReturn), `data-brokers-return tabindex="0" role="button" aria-label="${t("Total Return")}, show calculation"`)}</div>` : "";
+  const brRows = (f) => active.map((b) => ({ op: "+", label: b.name, val: money(f(b)) }));
+  const summary = active.length ? `<div class="pfx-sum pfx-sum4">${pfxHeroCard(t("Total value"), totalNet, "", pfxCalc("brTotal", () => ({ title: "Total value", rows: [{ op: "", label: "Market Value", val: money(totalValue) }, { op: "+", label: "Available Cash", val: money(totalCash) }], total: totalNet, totalFmt: money(totalNet) })), t("Holdings plus cash across your brokers."))}${pfxStatCard(t("Market Value"), money(totalValue), "", "", pfxCalc("brMV", () => ({ title: "Market Value", rows: brRows((b) => brStats(b).mv), total: totalValue, totalFmt: money(totalValue) })), t("What your holdings are worth at today's prices."))}${pfxStatCard(t("Available Cash"), money(totalCash), "", "", pfxCalc("brCash", () => ({ title: "Available Cash", rows: brRows((b) => brStats(b).cash), total: totalCash, totalFmt: money(totalCash) })), t("Cash ready to invest or withdraw."))}${pfxStatCard(t("Total Return"), moneySigned(totalReturn), `<span class="pfx-pl ${retPct >= 0 ? "pos" : "neg"}">${pctTxt(retPct)}</span>`, cls(totalReturn), pfxCalc("brReturn", allBrokersReturnCalc), t("Unrealized and realized profit, plus dividends and interest, minus fees."))}</div>` : "";
   const archToggle = archived.length ? `<button type="button" class="pfx-btn" id="toggleArchived">${showArchivedBrokers ? t("Hide archived") : `${t("Show archived")} (${archived.length})`}</button>` : "";
   const table = `<div class="table-wrap rc-desk"><table class="data-table pfx-txt rc-tbl"><thead><tr><th>${t("Broker")}</th><th class="pfn">${t("Market Value")}</th><th class="pfn">${t("Cash")}</th><th class="pfn">${t("Total Return")}</th><th>${t("Share of total")}</th></tr></thead>
       <tbody>${brRowsDesk(list, totalNet)}</tbody>
@@ -6533,14 +6580,16 @@ function pageHolding() {
   const costB = h.costBasis;
   const pct1 = (v) => (costB > 0 ? `<span class="pfx-pl ${cls(v)}">${pctTxt((v / costB) * 100)}</span>` : "");
   const [mvInt, mvDec] = fmt(h.marketValue).split(".");
-  const stCard = (label, tip, v, pillHtml, c = "") => `<div class="pfx-card pfx-sc pfx-static"><div class="pfx-lbl"><span>${label}${tip ? hcTip(tip) : ""}</span></div><div class="pfx-vr"><div class="pfx-v dz-n ${c}">${v}</div>${pillHtml}</div></div>`;
+  const stCard = (label, tip, v, pillHtml, c = "", calc = null, key = "") => pfxStatCard(label, v, pillHtml, c, calc ? pfxCalc(key, calc) : "", tip);
   const ttmYield = h.marketValue ? (tFc.ttm / h.marketValue) * 100 : null;
-  const stSum = `<div class="pfx-sum pfx-sum4"><div class="pfx-card pfx-hero"><div class="pfx-lbl"><span>${t("Market Value")}${hcTip(t("What your shares in this stock are worth at today's price."))}</span></div>
-      <div class="pfx-big"><span class="cur">${ccyLabel(FX.base)}</span>${mvInt}<span class="dec">.${mvDec || "00"}</span></div>
-      <span class="pfx-pill">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} × ${h.hasPrice ? fmt(h.currentPrice) : "—"}</span></div>
-    ${stCard(t("Total Return"), t("Unrealized P/L, plus profit from shares you sold, plus every dividend you have received."), moneySigned(h.totalReturn), pct1(h.totalReturn), cls(h.totalReturn))}
-    ${stCard(t("Price Return"), t("Profit or loss from the share price alone, against your cost (fees included). Dividends are not counted."), moneySigned(h.priceUnrealized), pct1(h.priceUnrealized), cls(h.priceUnrealized))}
-    ${stCard(t("Dividends received"), t("Everything this stock has paid you in dividends, after tax."), money(totalDivReceived), ttmYield != null && ttmYield > 0 ? `<span class="pfx-pl pos">${fmt(ttmYield, { maximumFractionDigits: 2 })}% ${t("yield")}</span>` : "", totalDivReceived > 0 ? "pos" : "")}</div>`;
+  const goStDiv = goStockTab(h.brokerId, h.ticker, "dividends");
+  const stSum = `<div class="pfx-sum pfx-sum4">${pfxHeroCard(t("Market Value"), h.marketValue, "", pfxCalc("stMV", () => ({ title: "Market Value", rows: [{ op: "", label: "Shares", val: fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }) }, { op: "×", label: "Latest price", val: h.hasPrice ? `${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}` : "—" }], total: h.marketValue, totalFmt: money(h.marketValue) })), t("What your shares in this stock are worth at today's price."))}
+    ${stCard(t("Total Return"), t("Unrealized P/L, plus profit from shares you sold, plus every dividend you have received."), moneySigned(h.totalReturn), pct1(h.totalReturn), cls(h.totalReturn), () => ({ title: "Total Return",
+      rows: [{ op: "+", label: "Price change", val: moneySigned(h.priceUnrealized || 0) }, { op: "+", label: "Dividends received", val: moneySigned(totalDivReceived), go: goStDiv }, ...(Math.abs(h.realized || 0) > 0.004 ? [{ op: "+", label: "Sold shares", val: moneySigned(h.realized), go: goTo("#/portfolio", () => { portfolioTab = "realized"; }) }] : []), ...(Math.abs(h.totalReturn - totalDivReceived - (h.priceUnrealized || 0) - (h.realized || 0)) > 0.5 ? [{ op: "+", label: "Fees & other", val: moneySigned(h.totalReturn - totalDivReceived - (h.priceUnrealized || 0) - (h.realized || 0)) }] : [])],
+      total: h.totalReturn, totalFmt: moneySigned(h.totalReturn), pctFmt: costB > 0 ? pctTxt((h.totalReturn / costB) * 100) : undefined }), "stTR")}
+    ${stCard(t("Price Return"), t("Profit or loss from the share price alone, against your cost (fees included). Dividends are not counted."), moneySigned(h.priceUnrealized), pct1(h.priceUnrealized), cls(h.priceUnrealized), () => ({ title: "Price Return",
+      rows: [{ op: "", label: "Market Value", val: money(h.marketValue) }, { op: "−", label: "What you paid for these shares", val: money(h.marketValue - (h.priceUnrealized || 0)) }], total: h.priceUnrealized || 0, totalFmt: moneySigned(h.priceUnrealized || 0), pctFmt: costB > 0 ? pctTxt(((h.priceUnrealized || 0) / costB) * 100) : undefined }), "stPR")}
+    ${stCard(t("Dividends received"), t("Everything this stock has paid you in dividends, after tax."), money(totalDivReceived), ttmYield != null && ttmYield > 0 ? `<span class="pfx-pl pos">${fmt(ttmYield, { maximumFractionDigits: 2 })}% ${t("yield")}</span>` : "", totalDivReceived > 0 ? "pos" : "", () => ({ title: "Dividends received", rows: [{ op: "", label: dzF(tReceived.length === 1 ? "{n} dividend payment" : "{n} dividend payments", { n: tReceived.length }), val: money(totalDivReceived), go: goStDiv }], total: totalDivReceived, totalFmt: money(totalDivReceived) }), "stDiv")}</div>`;
 
   // How long you have held it + next payment
   const todayIso = todayISO();
@@ -6623,10 +6672,10 @@ function pageHolding() {
     `<button type="button" role="tab" aria-selected="${holdingTab === k}" class="${holdingTab === k ? "on" : ""}" data-sttab="${k}">${l}</button>`).join("")}</div></div>`;
   // Cards shared by the Dividends and Transactions tabs: numbers only, the explanations live in the "i" icons
   const dvCardsTab = `<div class="pfx-sum pfx-sum4">
-    ${stCard(t("Total dividends received"), t("Everything this stock has paid you in dividends, after tax."), money(totalDivReceived), ttmYield != null && ttmYield > 0 ? `<span class="pfx-pl pos">${fmt(ttmYield, { maximumFractionDigits: 2 })}% ${t("yield")}</span>` : "", totalDivReceived > 0 ? "pos" : "")}
-    ${stCard(t("Yield on cost"), t("Dividends from the last 12 months as a % of what you originally paid, not today's price."), h.costBasis ? `${fmt((tFc.ttm / h.costBasis) * 100, { maximumFractionDigits: 2 })}%` : "—", "", tFc.ttm > 0 ? "pos" : "")}
-    ${stCard(t("Dividends so far"), t("All the dividends you have received, as a % of what you paid for the shares you hold."), h.costBasis > 0 ? `${fmt((totalDivReceived / h.costBasis) * 100, { maximumFractionDigits: 1 })}%` : "—", "", totalDivReceived > 0 ? "pos" : "")}
-    ${stCard(t("Next payment"), t("Your next expected dividend from this stock. Estimated payments are a guess based on your past dividends."), nextPay ? money(nextPay.amtMYR) : "—", nextPay ? `<span class="pfx-pl pos">${fmtDate(nextPay.payDate)}</span>` : "", nextPay ? "pos" : "")}</div>`;
+    ${stCard(t("Total dividends received"), t("Everything this stock has paid you in dividends, after tax."), money(totalDivReceived), ttmYield != null && ttmYield > 0 ? `<span class="pfx-pl pos">${fmt(ttmYield, { maximumFractionDigits: 2 })}% ${t("yield")}</span>` : "", totalDivReceived > 0 ? "pos" : "", () => ({ title: "Dividends received", rows: [{ op: "", label: dzF(tReceived.length === 1 ? "{n} dividend payment" : "{n} dividend payments", { n: tReceived.length }), val: money(totalDivReceived), go: goStDiv }], total: totalDivReceived, totalFmt: money(totalDivReceived) }), "stDiv2")}
+    ${stCard(t("Yield on cost"), t("Dividends from the last 12 months as a % of what you originally paid, not today's price."), h.costBasis ? `${fmt((tFc.ttm / h.costBasis) * 100, { maximumFractionDigits: 2 })}%` : "—", "", tFc.ttm > 0 ? "pos" : "", () => ({ title: "Yield on cost", rows: [{ op: "", label: "Dividends in the last 12 months", val: money(tFc.ttm), go: goStDiv }, { op: "÷", label: "What you paid", val: money(h.costBasis) }], total: 0, totalFmt: h.costBasis ? `${fmt((tFc.ttm / h.costBasis) * 100, { maximumFractionDigits: 2 })}%` : "—" }), "stYoC")}
+    ${stCard(t("Dividends so far"), t("All the dividends you have received, as a % of what you paid for the shares you hold."), h.costBasis > 0 ? `${fmt((totalDivReceived / h.costBasis) * 100, { maximumFractionDigits: 1 })}%` : "—", "", totalDivReceived > 0 ? "pos" : "", () => ({ title: "Dividends so far", rows: [{ op: "", label: "Dividends received", val: money(totalDivReceived), go: goStDiv }, { op: "÷", label: "What you paid", val: money(h.costBasis) }], total: 0, totalFmt: h.costBasis > 0 ? `${fmt((totalDivReceived / h.costBasis) * 100, { maximumFractionDigits: 1 })}%` : "—" }), "stSoFar")}
+    ${stCard(t("Next payment"), t("Your next expected dividend from this stock. Estimated payments are a guess based on your past dividends."), nextPay ? money(nextPay.amtMYR) : "—", nextPay ? `<span class="pfx-pl pos">${fmtDate(nextPay.payDate)}</span>` : "", nextPay ? "pos" : "", nextPay ? () => ({ title: "Next payment", intro: fmtDate(nextPay.payDate), rows: [{ op: "", label: "Shares", val: fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }) }, { op: "×", label: "Dividend per share", val: h.shares ? money(nextPay.amtMYR / h.shares) : "—" }], total: nextPay.amtMYR, totalFmt: money(nextPay.amtMYR) }) : null, "stNext")}</div>`;
   const nextList = (tFc.nextPayments || []).filter((p) => p.payDate >= todayIso).sort((x, y) => (x.payDate < y.payDate ? -1 : 1)).slice(0, 4).map((p) => { const dt = new Date(p.payDate + "T00:00:00");
     return `<div class="pfx-nx"><div class="pfx-dd"><small>${dt.toLocaleString("en", { month: "short" }).toUpperCase()}</small><b class="dz-n">${dt.getDate()}</b></div>
       <div class="pfx-nxt"><b>${esc(stName)}</b><span>${fmtDate(p.payDate)} · ${(p.confirmed ? t("Confirmed") : t("Estimated")).toLowerCase()}</span></div><div class="pfx-nxa dz-n pos">+${money(p.amtMYR)}</div></div>`; }).join("");
@@ -6811,12 +6860,14 @@ function calcGo(label) {
   closeModal();
   if (location.hash === d[0]) render(); else location.hash = d[0];
 }
+const CALC_GO_FNS = [];
 function showCalc(calc) {
   modalResolve = null;   // defensive: opening a different modal abandons any pending confirm
   $("#modalTitle").textContent = t(calc.title);
   // A line that has a matching page (e.g. Net Dividends → Dividends history) becomes a link: click it to see the records behind it.
-  const rows = calc.rows.map((r) => { const go = CALC_GO_MAP[r.label];
-    return `<div class="calc-row${go ? " calc-go" : ""}"${go ? ` data-go="${escAttr(r.label)}" role="link" tabindex="0"` : ""}><span><span class="cr-op">${r.op}</span> ${esc(t(r.label))}${r.hint ? ` <span class="col-info tip-down" data-tip="${escAttr(r.hint)}">${COL_INFO_ICON_SVG}</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`; }).join("");
+  CALC_GO_FNS.length = 0;
+  const rows = calc.rows.map((r) => { const gf = r.go || (CALC_GO_MAP[r.label] ? () => calcGo(r.label) : null); const go = !!gf; if (gf) CALC_GO_FNS.push(gf);
+    return `<div class="calc-row${go ? " calc-go" : ""}"${go ? ` data-gi="${CALC_GO_FNS.length - 1}" role="link" tabindex="0"` : ""}><span><span class="cr-op">${r.op}</span> ${esc(t(r.label))}${r.hint ? ` <span class="col-info tip-down" data-tip="${escAttr(r.hint)}">${COL_INFO_ICON_SVG}</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`; }).join("");
   // Percentage (when present) sits on its own line under the amount, not beside it on
   // the same row — the row's <span class="cr-val"> becomes a small flex column instead
   // of adding a second row with its own label.
@@ -6825,8 +6876,8 @@ function showCalc(calc) {
   $("#modalBody").innerHTML = `${calc.intro ? `<p class="muted" style="margin:0 0 14px;font-size:13px">${t(calc.intro)}</p>` : ""}${rows}
     <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${totalVal}${pctVal}</span></div>
     <p class="muted" style="margin:14px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
-  $$("#modalBody [data-go]").forEach((el) => {
-    const go = () => calcGo(el.dataset.go);
+  $$("#modalBody [data-gi]").forEach((el) => {
+    const go = () => CALC_GO_FNS[+el.dataset.gi]();
     el.addEventListener("click", go);
     el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
   });

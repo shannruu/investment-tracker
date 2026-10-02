@@ -3014,3 +3014,10 @@ a.ticker.tk-name:hover { color: var(--brand); }
 }
 /* hero card number sits on the same line as its neighbours */
 @media (min-width: 761px) { .pfx-sum > .pfx-hero .pfx-big { margin: 12px 0 8px; line-height: 34.8px; font-size: 24px; } }
+
+/* cards with a calculation behind them are clickable: same hover everywhere; cards without one never look clickable */
+.pfx-card[data-calc] { cursor: pointer; transition: border-color .12s; }
+.pfx-card[data-calc]:hover { border-color: color-mix(in srgb, var(--brand) 55%, transparent); }
+.pfx-card[data-calc]:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.pfx-card .pfx-lbl .pfx-go { margin-left: auto; }
+.pfx-card .pfx-lbl .col-info:not(.pfx-go) { display: none; }
