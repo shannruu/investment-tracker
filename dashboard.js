@@ -24,7 +24,11 @@
 /* ---------- Chinese strings for this page ----------
  * Only keys the main dictionary doesn't already have are added, so nothing existing is overridden. */
 const DZ_ZH = {
-  "Your holdings": "我的持仓", "Money invested over time": "投入金额变化", "Dividends collected so far": "累计已收股息",
+  "Your holdings": "我的持仓", "Your dividends": "我的股息", "Net income received and expected": "已收和预期的净收入", "Add dividend": "添加股息", "Calendar": "日历", "History": "历史",
+  "{n} dividend to review": "{n} 笔股息待审核", "{n} dividends to review": "{n} 笔股息待审核", "Real payments for stocks you hold that are not in your ledger yet. Review each one before adding it.": "您持有的股票的真实派息，尚未记入账本。请逐笔审核后再添加。",
+  "Review": "审核", "Net dividends received": "已收净股息", "This year": "今年", "expected": "预期", "Average per month": "月均", "last 12 months": "近 12 个月", "tax": "税", "Dividend income": "股息收入",
+  "Received": "已收到", "Expected": "预期", "Who pays you": "股息来源", "Coming up": "即将派息", "next payments": "接下来的派息", "your dividend dates": "您的派息日期", "Nothing scheduled yet.": "暂无安排。",
+  "By stock": "按股票", "Stock": "股票", "Share": "占比", "Mon": "一", "Tue": "二", "Wed": "三", "Thu": "四", "Fri": "五", "Sat": "六", "Sun": "日", "Previous month": "上个月", "Next month": "下个月", "Money invested over time": "投入金额变化", "Dividends collected so far": "累计已收股息",
   "Total you have paid for this stock after each purchase, fees included.": "每次买入后，您为这只股票累计支付的金额（含手续费）。", "Each point is the total dividends you have collected up to that date.": "每个点代表截至该日期您累计收到的股息。",
   "Green: received. Purple: expected.": "绿色：已收到。紫色：预期。", "All years": "全部年份", "No transactions match this filter.": "没有符合筛选的交易。", "Stock": "股票", "Overview": "概览", "Price & range": "价格与区间", "Dividends received": "已收股息", "yield": "收益率",
   "Where your return comes from": "收益来源", "Price change": "价格变动", "Sold shares": "卖出股份", "Fees & other": "费用及其他", "All of your profit so far came from dividends.": "到目前为止，您的全部收益都来自股息。",

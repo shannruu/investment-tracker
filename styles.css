@@ -2565,3 +2565,67 @@ button, input, select, textarea { font-family: inherit; }
 
 /* The notification pop-up opens from the sidebar over the page: keep the sidebar above page cards that are positioned (they used to paint over it). */
 .sidebar { z-index: 40; }
+
+/* =============================================================================
+   DIVIDENDS PAGE REDESIGN — header, review card, tabs, summary cards, income chart, who pays you, month calendar.
+   ============================================================================= */
+.pfx-btn-p { background: var(--btn); color: var(--on-btn); border-color: transparent; box-shadow: var(--btn-sh); text-decoration: none; }
+.pfx-sum3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pfx-sm { font-size: 13px; font-weight: 500; color: var(--muted); margin-left: 8px; letter-spacing: 0; }
+.pfx-attn { border-radius: 22px; background: var(--dz-est-bg); border: 1px solid color-mix(in srgb, var(--dz-est) 35%, transparent); }
+.pfx-attn > summary { list-style: none; display: flex; align-items: center; gap: 14px; padding: 14px 20px; cursor: pointer; }
+.pfx-attn > summary::-webkit-details-marker { display: none; }
+.pfx-attn-i { color: var(--dz-est); display: grid; place-items: center; }
+.pfx-attn-t { flex: 1; font-size: 13.5px; color: var(--text-soft); line-height: 1.45; }
+.pfx-attn-t b { color: var(--dz-est); }
+.pfx-attn-b { flex: none; }
+.pfx-attn-body { padding: 0 20px 18px; }
+.pfx-attn-body .table-wrap { margin-top: 6px; }
+.pfx-leg { display: flex; gap: 18px; font-size: 12.5px; color: var(--muted); font-weight: 600; margin-top: 8px; }
+.pfx-leg i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; }
+.pfx-vb { display: block; width: 100%; max-width: 640px; margin: 0 auto; }
+.pfx-vb text { font-size: 16px; }
+.pfx-div .pfx-sum4 .pfx-vr { flex-wrap: wrap; gap: 8px 10px; }
+.pfx-div .pfx-sum4 .pfx-pl { max-width: 100%; white-space: normal; }
+.pfx-hb { display: flex; flex-direction: column; gap: 14px; }
+.pfx-hbr { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto 44px; gap: 12px; align-items: center; font-size: 13.5px; }
+.pfx-hbn { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pfx-hbr b { text-align: right; } .pfx-hbr small { text-align: right; color: var(--muted); font-weight: 600; }
+.pfx-two-cal { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+.pfx-cal7 { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.pfx-dh { font-size: 11.5px; font-weight: 700; color: var(--muted); text-align: center; padding: 4px 0; }
+.pfx-dc { min-height: 82px; border-radius: 14px; background: var(--dz-tile, color-mix(in srgb, var(--text) 4%, transparent)); border: 1px solid var(--border); padding: 8px; font-size: 12px; color: var(--muted); position: relative; min-width: 0; }
+.pfx-dc.off { opacity: .35; }
+.pfx-dc.td { border-color: var(--brand); }
+.pfx-dc em { position: absolute; top: 8px; right: 8px; font-style: normal; font-size: 10px; color: var(--dz-lnk); }
+.pfx-chipd { display: block; margin-top: 6px; padding: 4px 7px; border-radius: 8px; background: var(--pos-bg); color: var(--pos); font-weight: 700; font-size: 11px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; }
+.pfx-chipd.es { background: var(--dz-est-bg); color: var(--dz-est); }
+.pfx-more { display: block; margin-top: 4px; font-size: 11px; font-weight: 700; color: var(--muted); }
+.pfx-nx { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.pfx-nx:last-child { border-bottom: 0; }
+.pfx-dd { flex: none; width: 46px; height: 50px; border-radius: 13px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--dz-dd); border: 1px solid var(--dz-dd-bd); color: var(--dz-dd-tx); }
+.pfx-dd small { font-size: 9.5px; font-weight: 700; letter-spacing: .1em; color: var(--dz-dd-sm); }
+.pfx-dd b { font-size: 16px; line-height: 1.1; }
+.pfx-nxt { flex: 1; min-width: 0; }
+.pfx-nxt b { display: block; font-size: 14px; } .pfx-nxt span { font-size: 12px; color: var(--muted); }
+.pfx-nxa { text-align: right; font-weight: 700; } .pfx-nxa small { display: block; font-size: 11px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+.pfx-dvt-wrap { max-height: 480px; }
+@media (max-width: 1000px) { .pfx-two-cal { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .pfx-attn > summary { padding: 12px 14px; gap: 10px; align-items: flex-start; }
+  .pfx-attn-t { font-size: 12px; } .pfx-attn-body { padding: 0 12px 14px; }
+  .pfx-sum3 { grid-template-columns: 1fr; }
+  .pfx-vb text { font-size: 22px; }
+  .pfx-hbr { grid-template-columns: 78px minmax(0, 1fr) auto 36px; gap: 8px; font-size: 12.5px; }
+  .pfx-cal7 { gap: 3px; } .pfx-dc { min-height: 54px; padding: 4px; font-size: 11px; border-radius: 9px; }
+  .pfx-chipd { font-size: 9.5px; padding: 2px 3px; margin-top: 3px; } .pfx-dc em { display: none; }
+  .pfx-nx { gap: 11px; } .pfx-dd { width: 40px; height: 44px; }
+  .pfx-vb text { font-size: 18px; }
+  .pfx-chipd .nm, .pfx-chipd br, .pfx-chipd .rm { display: none; }
+  .pfx-chipd { font-size: 9.5px; text-align: center; padding: 2px 1px; }
+  #divCalScroll th:nth-child(2), #divCalScroll td:nth-child(2), #divCalScroll th:nth-child(4), #divCalScroll td:nth-child(4),
+  #divCalScroll th:nth-child(6), #divCalScroll td:nth-child(6), #divCalScroll th:nth-child(8), #divCalScroll td:nth-child(8) { display: none; }
+}
+.panel-head h2 small.pfx-sm { margin-left: 8px; align-self: baseline; }
+.pfx-dvt-wrap thead th { position: sticky; top: 0; z-index: 2; background: var(--dz-card-base); }
+.pfx-chipd { white-space: normal; overflow-wrap: anywhere; overflow: visible; text-overflow: clip; }

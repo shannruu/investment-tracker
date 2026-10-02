@@ -4601,6 +4601,8 @@ function dividendForecast(received, upcoming, tickerScope) {
  * PAGE: DIVIDENDS
  * ========================================================================== */
 let divCalendarFilter = "all";   // all | past | upcoming — filters the combined dividend calendar
+let divTab = (() => { try { const v = sessionStorage.getItem("il-div-tab"); return ["overview", "calendar", "history"].includes(v) ? v : "overview"; } catch (e) { return "overview"; } })();
+let divChartMode = "monthly", divCalMonth = "", divReviewOpen = false;   // Dividends page: tab, chart range, month shown on the calendar, review card open/closed
 let divCalScrollTop = null;      // calendar's scroll position — survives the page's background re-renders; null = not scrolled by the user yet, so jump to the next payment
 let divIncomePeriod = "monthly"; // monthly | quarterly | annual — which Dividend Income view is shown
 let exDivWindowDays = 14;        // 7 | 14 | 30 — how far ahead the ex-dividend screener looks
@@ -4750,13 +4752,18 @@ function pageDividends() {
   // One table with a period filter instead of three separate Monthly/Quarterly/Annual
   // panels — MoM/QoQ/YoY delta columns dropped too (always "—" until there's more than
   // one period of history anyway, and the trend is already visible across the rows).
-  const incomeLabels = { monthly: t("Month"), quarterly: t("Quarter"), annual: t("Year") };
-  const incomeRowsByPeriod = { monthly: monthRows, quarterly: quarterRows, annual: yearRows };
-  const incomeRowCount = { monthly: Math.min(monthsAsc.length, 12), quarterly: Math.min(qAsc.length, 8), annual: yearsAsc.length }[divIncomePeriod] || 0;
+  const incomeLabels = { monthly: t("Month"), quarterly: t("Quarter"), annual: t("Year"), stock: t("Stock") };
+  const dvNetByStock = {}; received.forEach((d) => { dvNetByStock[d.ticker] = (dvNetByStock[d.ticker] || 0) + divNetMYR(d); });
+  const dvStockList = Object.entries(dvNetByStock).map(([tk, v]) => { const hh = T.holdings.find((x) => x.ticker === tk); return [dzName(tk, hh ? hh.company : null), v]; }).sort((a, b) => b[1] - a[1]);
+  const dvStockTotal = dvStockList.reduce((sx, r) => sx + r[1], 0);
+  const stockRowsHtml = dvStockList.map(([nm, v]) => `<tr><td class="dcc-c">${esc(nm)}</td><td class="dcc-c pfn pos">${money(v)}</td><td class="dcc-c pfn">${dvStockTotal ? fmt((v / dvStockTotal) * 100, { maximumFractionDigits: 1 }) : "0"}%</td></tr>`).join("");
+  const incomeRowsByPeriod = { monthly: monthRows, quarterly: quarterRows, annual: yearRows, stock: stockRowsHtml };
+  const incomeRowCount = { monthly: Math.min(monthsAsc.length, 12), quarterly: Math.min(qAsc.length, 8), annual: yearsAsc.length, stock: dvStockList.length }[divIncomePeriod] || 0;
   const incomeFilterSel = styledSelect("divIncomePeriod", [
     { value: "monthly", label: t("Monthly") },
     { value: "quarterly", label: t("Quarterly") },
     { value: "annual", label: t("Annual") },
+    { value: "stock", label: t("By stock") },
   ], divIncomePeriod, { id: "divIncomePeriodSel" });
 
   const dash = `<span class="muted" style="font-size:22px;line-height:1">—</span>`;
@@ -4863,8 +4870,7 @@ function pageDividends() {
   // (Add or Dismiss) before it becomes a real transaction. Shown first on the page — it's
   // the one thing here that's actually asking for a decision, not just displaying data.
   const pendingAutoDivs = computePendingAutoDividends();
-  const pendingAutoDivsPanel = pendingAutoDivs.length ? panel(
-    t("Dividends Found From Market History"),
+  const pendingAutoDivsPanel = pendingAutoDivs.length ? (
     `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("These are real dividend payments for a stock you hold, but they haven't been added to your ledger. Review each one before adding it — if you've held this stock at more than one broker over time, a different broker may have actually received this specific payment. An added dividend is recorded on its payment date (Est. Payment), the day the money arrives.")}</p>` +
     table([
       { label: t("Holding"), style: "width:18%;text-align:left" },
@@ -4884,58 +4890,132 @@ function pageDividends() {
       </tr>`).join(""), { fixed: true })
   ) : "";
 
-  const html = `
-    ${pendingAutoDivsPanel}
-    <div class="mini-cards">
-      ${miniCard(t("Gross Dividends"), money(grossBase))}
-      ${miniCard(t("Withholding Tax"), money(taxBase), taxBase > 0 ? "neg" : "")}
-      ${miniCard(t("Net Dividends (Lifetime)"), money(grossBase - taxBase), "pos")}</div>
+  /* ---- Dividends page layout: header, review card, tabs (Overview / Calendar / History) ---- */
+  const dvNameOf = (tk) => { const hh = T.holdings.find((x) => x.ticker === tk); return dzName(tk, hh ? hh.company : null); };
+  const yrNow = +today.slice(0, 4);
+  const netByYear = periods.byYear, netByMonth = periods.byMonth;
+  const costAll = T.holdings.reduce((sx, hh) => sx + (hh.costBasis || 0), 0);
+  const projByMonth = {}, projByYear = {};
+  (fc.nextPayments || []).forEach((p) => { const mk = p.payDate.slice(0, 7), yk = p.payDate.slice(0, 4); projByMonth[mk] = (projByMonth[mk] || 0) + p.amtMYR; projByYear[yk] = (projByYear[yk] || 0) + p.amtMYR; });
+  const nextEntry = allDivEntries.find((d) => d.payDate >= today) || null;
+  const netTotal = grossBase - taxBase;
 
-    ${panel(t("Dividend Forecast"), forecastBody)}
+  const dvHeader = dzTopHTML({ eyebrow: t("Dividends"), h1: t("Your dividends"), sub: t("Net income received and expected"),
+    actions: `<a class="pfx-btn pfx-btn-p" href="#/add/dividend">＋ ${t("Add dividend")}</a>`, refreshAttr: "data-div-refresh", noLive: true });
 
-    <div id="divUpcomingSection">
-      ${panel(`${t("Dividend Calendar")}${calendarTitleTip}`,
-        allDivEntries.length
-          // Years of history can run to dozens of rows — scroll inside a fixed-height box
-          // (sticky header, same .dcc-table-scroll pattern as the Holding Detail calendar)
-          // instead of pushing everything below it off-screen. Only once it's long enough
-          // to need it.
-          ? `<div id="divCalScroll" class="${calendarFiltered.length > 7 ? "dcc-table-scroll divcal-table-scroll" : ""}">${table([
-              { label: t("Holding"), style: "width:14%;text-align:left" },
-              { label: t("Ex-Date"), style: "width:14%;text-align:left" },
-              { label: t("Est. Payment"), style: "width:14%;text-align:left" },
-              { label: `${t("Per Share")} (${ccyLabel(FX.base)})`, style: "width:14%;text-align:left" },
-              { label: `${t("Amount")} (${ccyLabel(FX.base)})`, style: "width:14%;text-align:left" },
-              { label: t("Yield"), style: "width:14%;text-align:left" },
-              { label: t("Status"), style: "width:14%;text-align:left" },
-              { label: "" },
-            ], calendarRows)}</div>`
-          // Genuinely empty now only when there's no logged history AND no declared date
-          // AND no detectable pattern anywhere in the portfolio.
-          : `<p class="muted" style="margin:0 0 12px;font-size:13px">${
-              !LIVE_ENABLED
-                ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.")
-                : t("No dividends yet. Record one to get started.")
-            }</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
-        `<div class="panel-head-actions"><div style="width:150px">${calendarFilterSel}</div><small class="muted" id="divFetchStatus"></small></div>`
-      )}
-    </div>
+  const dvReview = pendingAutoDivs.length ? `<details class="pfx-attn" id="dvReview"${divReviewOpen ? " open" : ""}><summary>
+      <span class="pfx-attn-i">${dzIcon("info", 20)}</span>
+      <span class="pfx-attn-t"><b>${dzF(pendingAutoDivs.length === 1 ? "{n} dividend to review" : "{n} dividends to review", { n: pendingAutoDivs.length })}</b> · ${t("Real payments for stocks you hold that are not in your ledger yet. Review each one before adding it.")}</span>
+      <span class="pfx-btn pfx-attn-b">${t("Review")}</span></summary><div class="pfx-attn-body">${pendingAutoDivsPanel}</div></details>` : "";
 
+  const dvTabs = [["overview", t("Overview")], ["calendar", t("Calendar")], ["history", t("History")]];
+  const dvNav = `<div class="pfx-tabs"><div class="dz-seg" role="tablist">${dvTabs.map(([k, l]) =>
+    `<button type="button" role="tab" aria-selected="${divTab === k}" class="${divTab === k ? "on" : ""}" data-dvtab="${k}">${l}</button>`).join("")}</div></div>`;
+
+  // --- Overview
+  const [niInt, niDec] = fmt(netTotal).split(".");
+  const dvCard = (label, v, pillHtml, c = "") => `<div class="pfx-card pfx-sc pfx-static"><div class="pfx-lbl"><span>${label}</span></div><div class="pfx-vr"><div class="pfx-v dz-n ${c}">${v}</div>${pillHtml}</div></div>`;
+  const ytd = netByYear[String(yrNow)] || 0, ytdExp = projByYear[String(yrNow)] || 0;
+  const dvCards = `<div class="pfx-sum pfx-sum4"><div class="pfx-card pfx-hero"><div class="pfx-lbl">${t("Net dividends received")}</div>
+      <div class="pfx-big"><span class="cur">${ccyLabel(FX.base)}</span>${niInt}<span class="dec">.${niDec || "00"}</span></div>
+      <span class="pfx-pill">${t("Gross")} ${money(grossBase)}${taxBase > 0.004 ? ` · ${t("tax")} ${money(taxBase)}` : ""}</span></div>
+    ${dvCard(`${t("This year")} (${yrNow})`, money(ytd), ytdExp > 0.004 ? `<span class="pfx-pl pos">+${money(ytdExp)} ${t("expected")}</span>` : "", ytd > 0 ? "pos" : "")}
+    ${dvCard(t("Average per month"), money(fc.ttm / 12), `<span class="pfx-pl pos">${t("last 12 months")}</span>`, fc.ttm > 0 ? "pos" : "")}
+    ${dvCard(t("Next payment"), nextEntry ? money(nextEntry.amtMYR) : "—", nextEntry ? `<span class="pfx-pl pos">${fmtDate(nextEntry.payDate)} · ${esc(dvNameOf(nextEntry.ticker))}</span>` : "", nextEntry ? "pos" : "")}</div>`;
+
+  const pfxVBars = (items, W = 640, H = 240) => {
+    const pl = 46, pb = 26, pt = 12, ih = H - pb - pt;
+    const mx = Math.max(...items.map((x) => x.got + x.proj), 1) * 1.1, raw = mx / 4, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map((q) => q * mag).find((q) => q >= raw), top = Math.ceil(mx / step) * step;
+    let g = ""; for (let v = 0; v <= top + 1e-9; v += step) { const y = pt + ih - (v / top) * ih;
+      g += `<line x1="${pl}" x2="${W - 6}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="var(--dz-grid)"/><text x="${pl - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end" fill="var(--muted)">${fmt(v, { maximumFractionDigits: 0 })}</text>`; }
+    const slot = (W - pl - 6) / items.length, bw = Math.min(46, slot * 0.62); let bars = "";
+    items.forEach((it, i) => { const cx = pl + (i + 0.5) * slot, ha = (it.got / top) * ih, hb = (it.proj / top) * ih;
+      if (it.got > 0) bars += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${(pt + ih - ha).toFixed(1)}" width="${bw.toFixed(1)}" height="${ha.toFixed(1)}" rx="6" fill="var(--pos)" fill-opacity=".9"/>`;
+      if (it.proj > 0) bars += `<rect x="${(cx - bw / 2).toFixed(1)}" y="${(pt + ih - ha - hb).toFixed(1)}" width="${bw.toFixed(1)}" height="${hb.toFixed(1)}" rx="6" fill="var(--brand)" fill-opacity=".75"/>`;
+      bars += `<text x="${cx.toFixed(1)}" y="${H - 6}" text-anchor="middle" fill="var(--muted)">${esc(it.label)}</text>`; });
+    return `<svg class="pfx-vb" viewBox="0 0 ${W} ${H}" role="img" aria-label="${t("Dividend income")}">${g}${bars}</svg>`;
+  };
+  let chartItems;
+  if (divChartMode === "yearly") {
+    const ys = Object.keys(netByYear).concat(Object.keys(projByYear)).map(Number); const y0 = ys.length ? Math.min(...ys) : yrNow, y1 = Math.max(yrNow + 2, ...ys);
+    chartItems = []; for (let y = y0; y <= y1; y++) chartItems.push({ label: String(y), got: netByYear[String(y)] || 0, proj: projByYear[String(y)] || 0 });
+  } else {
+    const nd = todayDate(); chartItems = [];
+    for (let i = -9; i <= 2; i++) { const dt = new Date(nd.getFullYear(), nd.getMonth() + i, 1), k = dt.getFullYear() + "-" + String(dt.getMonth() + 1).padStart(2, "0");
+      chartItems.push({ label: dt.toLocaleString("en", { month: "short" }), got: netByMonth[k] || 0, proj: i >= 0 ? (projByMonth[k] || 0) : 0 }); }
+  }
+  const chartSeg = `<div class="dz-seg" role="group">${[["monthly", t("Monthly")], ["yearly", t("Yearly")]].map(([k, l]) => `<button type="button" class="${divChartMode === k ? "on" : ""}" data-dvchart="${k}">${l}</button>`).join("")}</div>`;
+  const incomeCard = panel(t("Dividend income"), received.length ? `${pfxVBars(chartItems)}<div class="pfx-leg"><span><i style="background:var(--pos)"></i>${t("Received")}</span><span><i style="background:var(--brand)"></i>${t("Expected")}</span></div>`
+    : `<p class="muted" style="margin:0">${t("No dividend income yet. Record one to start tracking it over time.")}</p>`, chartSeg);
+  const top5 = dvStockList.slice(0, 5), restV = dvStockList.slice(5).reduce((sx, r) => sx + r[1], 0); if (restV > 0.004) top5.push([t("Others"), restV]);
+  const maxS = top5.length ? top5[0][1] : 1;
+  const whoCard = panel(t("Who pays you"), top5.length ? `<div class="pfx-hb">${top5.map(([nm, v]) => `<div class="pfx-hbr"><span class="pfx-hbn">${esc(nm)}</span><div class="pfx-olb"><i style="width:${((v / maxS) * 100).toFixed(1)}%"></i></div><b class="dz-n">${money(v)}</b><small class="dz-n">${dvStockTotal ? fmt((v / dvStockTotal) * 100, { maximumFractionDigits: 0 }) : 0}%</small></div>`).join("")}</div>` : `<p class="muted" style="margin:0">—</p>`);
+  const olYears = [yrNow, yrNow + 1, yrNow + 2].map((y) => ({ y, got: y === yrNow ? (netByYear[String(y)] || 0) : 0, proj: projByYear[String(y)] || 0 }));
+  const olMax = Math.max(...olYears.map((r) => r.got + r.proj), 1e-9);
+  const outlookCard = fc.hasProjections ? panel(t("What you could earn"), `<div class="pfx-ol">${olYears.map((r) => { const v = r.got + r.proj;
+      return `<div class="pfx-olr"><span class="pfx-oll">${r.y}</span><div class="pfx-olb"><i class="g" style="width:${((r.got / olMax) * 100).toFixed(1)}%"></i><i style="width:${((r.proj / olMax) * 100).toFixed(1)}%"></i></div>
+        <b class="dz-n">${money(v)}</b>${costAll > 0 ? `<small class="dz-n">${fmt((v / costAll) * 100, { maximumFractionDigits: 1 })}% ${t("of cost")}</small>` : ""}</div>`; }).join("")}</div>
+    <p class="pfx-note2">${t("Green: received. Purple: expected.")} ${t("Estimate, not a promise — based on your dividend pattern.")}</p>${patternLine}
+    <p class="pfx-note2"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`) : panel(t("Dividend Forecast"), forecastBody);
+  const overview = `${dvCards}<div class="pfx-two">${incomeCard}${whoCard}</div>${outlookCard}`;
+
+  // --- Calendar: month view + coming up (Option C), then the full list
+  const calMonth = divCalMonth || today.slice(0, 7);
+  const [cy, cm] = calMonth.split("-").map(Number);
+  const firstDow = (new Date(cy, cm - 1, 1).getDay() + 6) % 7, dim = new Date(cy, cm, 0).getDate();
+  const byDay = {}; allDivEntries.filter((d) => d.payDate.startsWith(calMonth)).forEach((d) => { const dd = +d.payDate.slice(8, 10); (byDay[dd] = byDay[dd] || []).push(d); });
+  const dowNames = [t("Mon"), t("Tue"), t("Wed"), t("Thu"), t("Fri"), t("Sat"), t("Sun")];
+  let cells = dowNames.map((n) => `<div class="pfx-dh">${n}</div>`).join("");
+  for (let i = 0; i < firstDow; i++) cells += `<div class="pfx-dc off"></div>`;
+  for (let dday = 1; dday <= dim; dday++) {
+    const iso = `${calMonth}-${String(dday).padStart(2, "0")}`, ev = byDay[dday] || [];
+    cells += `<div class="pfx-dc${iso === today ? " td" : ""}"><span>${dday}</span>${iso === today ? `<em>${t("today")}</em>` : ""}${ev.slice(0, 2).map((d) => `<span class="pfx-chipd${d.status === "Received" ? "" : " es"}"><span class="nm">${esc(dvNameOf(d.ticker))}</span><br><span class="rm">${ccyLabel(FX.base)} </span>${fmt(d.amtMYR)}</span>`).join("")}${ev.length > 2 ? `<span class="pfx-more">+${ev.length - 2}</span>` : ""}</div>`;
+  }
+  for (let i = 0; i < (7 - ((firstDow + dim) % 7)) % 7; i++) cells += `<div class="pfx-dc off"></div>`;
+  const monthTitle = new Date(cy, cm - 1, 1).toLocaleString(LANG === "zh" ? "zh-CN" : "en", { month: "long", year: "numeric" });
+  const calNav = `<div class="dz-seg" role="group"><button type="button" data-dvcal="prev" aria-label="${t("Previous month")}">‹</button><button type="button" class="on" data-dvcal="today">${t("Today")}</button><button type="button" data-dvcal="next" aria-label="${t("Next month")}">›</button></div>`;
+  const monthCard = panel(`${monthTitle}<small class="pfx-sm">${t("your dividend dates")}</small>`, `<div class="pfx-cal7">${cells}</div>`, calNav);
+  const comingList = allDivEntries.filter((d) => d.payDate >= today).slice(0, 5).map((d, i) => { const dt = new Date(d.payDate + "T00:00:00");
+    return `<div class="pfx-nx"><div class="pfx-dd"><small>${dt.toLocaleString("en", { month: "short" }).toUpperCase()}</small><b class="dz-n">${dt.getDate()}</b></div>
+      <div class="pfx-nxt"><b>${esc(dvNameOf(d.ticker))}</b><span>${t("Ex-Date")} ${fmtDate(d.exDate)}</span></div>
+      <div class="pfx-nxa dz-n">${money(d.amtMYR)}<small>${i === 0 ? t("Next payment") : (d.status === "Estimated" ? t("Estimated") : t("Confirmed"))}</small></div></div>`; }).join("");
+  const comingCard = panel(`${t("Coming up")}<small class="pfx-sm">${t("next payments")}</small>`, comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`);
+  const listPanel = panel(`${t("Dividend Calendar")}${calendarTitleTip}`, allDivEntries.length
+      ? `<div id="divCalScroll" class="table-wrap pfx-dvt-wrap">${table([
+          { label: t("Holding") }, { label: t("Ex-Date") }, { label: t("Est. Payment") },
+          { label: `${t("Per Share")} (${ccyLabel(FX.base)})` }, { label: `${t("Amount")} (${ccyLabel(FX.base)})` }, { label: t("Yield") }, { label: t("Status") }, { label: "" },
+        ], calendarRows)}</div>`
+      : `<p class="muted" style="margin:0 0 12px;font-size:13px">${!LIVE_ENABLED ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.") : t("No dividends yet. Record one to get started.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
+    `<div class="panel-head-actions"><div style="width:150px">${calendarFilterSel}</div><small class="muted" id="divFetchStatus"></small></div>`);
+  const calendarTab = `<div class="pfx-two pfx-two-cal">${monthCard}${comingCard}</div><div id="divUpcomingSection">${listPanel}</div>${exDivPanel}`;
+
+  // --- History
+  const historyTab = `<div class="pfx-sum pfx-sum3">${dvCard(t("Gross Dividends"), money(grossBase), "")}${dvCard(t("Withholding Tax"), money(taxBase), "", taxBase > 0 ? "neg" : "")}${dvCard(t("Net Dividends (Lifetime)"), money(netTotal), "", "pos")}</div>
     ${panel(t("Dividend Income"), received.length
-        // Same fixed-height scroll box as the Dividend Calendar above, once there are enough
-        // rows to need it (a monthly view is up to 12).
-        ? `<div class="${incomeRowCount > 7 ? "dcc-table-scroll divcal-table-scroll" : ""}">${table([
-            { label: incomeLabels[divIncomePeriod] || t("Month"), style: "width:50%;text-align:left" },
-            { label: `${t("Net")} (${ccyLabel(FX.base)})`, style: "width:50%;text-align:left" },
-          ], incomeRowsByPeriod[divIncomePeriod] || monthRows, { fixed: true })}</div>`
-        : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
-      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}
+      ? `<div class="table-wrap pfx-dvt-wrap"><table class="data-table pfx-txt"><thead><tr><th>${incomeLabels[divIncomePeriod] || t("Month")}</th><th class="pfn">${t("Net")} (${ccyLabel(FX.base)})</th>${divIncomePeriod === "stock" ? `<th class="pfn">${t("Share")}</th>` : ""}</tr></thead><tbody>${incomeRowsByPeriod[divIncomePeriod] || monthRows}</tbody></table></div>`
+      : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
+      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}`;
 
-    ${exDivPanel}`;
+  const html = `<div class="pfx pfx-div">${dvHeader}${dvReview}${dvNav}${divTab === "calendar" ? calendarTab : divTab === "history" ? historyTab : overview}</div>`;
 
   return {
     title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
     mount() {
+      const dvBell = $("#dzBell"); if (dvBell) dvBell.addEventListener("click", () => toggleMoreSheet());
+      $$("[data-dvtab]").forEach((b) => b.addEventListener("click", () => { divTab = b.dataset.dvtab; try { sessionStorage.setItem("il-div-tab", divTab); } catch (e) {} render(); }));
+      $$("[data-dvchart]").forEach((b) => b.addEventListener("click", () => { divChartMode = b.dataset.dvchart; render(); }));
+      $$("[data-dvcal]").forEach((b) => b.addEventListener("click", () => {
+        const base = (divCalMonth || todayISO().slice(0, 7)).split("-").map(Number); let yy = base[0], mm = base[1];
+        if (b.dataset.dvcal === "prev") mm--; else if (b.dataset.dvcal === "next") mm++; else { yy = +todayISO().slice(0, 4); mm = +todayISO().slice(5, 7); }
+        if (mm < 1) { mm = 12; yy--; } if (mm > 12) { mm = 1; yy++; }
+        divCalMonth = `${yy}-${String(mm).padStart(2, "0")}`; render();
+      }));
+      const dvRev = $("#dvReview"); if (dvRev) dvRev.addEventListener("toggle", () => { divReviewOpen = dvRev.open; });
+      $$("[data-div-refresh]").forEach((b) => b.addEventListener("click", () => {
+        if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
+        toast(t("Checking dividend schedules…")); fetchAllDivSchedules().then(() => { if (document.querySelector(".pfx-div")) render(); });
+      }));
       document.querySelectorAll("[data-add-auto-div]").forEach((btn) => {
         btn.addEventListener("click", () => {
           const c = pendingAutoDivs.find((x) => x.key === btn.dataset.addAutoDiv);
@@ -4965,7 +5045,7 @@ function pageDividends() {
       // background re-renders (market data landing re-renders it a moment after load);
       // otherwise open on the next payment — the row that matters, not the oldest history.
       const calScroll = $("#divCalScroll");
-      if (calScroll && calScroll.classList.contains("dcc-table-scroll")) {
+      if (calScroll) {
         // Our own positioning below fires a scroll event too — only a genuine user scroll
         // should count as "the user moved it", or the auto-position would freeze in place.
         let settingPos = true;
@@ -4984,14 +5064,14 @@ function pageDividends() {
         const statusEl = document.getElementById("divFetchStatus");
         if (statusEl) statusEl.textContent = t("Checking dividend schedules…");
         fetchAllDivSchedules().then(({ fetched, hadError, failed }) => {
-          if (fetched && document.getElementById("divUpcomingSection")) render();
+          if (fetched && document.querySelector(".pfx-div")) render();
           const s = document.getElementById("divFetchStatus");
           if (s) s.textContent = hadError ? divFetchWarning(failed) : "";
         });
         // Real Malaysia payment dates (see myRealPayDate) — silent, only re-renders if it
         // actually found something to correct an estimate with.
-        fetchMyRealPayDates().then((found) => { if (found && document.getElementById("divUpcomingSection")) render(); });
-        fetchAllMySymbols().then((found) => { if (found && document.getElementById("divUpcomingSection")) render(); });
+        fetchMyRealPayDates().then((found) => { if (found && document.querySelector(".pfx-div")) render(); });
+        fetchAllMySymbols().then((found) => { if (found && document.querySelector(".pfx-div")) render(); });
       }
       if (SETTINGS.showExDivScreener) {
         const exDivSearchEl = $("#exDivSearchInput");
@@ -5010,7 +5090,7 @@ function pageDividends() {
             // without it, resolving after the user has navigated away (e.g. into the
             // Add-transaction overlay, which doesn't change location.hash) triggers an
             // unconditional render() that silently closes/wipes whatever they were doing.
-            if (!document.getElementById("divUpcomingSection")) return;
+            if (!document.querySelector(".pfx-div")) return;
             if (d) { render(); return; }
             const results = document.getElementById("exDivResults");
             if (results) results.innerHTML = `<p class="muted" style="margin:0;font-size:13px">${t("Couldn't load the ex-dividend calendar — try again later.")}</p>`;
