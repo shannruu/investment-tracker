@@ -2747,3 +2747,42 @@ a.ticker.tk-name:hover { color: var(--brand); }
 /* Calculation pop-up: a line with a matching page is clickable; same light hover bar as the tables */
 .calc-go { cursor: pointer; margin: 0 -10px; padding: 10px; border-radius: 10px; }
 .calc-go:hover, .calc-go:focus-visible { background: color-mix(in srgb, var(--text) 4%, transparent); outline: none; }
+
+/* =============================================================================
+   PLAIN TOP CARDS (2026-10-02): the big violet "hero" cards now look like every other card — simple, compact, easy on the eyes.
+   Also: small phone text raised to >= 11px, phone toggle buttons a little taller.
+   ============================================================================= */
+.pfx-hero, .dz-hero { background: var(--dz-card); color: var(--text); border-color: var(--dz-card-bd); box-shadow: var(--dz-card-sh); }
+.pfx-hero:before, .dz-hero:before { display: none; }
+.pfx-hero .pfx-lbl, .dz-hero .dz-lbl, .dz-hero .col-info, .dz-hero .col-info:hover { color: var(--muted); }
+.pfx-sum { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pfx-sum4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.pfx-hero { padding: 18px 22px; }
+.pfx-big { font-size: 26px; font-weight: 700; letter-spacing: -.03em; margin: 4px 0 7px; }
+.pfx-sum4 .pfx-big { font-size: 22px; }
+.pfx-big .cur, .pfx-big .dec { font-size: 1em; opacity: 1; }
+.pfx-big .cur { margin-right: .28em; }
+.pfx-sum .pfx-sc, .pfx-sum .pfx-hero { justify-content: flex-start; }
+.pfx-pill, .dz-pill { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text-soft); }
+.pfx-pill { padding: 4px 11px; font-size: 12.5px; }
+.dz-hero { padding: 22px 24px; }
+.dz-big { font-size: clamp(26px, 7cqw, 34px); font-weight: 700; margin: 8px 0 10px; }
+.dz-big .cur { font-size: 15px; }
+.dz-hnote, .dz-hleg { color: var(--muted); }
+.dz-hleg b { color: var(--text); }
+.dz-hnote { margin-top: 8px; }
+.dz-hsplit { padding-top: 18px; }
+.dz-hbar i { background: linear-gradient(90deg, var(--brand), var(--accent2)); }
+.dz-hbar b { background: color-mix(in srgb, var(--text) 16%, transparent); }
+@media (max-width: 760px) {
+  .pfx-sum, .pfx-sum4 { grid-template-columns: 1fr 1fr; }
+  .pfx-hero { padding: 14px 16px; }
+  .pfx-big, .pfx-sum4 .pfx-big { font-size: 22px; margin: 3px 0 7px; }
+  .dz-hero { padding: 16px; }
+  .dz-big { font-size: clamp(26px, 9cqw, 30px); margin: 6px 0 8px; }
+  .dz-hnote { margin-top: 6px; }
+  .dz-hsplit { padding-top: 12px; }
+  .dz-eyebrow, .pfx .pf-table th, .pfx-sub, .pfx-txt th { font-size: 11px; }
+  .dz-seg button { min-height: 34px; }
+  .bn-item { font-size: 11px; }
+}
