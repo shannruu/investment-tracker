@@ -3209,7 +3209,7 @@ function pfAllocationHTML() {
   const stack = (title, list, tip = "") => {
     const sorted = [...list].filter((x) => x.value > 0).sort((a, b) => b.value - a.value);
     if (!sorted.length) return "";
-    return `<div class="pfx-bk"><h3>${title}${tip ? infoTip(tip) : ""}</h3><div class="pfx-bar">${sorted.map((x, i) => `<i style="width:${(x.value / total) * 100}%;background:${PF_PAL[i % PF_PAL.length]}"></i>`).join("")}</div>
+    return `<div class="pfx-bk"><h3>${title}${tip ? `<span class="col-info tip-down pfx-i" data-tip="${esc(tip)}">${dzIcon("info", 15)}</span>` : ""}</h3><div class="pfx-bar">${sorted.map((x, i) => `<i style="width:${(x.value / total) * 100}%;background:${PF_PAL[i % PF_PAL.length]}"></i>`).join("")}</div>
       <div class="pfx-bl">${sorted.map((x, i) => `<span><s style="background:${PF_PAL[i % PF_PAL.length]}"></s>${esc(x.label)} <em class="dz-n">${pc(x.value)}</em></span>`).join("")}</div></div>`;
   };
   // Sector is unknown for CSV-imported stocks: a small "i" next to the title explains it instead of a permanent warning box.
