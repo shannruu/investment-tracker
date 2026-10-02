@@ -572,6 +572,7 @@ const ZH = {
   "All brokers": "全部券商",
   "Select a broker to see its details.": "选择一个券商查看详情。",
   "Total": "总计",
+  "Click a line to see the records behind it.": "点击一行可查看背后的记录。",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -6613,10 +6614,38 @@ function brokerBreakdownCalc(title, txList) {
 
 let modalResolve = null;   // pending Promise resolver for showConfirmModal, if any — see closeModal()
 
+/* Where a line of a calculation pop-up leads: [page, what to set up first]. Keyed by the line's English label. */
+const CALC_GO_MAP = (() => {
+  const rec = (tab, sub = "all") => ["#/records", () => { recordsTab = tab; cashSubFilter = sub; recSearch = ""; recLimit = 40; }];
+  const pf = (tab) => ["#/portfolio", () => { portfolioTab = tab; }];
+  const dv = ["#/dividends", () => { divTab = "history"; try { sessionStorage.setItem("il-div-tab", divTab); } catch (e) {} }];
+  const m = {};
+  const put = (labels, dest) => labels.forEach((l) => { m[l] = dest; });
+  put(["Unrealized P/L", "Market Value", "Cost Basis"], pf("holdings"));
+  put(["Realized P/L", "Sells (net of fees)"], pf("realized"));
+  put(["Net Dividends", "Net dividends received", "Tax withholding"], dv);
+  put(["Interest Received", "Interest / cash yield"], rec("cash", "interest"));
+  put(["Total Fees", "Standalone fees"], rec("cash", "fee"));
+  put(["Buying fees", "Buys (incl. fees & tax)"], rec("buysell"));
+  put(["Currency exchange fees", "FX gain/loss on cash"], rec("fx"));
+  put(["Total Deposits", "Deposits"], rec("cash", "deposit"));
+  put(["Total Withdrawals", "Withdrawals"], rec("cash", "withdrawal"));
+  put(["Net Capital Invested"], rec("cash"));
+  return m;
+})();
+function calcGo(label) {
+  const d = CALC_GO_MAP[label]; if (!d) return;
+  d[1]();
+  closeModal();
+  if (location.hash === d[0]) render(); else location.hash = d[0];
+}
 function showCalc(calc) {
   modalResolve = null;   // defensive: opening a different modal abandons any pending confirm
   $("#modalTitle").textContent = t(calc.title);
-  const rows = calc.rows.map((r) => `<div class="calc-row"><span><span class="cr-op">${r.op}</span> ${esc(t(r.label))}${r.hint ? ` <span class="col-info tip-down" data-tip="${escAttr(r.hint)}">${COL_INFO_ICON_SVG}</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`).join("");
+  // A line that has a matching page (e.g. Net Dividends → Dividends history) becomes a link: click it to see the records behind it.
+  const rows = calc.rows.map((r) => { const go = CALC_GO_MAP[r.label];
+    return `<div class="calc-row${go ? " calc-go" : ""}"${go ? ` data-go="${escAttr(r.label)}" role="link" tabindex="0"` : ""}><span><span class="cr-op">${r.op}</span> ${esc(t(r.label))}${r.hint ? ` <span class="col-info tip-down" data-tip="${escAttr(r.hint)}">${COL_INFO_ICON_SVG}</span>` : ""}${go ? ` <span class="cr-go" aria-hidden="true">›</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`; }).join("");
+  const anyGo = calc.rows.some((r) => CALC_GO_MAP[r.label]);
   // Percentage (when present) sits on its own line under the amount, not beside it on
   // the same row — the row's <span class="cr-val"> becomes a small flex column instead
   // of adding a second row with its own label.
@@ -6624,7 +6653,13 @@ function showCalc(calc) {
   const pctVal = calc.pctFmt != null ? `<span class="cr-pct">${calc.pctFmt}</span>` : "";
   $("#modalBody").innerHTML = `${calc.intro ? `<p class="muted" style="margin:0 0 14px;font-size:13px">${t(calc.intro)}</p>` : ""}${rows}
     <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${totalVal}${pctVal}</span></div>
-    <p class="muted" style="margin:14px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
+    ${anyGo ? `<p class="muted" style="margin:14px 0 0;font-size:12px">${t("Click a line to see the records behind it.")}</p>` : ""}
+    <p class="muted" style="margin:${anyGo ? 6 : 14}px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
+  $$("#modalBody [data-go]").forEach((el) => {
+    const go = () => calcGo(el.dataset.go);
+    el.addEventListener("click", go);
+    el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  });
   $("#modal").hidden = false;
 }
 function closeModal() {
