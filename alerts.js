@@ -114,6 +114,7 @@ function alertStatusBadge(a) {
 }
 
 let alertFilter = "all";   // all | active | triggered
+let alertDraft = { ticker: "", direction: "above", targetPrice: "", recurring: false, focus: "" };   // what is typed in the New alert form, kept across background redraws
 function alertRowHTML(a, i) {
   const dirLabel = a.direction === "above" ? "≥" : "≤";
   const h = (typeof T !== "undefined" && T.holdings || []).find((x) => x.ticker === a.ticker);
@@ -131,14 +132,14 @@ function alertRowHTML(a, i) {
 function addAlertFormHTML() {
   return `<form id="addAlertForm" class="form al-form" autocomplete="off">
     <div class="form-grid" style="grid-template-columns:1fr">
-      <label>${t("Ticker")}<input name="ticker" placeholder="AAPL" required></label>
+      <label>${t("Ticker")}<input name="ticker" placeholder="AAPL" value="${escAttr(alertDraft.ticker)}" required></label>
       <label>${t("Direction")}${styledSelect("direction", [
         { value: "above", label: t("Price rises above") },
         { value: "below", label: t("Price drops below") },
-      ], "above")}</label>
-      <label>${t("Target Price")}<input name="targetPrice" type="number" step="any" min="0" placeholder="0.00" required></label>
+      ], alertDraft.direction, { id: "alDir" })}</label>
+      <label>${t("Target Price")}<input name="targetPrice" type="number" step="any" min="0" placeholder="0.00" value="${escAttr(alertDraft.targetPrice)}" required></label>
     </div>
-    <label class="check" style="margin-top:10px"><input type="checkbox" name="recurring">${t("Notify every time it crosses, not just once")}</label>
+    <label class="check" style="margin-top:10px"><input type="checkbox" name="recurring"${alertDraft.recurring ? " checked" : ""}>${t("Notify every time it crosses, not just once")}</label>
     <p class="muted" id="alertPriceHint" style="margin:8px 0 0;font-size:12.5px"></p>
     <div class="form-actions" style="margin-top:12px"><button class="btn primary" type="submit">${t("Add Alert")}</button></div>
   </form>`;
@@ -187,6 +188,14 @@ function pageAlerts() {
       $$("[data-alfilter]").forEach((b) => b.addEventListener("click", () => { alertFilter = b.dataset.alfilter; render(); }));
       const form = $("#addAlertForm");
       if (form) attachAutocomplete(form, null, { fillPrice: false });
+      if (form) {
+        const save = () => { alertDraft.ticker = form.ticker.value; alertDraft.targetPrice = form.targetPrice.value; alertDraft.recurring = form.recurring.checked; const d = $("#alDir"); if (d) alertDraft.direction = d.value; };
+        form.addEventListener("input", save); form.addEventListener("change", save);
+        form.addEventListener("focusin", (e) => { alertDraft.focus = e.target.name || ""; });
+        // a background redraw rebuilt the form: put the cursor back where the user was typing
+        const back = alertDraft.focus && form[alertDraft.focus];
+        if (back && back.focus && document.activeElement !== back) { back.focus(); try { const n = back.value.length; back.setSelectionRange(n, n); } catch (err) {} }
+      }
 
       const tickerInput = form ? form.querySelector('[name="ticker"]') : null;
       const priceHint = $("#alertPriceHint");
@@ -216,6 +225,7 @@ function pageAlerts() {
         if (error) { toast(t("Couldn't add that alert — try again.")); return; }
         toast(t("Alert added."));
         form.reset();
+        alertDraft = { ticker: "", direction: "above", targetPrice: "", recurring: false, focus: "" };
         ALERTS_LOADED = false;
         render();
       });
