@@ -182,12 +182,30 @@ function decorateLabels(scope) {
   });
 }
 
+/* ------------------------------------------------------------------ Icon tile on every top summary card (the "plain cards with a little character" look).
+ * The icon is picked from the card's label (English or Chinese), so no page code has to name one. */
+function _tileIcon(text) {
+  const x = String(text || "").toLowerCase();
+  if (/return|p\/l|gain|profit|loss|回报|盈亏|收益|盈利/.test(x)) return "trend";
+  if (/dividend|interest|income|payment|earn|yield|this year|per month|股息|利息|派息|收入|今年|每月|下一笔/.test(x)) return "coins";
+  if (/cash|money|balance|invested|capital|deposit|withdraw|bought|sold|现金|资金|本金|存入|取出|买入|卖出/.test(x)) return "wallet";
+  return "layers";
+}
+function decorateCardTiles(scope) {
+  if (typeof dzIcon !== "function") return;
+  (scope || document).querySelectorAll(".pfx-sum > .pfx-card .pfx-lbl, .dz-hero .dz-lbl").forEach((el) => {
+    if (el.querySelector(".ct-tile")) return;
+    el.insertAdjacentHTML("afterbegin", `<span class="ct-tile" aria-hidden="true">${dzIcon(_tileIcon(el.textContent), 16)}</span>`);
+    el.classList.add("has-tile");
+  });
+}
+
 /* Tables are drawn and redrawn all over the app (page renders, filters, tabs, import previews), so rather
  * than touching every one, watch for new <th> elements and decorate them once per frame. */
 (function watchTableTitles() {
   let queued = false;
-  const run = () => { queued = false; decorateTableTitles(document); decorateLabels(document); };
-  const hasTable = (n) => n.nodeType === 1 && (n.tagName === "TH" || n.tagName === "TABLE" || n.tagName === "THEAD" || n.tagName === "TR" || n.querySelector("th, .rc-sr, .pfx-lbl, .rc-strip") || n.matches(".rc-sr, .pfx-lbl, .rc-strip"));
+  const run = () => { queued = false; decorateTableTitles(document); decorateLabels(document); decorateCardTiles(document); };
+  const hasTable = (n) => n.nodeType === 1 && (n.tagName === "TH" || n.tagName === "TABLE" || n.tagName === "THEAD" || n.tagName === "TR" || n.querySelector("th, .rc-sr, .pfx-lbl, .rc-strip, .dz-lbl") || n.matches(".rc-sr, .pfx-lbl, .rc-strip, .dz-lbl"));
   const start = () => {
     new MutationObserver((records) => {
       if (queued) return;
