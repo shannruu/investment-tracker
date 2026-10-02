@@ -3040,5 +3040,21 @@ a.ticker.tk-name:hover { color: var(--brand); }
 .pfx .pfx-nx, .pfx .pfx-nx:hover { border-radius: 0; }
 /* Calendar tab: the month is full width */
 .pfx-div .pfx-cal7 { gap: 8px; }
-.pfx-div .pfx-dc { min-height: 92px; }
+.pfx-div .pfx-dc { min-height: 76px; }
 @media (max-width: 760px) { .pfx-div .pfx-cal7 { gap: 4px; } .pfx-div .pfx-dc { min-height: 48px; } }
+/* Calendar tab: calendar left, All payments right, same height; the list scrolls inside its card */
+.dv-pay-wrap { position: relative; min-width: 0; }
+.dv-pay-wrap > .panel { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; }
+.dv-pay-wrap > .panel > .dv-pay-desk { flex: 1; min-height: 0; max-height: none; overflow-y: auto; }
+.dv-pay-wrap > .panel > .dv-pay-mob { flex: 1; min-height: 0; overflow-y: auto; }
+.dv-pay-wrap .rc-more { flex: none; }
+@media (max-width: 1000px) {
+  .dv-pay-wrap > .panel { position: static; }
+  .dv-pay-wrap > .panel > .dv-pay-desk { max-height: 560px; overflow-y: auto; }
+}
+@media (min-width: 761px) {
+  .dv-pay-wrap .dv-pay-desk { overflow-x: hidden; padding-right: 0; scrollbar-gutter: auto; }
+  .dv-pay-wrap .dv-pay-desk .data-table { width: 100%; }
+  .dv-pay-wrap .dv-pay-desk .data-table th, .dv-pay-wrap .dv-pay-desk .data-table td { padding-left: 8px; padding-right: 8px; }
+  .dv-pay-wrap .dv-pay-desk .data-table th:last-child, .dv-pay-wrap .dv-pay-desk .data-table td:last-child { display: none; }
+}

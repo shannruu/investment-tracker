@@ -4879,7 +4879,7 @@ function dividendForecast(received, upcoming, tickerScope) {
  * ========================================================================== */
 let divCalendarFilter = "all";   // all | past | upcoming — filters the combined dividend calendar
 let divTab = (() => { try { const v = sessionStorage.getItem("il-div-tab"); return ["overview", "calendar", "history"].includes(v) ? v : "overview"; } catch (e) { return "overview"; } })();
-let divPayLimit = 10;   // History → All payments: how many rows are shown
+let divPayLimit = 25;   // History → All payments: how many rows are shown
 let divLtGrowth = 3;   // Dividends page, long-term section: assumed yearly growth of dividends (0 / 3 / 6 %)
 let divChartMode = "monthly", divCalMonth = "", divReviewOpen = false;   // Dividends page: tab, chart range, month shown on the calendar, review card open/closed
 let divCalScrollTop = null;      // calendar's scroll position — survives the page's background re-renders; null = not scrolled by the user yet, so jump to the next payment
@@ -5336,7 +5336,7 @@ function pageDividends() {
       ? `<div class="table-wrap pfx-dvt-wrap dv-pay-desk"><table class="data-table pfx-txt"><thead><tr><th>${t("Holding")}</th><th>${t("Paid on")}</th><th class="pfn">${t("Amount")} (${ccyLabel(FX.base)})</th><th>${t("Status")}</th><th></th></tr></thead><tbody>${payDeskRows}</tbody></table></div><div class="dv-pay-mob">${payMobRows}</div>${payMore}`
       : `<p class="muted" style="margin:0 0 12px;font-size:13px">${!LIVE_ENABLED ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.") : t("No dividends yet. Record one to get started.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
     `${paySeg}<small class="muted" id="divFetchStatus"></small>`);
-  const calendarTab = `${monthCard}<div id="divUpcomingSection">${listPanel}</div>${exDivPanel}`;
+  const calendarTab = `<div class="pfx-two pfx-two-cal">${monthCard}<div class="dv-pay-wrap" id="divUpcomingSection">${listPanel}</div></div>${exDivPanel}`;
 
   // --- History
   const periodTabs = [["monthly", t("Monthly")], ["quarterly", t("Quarterly")], ["annual", t("Yearly")], ["stock", t("By stock")]];
@@ -5355,8 +5355,8 @@ function pageDividends() {
       const dvBell = $("#dzBell"); if (dvBell) dvBell.addEventListener("click", () => toggleMoreSheet());
       $$("[data-dvgrowth]").forEach((b) => b.addEventListener("click", () => { divLtGrowth = +b.dataset.dvgrowth; render(); }));
       $$("[data-dvperiod]").forEach((b) => b.addEventListener("click", () => { divIncomePeriod = b.dataset.dvperiod; render(); }));
-      $$("[data-dvpay]").forEach((b) => b.addEventListener("click", () => { divCalendarFilter = b.dataset.dvpay; divPayLimit = 10; render(); }));
-      $$("[data-dvpaymore]").forEach((b) => b.addEventListener("click", () => { divPayLimit += 10; render(); }));
+      $$("[data-dvpay]").forEach((b) => b.addEventListener("click", () => { divCalendarFilter = b.dataset.dvpay; divPayLimit = 25; render(); }));
+      $$("[data-dvpaymore]").forEach((b) => b.addEventListener("click", () => { divPayLimit += 25; render(); }));
       $$("[data-dvtab]").forEach((b) => b.addEventListener("click", () => { divTab = b.dataset.dvtab; try { sessionStorage.setItem("il-div-tab", divTab); } catch (e) {} render(); }));
       $$("[data-dvchart]").forEach((b) => b.addEventListener("click", () => { divChartMode = b.dataset.dvchart; render(); }));
       $$("[data-dvcal]").forEach((b) => b.addEventListener("click", () => {
