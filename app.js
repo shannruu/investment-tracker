@@ -2830,7 +2830,7 @@ function loadPortfolioPrefs() {
   try {
     const raw = localStorage.getItem(PORTFOLIO_PREFS_KEY);
     const s = JSON.parse(raw || "{}");
-    const phone = !raw && typeof matchMedia === "function" && matchMedia("(max-width: 760px)").matches;
+    const phone = false;   // phones show the same columns as desktop (the table swipes sideways)
     const cols = Object.assign({}, phone ? COL_DEFAULTS_PHONE : COL_DEFAULTS, s.v === 2 ? (s.cols || {}) : {});   // v2: columns saved before the Portfolio redesign are dropped once so everyone gets the new default view
     const allIds = COL_DEFS.map((d) => d.id);
     const saved = Array.isArray(s.colOrder) ? s.colOrder.filter((id) => allIds.includes(id)) : [];

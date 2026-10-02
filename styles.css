@@ -2811,7 +2811,7 @@ a.ticker.tk-name:hover { color: var(--brand); }
 .pf-mob-tot b.pos { color: var(--pos); } .pf-mob-tot b.neg { color: var(--neg); }
 @media (max-width: 760px) {
   .pf-desk { display: none; }
-  .filters-col-panel { display: none; }
+  
   .pf-mob .rc-ev { margin: 0; }
 }
 .pf-chip { width: 38px; height: 38px; border-radius: 12px; font-size: 12px; }
@@ -2981,4 +2981,34 @@ a.ticker.tk-name:hover { color: var(--brand); }
 @media (max-width: 760px) {
   .panel-head-actions .pfx-ftoggle { height: 34px; padding: 0 14px; font-size: 12.5px; flex: none; }
   .pfx-sm #pfPriceStamp { display: block; margin-top: 2px; }
+}
+
+/* =============================================================================
+   PHONE TABLES (chosen option 1): the real table, swipe sideways, first column fixed. Same colours as before (panel colour only).
+   ============================================================================= */
+@media (max-width: 760px) {
+  .pf-mob, .pf-rz-mob, .dv-pay-mob, .rc-mob { display: none !important; }
+  .pf-desk, .rc-desk, .dv-pay-desk { display: block !important; }
+  .dcc-table-scroll.pf-rz-desk { display: block !important; }
+  .pfx .table-wrap, .pfx .dcc-table-scroll { max-height: none; overflow-x: auto; overflow-y: visible; padding-right: 0; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+  .pfx .table-wrap::-webkit-scrollbar, .pfx .dcc-table-scroll::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  .pfx .table-wrap::after { display: none; }
+  .pfx .data-table { width: max-content; min-width: 100%; table-layout: auto; }
+  .pfx .data-table th, .pfx .data-table td { display: table-cell !important; white-space: nowrap !important; width: auto !important; max-width: none !important; padding: 12px 12px; font-size: 13px; }
+  .pfx .data-table th { font-size: 12px; }
+  .pfx .data-table th:first-child, .pfx .data-table td:first-child { position: sticky; left: 0; z-index: 2; background: var(--dz-panel); padding-left: 2px; box-shadow: 7px 0 8px -7px rgba(0, 0, 0, .55); }
+  .pfx .data-table thead th:first-child { z-index: 4; }
+  .pfx .data-table .pfx-hc, .pfx .data-table .pfx-hcn { min-width: 0; }
+  .pfx .pfx-chip { display: grid; }
+  .pfx .rc-row.sel td:first-child { background: color-mix(in srgb, var(--text) 7%, var(--dz-panel)); }
+  .rc-main { background: var(--dz-panel); }
+  .swipe-hint { text-align: center; font-size: 11.5px; font-weight: 600; color: var(--muted); margin-top: 10px; }
+}
+@media (min-width: 761px) { .swipe-hint { display: none; } }
+@media (max-width: 760px) {
+  .pfx .data-table td:first-child .pfx-chip, .pfx .data-table td:first-child .dz-chip { width: 32px; height: 32px; border-radius: 11px; font-size: 11px; }
+  .pfx .data-table td:first-child .pfx-hc { gap: 9px; }
+  .pfx .data-table td:first-child .sub { max-width: 96px; overflow: hidden; text-overflow: ellipsis; }
+  .pfx .data-table td:first-child .pfx-hn, .pfx .data-table td:first-child .ticker { max-width: 110px; overflow: hidden; text-overflow: ellipsis; display: inline-block; vertical-align: bottom; }
+  .pfx-sum .pfx-pill { white-space: normal; border-radius: 14px; line-height: 1.3; max-width: 100%; }
 }

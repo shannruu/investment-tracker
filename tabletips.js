@@ -189,11 +189,23 @@ function decorateLabels(scope) {
   });
 }
 
+/* ------------------------------------------------------------------ Phones: a table wider than the screen swipes sideways (first column stays); this adds the little hint under it. */
+function decorateSwipeHints(scope) {
+  if (!window.matchMedia || !matchMedia("(max-width: 760px)").matches) return;
+  (scope || document).querySelectorAll(".pfx .table-wrap, .pfx .dcc-table-scroll").forEach((el) => {
+    if (el.dataset.swipeDone) return;
+    if (el.scrollWidth <= el.clientWidth + 8) return;
+    el.dataset.swipeDone = "1";
+    if (el.nextElementSibling && el.nextElementSibling.classList.contains("swipe-hint")) return;
+    el.insertAdjacentHTML("afterend", `<div class="swipe-hint">← ${esc(t("swipe sideways to see more columns"))} →</div>`);
+  });
+}
+
 /* Tables are drawn and redrawn all over the app (page renders, filters, tabs, import previews), so rather
  * than touching every one, watch for new <th> elements and decorate them once per frame. */
 (function watchTableTitles() {
   let queued = false;
-  const run = () => { queued = false; decorateTableTitles(document); decorateLabels(document); };
+  const run = () => { queued = false; decorateTableTitles(document); decorateLabels(document); setTimeout(() => decorateSwipeHints(document), 250); };
   const hasTable = (n) => n.nodeType === 1 && (n.tagName === "TH" || n.tagName === "TABLE" || n.tagName === "THEAD" || n.tagName === "TR" || n.querySelector("th, .rc-sr, .pfx-lbl, .rc-strip") || n.matches(".rc-sr, .pfx-lbl, .rc-strip"));
   const start = () => {
     new MutationObserver((records) => {
@@ -292,6 +304,7 @@ const TH_ZH = {
   "Profit or loss from the share price moving, not counting dividends.": "股价涨跌带来的盈亏，不含股息。",
   "Everything this stock has paid you in dividends, after tax.": "这只股票派给您的全部股息（税后）。",
   "Total you have spent buying shares.": "买入股票累计花费的金额。",
+  "swipe sideways to see more columns": "左右滑动查看更多列",
   /* the other info icons whose wording was shortened */
   "Time zone decides which day counts as \"today\". Gains and losses use the Average Cost method.": "时区决定哪一天算“今天”。盈亏按平均成本法计算。",
   "Add many records at once from a spreadsheet. You can preview before anything is saved.": "用表格一次添加多条记录。保存之前可以先预览。",
