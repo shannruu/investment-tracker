@@ -6535,12 +6535,12 @@ function pageHolding() {
   const [mvInt, mvDec] = fmt(h.marketValue).split(".");
   const stCard = (label, tip, v, pillHtml, c = "") => `<div class="pfx-card pfx-sc pfx-static"><div class="pfx-lbl"><span>${label}${tip ? hcTip(tip) : ""}</span></div><div class="pfx-vr"><div class="pfx-v dz-n ${c}">${v}</div>${pillHtml}</div></div>`;
   const ttmYield = h.marketValue ? (tFc.ttm / h.marketValue) * 100 : null;
-  const stSum = `<div class="pfx-sum pfx-sum4"><div class="pfx-card pfx-hero"><div class="pfx-lbl">${t("Market Value")}</div>
+  const stSum = `<div class="pfx-sum pfx-sum4"><div class="pfx-card pfx-hero"><div class="pfx-lbl"><span>${t("Market Value")}${hcTip(t("What your shares in this stock are worth at today's price."))}</span></div>
       <div class="pfx-big"><span class="cur">${ccyLabel(FX.base)}</span>${mvInt}<span class="dec">.${mvDec || "00"}</span></div>
       <span class="pfx-pill">${fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")} × ${h.hasPrice ? fmt(h.currentPrice) : "—"}</span></div>
     ${stCard(t("Total Return"), t("Unrealized P/L, plus profit from shares you sold, plus every dividend you have received."), moneySigned(h.totalReturn), pct1(h.totalReturn), cls(h.totalReturn))}
     ${stCard(t("Price Return"), t("Profit or loss from the share price alone, against your cost (fees included). Dividends are not counted."), moneySigned(h.priceUnrealized), pct1(h.priceUnrealized), cls(h.priceUnrealized))}
-    ${stCard(t("Dividends received"), "", money(totalDivReceived), ttmYield != null && ttmYield > 0 ? `<span class="pfx-pl pos">${fmt(ttmYield, { maximumFractionDigits: 2 })}% ${t("yield")}</span>` : "", totalDivReceived > 0 ? "pos" : "")}</div>`;
+    ${stCard(t("Dividends received"), t("Everything this stock has paid you in dividends, after tax."), money(totalDivReceived), ttmYield != null && ttmYield > 0 ? `<span class="pfx-pl pos">${fmt(ttmYield, { maximumFractionDigits: 2 })}% ${t("yield")}</span>` : "", totalDivReceived > 0 ? "pos" : "")}</div>`;
 
   // How long you have held it + next payment
   const todayIso = todayISO();
