@@ -667,6 +667,7 @@ const ZH = {
   "Dividends in the last 12 months": "过去 12 个月的股息",
   "What you paid": "您的买入成本",
   "Total value": "总价值",
+  "dividends received, by month, quarter, year or stock": "按月、季、年或股票的已收股息",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -5342,8 +5343,8 @@ function pageDividends() {
   const periodTabs = [["monthly", t("Monthly")], ["quarterly", t("Quarterly")], ["annual", t("Yearly")], ["stock", t("By stock")]];
   const periodSeg = `<div class="dz-seg" role="group">${periodTabs.map(([k, l]) => `<button type="button" class="${divIncomePeriod === k ? "on" : ""}" data-dvperiod="${k}">${l}</button>`).join("")}</div>`;
   const lifeKv = `<div class="dv-kv"><div><span>${t("Gross Dividends")}</span><b class="dz-n">${money(grossBase)}</b></div><div><span>${t("Withholding Tax")}</span><b class="dz-n${taxBase > 0 ? " neg" : ""}">${money(taxBase)}</b></div><div><span>${t("Net Dividends (Lifetime)")}</span><b class="dz-n pos">${money(netTotal)}</b></div></div>`;
-  const incomeByPeriod = panel(t("Income by period"), received.length
-      ? `${lifeKv}<div class="table-wrap pfx-dvt-wrap dv-inc"><table class="data-table pfx-txt"><thead><tr><th>${incomeLabels[divIncomePeriod] || t("Month")}</th><th>${t("Size")}</th><th class="pfn">${t("Net")} (${ccyLabel(FX.base)})</th></tr></thead><tbody>${incomeRowsByPeriod[divIncomePeriod] || monthRows}</tbody></table></div>`
+  const incomeByPeriod = panel(`${t("Income by period")}<small class="pfx-sm">${t("dividends received, by month, quarter, year or stock")}</small>`, received.length
+      ? `<div class="pfx-rz"><div class="table-wrap pfx-dvt-wrap dv-inc"><table class="data-table pfx-txt"><thead><tr><th>${incomeLabels[divIncomePeriod] || t("Month")}</th><th>${t("Size")}</th><th class="pfn">${t("Net")} (${ccyLabel(FX.base)})</th></tr></thead><tbody>${incomeRowsByPeriod[divIncomePeriod] || monthRows}</tbody></table></div></div>`
       : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`, periodSeg);
   const historyTab = incomeByPeriod;
 

@@ -3058,3 +3058,8 @@ a.ticker.tk-name:hover { color: var(--brand); }
   .dv-pay-wrap .dv-pay-desk .data-table th, .dv-pay-wrap .dv-pay-desk .data-table td { padding-left: 8px; padding-right: 8px; }
   .dv-pay-wrap .dv-pay-desk .data-table th:last-child, .dv-pay-wrap .dv-pay-desk .data-table td:last-child { display: none; }
 }
+/* Dividends History table follows the Realized P/L table (same row height, header, spacing) */
+.pfx-rz .dv-inc { max-height: none; }
+.pfx-rz .dv-inc .data-table td { padding: 12px 14px; }
+.pfx-rz .dv-inc .data-table th { padding: 10px 14px; }
+.pfx-rz .dv-inc .data-table td:first-child { font-weight: 600; }
