@@ -5336,7 +5336,7 @@ function pageDividends() {
       ? `<div class="table-wrap pfx-dvt-wrap dv-pay-desk"><table class="data-table pfx-txt"><thead><tr><th>${t("Holding")}</th><th>${t("Paid on")}</th><th class="pfn">${t("Amount")} (${ccyLabel(FX.base)})</th><th>${t("Status")}</th><th></th></tr></thead><tbody>${payDeskRows}</tbody></table></div><div class="dv-pay-mob">${payMobRows}</div>${payMore}`
       : `<p class="muted" style="margin:0 0 12px;font-size:13px">${!LIVE_ENABLED ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.") : t("No dividends yet. Record one to get started.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
     `${paySeg}<small class="muted" id="divFetchStatus"></small>`);
-  const calendarTab = `<div class="pfx-two pfx-two-cal">${monthCard}${comingCard}</div><div id="divUpcomingSection">${listPanel}</div>${exDivPanel}`;
+  const calendarTab = `${monthCard}<div id="divUpcomingSection">${listPanel}</div>${exDivPanel}`;
 
   // --- History
   const periodTabs = [["monthly", t("Monthly")], ["quarterly", t("Quarterly")], ["annual", t("Yearly")], ["stock", t("By stock")]];

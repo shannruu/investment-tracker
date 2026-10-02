@@ -3038,3 +3038,7 @@ a.ticker.tk-name:hover { color: var(--brand); }
 .pfx-two, .pfx-two2, .pfx-two-cal { align-items: stretch; }
 .pfx-nx { border-radius: 0; }
 .pfx .pfx-nx, .pfx .pfx-nx:hover { border-radius: 0; }
+/* Calendar tab: the month is full width */
+.pfx-div .pfx-cal7 { gap: 8px; }
+.pfx-div .pfx-dc { min-height: 92px; }
+@media (max-width: 760px) { .pfx-div .pfx-cal7 { gap: 4px; } .pfx-div .pfx-dc { min-height: 48px; } }
