@@ -2892,3 +2892,40 @@ a.ticker.tk-name:hover { color: var(--brand); }
   .pfx-div .pfx-sum4 .pfx-sc:last-child { grid-column: auto; }
   .pfx-div .pfx-hero .pfx-pill { white-space: normal; border-radius: 12px; }
 }
+
+/* =============================================================================
+   FIDELITY PASS: match the approved samples (History two-column, compact payment rows, Realized list on phones, Stock cards)
+   ============================================================================= */
+.pfx-nx .pfx-nxa { font-weight: 700; }
+.pfx-nxa .icon-btn { margin-left: 6px; }
+.pf-rl { display: flex; gap: 8px 28px; flex-wrap: wrap; font-size: 13px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+.pf-rl span { display: inline-flex; align-items: baseline; gap: 8px; }
+.pf-rl i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; align-self: center; }
+.pf-rl b { color: var(--text); }
+.pf-rl b.pos { color: var(--pos); } .pf-rl b.neg { color: var(--neg); }
+.pfx-rz .data-table th { text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 700; }
+.pf-assettype .sel-trigger { border: 0; background: none; box-shadow: none; color: var(--dz-lnk); font-weight: 700; padding-right: 4px; }
+.pf-rz-mob, .dv-pay-mob { display: none; }
+.range52-labels { font-size: 12.5px; }
+@media (max-width: 760px) {
+  .pfx-sum4 .pfx-hero { grid-column: auto; }
+  .pfx-sum4 .pfx-sc:last-child { grid-column: auto; }
+  .pf-rz-desk, .dv-pay-desk { display: none; }
+  .pf-rz-mob, .dv-pay-mob { display: block; }
+  .pf-rzm { cursor: default; }
+  .pf-rzm .rc-am small { color: inherit; opacity: .85; }
+  .pfx-two-cal { grid-template-columns: minmax(0, 1fr); }
+  .pf-rl { gap: 6px 18px; font-size: 12px; }
+}
+/* fidelity pass 2 */
+.pf-assettype { margin-left: auto; }
+.pf-assettype .sel-trigger { min-height: 0; height: 30px; font-size: 13px; }
+.pf-assettype > span { white-space: nowrap; }
+@media (max-width: 760px) {
+  .pf-hide-m { display: none; }
+  .pfx-div .dv-kv { display: none; }
+  .dv-inc tbody tr:nth-child(n+7) { display: none; }
+  .pf-rl { justify-content: space-between; gap: 6px 12px; font-size: 11.5px; flex-wrap: nowrap; }
+  .pf-rl span { gap: 5px; white-space: nowrap; }
+  .pf-assettype > span { display: none; }
+}
