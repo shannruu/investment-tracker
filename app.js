@@ -589,6 +589,18 @@ const ZH = {
   "… and so on up to year 10.": "……依此类推，直到第 10 年。",
   "Based on the {n} of dividends expected over the next 12 months from the shares you hold today. Assumes you buy and sell nothing more and the companies keep paying. An estimate, not a promise.": "以您目前持有的股票在未来 12 个月预计收到的 {n} 股息为基础，假设您不再买卖，公司持续派息。这只是估算，不是承诺。",
   "Position": "持仓",
+  "Next payments": "即将派息",
+  "All payments": "全部派息",
+  "Size": "占比",
+  "Where your money sits": "您的资金分布",
+  "Largest holding": "最大持仓",
+  "Countries": "国家数",
+  "All your stocks are in one country and one currency, at one broker. Adding stocks from another market would spread the risk.": "您所有的股票都在同一个国家、同一种货币、同一个券商。加入其他市场的股票可以分散风险。",
+  "Your largest holding, {name}, is {p} of your portfolio.": "您的最大持仓 {name} 占投资组合的 {p}。",
+  "Gain / loss": "盈亏",
+  "{n} sale": "{n} 笔卖出",
+  "{n} sales": "{n} 笔卖出",
+  "Your position": "您的持仓",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -2750,6 +2762,7 @@ function plural(n, one, many) { return `${n} ${n === 1 ? one : many}`; }
  * PAGE: PORTFOLIO  (with working filters + grouped allocations)
  * ========================================================================== */
 const portfolioFilters = { broker: "", market: "", currency: "", sort: "" };
+let pfAllocDim = "country";   // Portfolio → Allocation: which breakdown the "Where your money sits" card shows
 let portfolioTab = "holdings";   // holdings | allocation | realized
 let pfFiltersOpen = false;       // phone only: whether the filter dropdowns are unfolded
 let realizedView = { mode: "stock", sort: "high", filter: "all" };   // mode: stock | sale ; sort: high | low | new
@@ -2952,6 +2965,7 @@ function pagePortfolio() {
       : `${plural(T.holdings.length, "holding", "holdings")} across ${plural(BROKERS.length, "broker", "brokers")} · ${money(T.portfolioValue)}`, html,
     mount() {
       $$("[data-pftab]").forEach((b) => b.addEventListener("click", () => { portfolioTab = b.dataset.pftab; render(); }));
+      $$("[data-pfalloc]").forEach((b) => b.addEventListener("click", () => { pfAllocDim = b.dataset.pfalloc; render(); }));
       $$("[data-rzfilter]").forEach((el) => {
         const go = () => { realizedView.filter = el.dataset.rzfilter; render(); };
         el.addEventListener("click", go);
@@ -3155,6 +3169,8 @@ function realizedPLHTML() {
   });
   const groups = Object.values(byStock);
   const shownGroups = groups.filter((g) => keep(g.pl));
+  const rzMaxSale = Math.max(1e-9, ...shown.map((x) => Math.abs(x.pl))), rzMaxGroup = Math.max(1e-9, ...shownGroups.map((g) => Math.abs(g.pl)));
+  const rzBar = (pl, mx) => `<td class="dcc-c"><div class="pf-dv"><i class="${pl >= 0 ? "p" : "n"}" style="width:${((Math.abs(pl) / mx) * 50).toFixed(0)}%"></i></div></td>`;
   const tSrc = realizedView.mode === "sale" ? shown : shownGroups;
   const tCost = tSrc.reduce((s, x) => s + (x.costMYR != null ? x.costMYR : x.cost), 0), tProc = tSrc.reduce((s, x) => s + (x.proceedsMYR != null ? x.proceedsMYR : x.proceeds), 0), tPl = tSrc.reduce((s, x) => s + x.pl, 0);
   const tN = shownGroups.reduce((s, g) => s + g.n, 0);
@@ -3165,16 +3181,16 @@ function realizedPLHTML() {
       <td class="dcc-c td-holding">${tickerCell(x.ticker, null, tickerSubLabel(x.ticker, x.company))}<div class="sub">${esc(brokerName(x.brokerId))}</div><div class="sub pfx-only-m">${fmtDate(x.date)} · ${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")}</div></td>
       <td class="dcc-c pfn">${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} @ ${fmt(x.price)} ${ccyLabel(x.currency)}</td>
       <td class="dcc-c pfn">${money(x.costMYR)}</td><td class="dcc-c pfn">${money(x.proceedsMYR)}</td>
-      <td class="dcc-c pfn ${cls(x.pl)}">${moneySigned(x.pl)}</td><td class="dcc-c pfn ${cls(x.pl)}">${pct(x.pl, x.costMYR)}</td></tr>`).join("")
-      + (!shown.length ? "" : `<tr class="pfx-tot"><td class="dcc-c"></td><td class="dcc-c">${t("Total")}</td><td class="dcc-c pfn"></td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`);
-    headers = [t("Date"), t("Holding"), t("Sold"), t("Cost"), t("Proceeds"), t("Realized P/L"), t("Return %")];
+      ${rzBar(x.pl, rzMaxSale)}<td class="dcc-c pfn ${cls(x.pl)}">${moneySigned(x.pl)}</td><td class="dcc-c pfn ${cls(x.pl)}">${pct(x.pl, x.costMYR)}</td></tr>`).join("")
+      + (!shown.length ? "" : `<tr class="pfx-tot"><td class="dcc-c"></td><td class="dcc-c">${t("Total")}</td><td class="dcc-c pfn"></td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c"></td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`);
+    headers = [t("Date"), t("Holding"), t("Sold"), t("Cost"), t("Proceeds"), t("Gain / loss"), t("Realized P/L"), t("Return %")];
   } else {
     rows = [...shownGroups].sort(sortFn).map((g) => `<tr>
       <td class="dcc-c td-holding">${tickerCell(g.ticker, null, tickerSubLabel(g.ticker, g.company))}</td>
       <td class="dcc-c pfn">${g.n}</td><td class="dcc-c pfn">${money(g.cost)}</td><td class="dcc-c pfn">${money(g.proceeds)}</td>
-      <td class="dcc-c pfn ${cls(g.pl)}">${moneySigned(g.pl)}</td><td class="dcc-c pfn ${cls(g.pl)}">${pct(g.pl, g.cost)}</td></tr>`).join("")
-      + (!shownGroups.length ? "" : `<tr class="pfx-tot"><td class="dcc-c">${t("Total")}</td><td class="dcc-c pfn">${tN}</td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`);
-    headers = [t("Holding"), t("Sales"), t("Cost"), t("Proceeds"), t("Realized P/L"), t("Return %")];
+      ${rzBar(g.pl, rzMaxGroup)}<td class="dcc-c pfn ${cls(g.pl)}">${moneySigned(g.pl)}</td><td class="dcc-c pfn ${cls(g.pl)}">${pct(g.pl, g.cost)}</td></tr>`).join("")
+      + (!shownGroups.length ? "" : `<tr class="pfx-tot"><td class="dcc-c">${t("Total")}</td><td class="dcc-c pfn">${tN}</td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c"></td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`);
+    headers = [t("Holding"), t("Sales"), t("Cost"), t("Proceeds"), t("Gain / loss"), t("Realized P/L"), t("Return %")];
   }
   const best = [...sales].sort((a, b) => b.pl - a.pl)[0], worst = [...sales].sort((a, b) => a.pl - b.pl)[0];
   const gainG = groups.filter((g) => g.pl > 0), lossG = groups.filter((g) => g.pl < 0);
@@ -3183,12 +3199,11 @@ function realizedPLHTML() {
   const mc = (label, val, c = "", attr = "") => `<div class="mini-card"${attr}><div class="mc-label">${label}</div><div class="mc-value ${c}">${val}</div></div>`;
   const fcard = (label, key, list) => mc(label, moneySigned(sumPl(list)) + `<div class="sub">${nStocks(list.length)}</div>`, list.length ? cls(sumPl(list)) : "",
     ` role="button" tabindex="0" data-rzfilter="${key}" aria-label="${label}"`);
-  const summary = `<div class="mini-cards pfx-rzcards" style="margin-bottom:16px">
-    ${mc(t("Total Realized P/L"), moneySigned(T.realizedPL), cls(T.realizedPL))}
-    ${fcard(t("Gained"), "gain", gainG)}
-    ${fcard(t("Lost"), "loss", lossG)}
-    ${mc(t("Best sale"), `${moneySigned(best.pl)}<div class="sub">${esc(best.ticker)} · ${fmtDate(best.date)}</div>`, cls(best.pl))}
-    ${mc(t("Worst sale"), `${moneySigned(worst.pl)}<div class="sub">${esc(worst.ticker)} · ${fmtDate(worst.date)}</div>`, cls(worst.pl))}</div>`;
+  const rzCard = (label, val, pillTxt, c, attrs = "") => pfxStatCard(label, val, `<span class="pfx-pl ${c === "neg" ? "neg" : "pos"}">${pillTxt}</span>`, c, attrs);
+  const summary = `<div class="pfx-sum pfx-sum3">${rzCard(t("Total Realized P/L"), moneySigned(T.realizedPL), dzF(sales.length === 1 ? "{n} sale" : "{n} sales", { n: sales.length }), cls(T.realizedPL))}
+    ${rzCard(t("Gained"), moneySigned(sumPl(gainG)), nStocks(gainG.length), cls(sumPl(gainG)), `role="button" tabindex="0" data-rzfilter="gain" aria-label="${t("Gained")}"`)}
+    ${rzCard(t("Lost"), moneySigned(sumPl(lossG)), nStocks(lossG.length), cls(sumPl(lossG)), `role="button" tabindex="0" data-rzfilter="loss" aria-label="${t("Lost")}"`)}</div>`;
+  const bestWorst = `<div class="pf-insight">${dzIcon("info", 16)}<span>${t("Best sale")}: ${esc(best.ticker)} ${moneySigned(best.pl)} · ${fmtDate(best.date)} &nbsp;|&nbsp; ${t("Worst sale")}: ${esc(worst.ticker)} ${moneySigned(worst.pl)} · ${fmtDate(worst.date)}</span></div>`;
   const filterBtns = `<div class="seg" role="group" aria-label="${t("Gained")} / ${t("Lost")}">${[["all", t("All")], ["gain", t("Gained")], ["loss", t("Lost")]].map(([k, l]) =>
     `<button class="seg-btn ${rzf === k ? "on" : ""}" data-rzfilter="${k}">${l}</button>`).join("")}</div>`;
   const modeBtns = `<div class="seg" role="group">${[["stock", "By stock"], ["sale", "Each sale"]].map(([k, l]) =>
@@ -3198,8 +3213,8 @@ function realizedPLHTML() {
   const w = (100 / headers.length).toFixed(1) + "%";
   return summary + panel(t("Realized P/L"),
     `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${modeBtns}${filterBtns}${sortSel}</div>
-     <div class="dcc-table-scroll">${`<div class="pfx-rz pfx-rz-${realizedView.mode}">${table(headers.map((h, i) => ({ label: h, num: i >= numFrom, style: "width:" + w })), rows)}</div>`}</div>
-     <p class="muted" style="font-size:12px;margin:10px 0 0">${t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.")}</p>`);
+     <div class="dcc-table-scroll">${`<div class="pfx-rz pfx-rz-${realizedView.mode}">${table(headers.map((h, i) => ({ label: h, num: i >= numFrom && i !== headers.length - 3, style: "width:" + w })), rows)}</div>`}</div>
+     <p class="muted" style="font-size:12px;margin:10px 0 0">${t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.")}</p>${bestWorst}`);
 }
 
 function pfHeaderHTML() {
@@ -3263,9 +3278,18 @@ function pfAllocationHTML() {
   // Sector is unknown for CSV-imported stocks: a small "i" next to the title explains it instead of a permanent warning box.
   const noSector = al.bySector.length === 1 && al.bySector[0].label === "Others"
     ? t("Sector is not known for stocks added by CSV import. It fills in only when the price feed supplies it.") : "";
-  const brokers = new Set(T.holdings.map((h) => h.brokerId)).size >= 2 || al.byBroker.length;
-  const bks = `<div class="pfx-bks">${stack(t("Country"), al.byCountry)}${stack(t("Sector"), al.bySector, noSector)}${stack(t("Currency"), al.byCurrency)}${brokers ? stack(t("Brokerage"), al.byBroker) : ""}</div>`;
-  return `<div class="pfx-two">${panel(t("By holding"), ring)}${panel(t("Breakdowns"), bks)}</div>`;
+  const alOf = (l) => (l || []).filter((x) => x.value > 0);
+  const nCountry = alOf(al.byCountry).length, nCurr = alOf(al.byCurrency).length, nBroker = Math.max(1, alOf(al.byBroker).length);
+  const dims = [["country", t("Country"), al.byCountry], ["sector", t("Sector"), al.bySector], ["currency", t("Currency"), al.byCurrency], ["broker", t("Brokerage"), al.byBroker]];
+  const dimOn = dims.find((d) => d[0] === pfAllocDim) || dims[0];
+  const dimSeg = `<div class="dz-seg" role="group">${dims.map(([k, l]) => `<button type="button" class="${dimOn[0] === k ? "on" : ""}" data-pfalloc="${k}">${l}</button>`).join("")}</div>`;
+  const top = agg[0], topShare = top ? top.marketValue / total : 0;
+  const facts = `<div class="pf-facts"><div><span>${t("Holdings")}</span><b class="dz-n">${agg.length}</b></div><div><span>${t("Largest holding")}</span><b class="dz-n">${pc(top ? top.marketValue : 0)}</b></div><div><span>${t("Countries")}</span><b class="dz-n">${nCountry}</b></div><div><span>${t("Brokers")}</span><b class="dz-n">${nBroker}</b></div></div>`;
+  const insight = (nCountry <= 1 && nCurr <= 1 && nBroker <= 1)
+    ? t("All your stocks are in one country and one currency, at one broker. Adding stocks from another market would spread the risk.")
+    : (agg.length > 1 && topShare > 0.5 ? dzF("Your largest holding, {name}, is {p} of your portfolio.", { name: dzName(top.ticker, top.company), p: pc(top.marketValue) }) : "");
+  const sitsCard = panel(t("Where your money sits"), `${facts}${stack(dimOn[1], dimOn[2], dimOn[0] === "sector" ? noSector : "")}${insight ? `<div class="pf-insight">${dzIcon("info", 16)}<span>${insight}</span></div>` : ""}`, dimSeg);
+  return `<div class="pfx-two">${panel(t("By holding"), ring)}${sitsCard}</div>`;
 }
 
 /* Fresh-computed at click time (not baked in at render) since #pfSummary can be
@@ -4928,14 +4952,18 @@ function pageDividends() {
 
   const periods = dividendByPeriod(received);
   const monthsAsc = Object.keys(periods.byMonth).sort();
-  const monthRows = monthsAsc.slice(-12).reverse()
-    .map((k) => `<tr><td class="dcc-c">${fmtMonth(k)}</td><td class="dcc-c pos">${money(periods.byMonth[k])}</td></tr>`).join("");
+  const dvBar = (v, mx) => `<td class="dcc-c"><div class="dv-hb"><i style="width:${mx > 0 ? Math.max(2, (v / mx) * 100).toFixed(0) : 0}%"></i></div></td>`;
+  const monthKeys = monthsAsc.slice(-12).reverse(), monthMax = Math.max(0, ...monthKeys.map((k) => periods.byMonth[k]));
+  const monthRows = monthKeys
+    .map((k) => `<tr><td class="dcc-c">${fmtMonth(k)}</td>${dvBar(periods.byMonth[k], monthMax)}<td class="dcc-c pfn pos">${money(periods.byMonth[k])}</td></tr>`).join("");
   const qAsc = Object.keys(periods.byQuarter).sort();
-  const quarterRows = qAsc.slice(-8).reverse()
-    .map((k) => `<tr><td class="dcc-c">${k}</td><td class="dcc-c pos">${money(periods.byQuarter[k])}</td></tr>`).join("");
+  const qKeys = qAsc.slice(-8).reverse(), qMax = Math.max(0, ...qKeys.map((k) => periods.byQuarter[k]));
+  const quarterRows = qKeys
+    .map((k) => `<tr><td class="dcc-c">${k}</td>${dvBar(periods.byQuarter[k], qMax)}<td class="dcc-c pfn pos">${money(periods.byQuarter[k])}</td></tr>`).join("");
   const yearsAsc = Object.keys(periods.byYear).sort();
+  const yMax = Math.max(0, ...yearsAsc.map((k) => periods.byYear[k]));
   const yearRows = yearsAsc.slice().reverse()
-    .map((k) => `<tr><td class="dcc-c">${k}</td><td class="dcc-c pos">${money(periods.byYear[k])}</td></tr>`).join("");
+    .map((k) => `<tr><td class="dcc-c">${k}</td>${dvBar(periods.byYear[k], yMax)}<td class="dcc-c pfn pos">${money(periods.byYear[k])}</td></tr>`).join("");
   // One table with a period filter instead of three separate Monthly/Quarterly/Annual
   // panels — MoM/QoQ/YoY delta columns dropped too (always "—" until there's more than
   // one period of history anyway, and the trend is already visible across the rows).
@@ -5161,10 +5189,10 @@ function pageDividends() {
     return panel(t("If you keep what you own"), `<p class="pfx-note2" style="margin:-6px 0 14px">${t("Dividends you could collect, added up over the years.")}</p><div class="lt-ms">${miles}</div>
       <div class="table-wrap"><table class="data-table pfx-txt lt-tbl"><thead><tr><th>${t("Year")}</th><th class="pfn">${t("Dividends that year")}</th><th class="pfn">${t("Total so far")}</th></tr></thead><tbody>${rows}</tbody></table></div>
       <p class="pfx-note2">${t("… and so on up to year 10.")}</p>
-      <p class="pfx-note2">${dzF("Based on the {n} of dividends expected over the next 12 months from the shares you hold today. Assumes you buy and sell nothing more and the companies keep paying. An estimate, not a promise.", { n: money(ltBase) })}</p>`,
+      <p class="pfx-note2">${dzF("Based on the {n} of dividends expected over the next 12 months from the shares you hold today. Assumes you buy and sell nothing more and the companies keep paying. An estimate, not a promise.", { n: money(ltBase) })} <a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`,
       `<div class="lt-grow"><span>${t("Dividends grow")}</span>${growthSeg}</div>`);
   })();
-  const overview = `${dvCards}<div class="pfx-two">${incomeCard}${whoCard}</div>${outlookCard}${ltCard}`;
+  let overview = "";   // assembled below, once the "next payments" list exists
 
   // --- Calendar: month view + coming up (Option C), then the full list
   const calMonth = divCalMonth || today.slice(0, 7);
@@ -5192,29 +5220,31 @@ function pageDividends() {
   for (let i = 0; i < (7 - ((firstDow + dim) % 7)) % 7; i++) cells += `<div class="pfx-dc off"></div>`;
   const monthTitle = new Date(cy, cm - 1, 1).toLocaleString(LANG === "zh" ? "zh-CN" : "en", { month: "long", year: "numeric" });
   const calNav = `<div class="dz-seg" role="group"><button type="button" data-dvcal="prev" aria-label="${t("Previous month")}">‹</button><button type="button" class="on" data-dvcal="today">${t("Today")}</button><button type="button" data-dvcal="next" aria-label="${t("Next month")}">›</button></div>`;
-  const monthCard = panel(`${monthTitle}<small class="pfx-sm">${t("your dividend dates")}</small>`, `<div class="pfx-cal7">${cells}</div><div class="pfx-leg" style="margin-top:12px"><span><i class="pfx-leg-ex"></i>${t("Ex-date: own the stock before this day")}</span><span><i style="background:var(--dz-est)"></i>${t("Payout: the money arrives")}</span></div>`, calNav);
+  const monthCard = panel(`${monthTitle}<small class="pfx-sm">${t("your dividend dates")}</small>`, `<div class="pfx-cal7">${cells}</div><div class="pfx-leg" style="margin-top:12px"><span><i class="pfx-leg-ex"></i>${t("Ex-date: own the stock before this day")}</span><span><i style="background:var(--brand)"></i>${t("Payout: the money arrives")}</span></div>`, calNav);
   const comingList = allDivEntries.filter((d) => (d.payDisplay || d.payDate) >= today).slice(0, 5).map((d, i) => { const pay = d.payDisplay || d.payDate, dt = new Date(pay + "T00:00:00");
     return `<div class="pfx-nx" role="button" tabindex="0" data-dvdetail="${dvIdx.get(d)}"><div class="pfx-dd" title="${t("Payout date")}"><small>${dt.toLocaleString("en", { month: "short" }).toUpperCase()}</small><b class="dz-n">${dt.getDate()}</b></div>
       <div class="pfx-nxt"><b>${esc(dvNameOf(d.ticker))}</b><span>${t("Ex-Date")} ${fmtDate(d.exDate)} · ${t("Payout")} ${fmtDate(pay)}</span></div>
       <div class="pfx-nxa dz-n">${money(d.amtMYR)}<small>${i === 0 ? t("Next payment") : (d.status === "Estimated" ? t("Estimated") : t("Confirmed"))}</small></div></div>`; }).join("");
   const comingCard = panel(`${t("Coming up")}<small class="pfx-sm">${t("next payments")}</small>`, comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`);
-  const listPanel = panel(`${t("Dividend Calendar")}${calendarTitleTip}`, allDivEntries.length
+  const nextCard = panel(t("Next payments"), comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`, `<button type="button" class="pfx-btn" data-dvtab="calendar">${t("Calendar")} →</button>`);
+  overview = `<div class="pfx-two pfx-two-cal">${incomeCard}${nextCard}</div>${ltCard || panel(t("Dividend Forecast"), forecastBody)}`;
+  const listPanel = panel(`${t("All payments")}${calendarTitleTip}`, allDivEntries.length
       ? `<div id="divCalScroll" class="table-wrap pfx-dvt-wrap">${table([
           { label: t("Holding") }, { label: t("Ex-Date") }, { label: t("Est. Payment") },
           { label: `${t("Per Share")} (${ccyLabel(FX.base)})` }, { label: `${t("Amount")} (${ccyLabel(FX.base)})` }, { label: t("Yield") }, { label: t("Status") }, { label: "" },
         ], calendarRows)}</div>`
       : `<p class="muted" style="margin:0 0 12px;font-size:13px">${!LIVE_ENABLED ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.") : t("No dividends yet. Record one to get started.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
     `<div class="panel-head-actions"><div style="width:150px">${calendarFilterSel}</div><small class="muted" id="divFetchStatus"></small></div>`);
-  const calendarTab = `<div class="pfx-two pfx-two-cal">${monthCard}${comingCard}</div><div id="divUpcomingSection">${listPanel}</div>${exDivPanel}`;
+  const calendarTab = `<div class="pfx-two pfx-two-cal">${monthCard}${comingCard}</div>${exDivPanel}`;
 
   // --- History
-  const historyTab = `<div class="pfx-sum pfx-sum3">${dvCard(t("Gross Dividends"), money(grossBase), "")}${dvCard(t("Withholding Tax"), money(taxBase), "", taxBase > 0 ? "neg" : "")}${dvCard(t("Net Dividends (Lifetime)"), money(netTotal), "", "pos")}</div>
+  const historyTab = `<div class="dv-kv"><div><span>${t("Gross Dividends")}</span><b class="dz-n">${money(grossBase)}</b></div><div><span>${t("Withholding Tax")}</span><b class="dz-n${taxBase > 0 ? " neg" : ""}">${money(taxBase)}</b></div><div><span>${t("Net Dividends (Lifetime)")}</span><b class="dz-n pos">${money(netTotal)}</b></div></div>
     ${panel(t("Dividend Income"), received.length
-      ? `<div class="table-wrap pfx-dvt-wrap"><table class="data-table pfx-txt"><thead><tr><th>${incomeLabels[divIncomePeriod] || t("Month")}</th><th class="pfn">${t("Net")} (${ccyLabel(FX.base)})</th>${divIncomePeriod === "stock" ? `<th class="pfn">${t("Share")}</th>` : ""}</tr></thead><tbody>${incomeRowsByPeriod[divIncomePeriod] || monthRows}</tbody></table></div>`
+      ? `<div class="table-wrap pfx-dvt-wrap"><table class="data-table pfx-txt"><thead><tr><th>${incomeLabels[divIncomePeriod] || t("Month")}</th>${divIncomePeriod === "stock" ? "" : `<th>${t("Size")}</th>`}<th class="pfn">${t("Net")} (${ccyLabel(FX.base)})</th>${divIncomePeriod === "stock" ? `<th class="pfn">${t("Share")}</th>` : ""}</tr></thead><tbody>${incomeRowsByPeriod[divIncomePeriod] || monthRows}</tbody></table></div>`
       : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
-      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}`;
+      `<div class="panel-head-actions"><div style="width:150px">${incomeFilterSel}</div></div>`)}<div id="divUpcomingSection">${listPanel}</div>`;
 
-  const html = `<div class="pfx pfx-div">${dvHeader}${dvReview}${dvNav}${divTab === "calendar" ? calendarTab : divTab === "history" ? historyTab : overview}</div>`;
+  const html = `<div class="pfx pfx-div">${dvHeader}${dvReview}${dvCards}${dvNav}${divTab === "calendar" ? calendarTab : divTab === "history" ? historyTab : overview}</div>`;
 
   return {
     title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
@@ -6456,31 +6486,6 @@ function pageHolding() {
     ${stCard(t("Price Return"), t("Profit or loss from the share price alone, against your cost (fees included). Dividends are not counted."), moneySigned(h.priceUnrealized), pct1(h.priceUnrealized), cls(h.priceUnrealized))}
     ${stCard(t("Dividends received"), "", money(totalDivReceived), ttmYield != null && ttmYield > 0 ? `<span class="pfx-pl pos">${fmt(ttmYield, { maximumFractionDigits: 2 })}% ${t("yield")}</span>` : "", totalDivReceived > 0 ? "pos" : "")}</div>`;
 
-  const priceBlock = panel(t("Price & range"), `<div class="pfx-pr-l">${t("Current Price")}</div><div class="pfx-bigprice dz-n">${priceLbl}</div>${range52Html}`);
-  const prow = (label, val, tip) => `<div class="pfx-prow"><span>${label}${tip ? hcTip(tip) : ""}</span><b class="dz-n">${val}</b></div>`;
-  const rateF = (n) => `${ccyLabel(FX.base)} ${fmt(n, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
-  const realizedV = h.realized || 0;
-  const positionPanel = panel(t("Position"), `<div class="pfx-prows">
-    ${prow(t("Shares"), fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }))}
-    ${prow(t("Cost Basis"), money(h.costBasis), t("Everything you paid for the shares you still hold, buying fees included."))}
-    ${prow(t("Avg Cost (incl. fees)"), rateF(h.avgCost), t("Average price you paid per share, including your buying fees. Most broker apps show it without fees."))}
-    ${(h.feeCostMYR || 0) > 0.004 && h.shares > 0 ? prow(t("Avg Cost (excl. fees)"), rateF(h.priceCostMYR / h.shares), t("Average price you paid per share, without buying fees — usually what your broker's app shows as cost.")) : ""}
-    ${prow(t("Commission Paid"), money(commissionPaid), t("Fees you paid on every buy and sell of this stock."))}
-    ${prow(t("Net Dividends"), h.netDividends ? money(h.netDividends) : "—", t("Every dividend you have received for this stock, after tax. Some broker apps count only recent dividends in their profit figure."))}
-    ${prow(t("Realized P/L"), Math.abs(realizedV) > 0.004 ? `<span class="${cls(realizedV)}">${moneySigned(realizedV)}</span>` : "—", t("Profit or loss already locked in by selling part of this stock."))}
-    ${prow(t("% of Portfolio"), T.portfolioValue > 0 ? `${fmt((h.marketValue / T.portfolioValue) * 100, { maximumFractionDigits: 2 })}%` : "—", t("This holding's share of your total market value."))}
-    <div class="pfx-prow"><span>${t("Asset type")}</span><div style="width:150px">${styledSelect("holdingAssetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), holdingType(h.ticker), { id: "holdingAssetType" })}</div></div></div>
-    ${openedRecently ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}`);
-
-  // Where the return comes from: dividends vs price change (vs sold shares / fees)
-  const rbDiv = totalDivReceived, rbPrice = h.priceUnrealized || 0, rbSold = h.realized || 0;
-  const rbOther = h.totalReturn - rbDiv - rbPrice - rbSold;
-  const rbLine = (label, v) => `<div><span>${label}</span><b class="dz-n ${cls(v)}">${moneySigned(v)}</b></div>`;
-  const rbShare = h.totalReturn > 0 && rbDiv > 0
-    ? (rbDiv >= h.totalReturn ? t("All of your profit so far came from dividends.") : dzF("{p}% of your return came from dividends.", { p: fmt((rbDiv / h.totalReturn) * 100, { maximumFractionDigits: 0 }) })) : "";
-  const returnPanel = panel(t("Where your return comes from"), `<div class="pfx-lst">${rbLine(t("Dividends"), rbDiv)}${rbLine(t("Price change"), rbPrice)}${Math.abs(rbSold) > 0.004 ? rbLine(t("Sold shares"), rbSold) : ""}${Math.abs(rbOther) > 0.5 ? rbLine(t("Fees & other"), rbOther) : ""}
-    <div class="pfx-lst-t"><span>${t("Total Return")}</span><b class="dz-n ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</b></div></div>${rbShare ? `<p class="pfx-note2">${rbShare}</p>` : ""}`);
-
   // How long you have held it + next payment
   const todayIso = todayISO();
   const nextPay = (tFc.nextPayments || []).filter((p) => p.payDate >= todayIso).sort((a, b) => (a.payDate < b.payDate ? -1 : 1))[0];
@@ -6491,6 +6496,35 @@ function pageHolding() {
     months = Math.max(0, months);
     heldTxt = months >= 12 ? dzF("{y} yr {m} mo", { y: Math.floor(months / 12), m: months % 12 }) : months > 0 ? dzF("{m} mo", { m: months }) : dzF("{d} days", { d: Math.max(0, Math.round((nd - sd) / 864e5)) });
   }
+  const priceBlock = panel(t("Price & range"), `<div class="pfx-pr-l">${t("Current Price")}</div><div class="pfx-bigprice dz-n">${priceLbl}</div>${range52Html}`);
+  const prow = (label, val, tip) => `<div class="pfx-prow"><span>${label}${tip ? hcTip(tip) : ""}</span><b class="dz-n">${val}</b></div>`;
+  const rateF = (n) => `${ccyLabel(FX.base)} ${fmt(n, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
+  const realizedV = h.realized || 0;
+  const positionPanel = panel(t("Your position"), `<div class="pfx-prows">
+    ${prow(t("Shares"), fmt(h.shares, { minimumFractionDigits: 0, maximumFractionDigits: 4 }))}
+    ${prow(t("Cost Basis"), money(h.costBasis), t("Everything you paid for the shares you still hold, buying fees included."))}
+    ${prow(t("Avg Cost (incl. fees)"), rateF(h.avgCost), t("Average price you paid per share, including your buying fees. Most broker apps show it without fees."))}
+    ${(h.feeCostMYR || 0) > 0.004 && h.shares > 0 ? prow(t("Avg Cost (excl. fees)"), rateF(h.priceCostMYR / h.shares), t("Average price you paid per share, without buying fees — usually what your broker's app shows as cost.")) : ""}
+    ${prow(t("Commission Paid"), money(commissionPaid), t("Fees you paid on every buy and sell of this stock."))}
+    ${prow(t("Net Dividends"), h.netDividends ? money(h.netDividends) : "—", t("Every dividend you have received for this stock, after tax. Some broker apps count only recent dividends in their profit figure."))}
+    ${Math.abs(realizedV) > 0.004 ? prow(t("Realized P/L"), `<span class="${cls(realizedV)}">${moneySigned(realizedV)}</span>`, t("Profit or loss already locked in by selling part of this stock.")) : ""}
+    ${prow(t("% of Portfolio"), T.portfolioValue > 0 ? `${fmt((h.marketValue / T.portfolioValue) * 100, { maximumFractionDigits: 2 })}%` : "—", t("This holding's share of your total market value."))}
+    ${earliestTxDate ? `${prow(t("Held for"), heldTxt)}${prow(t("Since"), fmtDate(earliestTxDate))}` : ""}
+    ${earliestTxDate && h.costBasis > 0 ? prow(t("Dividends so far"), `${fmt((totalDivReceived / h.costBasis) * 100, { maximumFractionDigits: 1 })}% ${t("of what you paid")}`) : ""}
+    ${nextPay ? prow(t("Next payment"), `${fmtDate(nextPay.payDate)} · ${money(nextPay.amtMYR)}`) : ""}</div>
+    ${openedRecently ? `<p class="muted" style="font-size:12px;margin:8px 0 0">${t("Position opened")} ${fmtDate(earliestTxDate)} — ${t("unrealized P/L, realized P/L and dividends will build up over time.")}</p>` : ""}`,
+    `<div class="pf-assettype"><span>${t("Asset type")}</span><div style="width:140px">${styledSelect("holdingAssetType", ASSET_TYPES.map((x) => ({ value: x, label: t(x) })), holdingType(h.ticker), { id: "holdingAssetType" })}</div></div>`);
+
+  // Where the return comes from: dividends vs price change (vs sold shares / fees)
+  const rbDiv = totalDivReceived, rbPrice = h.priceUnrealized || 0, rbSold = h.realized || 0;
+  const rbOther = h.totalReturn - rbDiv - rbPrice - rbSold;
+  const rbLine = (label, v) => `<div><span>${label}</span><b class="dz-n ${cls(v)}">${moneySigned(v)}</b></div>`;
+  const rbShare = h.totalReturn > 0 && rbDiv > 0
+    ? (rbDiv >= h.totalReturn ? t("All of your profit so far came from dividends.") : dzF("{p}% of your return came from dividends.", { p: fmt((rbDiv / h.totalReturn) * 100, { maximumFractionDigits: 0 }) })) : "";
+  const rbSplit = h.totalReturn > 0 && rbDiv > 0 && rbPrice > 0 ? `<div class="pf-stk"><i style="width:${Math.min(100, (rbDiv / h.totalReturn) * 100).toFixed(1)}%;background:var(--pos)"></i><i style="flex:1;background:var(--brand)"></i></div>` : "";
+  const returnPanel = panel(t("Where your return comes from"), `${rbSplit}<div class="pfx-lst">${rbLine(t("Dividends"), rbDiv)}${rbLine(t("Price change"), rbPrice)}${Math.abs(rbSold) > 0.004 ? rbLine(t("Sold shares"), rbSold) : ""}${Math.abs(rbOther) > 0.5 ? rbLine(t("Fees & other"), rbOther) : ""}
+    <div class="pfx-lst-t"><span>${t("Total Return")}</span><b class="dz-n ${cls(h.totalReturn)}">${moneySigned(h.totalReturn)}</b></div></div>${rbShare ? `<p class="pfx-note2">${rbShare}</p>` : ""}`);
+
   const heldPanel = earliestTxDate ? panel(t("Your holding"), `<div class="pfx-prows">${prow(t("Held for"), heldTxt)}${prow(t("Since"), fmtDate(earliestTxDate))}
     ${h.costBasis > 0 ? prow(t("Dividends so far"), `${fmt((totalDivReceived / h.costBasis) * 100, { maximumFractionDigits: 1 })}% ${t("of what you paid")}`) : ""}
     ${nextPay ? prow(t("Next payment"), `${fmtDate(nextPay.payDate)} · ${money(nextPay.amtMYR)}`) : ""}</div>`) : "";
@@ -6533,7 +6567,7 @@ function pageHolding() {
   const divTabBody = `${nextBanner}${outlook}${dvSummaryHTML}${dvCalendarHTML}${dvHistoryHTML}`;
   const stBody = holdingTab === "dividends" ? (divTabBody.trim() ? divTabBody : panel(t("Dividends"), emptyState(t("No dividend data for this holding yet."))))
     : holdingTab === "tx" ? txPanel
-    : `${stSum}<div class="pfx-two2">${priceBlock}${returnPanel}</div>${positionPanel}${heldPanel}${chartsHTML}`;
+    : `${stSum}<div class="pfx-two2">${priceBlock}${returnPanel}</div>${positionPanel}${chartsHTML}`;
   const html = `<div class="pfx pfx-stock"><p style="margin:-4px 0 0"><a class="link" href="#/portfolio">← ${t("Back to Portfolio")}</a></p>${stHeader}${stNav}${stBody}</div>`;
 
   return { title: h.ticker, subtitle: h.company || t("Holding detail"), html,
