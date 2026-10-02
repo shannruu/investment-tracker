@@ -1598,7 +1598,7 @@ function tickerCell(ticker, brokerId, sub) {
   // Name first (bold), stock code underneath — the same order as the Portfolio table. Falls back to the code alone when no name is known.
   const name = typeof dzName === "function" ? dzName(ticker, sub) : sub;
   const hasName = name && name !== ticker;
-  const text = esc(hasName ? name : ticker), cl = hasName ? "ticker tk-name" : "ticker";
+  const text = esc(hasName ? name : ticker), cl = "ticker tk-name";   // always the same white bold look, whether it is a name or just a code
   const label = brokerId
     ? `<a class="${cl} ticker-link" href="#/holding/${encodeURIComponent(brokerId + "|" + ticker)}">${text}</a>`
     : `<span class="${cl}">${text}</span>`;
@@ -3118,7 +3118,7 @@ function realizedPLHTML() {
   if (realizedView.mode === "sale") {
     rows = [...shown].sort(sortFn).map((x) => `<tr>
       <td class="dcc-c">${fmtDate(x.date)}</td>
-      <td class="dcc-c td-holding">${tickerCell(x.ticker, null, tickerSubLabel(x.ticker, x.company))}<div class="sub">${esc(brokerName(x.brokerId))}</div>${tag(x.pl)}<div class="sub pfx-only-m">${fmtDate(x.date)} · ${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")}</div></td>
+      <td class="dcc-c td-holding">${tickerCell(x.ticker, null, tickerSubLabel(x.ticker, x.company))}<div class="sub">${esc(brokerName(x.brokerId))}</div><div class="sub pfx-only-m">${fmtDate(x.date)} · ${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")}</div></td>
       <td class="dcc-c pfn">${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} @ ${fmt(x.price)} ${ccyLabel(x.currency)}</td>
       <td class="dcc-c pfn">${money(x.costMYR)}</td><td class="dcc-c pfn">${money(x.proceedsMYR)}</td>
       <td class="dcc-c pfn ${cls(x.pl)}">${moneySigned(x.pl)}</td><td class="dcc-c pfn ${cls(x.pl)}">${pct(x.pl, x.costMYR)}</td></tr>`).join("")
@@ -3126,7 +3126,7 @@ function realizedPLHTML() {
     headers = [t("Date"), t("Holding"), t("Sold"), t("Cost"), t("Proceeds"), t("Realized P/L"), t("Return %")];
   } else {
     rows = [...shownGroups].sort(sortFn).map((g) => `<tr>
-      <td class="dcc-c td-holding">${tickerCell(g.ticker, null, tickerSubLabel(g.ticker, g.company))}${tag(g.pl)}</td>
+      <td class="dcc-c td-holding">${tickerCell(g.ticker, null, tickerSubLabel(g.ticker, g.company))}</td>
       <td class="dcc-c pfn">${g.n}</td><td class="dcc-c pfn">${money(g.cost)}</td><td class="dcc-c pfn">${money(g.proceeds)}</td>
       <td class="dcc-c pfn ${cls(g.pl)}">${moneySigned(g.pl)}</td><td class="dcc-c pfn ${cls(g.pl)}">${pct(g.pl, g.cost)}</td></tr>`).join("")
       + (!shownGroups.length ? "" : `<tr class="pfx-tot"><td class="dcc-c">${t("Total")}</td><td class="dcc-c pfn">${tN}</td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`);
