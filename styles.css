@@ -2542,17 +2542,13 @@ button, input, select, textarea { font-family: inherit; }
   .pfx-txf .dz-seg button { flex: 1; padding: 6px 4px; font-size: 12px; }
 }
 
-/* Stock page: Transactions table (like the Portfolio table: right-aligned figures, quiet header; figures grouped on the right, so the gaps stay small) */
+/* Stock page: Transactions table (same spacing as the Portfolio table: columns sized by their content) */
 .pfx-txt { width: 100%; font-variant-numeric: tabular-nums; table-layout: auto; }
 .pfx-txt th { text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 700; color: var(--muted); padding: 10px 14px; white-space: nowrap; }
 .pfx-txt td { padding: 13px 14px; white-space: nowrap; font-size: 14px; border-bottom: 1px solid var(--border); }
 .pfx-txt tbody tr:last-child td { border-bottom: 0; }
 .pfx-txt th:first-child, .pfx-txt td:first-child { padding-left: 14px; }
 .pfx-txt th:last-child, .pfx-txt td:last-child { padding-right: 14px; }
-.pfx-txt th:nth-child(2) { width: 110px; }
-.pfx-txt th:nth-child(3) { width: 80px; }
-.pfx-txt th:nth-child(4), .pfx-txt th:nth-child(5), .pfx-txt th:nth-child(6) { width: 130px; }
-.pfx-txt th:nth-child(7) { width: 150px; }
 .pfx-txt th.pfn, .pfx-txt td.pfn { text-align: right; }
 .pfx-txt td.pfx-tt { font-weight: 700; }
 .pfx-txt tbody tr:hover td { background: color-mix(in srgb, var(--text) 4%, transparent); }
@@ -2566,3 +2562,6 @@ button, input, select, textarea { font-family: inherit; }
   .pfx-txt th:nth-child(n), .pfx-txt td:nth-child(n) { width: auto; }
   .pfx-txt th:nth-child(5), .pfx-txt td:nth-child(5), .pfx-txt th:nth-child(6), .pfx-txt td:nth-child(6) { display: none; }
 }
+
+/* The notification pop-up opens from the sidebar over the page: keep the sidebar above page cards that are positioned (they used to paint over it). */
+.sidebar { z-index: 40; }
