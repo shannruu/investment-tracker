@@ -2808,96 +2808,7 @@ function systemAlertItems() {
     if (suspended.length) items.push({ level: "warn", href: "#/dividends", html: `${t("Dividend appears suspended for")}: ${esc(suspended.join(", "))} — ${t("no payment near its usual schedule; see the Dividends page.")}` });
     if (cut.length) items.push({ level: "warn", href: "#/dividends", html: `${t("Dividend cut detected for")}: ${esc(cut.join(", "))} — ${t("the forecast has been adjusted down; see the Dividends page.")}` });
   }
-  items.push(...dividendReminderItems());
   return items;
-}
-
-/* Ex-dividend and payment-day reminders, worked out from the upcoming dividends of the stocks you hold. */
-function dividendReminderItems() {
-  const out = [];
-  if (SETTINGS.divRemEx === false && SETTINGS.divRemPay === false) return out;
-  let list = []; try { list = allUpcomingDivs(); } catch (e) { return out; }
-  const today = todayISO(), span = SETTINGS.divRemDays || 3;
-  const gap = (iso) => Math.round((new Date(iso + "T00:00:00") - new Date(today + "T00:00:00")) / 86400000);
-  list.forEach((d) => {
-    const name = esc(dzName(d.ticker, null)), amt = d.expectedNetMYR > 0 ? ` (≈ ${money(d.expectedNetMYR)})` : "";
-    if (SETTINGS.divRemEx !== false && d.exDate) {
-      const n = gap(d.exDate);
-      if (n >= 0 && n <= span) out.push({ id: `ex|${d.ticker}|${d.exDate}`, level: "warn", href: "#/dividends", html: `<strong>${t("Ex-dividend")} ${n === 0 ? t("today") : n === 1 ? t("tomorrow") : dzF("in {n} days", { n })} — ${name}.</strong> ${t("Keep your shares until then to receive this dividend")}${amt}.` });
-    }
-    if (SETTINGS.divRemPay !== false && d.payDate && gap(d.payDate) === 0) out.push({ id: `pay|${d.ticker}|${d.payDate}`, level: "warn", href: "#/dividends", html: `<strong>${t("Dividend payment day")} — ${name}.</strong> ${t("Check that it reached your account")}${amt}.` });
-  });
-  return out;
-}
-/* ---- Reminders while the app is CLOSED: the browser is subscribed to Web Push and the upcoming reminders are copied to the account,
- * where a daily server job (api/send-reminders.js) sends them. Needs an account (cloud sync) — see DEPLOY.md. */
-const VAPID_PUBLIC_KEY = "BA2GJXo7Hz2vOj1axNfEqzFzaMmMVq53vrE2VFtFzMJhU6FXkvjoBRJmPcX4fgI9QmDI8W8BEbkqvM4d-1siZZY";
-let PUSH_SUBSCRIBED = null;   // null = not checked yet, else true/false
-function pushCanSync() { return typeof syncAvailable === "function" && syncAvailable() && typeof SYNC_USER !== "undefined" && !!SYNC_USER && "serviceWorker" in navigator && "PushManager" in window; }
-function urlBase64ToUint8Array(b64) {
-  const s = (b64 + "=".repeat((4 - (b64.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/"), raw = atob(s), out = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
-}
-async function checkPushSubscribed() {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) { PUSH_SUBSCRIBED = false; return false; }
-  try { const reg = await navigator.serviceWorker.ready; PUSH_SUBSCRIBED = !!(await reg.pushManager.getSubscription()); } catch (e) { PUSH_SUBSCRIBED = false; }
-  return PUSH_SUBSCRIBED;
-}
-/* Subscribes this device and saves it to the account. Returns true when closed-app notifications are on. Must run from a click. */
-async function enableDividendPush() {
-  if (!pushCanSync()) return false;
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    let sub = await reg.pushManager.getSubscription();
-    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) });
-    const j = sub.toJSON();
-    const { error } = await SUPABASE.from("push_subscriptions").upsert({ user_id: SYNC_USER.id, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth }, { onConflict: "endpoint" });
-    if (error) return false;
-    PUSH_SUBSCRIBED = true; return true;
-  } catch (e) { return false; }
-}
-async function disableDividendPush(opts = {}) {
-  try {
-    const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
-    if (sub) { const ep = sub.endpoint; await sub.unsubscribe(); if (typeof SYNC_USER !== "undefined" && SYNC_USER) await SUPABASE.from("push_subscriptions").delete().eq("endpoint", ep); }
-  } catch (e) { /* best effort — the server drops dead subscriptions itself */ }
-  PUSH_SUBSCRIBED = false;
-  if (typeof SYNC_USER !== "undefined" && SYNC_USER && typeof SUPABASE !== "undefined") { try { await SUPABASE.from("dividend_reminders").delete().eq("user_id", SYNC_USER.id).eq("sent", false); } catch (e) {} }
-}
-function disablePriceAlertPush(o) { return disableDividendPush(o); }   // name sync.js calls on sign-out
-/* Copies the next reminders to the account so the server can send them. */
-async function syncDividendReminders() {
-  if (!pushCanSync() || !SETTINGS.divRemNotify || PUSH_SUBSCRIBED !== true) return;
-  const rows = [], today = todayISO(), span = SETTINGS.divRemDays || 3, plain = (h) => h.replace(/<[^>]+>/g, "");
-  const shift = (iso, days) => { const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + days); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
-  let list = []; try { list = allUpcomingDivs(); } catch (e) { return; }
-  list.forEach((d) => {
-    const name = dzName(d.ticker, null), amt = d.expectedNetMYR > 0 ? ` (≈ ${money(d.expectedNetMYR)})` : "";
-    if (SETTINGS.divRemEx !== false && d.exDate && d.exDate >= today) {
-      const on = shift(d.exDate, -span);
-      rows.push({ rid: `ex|${d.ticker}|${d.exDate}|${span}`, fire_on: on < today ? today : on, title: `${t("Ex-dividend")} — ${name}`, body: `${t("Ex-dividend date")}: ${fmtDate(d.exDate)}. ${t("Keep your shares until then to receive this dividend")}${amt}.` });
-    }
-    if (SETTINGS.divRemPay !== false && d.payDate && d.payDate >= today) rows.push({ rid: `pay|${d.ticker}|${d.payDate}`, fire_on: d.payDate, title: `${t("Dividend payment day")} — ${name}`, body: `${t("Check that it reached your account")}${amt}.` });
-  });
-  try {
-    await SUPABASE.from("dividend_reminders").delete().eq("user_id", SYNC_USER.id).eq("sent", false);
-    if (rows.length) await SUPABASE.from("dividend_reminders").upsert(rows.map((r) => ({ ...r, user_id: SYNC_USER.id })), { onConflict: "user_id,rid", ignoreDuplicates: true });
-  } catch (e) { /* retried next time the app opens */ }
-}
-
-/* A phone / computer notification for today's reminders, once each, while the app is open. */
-function dividendNotify() {
-  if (!SETTINGS.divRemNotify || typeof Notification === "undefined" || Notification.permission !== "granted") return;
-  const key = "il-divrem-" + todayISO(); let seen = {};
-  try { seen = JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) {}
-  dividendReminderItems().forEach((it) => {
-    if (seen[it.id]) return; seen[it.id] = 1;
-    const body = it.html.replace(/<[^>]+>/g, "");
-    if (navigator.serviceWorker && navigator.serviceWorker.ready) navigator.serviceWorker.ready.then((r) => r.showNotification("Divz", { body, icon: "/icons/icon-192.png", tag: it.id, data: { url: "/#/dividends" } })).catch(() => { try { new Notification("Divz", { body }); } catch (e) {} });
-    else { try { new Notification("Divz", { body }); } catch (e) {} }
-  });
-  try { localStorage.setItem(key, JSON.stringify(seen)); } catch (e) {}
 }
 
 /* =============================================================================
@@ -6083,12 +5994,6 @@ function pageSettings() {
       ${settingRow(t("Show reconciliation on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" aria-label="${escAttr(t("Show reconciliation on Brokers page"))}" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
       ${settingRow(t("Show Ex-Dividend Screener on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" aria-label="${escAttr(t("Show Ex-Dividend Screener on Dividends page"))}" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
       </div>`)}
-    ${panel(`${t("Dividend reminders")}${infoTip(t("Shows up in the bell, and as a notification if you switch that on. They are worked out when you open the app."))}`, `<div class="setting-rows">
-      ${settingRow(t("Before the ex-dividend date"), `<label class="switch"><input type="checkbox" id="divRemEx" aria-label="${escAttr(t("Before the ex-dividend date"))}" ${SETTINGS.divRemEx !== false ? "checked" : ""}><span class="switch-track"></span></label>`)}
-      ${settingRow(t("How many days before"), `<div style="width:200px">${styledSelect("divRemDays", [1, 2, 3, 7].map((n) => ({ value: String(n), label: n === 1 ? t("1 day") : `${n} ${t("days")}` })), String(SETTINGS.divRemDays || 3), { id: "divRemDaysSel" })}</div>`)}
-      ${settingRow(t("On the payment day"), `<label class="switch"><input type="checkbox" id="divRemPay" aria-label="${escAttr(t("On the payment day"))}" ${SETTINGS.divRemPay !== false ? "checked" : ""}><span class="switch-track"></span></label>`)}
-      ${settingRow(`<span class="lbl-t">${t("Also send a notification")}${hcTip(t("A pop-up from your phone or computer. When you are signed in it also arrives while the app is closed (sent every morning by the server). On iPhone, open Divz from its Home Screen icon first."))}</span>`, `<label class="switch"><input type="checkbox" id="divRemNotify" aria-label="${escAttr(t("Also send a notification"))}" ${SETTINGS.divRemNotify ? "checked" : ""}><span class="switch-track"></span></label>`)}
-      </div>`)}
     ${panel(`${t("Dividend tax by country")}${infoTip(t("Withholding tax taken from dividends, by the country of the stock's market. Used when dividends are logged automatically, unless the broker has its own rate. Leave blank for 0."))}`, `
       <div class="fx-list">
         ${Object.entries(SETTINGS.divTaxByCountry || {}).map(([c, r]) => `<div class="fx-row"><span class="fx-ccy">${esc(t(c))}</span><span class="fx-row-controls"><input class="fx-input" type="number" step="any" min="0" max="100" data-wht="${esc(c)}" value="${esc(r)}" style="width:90px"><span class="muted">%</span><button class="icon-btn" data-whtdel="${esc(c)}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></span></div>`).join("") || `<p class="muted" style="margin:0 0 6px">${t("No country added yet — every dividend is taken as 0% tax.")}</p>`}
@@ -6197,34 +6102,6 @@ function pageSettings() {
       $("#tzSel").addEventListener("change", (e) => { SETTINGS.timeZone = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#returnModeSel").addEventListener("change", (e) => { SETTINGS.returnMode = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#costBasis").addEventListener("change", (e) => { SETTINGS.costBasis = e.target.value === "fifo" ? "fifo" : "average"; saveStore(); recompute(); toast(t("Preferences saved")); render(); });
-      const remSave = () => { saveStore(); toast(t("Preferences saved")); renderNotifications(); syncDividendReminders(); };
-      $("#divRemEx").addEventListener("change", (e) => { SETTINGS.divRemEx = e.target.checked; remSave(); });
-      $("#divRemPay").addEventListener("change", (e) => { SETTINGS.divRemPay = e.target.checked; remSave(); });
-      $("#divRemDaysSel").addEventListener("change", (e) => { SETTINGS.divRemDays = +e.target.value; remSave(); });
-      $("#divRemNotify").addEventListener("change", async (e) => {
-        const box = e.target;
-        if (box.checked) {
-          let perm = typeof Notification !== "undefined" ? Notification.permission : "denied";
-          if (perm === "default") { try { perm = await Notification.requestPermission(); } catch (err) { perm = "denied"; } }
-          if (perm !== "granted") { box.checked = false; SETTINGS.divRemNotify = false; saveStore(); toast(t("Notifications are blocked for this site — enable them in your browser's site settings, then reload this page.")); return; }
-        }
-        SETTINGS.divRemNotify = box.checked; saveStore(); renderNotifications();
-        if (box.checked) {
-          dividendNotify();
-          if (pushCanSync() && (await enableDividendPush())) { syncDividendReminders(); toast(t("Notifications are on — you will also get them when the app is closed.")); }
-          else toast(typeof SYNC_USER !== "undefined" && SYNC_USER ? t("Notifications are on while the app is open. Closed-app notifications could not be set up on this device.") : t("Notifications are on while the app is open. Sign in to also get them when the app is closed."));
-        } else { await disableDividendPush({ silent: true }); toast(t("Preferences saved")); }
-      });
-      $("#taxXls").addEventListener("click", () => exportTaxReportCSV(+$("#taxYearSel").value));
-      $("#taxPdf").addEventListener("click", () => printTaxReport(+$("#taxYearSel").value));
-      const rc = $("#restoreCloud");
-      if (rc) rc.addEventListener("click", async () => {
-        const row = await pullFromCloud();
-        if (!row || !row.data) { toast(t("Nothing found in your account yet.")); return; }
-        const n = (row.data.ALL_TRANSACTIONS || []).length;
-        if (!(await showConfirmModal(`${t("This replaces the data on this device with the copy in your account")} (${n} ${t("transactions")}, ${row.updated_at ? fmtDateTime(row.updated_at) : "—"}). ${t("Continue?")}`, { danger: true, okLabel: t("Restore") }))) return;
-        applySnapshot(row.data); saveStore(); recompute(); toast(t("Restored from your account.")); render();
-      });
       $("#numFmtSel").addEventListener("change", (e) => { SETTINGS.numFmt = e.target.value; saveStore(); toast(t("Preferences saved")); render(); });
       $("#divGrowthSel").addEventListener("change", (e) => { SETTINGS.divGrowth = +e.target.value; divLtGrowth = SETTINGS.divGrowth; saveStore(); toast(t("Preferences saved")); });
       $("#backupRemindSel").addEventListener("change", (e) => { SETTINGS.backupRemind = e.target.value; saveStore(); toast(t("Preferences saved")); });
@@ -8170,8 +8047,6 @@ function init() {
   try { const saved = localStorage.getItem("il-theme"); if (saved) setTheme(saved); } catch (e) {}
   if (SETTINGS.startPage && (!location.hash || location.hash === "#" || location.hash === "#/")) history.replaceState(null, "", "#/" + SETTINGS.startPage);
   applyPrivacy();
-  const remindAll = () => { dividendNotify(); checkPushSubscribed().then(syncDividendReminders); };
-  setTimeout(remindAll, 5000); setTimeout(remindAll, 25000);   // dividend data loads in the background
   // Backup reminder: once per visit, only when there is data worth saving
   setTimeout(() => {
     const every = { weekly: 7, monthly: 30 }[SETTINGS.backupRemind]; if (!every || !ALL_TRANSACTIONS.length) return;
