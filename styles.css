@@ -2744,8 +2744,6 @@ a.ticker.tk-name:hover { color: var(--brand); }
   .pfx-br .pfx-sum3 .pfx-v { font-size: 18px; }
 }
 .rc-sr > span .col-info, .rc-strip i .col-info { margin-left: 6px; }
-/* Calculation pop-up: a line with a matching page is a link */
-.calc-go { cursor: pointer; margin: 0 -10px; padding: 10px; border-radius: 10px; transition: background .12s; }
-.calc-go:hover, .calc-go:focus-visible { background: color-mix(in srgb, var(--text) 5%, transparent); outline: none; }
-.calc-go .cr-go { color: var(--muted); margin-left: 6px; font-size: 16px; line-height: 1; }
-.calc-go:hover .cr-go { color: var(--brand); }
+/* Calculation pop-up: a line with a matching page is clickable; same light hover bar as the tables */
+.calc-go { cursor: pointer; margin: 0 -10px; padding: 10px; border-radius: 10px; }
+.calc-go:hover, .calc-go:focus-visible { background: color-mix(in srgb, var(--text) 4%, transparent); outline: none; }

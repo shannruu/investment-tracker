@@ -6644,8 +6644,7 @@ function showCalc(calc) {
   $("#modalTitle").textContent = t(calc.title);
   // A line that has a matching page (e.g. Net Dividends → Dividends history) becomes a link: click it to see the records behind it.
   const rows = calc.rows.map((r) => { const go = CALC_GO_MAP[r.label];
-    return `<div class="calc-row${go ? " calc-go" : ""}"${go ? ` data-go="${escAttr(r.label)}" role="link" tabindex="0"` : ""}><span><span class="cr-op">${r.op}</span> ${esc(t(r.label))}${r.hint ? ` <span class="col-info tip-down" data-tip="${escAttr(r.hint)}">${COL_INFO_ICON_SVG}</span>` : ""}${go ? ` <span class="cr-go" aria-hidden="true">›</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`; }).join("");
-  const anyGo = calc.rows.some((r) => CALC_GO_MAP[r.label]);
+    return `<div class="calc-row${go ? " calc-go" : ""}"${go ? ` data-go="${escAttr(r.label)}" role="link" tabindex="0"` : ""}><span><span class="cr-op">${r.op}</span> ${esc(t(r.label))}${r.hint ? ` <span class="col-info tip-down" data-tip="${escAttr(r.hint)}">${COL_INFO_ICON_SVG}</span>` : ""}</span><span class="cr-val">${r.val}</span></div>`; }).join("");
   // Percentage (when present) sits on its own line under the amount, not beside it on
   // the same row — the row's <span class="cr-val"> becomes a small flex column instead
   // of adding a second row with its own label.
@@ -6653,8 +6652,7 @@ function showCalc(calc) {
   const pctVal = calc.pctFmt != null ? `<span class="cr-pct">${calc.pctFmt}</span>` : "";
   $("#modalBody").innerHTML = `${calc.intro ? `<p class="muted" style="margin:0 0 14px;font-size:13px">${t(calc.intro)}</p>` : ""}${rows}
     <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${totalVal}${pctVal}</span></div>
-    ${anyGo ? `<p class="muted" style="margin:14px 0 0;font-size:12px">${t("Click a line to see the records behind it.")}</p>` : ""}
-    <p class="muted" style="margin:${anyGo ? 6 : 14}px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
+    <p class="muted" style="margin:14px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
   $$("#modalBody [data-go]").forEach((el) => {
     const go = () => calcGo(el.dataset.go);
     el.addEventListener("click", go);
