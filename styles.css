@@ -2949,8 +2949,8 @@ a.ticker.tk-name:hover { color: var(--brand); }
    ALIGNMENT PASS (measured: every card compared with its sample, text position by text position)
    ============================================================================= */
 @media (min-width: 761px) {
-  .pfx-sum > .pfx-card { min-height: 134px; }
-  .pfx-sum > .pfx-card .pfx-vr { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; gap: 8px; margin-top: 8px; }
+  .pfx-sum > .pfx-card { min-height: 104px; }
+  .pfx-sum > .pfx-card .pfx-vr { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-top: 8px; }
   .pfx-sum > .pfx-hero .pfx-big { margin: 8px 0; }
   .pfx-bigprice { font-size: 34px; margin: 10px 0 16px; }
 }
@@ -3021,3 +3021,12 @@ a.ticker.tk-name:hover { color: var(--brand); }
 .pfx-card[data-calc]:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .pfx-card .pfx-lbl .pfx-go { margin-left: auto; }
 .pfx-card .pfx-lbl .col-info:not(.pfx-go) { display: none; }
+/* percentage / small pill sits beside the number (phones too) */
+@media (max-width: 760px) {
+  .pfx-sum > .pfx-card .pfx-vr { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+  .pfx-sum > .pfx-card { min-height: 0; }
+}
+/* pill switches / small controls in a card header sit at the RIGHT end of the title row */
+.pfx .panel-head > .dz-seg, .pfx .panel-head > .lt-grow, .pfx .panel-head > .pf-livetag, .pfx .panel-head > .pf-linkbtn, .pfx .panel-head > .pfx-btn, .pfx .panel-head > .badge { margin-left: auto; }
+.pf-dimseg { display: none; }
+#divFetchStatus:empty { display: none; }
