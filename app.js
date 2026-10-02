@@ -5344,7 +5344,7 @@ function pageDividends() {
   const periodSeg = `<div class="dz-seg" role="group">${periodTabs.map(([k, l]) => `<button type="button" class="${divIncomePeriod === k ? "on" : ""}" data-dvperiod="${k}">${l}</button>`).join("")}</div>`;
   const lifeKv = `<div class="dv-kv"><div><span>${t("Gross Dividends")}</span><b class="dz-n">${money(grossBase)}</b></div><div><span>${t("Withholding Tax")}</span><b class="dz-n${taxBase > 0 ? " neg" : ""}">${money(taxBase)}</b></div><div><span>${t("Net Dividends (Lifetime)")}</span><b class="dz-n pos">${money(netTotal)}</b></div></div>`;
   const incomeByPeriod = panel(`${t("Income by period")}<small class="pfx-sm">${t("dividends received, by month, quarter, year or stock")}</small>`, received.length
-      ? `${lifeKv}<div class="pfx-rz"><div class="table-wrap pfx-dvt-wrap dv-inc"><table class="data-table pfx-txt"><thead><tr><th>${incomeLabels[divIncomePeriod] || t("Month")}</th><th>${t("Size")}</th><th class="pfn">${t("Net")} (${ccyLabel(FX.base)})</th></tr></thead><tbody>${incomeRowsByPeriod[divIncomePeriod] || monthRows}</tbody></table></div></div>`
+      ? `<div class="pfx-rz"><div class="table-wrap pfx-dvt-wrap dv-inc"><table class="data-table pfx-txt"><thead><tr><th>${incomeLabels[divIncomePeriod] || t("Month")}</th><th>${t("Size")}</th><th class="pfn">${t("Net")} (${ccyLabel(FX.base)})</th></tr></thead><tbody>${incomeRowsByPeriod[divIncomePeriod] || monthRows}</tbody></table></div></div>`
       : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`, periodSeg);
   const historyTab = incomeByPeriod;
 
@@ -7619,6 +7619,7 @@ function render() {
   // Stock / Dividends tabs survive a refresh, but opening the page from somewhere else always starts on Overview.
   if (key !== "holding") { holdingTabFor = ""; try { sessionStorage.removeItem("il-stock-tab"); } catch (e) {} }
   if (key !== "dividends") { divTab = "overview"; try { sessionStorage.removeItem("il-div-tab"); } catch (e) {} }
+  if (key !== "records" && key !== "add") { recordsTab = "all"; cashSubFilter = "all"; recSearch = ""; recLimit = 40; }   // Transactions opens on All when entered from another page
   if (key !== "portfolio") portfolioTab = "holdings";   // Portfolio always opens on Holdings when entered from another page
   if (key !== "add") { editingTxId = null; addDraft = {}; closeAddDrawer(); }  // drop edit mode + draft + drawer when leaving Add
   if (key !== "brokers") closeBrokerDrawer();  // drop the broker drawer when leaving Brokers

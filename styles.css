@@ -3069,3 +3069,17 @@ a.ticker.tk-name:hover { color: var(--brand); }
 .rc-head .rc-tools { margin: 0; margin-left: auto; flex: 1 1 260px; justify-content: flex-end; }
 .rc-head .rc-search { max-width: 300px; }
 @media (max-width: 760px) { .rc-head .rc-tools { flex-basis: 100%; } .rc-head .rc-search { max-width: none; } }
+/* Transactions → Cash: the four totals in one tidy row (label over value, equal columns) */
+.rc-main .cash-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; padding: 4px 0 16px; margin: 0 0 4px; border-bottom: 1px solid var(--border); align-items: stretch; }
+.rc-main .cash-item { flex-direction: column; align-items: flex-start; gap: 4px; margin: 0; padding: 4px 18px; border-radius: 0; min-width: 0; }
+.rc-main .cash-item:first-child { margin-left: 0; padding-left: 0; }
+.rc-main .cash-item + .cash-item { border-left: 1px solid var(--border); }
+.rc-main .cash-item + .cash-item::before { display: none; }
+.rc-main .cash-k { font-size: 12px; font-weight: 700; }
+.rc-main .cash-v { font-size: 17px; }
+@media (max-width: 760px) {
+  .rc-main .cash-strip { grid-template-columns: 1fr 1fr; row-gap: 12px; }
+  .rc-main .cash-item { padding: 4px 12px; border-top: 0 !important; }
+  .rc-main .cash-item:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .rc-main .cash-item:nth-child(3) { border-left: 0; padding-left: 0; }
+}
