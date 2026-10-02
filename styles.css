@@ -3030,3 +3030,7 @@ a.ticker.tk-name:hover { color: var(--brand); }
 .pfx .panel-head > .dz-seg, .pfx .panel-head > .lt-grow, .pfx .panel-head > .pf-livetag, .pfx .panel-head > .pf-linkbtn, .pfx .panel-head > .pfx-btn, .pfx .panel-head > .badge { margin-left: auto; }
 .pf-dimseg { display: none; }
 #divFetchStatus:empty { display: none; }
+.pfx .panel-head h2 { align-items: baseline; }
+.pfx .panel-head h2 .pfx-sm { margin-left: 10px; }
+.pfx .panel-head > h2 { margin: 0; }
+.pfx .panel-head { min-height: 40px; align-items: center; }
