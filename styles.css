@@ -2319,21 +2319,16 @@ button, input, select, textarea { font-family: inherit; }
 .pfx-sub { font-size: 12px; font-weight: 600; color: var(--muted); }
 .pfx-sub.pos { color: var(--pos); } .pfx-sub.neg { color: var(--neg); }
 .pfx-mv { font-weight: 700; }
-/* Total row: a "sum line" — a thin accent rule on top and a very light tint under the figures. It is pinned to the bottom of the table box
-   (the box scrolls on its own when there are many rows) and keeps 14px of clear space above the horizontal scrollbar: the tint is drawn
-   shorter than the cell, and the cell itself is opaque so scrolling rows never show through. */
+/* Total row (minimal): one thin rule above bolder figures, no fill. It stays pinned to the bottom of the table box while the rows scroll
+   (the cell is opaque so rows never show through) and keeps clear space above the horizontal scrollbar. */
 .pfx .pf-table tr.pfx-tot td, .pfx-rz tr.pfx-tot td {
-  position: sticky; bottom: 0; z-index: 2; font-weight: 700; font-size: 14.5px; border: 0; border-radius: 0;
-  padding-top: 16px; padding-bottom: 30px;
-  background-color: var(--dz-card-base);
-  background-image: linear-gradient(color-mix(in srgb, var(--text) 5%, transparent), color-mix(in srgb, var(--text) 5%, transparent));
-  background-repeat: no-repeat; background-position: top; background-size: 100% calc(100% - 14px);
-  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--brand) 60%, transparent);
+  position: sticky; bottom: 0; z-index: 2; background: var(--dz-card-base); border: 0; border-radius: 0;
+  font-weight: 700; font-size: 15px; padding-top: 18px; padding-bottom: 26px;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 28%, transparent);
 }
 .pfx .pf-table tr.pfx-tot td:first-child { z-index: 4; }
-.pfx .pf-table tbody tr.pfx-tot:hover td:first-child { background-color: var(--dz-card-base); background-image: linear-gradient(color-mix(in srgb, var(--text) 5%, transparent), color-mix(in srgb, var(--text) 5%, transparent)); }
-.pfx .pf-table tr.pfx-tot td:first-child, .pfx-rz tr.pfx-tot td:first-child { padding-left: 14px; }
-.pfx .pf-table tr.pfx-tot td:first-child, .pfx-rz tr.pfx-tot td:first-child, .pfx-rz-sale tr.pfx-tot td:nth-child(2) { color: var(--text-soft, var(--muted)); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+.pfx .pf-table tbody tr.pfx-tot:hover td:first-child { background: var(--dz-card-base); }
+.pfx .pf-table tr.pfx-tot td:first-child, .pfx-rz tr.pfx-tot td:first-child, .pfx-rz-sale tr.pfx-tot td:nth-child(2) { color: var(--text); font-size: 12.5px; letter-spacing: .08em; text-transform: uppercase; }
 .pfx-rz .data-table th.num, .pfx-rz .data-table td.pfn { text-align: right; font-variant-numeric: tabular-nums; }
 .pfx .dcc-table-scroll { overflow: visible; max-height: none; padding-right: 0; }
 .pfx-rz .table-wrap { max-height: 480px; }
@@ -2417,7 +2412,7 @@ button, input, select, textarea { font-family: inherit; }
   .pfx .pf-table th, .pfx .pf-table td { padding: 11px 6px; }
   .pfx .pf-table th:first-child, .pfx .pf-table td:first-child { padding-left: 0; }
   .pfx .pf-table td.pfn { font-size: 11.5px; }
-  .pfx .pf-table tr.pfx-tot td, .pfx-rz tr.pfx-tot td { font-size: 12px; padding-top: 12px; padding-bottom: 26px; }
+  .pfx .pf-table tr.pfx-tot td, .pfx-rz tr.pfx-tot td { font-size: 12.5px; padding-top: 14px; padding-bottom: 22px; }
   .pfx .pf-table th .col-info svg { width: 12px; height: 12px; }
   .pfx .pf-table th:last-child, .pfx .pf-table td:last-child { padding-right: 14px; }
   .pfx .pf-table th:first-child { min-width: 76px !important; width: 76px !important; }
