@@ -2396,7 +2396,7 @@ button, input, select, textarea { font-family: inherit; }
   .pfx-lbl { font-size: 11px; }
   .pfx-vr { flex-direction: column; align-items: flex-start; gap: 6px; }
   .pfx-v { font-size: 19px; }
-  .pfx-go, .pfx-scope { display: none; }
+  .pfx-scope { display: none; }
   .pfx-tabs .dz-seg { display: flex; width: 100%; padding: 3px; border-radius: 12px; }
   .pfx-tabs .dz-seg button { flex: 1; height: 36px; padding: 0; border-radius: 9px; font-size: 12.5px; }
   .pfx .panel { padding: 14px 12px 12px; }
@@ -2929,3 +2929,18 @@ a.ticker.tk-name:hover { color: var(--brand); }
   .pf-rl span { gap: 5px; white-space: nowrap; }
   .pf-assettype > span { display: none; }
 }
+
+/* =============================================================================
+   FIDELITY PASS 3: colours/sizes measured against the approved samples
+   ============================================================================= */
+/* panels carry the same soft top-light gradient as the samples (they were flat and darker) */
+.pfx .panel { background: var(--dz-card); }
+/* top cards: only the violet wash over the flat base (the extra white gradient made them lighter) */
+.pfx-sum > .pfx-card { background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 8%, transparent), transparent 70%), var(--dz-card-base); border-color: color-mix(in srgb, var(--brand) 30%, transparent); }
+/* table headings use the same quiet grey as the samples */
+.pfx .data-table th, .pfx .pf-table th, .pfx-txt th, .pfx-rz .data-table th { color: var(--muted); }
+@media (min-width: 761px) { .pfx-sum .pfx-v, .pfx-sum .pfx-big { font-size: 24px; } }
+.pfx-go { margin-left: auto; cursor: help; }
+.dv-ccy { display: block; font-size: 11.5px; font-weight: 600; color: var(--muted); margin-top: 2px; }
+.pfx-nxa .dv-ccy { text-align: right; }
+.pfx-chipd.es { background: color-mix(in srgb, var(--brand) 18%, transparent); color: var(--text); }
