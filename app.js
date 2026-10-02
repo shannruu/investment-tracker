@@ -793,6 +793,19 @@ const ZH = {
   "Notifications are on while the app is open. Sign in to also get them when the app is closed.": "应用打开时会收到通知。登录后，应用关闭时也能收到。",
   "A pop-up from your phone or computer. When you are signed in it also arrives while the app is closed (sent every morning by the server). On iPhone, open Divz from its Home Screen icon first.": "来自手机或电脑的弹出通知。登录后，应用关闭时也会收到（服务器每天早上发送）。iPhone 请先从主屏幕图标打开 Divz。",
   "Ex-dividend date": "除息日",
+  "Still need help?": "还需要帮助吗？",
+  "Tell me what happened. A screenshot helps a lot. Your message already includes your app version so I can find the problem faster.": "告诉我发生了什么，附上截图会很有帮助。您的信息已自动带上应用版本，方便我更快找到问题。",
+  "What is it about?": "是关于什么？",
+  "Report a problem": "报告问题",
+  "Suggest an idea": "提个建议",
+  "Ask a question": "提问",
+  "Email": "电邮",
+  "Copy app info": "复制应用信息",
+  "The app info has no amounts and nothing personal: only your app version, browser and how many records you have.": "应用信息不含任何金额和个人资料，只有应用版本、浏览器和记录笔数。",
+  "Ask me directly": "直接联系我",
+  "App info copied.": "已复制应用信息。",
+  "Couldn't copy.": "复制失败。",
+  "Contact us": "联系我们",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -6312,145 +6325,175 @@ function settingRow(label, value) {
 /* =============================================================================
  * PAGE: HELP
  * ========================================================================== */
+/* Contact details shown on the Help page. Leave a value empty to hide that channel; hide them all and the card disappears.
+ * whatsapp = digits only, with country code (e.g. 60123456789). */
+const CONTACT = { email: "", whatsapp: "", social: "", socialLabel: "Facebook" };
+const contactOn = () => !!(CONTACT.email || CONTACT.whatsapp || CONTACT.social);
+
+/* A few plain facts about this install (no amounts, no personal details) so a bug report is easy to follow up. */
+function helpAppInfo() {
+  const v = (((document.querySelector('script[src*="app.js"]') || {}).src || "").match(/v=(\d+)/) || [])[1];
+  return [`Divz version: ${v || "?"}`, `Page: ${location.hash || "#/dashboard"}`, `Language: ${LANG}`, `Base currency: ${FX.base}`,
+    `Brokers: ${BROKERS.length}, records: ${ALL_TRANSACTIONS.length}`, `Cost method: ${SETTINGS.costBasis === "fifo" ? "FIFO" : "average"}`,
+    `Signed in: ${typeof SYNC_USER !== "undefined" && SYNC_USER ? "yes" : "no"}`, `Screen: ${innerWidth}x${innerHeight}`, `Browser: ${navigator.userAgent}`].join("\n");
+}
+const HELP_TOPICS = [["problem", "Report a problem", "Problem"], ["idea", "Suggest an idea", "Idea"], ["question", "Ask a question", "Question"]];
+function helpContactLinks(topic) {
+  const sub = (HELP_TOPICS.find((x) => x[0] === topic) || HELP_TOPICS[0])[2], info = helpAppInfo();
+  const intro = topic === "problem" ? "Hi, something is not working.\n\nWhat I did:\n\nWhat I expected:\n\nWhat happened instead:\n" : topic === "idea" ? "Hi, I have an idea:\n" : "Hi, I have a question:\n";
+  return {
+    email: `mailto:${CONTACT.email}?subject=${encodeURIComponent("[Divz] " + sub)}&body=${encodeURIComponent(intro + "\n\n--- App info (helps me find the problem) ---\n" + info)}`,
+    whatsapp: `https://wa.me/${String(CONTACT.whatsapp).replace(/\D/g, "")}?text=${encodeURIComponent("[Divz] " + sub + "\n\n" + info.split("\n").slice(0, 2).join("\n") + "\n\n")}`,
+  };
+}
+function helpContactHTML() {
+  if (!contactOn()) return "";
+  const L = helpContactLinks("problem");
+  return `<section class="pfx-card hp-contact" id="hpContact"><div class="rc-head"><h2>${t("Still need help?")}</h2></div>
+    <p class="hp-cp">${t("Tell me what happened. A screenshot helps a lot. Your message already includes your app version so I can find the problem faster.")}</p>
+    <div class="dz-seg" role="group" aria-label="${esc(t("What is it about?"))}">${HELP_TOPICS.map((x, i) => `<button type="button" class="${i ? "" : "on"}" data-hptp="${x[0]}">${t(x[1])}</button>`).join("")}</div>
+    <div class="hp-cbtns">
+      ${CONTACT.email ? `<a class="btn primary" id="hpMail" href="${esc(L.email)}">${t("Email")}<small>${esc(CONTACT.email)}</small></a>` : ""}
+      ${CONTACT.whatsapp ? `<a class="btn" id="hpWa" href="${esc(L.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
+      ${CONTACT.social ? `<a class="btn" href="${esc(CONTACT.social)}" target="_blank" rel="noopener">${esc(CONTACT.socialLabel)}</a>` : ""}
+      <button type="button" class="btn ghost" id="hpCopy">${t("Copy app info")}</button></div>
+    <p class="hp-cnote">${t("The app info has no amounts and nothing personal: only your app version, browser and how many records you have.")}</p></section>`;
+}
+
 function pageHelp() {
-  const sectionsEN = [
-    { title: "Getting Started", items: [
-      { q: "What order should I set things up in?", a: "Add a broker first — every transaction belongs to one, so nothing else can be recorded until it exists. Next, record the money you put in (Deposit) and what you bought (Buy). If you already owned stocks before you started tracking, enter them as Buy transactions too, using the original date and price from your broker's statement, so cost and profit are worked out from your real trades. Log deposits and withdrawals as they happen so each broker's calculated cash balance stays meaningful. Once a holding exists, set its current price (the Set Price control on Portfolio) — until then, market value falls back to cost and unrealized P/L reads as zero even if you're actually up or down. The Dashboard's setup checklist counts these off in that order (broker → deposit → buy → price → dividend) but doesn't enforce it — you can complete them out of sequence." },
-      { q: "Do I need to complete all 5 onboarding checklist steps before the app is useful?", a: "No. The Dashboard's welcome panel just counts, out of 5, whether you have: a broker, a Deposit transaction, a Buy transaction, a current price set on any holding, and a Dividend transaction — it's a progress indicator, not a gate, and every page works with a partial setup. The one step worth prioritizing is the current price: without it, market value uses cost as a placeholder, so unrealized P/L and Total Return will understate or misstate your position even though the numbers are technically calculating." },
-      { q: "I only have positions I already owned — do I need to re-enter every historical Buy?", a: "Ideally, yes — entering your real Buy transactions (date, price, fees) keeps the exact cost of each purchase, so cost, realized profit and returns are worked out from your real trades. If you no longer have the full history, record one Buy per stock dated the day you started tracking, with your broker's average cost as the price, plus the Deposit that paid for it. Many records can go in at once through Settings → Import from CSV, with a preview before anything is saved. Dividends are counted only from the Dividend records you add." },
-    ] },
-    { title: "Core Calculations", items: [
-      { q: "How is Total Return calculated?", a: "Total Return = Unrealized P/L + Realized P/L + Net Dividends − standalone Fees. Trade commissions and taxes are already inside cost basis (buys) and realized P/L (sells), so they are not deducted twice." },
-      { q: "What's the difference between realized and unrealized P/L?", a: "Unrealized P/L = current market value − remaining cost basis of shares you still hold. Realized P/L = sale proceeds − average cost of sold shares − commission − taxes. Average-cost method is used." },
-      { q: "What is XIRR?", a: "XIRR (Extended Internal Rate of Return) is your money-weighted annual return. Unlike a simple return, it accounts for WHEN money entered and left your portfolio, so large contributions near the end don't unfairly flatter (or hurt) the percentage. It answers: 'what constant annual rate, compounded, turns my dated cash flows into my current account value?'" },
-      { q: "How is XIRR calculated?", a: "Methodology: the account boundary is your whole portfolio (holdings + cash). External flows are dated: each Deposit is negative (cash in), each Withdrawal is positive (cash out). Today's terminal value = current holdings market value + cash balance, as a final positive flow. Buys, Sells and Dividends are INTERNAL to the account (they move value between cash and securities, or generate cash that stays in the account), so they are already captured in the terminal value — adding them as separate flows would double-count. XIRR is then the rate r solving Σ flow_i / (1+r)^(years_i) = 0, found by Newton-Raphson with a bisection fallback. Requires at least one deposit and ≥7 days of history." },
-      { q: "Why is XIRR different from simple return?", a: "Simple return = (gain) ÷ (money invested), ignoring timing. XIRR is time-weighted by date and annualised. Example: depositing RM10,000 a year ago vs last week gives the same simple return but very different XIRR, because the recent money had almost no time to compound. XIRR is the fairer measure of the rate your money actually earned." },
-      { q: "How is the dividend forecast calculated?", a: "Methodology: not a flat TTM ÷ 12 run-rate. For each holding, past payment dates are used to detect a real frequency (monthly/quarterly/semi-annual/annual), and future pay dates are projected at that cadence up to 3 years out. History comes from your own logged dividends where you have at least 2; otherwise it falls back to the stock's real public dividend history (fetched automatically for any market), scaled to your current share count and today's FX rate. With at least 6 historical payments, a per-payment growth rate is also estimated (comparing your 3 most recent payments to the 3 before that, capped at ±25% per payment) and compounded forward, so a stock with a track record of raising its dividend projects growing future payments instead of a flat repeat. Any dividend already confirmed — one you marked 'Expected', or a near-term one already declared — is summed separately as a 'confirmed pipeline' so it's never mixed up with the pattern-based estimate." },
-      { q: "What happens if a company cuts or suspends its dividend?", a: "The forecast checks the single latest payment against the pattern — the same trailing baseline the growth-rate estimate uses (same position in the payment cycle one year back, or the average of the payments right before it). A drop of 15% or more marks the holding 'cut' and restarts the projection flat from that lower actual payment instead of compounding the pre-cut rate forward. If the next payment is now more than half a cycle overdue with nothing confirmed, it's marked 'suspended' instead, and the forecast stops projecting further payments for that ticker until a new one is recorded. Either state shows as a red badge on the Dividends page and on the holding's Dividend Summary, and also surfaces as a Dashboard warning." },
-      { q: "How accurate is the dividend forecast?", a: "It is a directional estimate, not a prediction. Accuracy is best for a holding with a long, regular payment history (own-logged or from public market data). It is least accurate for a brand-new holding with fewer than 2 payments on record anywhere, or a stock with irregular/special dividends that don't fit a monthly/quarterly/semi-annual/annual cadence." },
-      { q: "What are the forecast's limitations?", a: "It does NOT model: future buys or sells, changes in withholding tax, or FX movement on future payments (today's FX rate is used throughout). Growth detection needs at least 6 historical payments per holding — with fewer, the projection is flat (no growth applied). A one-off special dividend followed by the regular (lower) payment can also trigger a false 'cut' flag, since the forecast can't yet tell a special dividend apart from a real cut. Treat it as a planning aid only — never as guaranteed income." },
-      { q: "How is dividend tax handled?", a: "Net Dividend = Gross Dividend − Withholding Tax. Withholding tax is tracked per dividend and summarised by country (using the stock's real country from the lookup) in the Dividends page." },
-    ] },
-    { title: "Transaction Types & Reconciliation", items: [
-      { q: "What do the transaction types mean?", a: "Deposit/Withdrawal move cash in/out. Buy/Sell trade shares (and capture commission + taxes). Dividend records income (Received or Expected). Currency Exchange converts between currencies. Fee, Tax withholding, Interest, and Transfer-between-brokers cover the rest. DRIP / Reinvested is a shortcut, not a separate ledger type — see the next question." },
-      { q: "How does DRIP (dividend reinvestment) work?", a: "Add → DRIP / Reinvested records two ordinary, independently-editable transactions in one step: a Dividend (its cash is marked \"Reinvested\" so it never hits the broker's cash balance) and a Buy funded by that net dividend, at the reinvest price/share you enter — share count is derived automatically as (gross dividend − withholding tax) ÷ reinvest price. Because both legs are just a normal Dividend and a normal Buy, everything downstream — average cost, dividend income, dividend yield, yield on cost, forecasts — already accounts for them correctly with no special-casing. The two records aren't hard-linked after saving: each shows up and can be edited or deleted independently, like any other transaction." },
-      { q: "Why does a broker show a cash difference?", a: "Your calculated cash balance (deposits − buys − fees + sells + net dividends − withdrawals) differs from the actual balance you entered. Usually a missing fee, dividend or transfer entry. A negative balance means spending exceeded recorded cash." },
-    ] },
-    { title: "Multi-Currency & Exchange Rates", items: [
-      { q: "How does the app handle multiple currencies?", a: "Every transaction stores its original currency and amount permanently — a USD dividend stays USD, exactly as entered, forever. Base-currency figures (the ones shown in totals, charts, and cash reconciliation) are a derived display only: original amount × the FX rate saved on that specific transaction. That derived value is also cached on the transaction for exports and reporting, but it's a convenience snapshot, not the source of truth — the original currency and amount are what everything else recalculates from." },
-      { q: "Where do exchange rates come from?", a: "Either you type them in yourself, in Settings → Exchange Rates or directly into the FX-rate field while logging a transaction, or you click \"Refresh live rates,\" which queries a live rate service (open.er-api.com, falling back to frankfurter.app/ECB data if that's unreachable) and overwrites every non-base currency's stored rate with the current market rate. A refresh only updates the rates list used for new entries and current valuations — it never rewrites a rate already saved on a past transaction." },
-      { q: "If I update a rate or refresh live rates, do my old transactions change?", a: "No. Each transaction keeps the FX rate that was in effect (or that you typed) at the moment you saved it, and that stored rate — not the live one — is what its base-currency value is computed from from then on. Changing a rate in Settings, or refreshing live rates, only affects things going forward: new transactions and current holding/cash valuations pick it up, past transactions don't. The one way an old transaction's rate does change is if you open it, clear the FX field, and re-save it — then it falls back to whatever rate is currently stored for that currency." },
-      { q: "How do I change my base currency, and does it affect data I've already entered?", a: "Settings → Base Currency → pick a currency you already have a stored rate for (you're prompted to add one first if you don't). The app then rebases every stored rate against the new base — each rate is divided by the new base's old rate — so if you switch from MYR to USD, a JPY rate that was \"JPY→MYR\" becomes \"JPY→USD\", preserving its real-world value. This is a conversion, not a reset: no rate is deleted, and no transaction is touched — original currencies/amounts and each transaction's already-stored rate stay exactly as recorded. Only future transactions, live totals, and what \"Refresh live rates\" targets change." },
-      { q: "Why doesn't a transaction's base-currency amount match today's exchange rate?", a: "Because it isn't using today's rate. It's calculated once, at save time, from the original amount × the rate stored on that transaction, and it stays fixed even as the live rate moves afterward. If you multiply an old transaction's original amount by the rate currently shown in Settings, you'll usually get a different number — that's expected, not a bug; it reflects real currency movement between when the transaction happened and today." },
-    ] },
-    { title: "Data Import, Export & Backup", items: [
-      { q: "What's the difference between a JSON backup and a CSV export?", a: "A JSON backup is a complete snapshot of app state — every broker, holding, transaction (including pending 'Expected' dividends), manual/cached prices, reconciliation checks, settings, user profile, FX rates and portfolio-value history — in one versioned file. It exists for restore or migration: importing checks the file has the expected shape, warns you if it was made by a newer app version, then on confirm wholesale REPLACES your current data with the file's contents — there's no merge. CSV export is the opposite: three separate, spreadsheet-readable files (cash, transactions, dividends), each a flat table of one slice of your data, with no settings, prices or FX table included. Use the JSON backup to move to a new device or recover from a wipe; use CSV to inspect, share, or re-import transaction data." },
-      { q: "How does CSV import actually work?", a: "Start from the import template (Settings → Download CSV template) — a CSV pre-filled with one example row per transaction type, so the column layout is unambiguous. Fill in your rows and upload the file; nothing touches your ledger yet. Columns are matched by header name, not position (case-insensitive, so \"Amount\" works as well as \"Gross\"), and every row is validated, producing a preview table with a per-row status: Ready, Duplicate — skipped, Create broker first, or a specific error message. Only when you review the preview and click \"Import valid rows\" do the ready rows get pushed into the ledger and saved — rows with errors or an unresolved broker are excluded entirely, so you fix them in the spreadsheet and re-upload rather than getting partial garbage committed." },
-      { q: "Why do some rows show \"Duplicate — skipped\" when I import?", a: "Each row is reduced to a signature — broker + date + type + ticker (or \"—\") + amount + currency — checked against every existing transaction and the other rows in the same file. If that signature already exists, the row is marked duplicate and silently excluded from the import, even if it's otherwise valid. This is what makes re-uploading the same file safe — nothing gets double-entered. It's not a perfect fingerprint though: quantity and price aren't part of the signature, so two genuinely different Buy orders for the same ticker, broker, date, currency and gross amount would also be flagged as duplicates of each other." },
-      { q: "What columns do I need beyond Date, Broker and Type?", a: "Date, Broker and Type are required for every row — import fails outright if any column is missing. Buy/Sell need Quantity and Price (Gross is recalculated as Quantity × Price, so any Gross value in the file is ignored for these two types). Currency Exchange needs Gross (the amount sent, in Currency) plus To Currency and To Amount — To Currency must differ from Currency and To Amount must be a positive number, or the row errors. Transfer between brokers needs Gross plus To Broker, naming a different broker — an unrecognized Broker or To Broker gets the same one-click \"Create broker(s)\" quick-fix, so neither needs to already exist in your ledger before you import. Dividend and everything else (Deposit, Withdrawal, Fee, Tax withholding, Interest) just need a positive Gross; Dividend rows can additionally carry Status, Ex-Date and Pay Date." },
-      { q: "Is it safe to re-upload the same CSV import file twice?", a: "Yes. Every row's signature (broker + date + type + ticker + amount + currency) is checked against your existing transactions before anything is committed, so a second upload of an already-imported file shows every row as \"Duplicate — skipped\" and the ledger stays unchanged. This also means partial re-imports are safe: if you fix errors and re-upload the whole file, the rows that already made it in the first time are skipped and only the newly-valid ones get added." },
-      { q: "If I export my own transactions to CSV, can I re-import that file?", a: "Yes — the Transactions CSV header is a superset of the import template's columns, and columns are matched by name rather than position, so any extra column is simply ignored. Round-tripping export → re-import is a supported path. Because every row's signature matches what's already in the ledger, a straight re-import shows everything as duplicates and skips it — the round trip is really for verifying your export or seeding a fresh copy of the app, not for adding transactions back." },
-      { q: "What's in each of the three CSV exports, and how are they different?", a: "Transactions CSV is the full ledger — one row per transaction, every field, and the one that matches the import template column-for-column. Cash CSV is filtered to cash-moving types only — Deposit, Withdrawal, Interest, Fee, Tax withholding, Transfer between brokers, Currency Exchange, and Dividends that aren't still 'Expected' — with columns built around cash flow rather than security detail like quantity or price. Dividends CSV lists Dividend transactions only, showing Gross, Tax, and a computed Net (Gross − Tax) in both the original currency and your base currency. None of the three includes brokers, holdings, cached prices, settings or the FX table — for that, use the JSON backup." },
-    ] },
-    { title: "Cloud Sync", items: [
-      { q: "What is Cloud Sync?", a: "Cloud Sync copies your whole local ledger — every broker, transaction and setting — up to a Supabase-hosted account and back down again, so the same data appears when you open the app in a different browser or on a different device. It solves one problem: using the app on more than one device with the same data. It is not real-time collaboration — there's no live shared editing session, just a push of the entire local snapshot after each edit and a pull of the whole thing on sign-in." },
-      { q: "Do I have to set up Cloud Sync?", a: "No setup is needed. Divz asks you to create a free account (email and password) the first time you open it, and from then on your records are saved to that account automatically and appear on every device you sign in on. If Divz can't reach the sync service — you're offline, or this copy has none configured — it keeps working and stores your data on this device only." },
-      { q: "How does signing in work?", a: "Enter your email and a password on the opening page — 'Create an account' the first time, 'Sign in' after that. There's no magic-link email: sign-in is a direct email + password check, and creating an account may ask you to confirm your email before you can sign in. If you forget your password, use 'Forgot password?' on the sign-in page; you can also change it any time on the Account page (Security). The same email always maps to the same cloud account, so using it on a second device or browser links that device to the same data rather than creating a separate account." },
-      { q: "I signed in on a second device that already has its own data — what happens?", a: "If that device already has local transactions and your account already has cloud data from elsewhere, the app can't guess which one you want, so it opens a \"Choose which data to keep\" prompt showing both sides' transaction counts and last-changed times. \"Keep this device\" uploads the local copy and overwrites the cloud copy; \"Use my account's data\" downloads the cloud copy and overwrites what's local — whichever you don't pick is fully replaced, not merged. If only one side actually has data (a genuinely fresh device, or your first-ever sign-in), it resolves automatically in that direction with no prompt." },
-      { q: "What does \"last write wins\" actually mean?", a: "Each edit debounces a push of the full local snapshot to your account a few seconds later, and sign-in pulls that row down if it's newer than your last local edit. There is no field-level merge: if you edit on device A and device B before either has synced, whichever push reaches the server last simply overwrites the other device's row in its entirety, silently discarding the earlier device's changes — even edits to unrelated transactions. In practice, treat Cloud Sync as one edit session at a time, not a way to work on two devices concurrently." },
-      { q: "Does signing out delete my data?", a: "No. Signing out only ends the session; everything already saved to localStorage on that device stays exactly as it was. The app separately remembers which account's data currently occupies that device's storage, independent of whether you're signed in, so that if a different account signs in later it won't upload or merge in the leftover data — it clears it first instead, treating the device as fresh for that new account." },
-    ] },
-    { title: "Settings & Preferences", items: [
-      { q: "What does \"Default return view\" control?", a: "The Dashboard's main P/L stat card can show either Total Return or pure Unrealized P/L — this setting picks which one it opens with (there's also an in-card toggle right on the Dashboard that flips the view for your session without changing this default). Total Return = Unrealized P/L + Realized P/L + Net Dividends − standalone Fees, so it keeps moving even for positions you've fully sold or haven't touched today. Unrealized P/L here is strictly the paper gain/loss on current holdings (market value − cost basis) — it deliberately excludes realized gains, dividends and fees. These are genuinely different numbers: a fully-sold position can show zero Unrealized P/L while still carrying a large nonzero Total Return from the realized gain." },
-      { q: "What is \"Cost Basis Method\" and can I change it?", a: "It determines how cost basis — and therefore every realized and unrealized gain figure — is calculated when you sell part of a holding bought at different prices over time. Average Cost is the only method implemented right now: the dropdown has a single selectable option, and every gain/loss number in the app already uses it. FIFO is planned but not built, so there's no lot-selection choice to make yet — this panel currently just confirms which method is active rather than letting you switch." },
-      { q: "What does \"Time zone\" actually change?", a: "Only which calendar day counts as \"today\" — used for day-count math (e.g. days held since purchase) and for deciding whether an upcoming dividend has been paid yet or is still a forecast. It never rewrites or shifts a stored transaction date; those stay exactly as entered no matter what this is set to. \"Device local\" (the default) uses your browser's local date; picking an explicit zone matters mainly if the market/broker you're tracking runs on a different calendar day than the device you're viewing the app on." },
-      { q: "What does the Reconciliation \"Tolerance\" setting do?", a: "On the Brokers page, your calculated cash balance (deposits − buys − fees + sells + net dividends − withdrawals) is compared against the actual balance you entered. If the gap is within the Tolerance amount, expressed in your base currency, it's displayed as a small/minor difference rather than being flagged for review; above it, it's treated as a discrepancy worth investigating. It's purely a display threshold — it doesn't change the underlying calculation or hide the difference, just how urgently it's presented. Set it to 0 if you want any nonzero gap surfaced." },
-    ] },
-    { title: "Glossary", items: [
-      { q: "What does TTM mean?", a: "TTM stands for Trailing Twelve Months — a rolling 12-month window ending today, not a calendar year. Dividend Yield (TTM) is trailing 12-month net dividends ÷ current portfolio market value, and the same rolling window backs every other TTM figure you see, like \"Received TTM\" on the forecast panel." },
-      { q: "What is Yield on Cost?", a: "Based on what you originally paid (your average cost), not today's market value — it shows the effective income dividend growth has earned you over time on your original investment. Because the denominator stays fixed at cost while dividends can grow, Yield on Cost rises for a holding that keeps raising its payout even when the market-value-based Dividend Yield doesn't." },
-      { q: "What is the Diversification Score?", a: "An effective-N score based on portfolio weights — higher means more diversified. It's derived from the Herfindahl-Hirschman Index (HHI) of each holding's share of total market value: score = (1 − HHI) × 100, clamped to 0–100. The \"effective holdings\" number shown alongside it is 1 ÷ HHI — the count of equal-sized positions that would produce the same concentration — so it reads lower than your actual number of holdings whenever your position sizes are uneven." },
-      { q: "What is Cash Allocation?", a: "Cash as a percentage of total net value (market value + available cash), using cash aggregated across all brokers. A high number means more of your net worth is sitting uninvested; a number near 0% means you're close to fully invested." },
-      { q: "What is Cost Basis?", a: "The total amount you paid, in base currency, for the shares you currently hold — not their market value. Trade commissions and taxes on buys are capitalised into cost basis rather than tracked as separate fees, and a sell reduces it by the average cost of the shares sold (not by the sale proceeds), so a profitable sale doesn't distort the cost basis of what remains." },
-      { q: "What is Average Cost?", a: "Cost Basis ÷ Shares held — your weighted-average price paid per share. It's the only costing method the app currently applies to gain/loss figures (FIFO and others are planned but not yet available), so every sell draws from the blended average, never a specific lot." },
-      { q: "What's the difference between Net Capital Invested, Principal Invested, and Net Cash Added?", a: "They're the same number — Deposits − Withdrawals — shown under different labels depending on context: \"Principal Invested\" on the Dashboard, \"Net Cash Added\" on the Cash tab, and \"Net Capital Invested\" in the app's own formula reference. It measures money moved in and out, not investment performance, so it doesn't move when prices change." },
-      { q: "What are Net Dividends?", a: "Net Dividends = Gross Dividends − Withholding Tax. Withholding tax is tracked per dividend transaction and summarised by country (using the stock's real country from the lookup) on the Dividends page." },
-    ] },
+  /* [section title EN, section title ZH, [[question EN, answer EN, question ZH, answer ZH], ...]] */
+  const HELP = [
+    ["Getting started", "开始使用", [
+      ["Where do I start?", "Add a broker first (Brokers → Add Broker). A broker is the account where you keep your stocks, like Moomoo or Rakuten. Then press <b>+ Add</b> to record a Deposit (money you put in) and a Buy. If a stock shows no price, open it and press Set price. Everything else is worked out for you.",
+        "从哪里开始？", "先添加券商（券商页面 → 添加券商）。券商就是您存放股票的账户，例如 Moomoo 或 Rakuten。然后按 <b>+ 添加</b>，记录一笔存入（您投入的资金）和一笔买入。如果某只股票没有价格，请打开它并按“设置价格”。其余数字都会自动计算。"],
+      ["I already own stocks. How do I enter them?", "Enter each purchase as a Buy, using the date and price from your broker statement. That gives the most accurate profit. If you no longer have the history, add one Buy per stock with today's date and your broker's average cost, plus a Deposit for the money used. To add many at once, use Settings → Data & backup → Import from CSV. You see a preview before anything is saved.",
+        "我已经持有股票，要怎么录入？", "把每一次买入都记为一笔“买入”，日期和价格以券商对账单为准，这样算出的盈亏最准确。如果没有完整记录，可以每只股票记一笔买入（日期用今天，价格用券商显示的平均成本），再加一笔存入作为所用资金。要一次导入很多笔，请用 设置 → 数据与备份 → 从 CSV 导入，保存前可先预览。"],
+      ["Do I have to finish the setup checklist?", "No. The checklist in the bell is only a guide, and every page works with a partial setup. The one step worth doing early is the price: without it, a stock is valued at what you paid, so its profit shows as zero.",
+        "一定要完成设置清单吗？", "不用。铃铛里的清单只是指引，只做一部分设置各页面也能使用。值得尽早做的是设置价格：没有价格时，股票按买入成本估值，盈亏会显示为零。"],
+      ["How do I type a stock code?", "Type the code or the company name in Stock code and pick it from the list. The name, market and price fill in by themselves. Malaysian stocks end with .KL (typing 1155 becomes 1155.KL). US stocks are just the letters, like AAPL. Other markets use a suffix, for example D05.SI (Singapore) or 0700.HK (Hong Kong).",
+        "股票代码怎么输入？", "在“股票代码”中输入代码或公司名称，然后从列表里选择，名称、市场和价格会自动填好。马来西亚股票以 .KL 结尾（输入 1155 会变成 1155.KL）。美股只需字母，例如 AAPL。其他市场需要后缀，例如 D05.SI（新加坡）、0700.HK（香港）。"],
+      ["Do I need an account?", "Yes. Sign in with your email and a password. Your records are kept on your device and also copied to your account, so they follow you to another phone or computer. Forgot your password? Press Forgot password? on the sign-in page and we email you a reset link.",
+        "需要账户吗？", "需要。用电邮和密码登录。您的记录保存在设备上，同时复制到您的账户，换手机或电脑也能看到。忘记密码？在登录页按“忘记密码？”，我们会把重设链接发到您的电邮。"],
+      ["Can I use Divz on my phone?", "Yes. Open the website in your phone browser and sign in. For an app-like feel, choose Add to Home Screen (the Share button on iPhone, the browser menu on Android). On phones, wide tables swipe sideways and the first column stays in place.",
+        "手机上可以用吗？", "可以。在手机浏览器打开网站并登录即可。想要像 App 一样使用，请选择“添加到主屏幕”（iPhone 用分享按钮，安卓用浏览器菜单）。手机上较宽的表格可以左右滑动，第一列会固定不动。"],
+    ]],
+    ["Adding & fixing records", "添加与修改记录", [
+      ["What do the record types mean?", "<b>Buy</b> and <b>Sell</b>: trade shares. <b>Deposit</b> and <b>Withdrawal</b>: money into or out of a broker. <b>Dividend</b>: income from a stock. <b>Currency Exchange</b>: change money from one currency to another. <b>Fee</b>, <b>Tax withholding</b> and <b>Interest</b>: other money movements. <b>Transfer between brokers</b>: move cash from one broker to another. <b>DRIP / Reinvested</b>: a dividend used to buy more shares.",
+        "各种记录类型是什么意思？", "<b>买入</b>和<b>卖出</b>：买卖股票。<b>存入</b>和<b>提取</b>：资金进出券商。<b>股息</b>：股票带来的收入。<b>货币兑换</b>：把一种货币换成另一种。<b>费用</b>、<b>预扣税</b>和<b>利息</b>：其他资金变动。<b>券商间转账</b>：把现金从一个券商转到另一个。<b>股息再投资</b>：用股息买入更多股份。"],
+      ["How do I record a dividend I received?", "Press <b>+ Add</b> → Dividend. Choose the broker and stock, the date, the amount before tax (Gross) and any tax taken. Divz shows the net amount you received. For foreign stocks, tax is often taken at source (for example 30% on US stocks). You can set a default rate per country in Settings → Preferences → Dividend tax by country, or per broker on its page.",
+        "怎么记录收到的股息？", "按 <b>+ 添加</b> → 股息，选择券商和股票、日期、税前金额（总额）以及被扣的税。Divz 会显示您实际收到的净额。外国股票的税通常在源头就被扣掉（例如美股 30%）。您可以在 设置 → 偏好设置 → 各国股息税 为每个国家设默认税率，也可以在券商页面为单个券商设置。"],
+      ["Divz says it found dividends. Why are they not added already?", "Divz can spot dividends your stocks paid that you have not recorded. It never adds them by itself, because a dividend may have gone to a different broker or account. Check each one and press Add if it is yours.",
+        "Divz 说发现了股息，为什么没有自动加入？", "Divz 能发现您的股票派发了、但您还没记录的股息。它不会自动加入，因为这笔股息可能进了另一个券商或账户。请逐笔确认，属于您的再按“添加”。"],
+      ["How do I edit or delete a record?", "Go to Transactions. Each row has a pencil (edit) and a bin (delete). On a phone, tap the row first. Your numbers update straight away, so check them after a change.",
+        "怎么修改或删除记录？", "进入“交易记录”页面，每一行都有铅笔（编辑）和垃圾桶（删除）。手机上请先点一下该行。数字会立即更新，修改后请核对一下。"],
+      ["It says a sell is more than the shares I hold. What does that mean?", "You sold more shares than your records show you bought. Usually a Buy is missing, or shares you already owned were never entered. Add the missing Buy and the warning goes away. If the numbers really are right, tick the override on that sell (Allow selling more shares than currently held). If the extra shares were a bonus issue or a gift, record them as a Buy and tick Free shares (bonus issue or gift — no cost).",
+        "提示卖出数量超过持股，是什么意思？", "您卖出的股数比记录中买入的还多。通常是漏记了一笔买入，或者原有持股没有录入。补上缺少的买入，提示就会消失。如果数字确实没错，可在该笔卖出上勾选“允许卖出超过当前持股（强制）”。如果多出的股份是红股或赠送的，请记为一笔买入并勾选“免费股份（红股或赠送，无成本）”。"],
+      ["How do I record a dividend that bought more shares (DRIP)?", "Press <b>+ Add</b> → DRIP / Reinvested. Enter the dividend and the price per share it was reinvested at. Divz records the Dividend and the Buy together and works out the number of shares. No cash moves, because the dividend went straight into the shares.",
+        "股息再投资（DRIP）怎么记录？", "按 <b>+ 添加</b> → 股息再投资，填入股息金额和再投资时的每股价格。Divz 会同时记录股息和买入，并算出股数。不涉及现金变动，因为股息直接变成了股份。"],
+      ["How do I move money between brokers or currencies?", "Use <b>Transfer between brokers</b> to move cash from one broker to another, and <b>Currency Exchange</b> to change money between currencies at a broker. Both keep your totals correct and do not count as profit or loss.",
+        "怎么在券商或货币之间转钱？", "用<b>券商间转账</b>把现金从一个券商转到另一个，用<b>货币兑换</b>在同一券商内换货币。两者都不会改变您的总额，也不算盈亏。"],
+      ["Why does a broker show a cash difference?", "Divz works out each broker's cash from your records (deposits − buys − fees + sells + dividends − withdrawals). If that differs from the balance you typed in, a fee, dividend or transfer is usually missing. Switch on Settings → Preferences → Show reconciliation on Brokers page to use this check.",
+        "为什么券商显示现金有差额？", "Divz 根据您的记录算出每个券商的现金（存入 − 买入 − 费用 + 卖出 + 股息 − 提取）。如果和您填的实际余额不同，通常是漏记了费用、股息或转账。到 设置 → 偏好设置 打开“在券商页面显示对账”即可使用这个检查。"],
+    ]],
+    ["Understanding your numbers", "看懂您的数字", [
+      ["What is net worth?", "Everything you have in Divz added up: the value of your stocks plus the cash in your brokers. Tap the card on the Dashboard to see how it is added up.",
+        "净资产是什么？", "您在 Divz 里所有资产的总和：股票市值加上各券商的现金。点一下仪表盘上的卡片可以看到计算过程。"],
+      ["What is the difference between total return, unrealized and realized?", "<b>Unrealized</b> is the gain or loss on shares you still own (today's value minus what you paid). <b>Realized</b> is the profit or loss locked in by shares you sold. <b>Total return</b> = unrealized + realized + dividends − fees.",
+        "总回报、未实现和已实现有什么区别？", "<b>未实现</b>是您仍持有的股票的盈亏（今天的价值减去买入成本）。<b>已实现</b>是已卖出股票锁定的盈亏。<b>总回报</b> = 未实现 + 已实现 + 股息 − 费用。"],
+      ["Why is the total return on the Dashboard different from Portfolio?", "Portfolio only counts the shares you still hold. The Dashboard also counts stocks you already sold, plus dividends and interest, minus fees. So the Dashboard is the full picture.",
+        "为什么仪表盘的总回报和投资组合页不一样？", "投资组合页只统计您仍持有的股票。仪表盘还包括已卖出的股票、股息和利息，并扣除费用，所以仪表盘才是完整的数字。"],
+      ["Why is my profit different from my broker's app?", "The usual reasons: (1) Divz counts buying fees as part of your cost, most broker apps do not. (2) The cost method may differ (average cost or FIFO). (3) Exchange rates differ. (4) Divz also counts dividends, interest and fees in total return. Open a stock to see its numbers broken down.",
+        "为什么盈亏和券商 App 显示的不同？", "常见原因：(1) Divz 把买入费用算进成本，多数券商 App 不算。(2) 成本计算方法可能不同（平均成本或先进先出）。(3) 汇率不同。(4) Divz 的总回报还包括股息、利息和费用。打开某只股票可以看到数字的分项。"],
+      ["Average cost or FIFO: which one should I use?", "This only matters when you sell part of a stock you bought at different prices. <b>Average cost</b> treats every share as costing the average of all your buys. <b>FIFO</b> (first in, first out) treats the oldest shares as the ones sold. Cash is the same either way. Only the profit shown on the sale, and the cost of what you still hold, change. Pick what your tax rules or broker use. You can switch any time in Settings → Preferences → Cost basis method.",
+        "平均成本和先进先出（FIFO）该选哪个？", "只有当您分批以不同价格买入、又卖出一部分时才有区别。<b>平均成本法</b>把每股成本算成所有买入的平均价。<b>先进先出</b>则把最早买入的股份当作先卖出的。无论哪种，现金都一样，只有这笔卖出显示的盈亏和剩余持仓成本会变。请选择与您的税务规则或券商一致的方法，随时可在 设置 → 偏好设置 → 成本计算方法 切换。"],
+      ["What is the annual return (XIRR)?", "A yearly rate that takes into account <i>when</i> you added or took out money. A simple percentage ignores timing, so it can flatter you if most of your money went in recently. It needs at least one deposit and about a week of history.",
+        "年化回报（XIRR）是什么？", "一个年化收益率，会考虑您<i>什么时候</i>投入或取出资金。简单的百分比不考虑时间，如果大部分资金是最近才投入的，它会显得偏高。至少需要一笔存入和大约一周的记录。"],
+      ["What are dividend yield and yield on cost?", "<b>Dividend yield</b> = dividends received in the last 12 months ÷ the current value of your holdings. <b>Yield on cost</b> = the same dividends ÷ what you originally paid. Yield on cost grows when a company keeps raising its dividend, even if the share price does not move.",
+        "股息率和成本收益率是什么？", "<b>股息率</b> = 过去 12 个月收到的股息 ÷ 持仓当前市值。<b>成本收益率</b> = 同样的股息 ÷ 您当初付出的成本。如果公司不断提高股息，成本收益率会上升，即使股价没有变动。"],
+      ["What is the diversification score?", "A number from 0 to 100. Higher means your money is spread more evenly over more stocks. If everything is in one stock, it is 0. It is only a guide to how concentrated you are, not advice.",
+        "分散度分数是什么？", "0 到 100 的数字，越高表示资金越均匀地分散在越多的股票上。如果全部资金都在一只股票上，分数就是 0。它只是反映集中程度的参考，不是投资建议。"],
+      ["What does Money invested mean?", "Deposits minus withdrawals. It is the money you moved in and out, so it does not change when prices go up or down.",
+        "“投入资金”是什么意思？", "存入减去提取，也就是您转入和转出的资金，所以不会随价格涨跌而变化。"],
+    ]],
+    ["Prices & currency", "价格与货币", [
+      ["Where do the prices come from?", "Divz fetches live market prices when you open a page, and you can refresh them with the round arrows at the top right. Prices can be a few minutes late and are for information only. A label such as Prices set manually means you typed the price yourself.",
+        "价格从哪里来？", "打开页面时 Divz 会获取实时行情，也可以按右上角的圆形箭头刷新。价格可能有几分钟延迟，仅供参考。像“价格为手动设置”这样的标签表示价格是您自己输入的。"],
+      ["A stock has no price, or says No market data.", "Most often the code is not in the right format, for example 1155 instead of 1155.KL. Open the stock, check the code, and fix it in the record if needed. You can also type the price yourself with Set price on the stock page.",
+        "股票没有价格，或显示“没有市场数据”。", "最常见的原因是代码格式不对，例如写成 1155 而不是 1155.KL。打开该股票检查代码，必要时到记录里修改。您也可以在股票页面按“设置价格”自己输入。"],
+      ["How are different currencies shown?", "Your base currency is the main amount. When a stock or broker uses another currency, the original amount appears underneath in small grey text, for example RM 15,185 with USD 3,231 below it. Every record remembers the exchange rate from the day you saved it.",
+        "不同货币怎么显示？", "您的基准货币是主要金额。当股票或券商使用其他货币时，原始金额会以灰色小字显示在下方，例如 RM 15,185 下面是 USD 3,231。每条记录都会记住保存当天的汇率。"],
+      ["If exchange rates change, do my old records change?", "No. A record keeps the rate from the day you saved it. Changing a rate or refreshing live rates only affects new records and today's value of what you own.",
+        "汇率变了，旧记录会变吗？", "不会。每条记录保留保存当天的汇率。修改汇率或刷新实时汇率，只影响新记录和您当前持仓的现值。"],
+      ["How do I add a currency or change my base currency?", "Settings → Currency. To add one, press Choose currency, search for it, and press Add (today's rate fills in for you). To change your base currency, pick a new one in Base currency. Divz converts every stored rate, and nothing is deleted.",
+        "怎么添加货币或更改基准货币？", "设置 → 货币。添加：按“选择货币”，搜索后按“添加”（今天的汇率会自动填入）。更改基准货币：在“基准货币”里选新的货币。Divz 会换算所有已保存的汇率，不会删除任何东西。"],
+    ]],
+    ["Dividends", "股息", [
+      ["What is the difference between ex-dividend date and payment date?", "You must own the shares <b>before</b> the ex-dividend date to receive the dividend. The money is paid later, on the payment date, often a few weeks after. When a payment date is a guess, it is marked Estimated.",
+        "除息日和派息日有什么区别？", "您必须在<b>除息日之前</b>持有股份才能领取股息。钱会在之后的派息日发放，通常要隔几周。如果派息日只是估算，会标注“估算”。"],
+      ["How is the dividend forecast made?", "Divz looks at when a stock paid in the past (your own records, or the stock's public history) to see how often it pays, then projects that forward using the shares you own now. It is an estimate, not a promise. It is least accurate for a stock you just bought or one that pays special dividends. It does not know about future buying or selling, tax changes or exchange rates.",
+        "股息预测是怎么算的？", "Divz 查看股票过去的派息时间（您自己的记录，或该股票的公开历史）来判断派息频率，再按您目前的持股数往后推算。这只是估计，不是承诺。对刚买入的股票或会派特别股息的股票最不准。它不知道您以后的买卖、税率变化或汇率变化。"],
+      ["What is the If you keep what you own section?", "It adds up the dividends you could collect over the next 1, 3, 5 and 10 years if you buy and sell nothing more. You can choose how much the dividends grow each year (0%, 3% or 6%). Set the starting choice in Settings → Preferences → Dividend growth shown.",
+        "“如果您继续持有”这一部分是什么？", "它把您如果不再买卖，未来 1、3、5、10 年可能收到的股息加起来。您可以选择股息每年的增长幅度（0%、3% 或 6%）。起始选项可在 设置 → 偏好设置 → 默认股息增长 设置。"],
+      ["What if a company cuts or stops its dividend?", "Divz shows a red badge when the latest payment is at least 15% lower than usual (cut), or when the next one is long overdue (suspended). The forecast then stops assuming the old amount.",
+        "公司减少或停止派息会怎样？", "当最近一次派息比平时低至少 15%（减息），或下一次明显逾期（暂停）时，Divz 会显示红色标记，预测也不再沿用旧的金额。"],
+      ["What does Received or Expected mean?", "<b>Received</b> dividends have been paid to you and count in your income. <b>Expected</b> ones have not been paid yet, so they only appear as upcoming.",
+        "“已收到”和“预计”是什么意思？", "<b>已收到</b>的股息已经派给您，计入收入。<b>预计</b>的还没有派发，只会作为即将到来的股息显示。"],
+    ]],
+    ["Your data & account", "数据与账户", [
+      ["Who can see my records?", "Your records are saved on your device and copied to your own account so they follow you between devices. Read the Privacy Policy (link at the bottom of every page) for the full details.",
+        "谁能看到我的记录？", "您的记录保存在设备上，并复制到您自己的账户，方便您在不同设备间使用。完整说明请看隐私政策（每页底部的链接）。"],
+      ["Can I use Divz on two devices?", "Yes, one at a time. After you change something, wait a few seconds for it to save, then open the other device. If you change things on two devices at the same time, whichever saves last replaces the other, so avoid that.",
+        "可以在两台设备上使用吗？", "可以，但请一次用一台。修改后等几秒让它保存，再打开另一台设备。如果两台设备同时修改，后保存的会覆盖先保存的，请避免这样做。"],
+      ["I signed in on a new device that already had data. What now?", "Divz asks which copy to keep: the one on this device or the one in your account. Check the number of transactions and the date on each, then choose. The other copy is replaced.",
+        "我在已有数据的新设备上登录了，怎么办？", "Divz 会询问保留哪一份：本设备上的，还是账户里的。请看看各自的交易笔数和日期再选择，另一份会被替换。"],
+      ["Does signing out delete my data?", "No. Signing out only ends your session. Your records stay on the device. If a different account signs in on the same device later, Divz clears the leftovers first so the two accounts never mix.",
+        "退出登录会删除数据吗？", "不会。退出登录只是结束本次登录，记录仍保留在设备上。如果之后有另一个账户在同一台设备登录，Divz 会先清掉遗留数据，避免两个账户混在一起。"],
+      ["How do I back up my data?", "Settings → Data & backup → <b>Export full backup (JSON)</b>. Keep the file somewhere safe. To go back to a backup, use Import backup, or Restore from cloud to bring back the copy in your account. You can also switch on a backup reminder there.",
+        "怎么备份数据？", "设置 → 数据与备份 → <b>导出完整备份 (JSON)</b>，并把文件保存在安全的地方。要恢复备份，用“导入备份”；想取回账户里的副本，用“从云端恢复”。您也可以在那里打开备份提醒。"],
+      ["How do I get my records into Excel, or make a tax report?", "Settings → Data & backup. Export Transactions, Cash or Dividends as CSV, which Excel opens. For a yearly summary, use <b>Yearly tax report</b>: pick a year, then Excel (CSV) or PDF. It lists the dividends you received (with tax) and the profit on shares you sold. It is a record-keeping summary, not tax advice.",
+        "怎么把记录导到 Excel，或生成税务报告？", "设置 → 数据与备份。可以把交易、现金或股息导出为 CSV，Excel 可直接打开。要年度汇总，请用<b>年度税务报告</b>：选择年份，再选 Excel (CSV) 或 PDF。它列出您收到的股息（含税）和卖出股票的盈亏。这只是记录汇总，不构成税务建议。"],
+      ["Is it safe to upload the same CSV twice?", "Yes. Divz recognises rows it already has and skips them, and shows you a preview before anything is saved. Download the CSV template from the same page to see the format.",
+        "同一个 CSV 上传两次安全吗？", "安全。Divz 会识别已有的行并跳过，保存前也会先让您预览。可以在同一页面下载 CSV 模板查看格式。"],
+      ["How do I hide my amounts?", "Press the eye icon at the top right of any page. Amounts turn into dots (RM ••••). Press it again to show them. The same switch is in Settings → Appearance.",
+        "怎么隐藏金额？", "按任意页面右上角的眼睛图标，金额会变成圆点（RM ••••），再按一次就恢复显示。同样的开关也在 设置 → 外观。"],
+      ["How do I change the language or dark mode?", "Use the Dark mode and EN / 中文 buttons in the side menu (on a phone, in More), or Settings → Appearance.",
+        "怎么切换语言或深色模式？", "使用侧边菜单里的“深色模式”和 EN / 中文 按钮（手机上在“更多”里），或 设置 → 外观。"],
+      ["How do I delete everything?", "Settings → Danger zone → Clear all data. It removes every broker, holding and transaction saved in this browser and cannot be undone, so export a backup first.",
+        "怎么清空所有数据？", "设置 → 危险区域 → 清除所有数据。它会删除此浏览器中保存的所有券商、持仓和交易，且无法撤销，请先导出备份。"],
+    ]],
+    ["Settings guide", "设置说明", [
+      ["What can I change in Settings?", "<b>Currency</b>: base currency and exchange rates. <b>Appearance</b>: theme, language, privacy mode. <b>Preferences</b>: date format, time zone, default return view, number format, dividend growth, start page, default broker, cost method, dividend tax by country. <b>Data & backup</b>: backups, CSV, tax report. <b>Danger zone</b>: reset preferences or clear all data.",
+        "设置里可以改什么？", "<b>货币</b>：基准货币和汇率。<b>外观</b>：主题、语言、隐私模式。<b>偏好设置</b>：日期格式、时区、默认回报视图、数字格式、股息增长、起始页面、默认券商、成本方法、各国股息税。<b>数据与备份</b>：备份、CSV、税务报告。<b>危险区域</b>：重置偏好设置或清除所有数据。"],
+      ["What does Time zone change?", "Only which calendar day counts as today (for example, for days held, and for deciding whether a dividend has been paid yet). It never changes the dates you saved on your records.",
+        "时区会改变什么？", "只会改变哪一天算“今天”（例如计算持有天数，以及判断某笔股息是否已经派发）。它绝不会改动您记录上已保存的日期。"],
+      ["What is the Default return view?", "The main profit card on the Dashboard can show Total return or only Unrealized gain. This setting picks which one it opens with.",
+        "“默认回报视图”是什么？", "仪表盘上的主要盈亏卡片可以显示总回报，或只显示未实现盈亏。这个设置决定它默认显示哪一个。"],
+    ]],
+    ["Something is not working", "遇到问题", [
+      ["My numbers look wrong. What should I check?", "Go through this list: (1) Is every Buy, Sell and Deposit recorded, with the right date and price? (2) Does each stock have a price? (3) Is the currency and exchange rate right on foreign records? (4) Which cost method is selected? (5) Does the Brokers page show a cash difference? Most wrong numbers come from a missing or mistyped record. If it still looks wrong, contact me below with a screenshot.",
+        "我的数字看起来不对，该检查什么？", "请逐项检查：(1) 每一笔买入、卖出和存入是否都记录了，日期和价格是否正确？(2) 每只股票是否有价格？(3) 外币记录的货币和汇率是否正确？(4) 选的是哪种成本方法？(5) 券商页面是否显示现金差额？大多数数字不对都是因为漏记或输错记录。如果仍然不对，请在下方联系我并附上截图。"],
+      ["I do not see the latest version or my changes.", "Refresh the page. When a new version is ready, Divz shows A new version of Divz is ready at the top: press Refresh. If you use the Home Screen app, close it completely and open it again.",
+        "看不到最新版本或我的修改。", "刷新页面。有新版本时，Divz 会在顶部显示“Divz 有新版本了”，按“刷新”即可。如果您用的是主屏幕上的 App，请完全关闭后重新打开。"],
+      ["My changes do not show on my other device.", "Wait a few seconds after changing something so it can save, make sure both devices use the same account, then refresh the other device.",
+        "我的修改没有出现在另一台设备上。", "修改后等几秒让它保存，确认两台设备用的是同一个账户，然后刷新另一台设备。"],
+      ["Every amount shows dots.", "Privacy mode is on. Press the eye icon at the top right to show amounts again.",
+        "所有金额都显示成圆点。", "隐私模式已开启。按右上角的眼睛图标即可恢复显示金额。"],
+      ["The table is cut off on my phone.", "Swipe the table sideways. The first column stays in place while the rest slides.",
+        "手机上表格显示不全。", "把表格向左右滑动，第一列会固定不动，其余部分滑动。"],
+      ["It says I need a broker before recording.", "Every record belongs to a broker, so add one first (Brokers → Add Broker), then try again.",
+        "提示记录前需要先有券商。", "每条记录都属于某个券商，请先添加券商（券商页面 → 添加券商），再重试。"],
+      ["Is Divz financial or tax advice?", "No. Divz is a tool to keep your own records and see your numbers. It does not give investment, tax or legal advice, and forecasts are estimates.",
+        "Divz 是投资或税务建议吗？", "不是。Divz 只是帮您记录和查看自己数字的工具，不提供投资、税务或法律建议，预测也只是估计。"],
+    ]],
   ];
-  const sectionsZH = [
-    { title: "入门指南", items: [
-      { q: "应该按什么顺序设置？", a: "先添加券商——每笔交易都必须归属于某个券商，因此在此之前无法记录任何其他内容。接下来记录您存入的资金（存款）和买入的股票（买入）。如果您在开始使用本应用前就已持有股票，也请将它们记为买入交易，并使用券商对账单上的原始日期和价格，这样成本和盈亏就是根据您真实的交易计算出来的。存款和取款请随时记录，这样每个券商的计算现金余额才有意义。持仓建立后，请设置其当前价格（投资组合页的设价功能）——在此之前，市值会以成本作为占位值，即使实际有盈亏，未实现盈亏也会显示为零。仪表盘的设置清单按此顺序（券商 → 存款 → 买入 → 价格 → 股息）计数，但并不强制要求——您可以不按顺序完成。" },
-      { q: "使用本应用前，是否需要完成全部 5 项入门清单才有用？", a: "不需要。仪表盘欢迎面板只是统计以下 5 项中完成了几项：一个券商、一笔存款交易、一笔买入交易、任一持仓设置了当前价格、一笔股息交易——这只是进度提示，并非门槛，即使设置不完整，各页面也都能正常使用。最值得优先完成的是设置当前价格：在此之前，市值会以成本作为占位值，因此即使数字看似在正常计算，未实现盈亏和总回报也会被低估或误判。" },
-      { q: "我只有已持有的仓位——需要重新录入每一笔历史买入吗？", a: "最好是需要——录入真实的买入交易（日期、价格、费用）能保留每笔买入的确切成本，让成本、已实现盈亏和回报都根据您的真实交易计算。如果您已没有完整的交易记录，可以为每只股票记录一笔买入，日期设为您开始记录的那天，价格填券商显示的平均成本，并同时记录用于支付的存款。如需一次录入多笔记录，可使用「设置 → 从 CSV 导入」，保存前可先预览。股息只会根据您添加的股息记录来统计。" },
-    ] },
-    { title: "核心计算方式", items: [
-      { q: "总回报是如何计算的？", a: "总回报 = 未实现盈亏 + 已实现盈亏 + 净股息 − 独立费用。买入的佣金和税费已计入成本，卖出的已计入已实现盈亏，因此不会重复扣除。" },
-      { q: "已实现与未实现盈亏有什么区别？", a: "未实现盈亏 = 当前市值 − 仍持有股票的剩余成本。已实现盈亏 = 卖出所得 − 已卖出股票的平均成本 − 佣金 − 税费。采用平均成本法。" },
-      { q: "什么是 XIRR？", a: "XIRR（扩展内部收益率）是按资金加权的年化回报率。与简单回报不同，它考虑了资金进出投资组合的时间，因此临近期末的大额投入不会不公平地美化（或拖累）百分比。它回答：'哪一个固定的年化复利率，能把我带日期的现金流变成当前的账户价值？'" },
-      { q: "XIRR 是如何计算的？", a: "方法：账户边界为整个投资组合（持仓 + 现金）。外部现金流按日期计入：每笔存款为负（现金流入），每笔取款为正（现金流出）。今天的终值 = 当前持仓市值 + 现金余额，作为最后一笔正现金流。买入、卖出和股息属于账户内部（在现金与证券间转移价值，或产生留在账户内的现金），已包含在终值中——若再作为单独现金流会重复计算。XIRR 即求解 Σ 现金流 / (1+r)^(年数) = 0 的利率 r，采用牛顿法并以二分法兜底。至少需一笔存款且 ≥7 天历史。" },
-      { q: "为什么 XIRR 与简单回报不同？", a: "简单回报 = 收益 ÷ 投入金额，忽略时间。XIRR 按日期加权并年化。例如：一年前投入 RM10,000 与上周投入，简单回报相同，但 XIRR 差别很大，因为近期资金几乎没有时间复利。XIRR 更公平地衡量您资金实际赚取的回报率。" },
-      { q: "股息预测是如何计算的？", a: "方法：并非简单的 TTM ÷ 12 运行率。系统会为每个持仓从过去的派息日期侦测真实的派息频率（每月/每季/每半年/每年），并按该周期向未来预测最多 3 年的派息日期。历史数据优先使用您自己记录的股息（至少 2 笔）；不足时改用该股票的真实公开股息历史（自动获取，涵盖各市场），并按您当前持股数与当前汇率换算。若历史派息达 6 笔以上，还会估算每次派息的增长率（比较最近 3 笔与之前 3 笔的均值，增长率上限为每次派息 ±25%）并向前复利，因此有加息记录的股票会预测出增长的未来派息，而非简单重复。任何已确认的股息——您标记为「预期」的，或近期已宣布的——会单独汇总为「已确认管道」，绝不与规律预测混淆。" },
-      { q: "如果公司削减或暂停股息会怎样？", a: "预测会将最新一笔派息与规律模型进行比对——采用与增长率估算相同的基准（周期中同一位置的一年前派息，或紧邻其前的几笔派息均值）。若跌幅达 15% 或以上，该持仓会被标记为「削减」，并以该笔较低的实际派息为起点重新持平预测，而不再按削减前的增长率向前复利。若下一笔派息已超过半个周期仍未到账且无已确认记录，则标记为「暂停」，预测会停止为该股票继续推算未来派息，直到记录到新的派息为止。这两种状态都会在股息页面与该持仓的股息摘要中显示为红色徽章，并同时作为仪表盘警告出现。" },
-      { q: "股息预测有多准确？", a: "这是方向性估算，并非预测。对于拥有长期、规律派息记录（无论是您自己记录的还是来自公开市场数据）的持仓最准确；对于任何来源派息记录都不足 2 笔的全新持仓，或不符合每月/每季/每半年/每年周期的不规则/特别股息股票最不准确。" },
-      { q: "股息预测有哪些局限？", a: "它不建模：未来的买卖、预扣税变动，或未来派息的汇率波动（全程使用当前汇率）。增长侦测需要每个持仓至少 6 笔历史派息记录——不足时预测为持平（不套用增长）。一次性特别股息之后紧接的常规（较低）派息，也可能误判为「削减」，因为目前系统尚无法区分特别股息与真正的削减。请仅作为规划参考，切勿视为有保证的收入。" },
-      { q: "股息税是如何处理的？", a: "净股息 = 总股息 − 预扣税。预扣税按每笔股息记录，并在股息页面按国家/地区（使用查询得到的真实国家）汇总。" },
-    ] },
-    { title: "交易类型与对账", items: [
-      { q: "各交易类型是什么意思？", a: "存款/取款用于现金进出。买入/卖出用于交易股票（并记录佣金和税费）。股息记录收入（已收到或预期）。货币兑换在货币间转换。费用、预扣税、利息和券商间转账涵盖其余情况。股息再投资（DRIP）是一种快捷方式，而非独立的账本类型——详见下一个问题。" },
-      { q: "股息再投资（DRIP）是如何运作的？", a: "添加 → 股息再投资（DRIP）会一次性记录两笔普通且可独立编辑的交易：一笔股息记录（其现金标记为「已再投资」，因此不会计入券商现金余额）和一笔由该笔净股息资助的买入交易，按您输入的再投资单价计算——股数会自动计算为（股息总额 − 预扣税）÷ 再投资单价。由于这两笔记录本质上就是普通的股息和买入交易，后续所有计算——平均成本、股息收入、股息收益率、成本收益率、预测——无需任何特殊处理即可正确计入。保存后这两笔记录并非强制关联：每笔都会像其他任何交易一样单独显示，并可独立编辑或删除。" },
-      { q: "为什么券商会显示现金差异？", a: "您的计算现金余额（存款 − 买入 − 费用 + 卖出 + 净股息 − 取款）与您输入的实际余额不一致，通常是漏记了费用、股息或转账。余额为负表示支出超过了已记录的现金。" },
-    ] },
-    { title: "多币种与汇率", items: [
-      { q: "应用如何处理多种货币？", a: "每笔交易都会永久保存其原始货币和金额——一笔美元股息将始终以美元记录，完全按输入保存。基础货币金额（在总计、图表和现金对账中显示的数值）只是一种衍生显示：原始金额 × 该笔交易所保存的汇率。这个衍生值也会缓存在交易记录中用于导出和报表，但它只是便利性快照，并非数据的真实来源——原始货币和金额才是其他一切重新计算的依据。" },
-      { q: "汇率从何而来？", a: "您可以自行在设置 → 汇率中输入，或在记录交易时直接在汇率字段中输入；也可以点击「刷新实时汇率」，从实时汇率服务（open.er-api.com，若无法访问则回退至 frankfurter.app / 欧洲央行数据）查询并用当前市场汇率覆盖每种非基础货币的已存汇率。刷新只会更新用于新记录和当前估值的汇率列表——绝不会改写已保存在某笔历史交易上的汇率。" },
-      { q: "更新汇率或刷新实时汇率后，我的旧交易会改变吗？", a: "不会。每笔交易都保留其保存那一刻生效（或您手动输入）的汇率，此后其基础货币金额始终以该保存的汇率——而非实时汇率——计算。在设置中修改汇率，或刷新实时汇率，只会影响此后的情况：新交易和当前持仓/现金估值会采用新汇率，历史交易不受影响。唯一会改变某笔旧交易汇率的方式，是打开该交易、清空汇率字段并重新保存——此时它会回退为该货币当前保存的汇率。" },
-      { q: "如何更改基础货币？这会影响我已录入的数据吗？", a: "设置 → 基础货币 → 选择一个您已有保存汇率的货币（若没有，会提示您先添加）。应用随后会以新基础货币重新计算每个已存汇率——每个汇率都会除以新基础货币的旧汇率——因此若您从 MYR 切换到 USD，原本「JPY→MYR」的汇率会变为「JPY→USD」，保持其真实价值不变。这是一次换算，而非重置：不会删除任何汇率，也不会触碰任何交易——原始货币/金额，以及每笔交易已保存的汇率均保持记录不变。只有未来的交易、实时总计，以及「刷新实时汇率」的作用对象会改变。" },
-      { q: "为什么某笔交易的基础货币金额与今天的汇率对不上？", a: "因为它使用的本来就不是今天的汇率。该金额只在保存那一刻计算一次，即原始金额 × 该交易保存的汇率，此后即使实时汇率变动，它也保持固定。如果您用某笔旧交易的原始金额乘以设置中当前显示的汇率，通常会得到不同的数字——这是正常现象，并非错误；它反映的是交易发生时至今真实的汇率变动。" },
-    ] },
-    { title: "数据导入、导出与备份", items: [
-      { q: "JSON 备份和 CSV 导出有什么区别？", a: "JSON 备份是应用状态的完整快照——每个券商、持仓、交易（包括待定的「预期」股息）、手动/缓存价格、对账记录、设置、用户资料、汇率及投资组合价值历史——全部保存在一个带版本号的文件中。它的用途是恢复或迁移：导入时会检查文件是否具有预期的结构，若文件由更新版本的应用生成会提示您，确认后会将当前数据整体替换为文件内容——不进行合并。CSV 导出则相反：三个独立、可用电子表格阅读的文件（现金、交易、股息），每个都是数据某一切面的平铺表格，不包含设置、价格或汇率表。需要迁移到新设备或从数据丢失中恢复时使用 JSON 备份；需要查看、分享或重新导入交易数据时使用 CSV。" },
-      { q: "CSV 导入具体是如何运作的？", a: "从导入模板开始（设置 → 下载 CSV 模板）——一份为每种交易类型预填一行示例的 CSV，使列结构一目了然。填好您的数据行后上传文件，此时尚不会改动您的账本。系统按列标题（而非列位置）匹配列，不区分大小写（因此「Amount」和「Gross」都能识别），并校验每一行，生成带每行状态的预览表：就绪、重复——已跳过、需先创建券商，或具体错误信息。只有当您检查预览并点击「导入有效行」后，就绪的行才会被写入账本并保存——存在错误或券商未解析的行会被完全排除，因此您需要在表格中修正后重新上传，而不会导致部分脏数据被提交。" },
-      { q: "导入时为什么有些行显示「重复——已跳过」？", a: "每一行都会被归纳为一个签名——券商 + 日期 + 类型 + 股票代码（或「—」）+ 金额 + 货币——并与所有已有交易及同一文件中的其他行进行比对。若该签名已存在，该行会被标记为重复并被静默排除在导入之外，即使它本身是有效的。这正是重复上传同一文件也是安全的原因——不会造成重复录入。但这并非完美的指纹匹配：数量和价格都不在签名范围内，因此两笔针对同一股票代码、券商、日期、货币和总金额、但实际不同的买入订单，也会被互相标记为重复。" },
-      { q: "除了日期、券商和类型之外，还需要哪些列？", a: "日期、券商和类型是每一行都必需的——缺少任一列会导致导入直接失败。买入/卖出需要数量和价格（总额会重新计算为数量 × 价格，因此文件中的任何总额值对这两种类型都会被忽略）。货币兑换需要总额（以该货币发送的金额）以及兑入货币和兑入金额——兑入货币必须与原货币不同，兑入金额必须为正数，否则该行报错。券商间转账需要总额以及兑入券商，指明一个已存在于您账本中的不同券商；无法识别的兑入券商会报「未知的兑入券商」错误，且与无法识别的主券商不同，不会获得「请先创建券商」的快捷修复——您需要自行先添加该券商。股息及其余类型（存款、取款、费用、预扣税、利息）只需总额为正数即可；股息行还可额外携带状态、除息日和派息日。" },
-      { q: "同一份 CSV 导入文件重复上传安全吗？", a: "安全。每一行的签名（券商 + 日期 + 类型 + 股票代码 + 金额 + 货币）都会在提交前与您已有的交易比对，因此重复上传已导入过的文件时，每一行都会显示「重复——已跳过」，账本不会发生变化。这也意味着部分重新导入是安全的：如果您修正了错误并重新上传整份文件，第一次已成功导入的行会被跳过，只有新变为有效的行会被添加。" },
-      { q: "如果我把自己的交易导出为 CSV，可以重新导入这个文件吗？", a: "可以——交易 CSV 的表头是导入模板列的超集，且导入时按列名（而非位置）匹配，因此多出的列会被直接忽略。导出后重新导入是受支持的操作路径。由于每一行的签名都与账本中已有的记录相符，直接重新导入会将所有行显示为重复并跳过——这个往返操作主要用于核对您的导出内容或为应用另建一份副本，而非用于把交易重新加回账本。" },
-      { q: "三种 CSV 导出内容分别是什么？有何区别？", a: "交易 CSV 是完整账本——每笔交易一行，包含所有字段，且与导入模板列一一对应。现金 CSV 只筛选影响现金的类型——存款、取款、利息、费用、预扣税、券商间转账、货币兑换，以及非「预期」状态的股息——列围绕现金流设计，而非数量或价格等证券细节。股息 CSV 仅列出股息交易，显示总额、税费，以及以原始货币和基础货币计算的净额（总额 − 税费）。三者均不包含券商、持仓、缓存价格、设置或汇率表——如需这些，请使用 JSON 备份。" },
-    ] },
-    { title: "云同步", items: [
-      { q: "云同步是什么？", a: "云同步会将您的整个本地账本——每个券商、交易和设置——上传到由 Supabase 托管的账户，并可再下载回来，因此在不同浏览器或不同设备打开应用时会显示相同的数据。它只解决一个问题：在多台设备上使用相同数据。它不是实时协作——没有实时共享编辑会话，只是每次编辑后推送整个本地快照，并在登录时拉取整个远程数据。" },
-      { q: "我必须设置云同步吗？", a: "不需要任何设置。首次打开 Divz 时，系统会请您用邮箱和密码创建一个免费账户，此后您的记录会自动保存到该账户，并出现在您登录的每台设备上。如果 Divz 无法连接同步服务（例如您处于离线状态，或该部署未配置云同步），它仍可正常使用，数据只保存在这台设备上。" },
-      { q: "登录是如何运作的？", a: "在打开页面时输入您的邮箱和密码——首次使用请选「创建一个账户」，之后选「登录」。没有魔法链接邮件：登录是直接核对邮箱和密码，创建账户后可能需要先确认邮箱才能登录。忘记密码时，请在登录页点击「忘记密码？」；您也可以随时在「账户」页的「安全」中修改密码。同一邮箱始终对应同一云端账户，因此在第二台设备或浏览器上使用它会关联到相同数据，而不会创建新账户。" },
-      { q: "我在已有自己数据的第二台设备上登录了——会发生什么？", a: "如果该设备本地已有交易数据，而您的账户在别处也已有云端数据，应用无法自行判断您想保留哪一份，因此会弹出「选择要保留的数据」提示，显示两侧的交易数量和最后更改时间。「保留此设备」会上传本地数据并覆盖云端数据；「使用我账户的数据」会下载云端数据并覆盖本地数据——无论选择哪一方，未选中的一方都会被完全替换，而非合并。如果只有一方真正有数据（真正的全新设备，或您的首次登录），系统会自动朝该方向解析，不会弹出提示。" },
-      { q: "「最后写入者获胜」具体是什么意思？", a: "每次编辑都会在几秒后自动触发一次整份本地快照的推送，而登录会在云端数据比您最后一次本地编辑更新时将其拉取下来。这里没有字段级合并：如果您在设备 A 和设备 B 上分别编辑、且两者都尚未同步，无论哪一次推送最后到达服务器，都会整体覆盖另一台设备的数据行，悄悄丢弃较早那台设备的更改——即使是与本次编辑无关的其他交易。实际使用时，请将云同步视为「同一时间只在一台设备上编辑」，而非可在多台设备同时工作的方式。" },
-      { q: "退出登录会删除我的数据吗？", a: "不会。退出登录只会结束登录会话；已保存在该设备 localStorage 中的一切都会原样保留。应用会单独记录该设备存储中当前所属的账户，与是否已登录无关，因此如果之后有不同账户登录，不会将遗留数据上传或合并进去——而是会先将其清除，把该设备视为该新账户的全新设备。" },
-    ] },
-    { title: "设置与偏好", items: [
-      { q: "「默认回报视图」控制什么？", a: "仪表盘的主要盈亏统计卡可以显示总回报或纯未实现盈亏——此设置决定它默认打开时显示哪一种（仪表盘上也有一个卡片内切换按钮，可在当次访问中临时切换视图，不会改变此默认值）。总回报 = 未实现盈亏 + 已实现盈亏 + 净股息 − 独立费用，因此即使是已全部卖出或今天未操作的仓位，它也会持续变化。这里的未实现盈亏则严格指当前持仓的账面盈亏（市值 − 成本），刻意排除已实现盈亏、股息和费用。这两个数字确实不同：一个已全部卖出的仓位可能显示未实现盈亏为零，但仍因已实现收益而保有较大的非零总回报。" },
-      { q: "「成本计算方法」是什么？可以更改吗？", a: "它决定了在您分批以不同价格买入后卖出部分持仓时，如何计算成本（以及由此得出的每一个已实现和未实现盈亏数字）。目前只实现了平均成本法：下拉菜单中只有一个可选项，应用中的每一个盈亏数字都已采用该方法。先进先出法（FIFO）已在计划中但尚未实现，因此目前还没有可供选择的批次选取方式——此面板目前只是确认当前生效的方法，而非提供切换选项。" },
-      { q: "「时区」实际会改变什么？", a: "只会改变哪一个日历日被视为「今天」——用于天数计算（例如自购买以来的持有天数）以及判断某笔即将到来的股息是已派发还是仍属预测。它绝不会改写或移动已保存的交易日期；无论此设置为何，这些日期都保持原样。「设备本地」（默认值）使用您浏览器的本地日期；只有当您追踪的市场/券商所在的日历日与您查看应用所用设备不同时，选择明确的时区才有意义。" },
-      { q: "对账「容差」设置的作用是什么？", a: "在券商页面，您的计算现金余额（存款 − 买入 − 费用 + 卖出 + 净股息 − 取款）会与您输入的实际余额进行比较。若差额在容差范围内（以您的基础货币计），会显示为小幅差异而非需要复核；超出该范围则视为需要留意的差异。这只是一个显示阈值——不会改变底层计算，也不会隐藏差异，只是改变了呈现的紧迫程度。若希望任何非零差额都被标出，可将其设为 0。" },
-    ] },
-    { title: "术语表", items: [
-      { q: "TTM 是什么意思？", a: "TTM 代表「过去十二个月」（Trailing Twelve Months）——以今天为终点滚动的 12 个月区间，而非某个日历年度。「股息收益率（TTM）」的定义为：过去十二个月净股息 ÷ 当前投资组合市值，您看到的其他 TTM 数字（如预测面板上的「TTM 已收」）也采用同一滚动区间。" },
-      { q: "「成本收益率」是什么？", a: "以您最初支付的金额（即平均成本）为基准，而非当前市值——它反映的是股息增长为您原始投资带来的实际收益效果。由于分母始终固定为成本，而股息可能增长，因此对于持续加息的持仓，即使基于市值的股息收益率没有变化，成本收益率也会上升。" },
-      { q: "「分散度评分」是什么？", a: "基于投资组合权重的有效持仓数评分——数值越高代表越分散。它源自各持仓占总市值比例的赫芬达尔-赫希曼指数（HHI）：评分 = (1 − HHI) × 100，限定在 0–100 之间。旁边显示的「有效持仓数」为 1 ÷ HHI——即若各仓位大小相等、能产生相同集中度所需的持仓数量——因此当您的仓位大小不均时，该数字会低于您实际的持仓数量。" },
-      { q: "「现金占比」是什么？", a: "现金占总净值（市值 + 可用现金）的百分比，现金按所有券商汇总计算。数值越高，代表越多净资产处于未投资状态；接近 0% 则代表您已接近满仓投资。" },
-      { q: "「成本」是什么？", a: "以基础货币计，您为当前持有的股份实际支付的总金额——而非其市值。买入的佣金和税费会计入成本，而非作为独立费用记录；卖出时会按已卖出股份的平均成本（而非卖出所得）减少成本，因此一笔盈利的卖出不会扭曲剩余持仓的成本。" },
-      { q: "「平均成本」是什么？", a: "成本 ÷ 持有股数——您每股的加权平均支付价格。这是应用目前唯一应用于盈亏数字的计价方法（FIFO 等方法已在计划中但尚未推出），因此每次卖出都从这个混合平均值中扣减，而非某一特定批次。" },
-      { q: "「已投入净资本」「本金投入」和「净增现金」有什么区别？", a: "它们其实是同一个数字——存款 − 取款——只是在不同场景下使用不同的标签：仪表盘上称「本金投入」，现金标签页称「净增现金」，应用自身的公式说明中称「已投入净资本」。它衡量的是资金的进出，而非投资表现，因此不会随价格变动而改变。" },
-      { q: "「净股息」是什么？", a: "净股息 = 总股息 − 预扣税。预扣税按每笔股息交易记录，并在股息页面按国家/地区（使用查询得到的真实国家）汇总。" },
-    ] },
-  ];
-  const sections = LANG === "zh" ? sectionsZH : sectionsEN;
-  // No outer panel() card per section — each FAQ item is already its own boxed
-  // .help-item, so wrapping a whole section in a second card just double-boxes
-  // it. A plain heading is enough to group them.
+  const zh = LANG === "zh";
+  const sections = HELP.map((s) => ({ title: zh ? s[1] : s[0], items: s[2].map((x) => ({ q: zh ? x[2] : x[0], a: zh ? x[3] : x[1] })) }));
   const total = sections.reduce((n, s) => n + s.items.length, 0);
   const pills = `<div class="hp-pills" role="tablist"><button type="button" class="on" data-hptopic="all">${t("All")}</button>${sections.map((sec, i) => `<button type="button" data-hptopic="${i}">${sec.title}</button>`).join("")}</div>`;
   const items = sections.map((sec, i) => sec.items.map((it) => `<details class="help-item" data-hpsec="${i}"><summary>${it.q}</summary><p>${it.a}</p></details>`).join("")).join("");
   const html = `<div class="pfx pfx-help">${dzTopHTML({ eyebrow: t("Help"), h1: t("How can we help?"), sub: t("Plain answers about your numbers"), noLive: true })}
     <section class="pfx-card pfx-hp"><div class="rc-head"><h2>${t("Help")}<span class="pfx-sm">${dzF("{n} questions", { n: total })}</span></h2><div class="rc-tools"><input type="search" id="hpSearch" class="rc-search" placeholder="${esc(t("Search a question"))}" autocomplete="off"></div></div>
-      ${pills}<div class="hp-grid" id="hpGrid">${items}</div><p class="muted" id="hpNone" hidden style="margin:14px 0 0">${t("No question matches your search.")}</p></section></div>`;
+      ${pills}<div class="hp-grid" id="hpGrid">${items}</div><p class="muted" id="hpNone" hidden style="margin:14px 0 0">${t("No question matches your search.")}${contactOn() ? ` <a href="#hpContact" id="hpToContact">${t("Ask me directly")}</a>` : ""}</p></section>${helpContactHTML()}</div>`;
   return { title: "Help", subtitle: "Getting started, how calculations work, and answers to common questions.", html,
     mount() {
       const bell = $("#dzBell"); if (bell) bell.addEventListener("click", () => toggleMoreSheet());
@@ -6462,6 +6505,19 @@ function pageHelp() {
       };
       $$("[data-hptopic]").forEach((b) => b.addEventListener("click", () => { topic = b.dataset.hptopic; $$("[data-hptopic]").forEach((x) => x.classList.toggle("on", x === b)); apply(); }));
       const s = $("#hpSearch"); if (s) s.addEventListener("input", apply);
+      const card = $("#hpContact");
+      if (card) {
+        const go = (e) => { if (e) e.preventDefault(); card.scrollIntoView({ behavior: "smooth", block: "center" }); };
+        const toC = $("#hpToContact"); if (toC) toC.addEventListener("click", go);
+        if (/\/contact$/.test(location.hash)) setTimeout(go, 150);
+        $$("[data-hptp]").forEach((b) => b.addEventListener("click", () => {
+          $$("[data-hptp]").forEach((x) => x.classList.toggle("on", x === b));
+          const L = helpContactLinks(b.dataset.hptp), m = $("#hpMail"), w = $("#hpWa");
+          if (m) m.href = L.email; if (w) w.href = L.whatsapp;
+        }));
+        const cp = $("#hpCopy");
+        if (cp) cp.addEventListener("click", async () => { try { await navigator.clipboard.writeText(helpAppInfo()); toast(t("App info copied.")); } catch (e) { toast(t("Couldn't copy.")); } });
+      }
     } };
 }
 
@@ -8047,6 +8103,7 @@ function init() {
   try { const saved = localStorage.getItem("il-theme"); if (saved) setTheme(saved); } catch (e) {}
   if (SETTINGS.startPage && (!location.hash || location.hash === "#" || location.hash === "#/")) history.replaceState(null, "", "#/" + SETTINGS.startPage);
   applyPrivacy();
+  if (contactOn()) { const fl = document.querySelector(".footer-links"); if (fl) fl.insertAdjacentHTML("beforeend", `<span aria-hidden="true">·</span><a href="#/help/contact">${t("Contact us")}</a>`); }
   // Backup reminder: once per visit, only when there is data worth saving
   setTimeout(() => {
     const every = { weekly: 7, monthly: 30 }[SETTINGS.backupRemind]; if (!every || !ALL_TRANSACTIONS.length) return;
