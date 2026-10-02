@@ -3316,7 +3316,11 @@ function pfAllocationHTML() {
   const insight = (nCountry <= 1 && nCurr <= 1 && nBroker <= 1)
     ? t("All your stocks are in one country and one currency, at one broker. Adding stocks from another market would spread the risk.")
     : (agg.length > 1 && topShare > 0.5 ? dzF("Your largest holding, {name}, is {p} of your portfolio.", { name: dzName(top.ticker, top.company), p: pc(top.marketValue) }) : "");
-  const sitsCard = panel(t("Where your money sits"), `${facts}${stack(dimOn[1], dimOn[2], dimOn[0] === "sector" ? noSector : "")}${insight ? `<div class="pf-insight">${dzIcon("info", 16)}<span>${insight}</span></div>` : ""}`, dimSeg);
+  const sitsItems = alOf(dimOn[2]).sort((x, y) => y.value - x.value);
+  const sitsBar = sitsItems.length ? `<div class="pf-sits"><div class="pfx-bar">${sitsItems.map((x, i) => `<i style="width:${(x.value / total) * 100}%;background:${sitsItems.length === 1 ? "linear-gradient(90deg,#8b7cff,#3dd8f5)" : PF_PAL[i % PF_PAL.length]}"></i>`).join("")}</div>
+    <div class="pf-sits-l"><div>${sitsItems.map((x, i) => `<span>${sitsItems.length > 1 ? `<s style="background:${PF_PAL[i % PF_PAL.length]}"></s>` : ""}${esc(x.label)} <b class="dz-n">${pc(x.value)}</b></span>`).join("")}</div><span class="dz-n">${money(total)}</span></div></div>` : "";
+  const sectorNote = dimOn[0] === "sector" && noSector ? `<div class="pf-insight">${dzIcon("info", 16)}<span>${noSector}</span></div>` : "";
+  const sitsCard = panel(t("Where your money sits"), `<div class="pf-dimseg">${dimSeg}</div>${facts}${sitsBar}${sectorNote}${insight ? `<div class="pf-insight">${dzIcon("info", 16)}<span>${insight}</span></div>` : ""}`);
   return `<div class="pfx-two">${panel(t("By holding"), ring)}${sitsCard}</div>`;
 }
 
@@ -5258,7 +5262,7 @@ function pageDividends() {
       <div class="pfx-nxt"><b>${esc(dvNameOf(d.ticker))}</b><span>${fmtDate(pay)} · ${(d.status === "Estimated" ? t("Estimated") : t("Confirmed")).toLowerCase()}</span></div>
       <div class="pfx-nxa dz-n pos">+${money(d.amtMYR)}${dvLocal(d)}</div></div>`; }).join("");
   const comingCard = panel(`${t("Coming up")}<small class="pfx-sm">${t("next payments")}</small>`, (comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`) + `<div class="pf-insight">${dzIcon("info", 16)}<span>${t("The full list of every payment is now in the History tab.")}</span></div>`);
-  const nextCard = panel(t("Next payments"), comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`, `<button type="button" class="pfx-btn" data-dvtab="calendar">${t("Calendar")} →</button>`);
+  const nextCard = panel(t("Next payments"), comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`, `<button type="button" class="pf-linkbtn" data-dvtab="calendar">${t("Calendar")} →</button>`);
   overview = `<div class="pfx-two pfx-two-cal">${incomeCard}${nextCard}</div>${ltCard || panel(t("Dividend Forecast"), forecastBody)}`;
   const payFilters = [["all", t("All")], ["past", t("Received")], ["upcoming", t("Upcoming")]];
   const paySeg = `<div class="dz-seg" role="group">${payFilters.map(([k, l]) => `<button type="button" class="${divCalendarFilter === k ? "on" : ""}" data-dvpay="${k}">${l}</button>`).join("")}</div>`;
@@ -6540,7 +6544,8 @@ function pageHolding() {
     months = Math.max(0, months);
     heldTxt = months >= 12 ? dzF("{y} yr {m} mo", { y: Math.floor(months / 12), m: months % 12 }) : months > 0 ? dzF("{m} mo", { m: months }) : dzF("{d} days", { d: Math.max(0, Math.round((nd - sd) / 864e5)) });
   }
-  const priceBlock = panel(t("Price & range"), `<div class="pfx-bigprice dz-n">${priceLbl}</div>${range52Html}`);
+  const priceBlock = panel(t("Price & range"), `<div class="pfx-bigprice dz-n">${h.hasPrice ? `${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}` : `<span class="muted">${t("No price set")}</span>`}</div>${range52Html}`,
+    h.hasPrice ? `<span class="pf-livetag ${h.priceSource === "live" ? "live" : ""}">${h.priceSource === "live" ? t("Live") : t("Manual price")}</span>` : "");
   const prow = (label, val, tip, xc = "") => `<div class="pfx-prow${xc ? " " + xc : ""}"><span>${label}${tip ? hcTip(tip) : ""}</span><b class="dz-n">${val}</b></div>`;
   const rateF = (n) => `${ccyLabel(FX.base)} ${fmt(n, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
   const realizedV = h.realized || 0;
