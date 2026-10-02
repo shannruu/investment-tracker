@@ -4191,7 +4191,7 @@ function addForm2(type, editing) {
 
 function mountDatePickers(form) {
   form.querySelectorAll('input[type="date"]').forEach((el) => {
-    el.addEventListener("click", () => { try { el.showPicker(); } catch (_) {} });
+    el.addEventListener("click", (e) => { e.preventDefault(); dzCalOpen(el); });
   });
 }
 

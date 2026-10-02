@@ -342,3 +342,48 @@ document.addEventListener("click", (e) => {
   try { localStorage.setItem("il-ccy-own", CCY_OWN ? "1" : "0"); } catch (err) {}
   render();
 });
+
+/* ------------------------------------------------------------------ Date picker: our own calendar in place of the browser's grey one. */
+let dzCal = null;
+function dzCalClose() { if (dzCal) { dzCal.remove(); dzCal = null; } }
+function dzCalOpen(input) {
+  dzCalClose();
+  const loc = LANG === "zh" ? "zh-CN" : "en";
+  const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const parse = (s) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  const sel = parse(input.value), today = new Date();
+  let view = new Date((sel || today).getFullYear(), (sel || today).getMonth(), 1);
+  const pop = document.createElement("div");
+  pop.className = "dzc"; pop.setAttribute("role", "dialog");
+  dzCal = pop;
+  const set = (v) => { input.value = v; input.dispatchEvent(new Event("input", { bubbles: true })); input.dispatchEvent(new Event("change", { bubbles: true })); dzCalClose(); };
+  const draw = () => {
+    const first = new Date(view.getFullYear(), view.getMonth(), 1), start = new Date(first); start.setDate(1 - first.getDay());
+    const wk = [...Array(7)].map((_, i) => new Date(2023, 0, 1 + i).toLocaleDateString(loc, { weekday: "narrow" }));
+    let cells = "";
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i);
+      const cls = ["dzc-d", d.getMonth() !== view.getMonth() ? "out" : "", iso(d) === iso(today) ? "today" : "", sel && iso(d) === iso(sel) ? "on" : ""].join(" ");
+      cells += `<button type="button" class="${cls}" data-d="${iso(d)}">${d.getDate()}</button>`;
+    }
+    pop.innerHTML = `<div class="dzc-h"><b>${view.toLocaleDateString(loc, { month: "long", year: "numeric" })}</b><span><button type="button" data-m="-1" aria-label="Previous month">‹</button><button type="button" data-m="1" aria-label="Next month">›</button></span></div>
+      <div class="dzc-w">${wk.map((w) => `<i>${w}</i>`).join("")}</div><div class="dzc-g">${cells}</div>
+      <div class="dzc-f"><button type="button" data-clear>${LANG === "zh" ? "清除" : "Clear"}</button><button type="button" data-today>${LANG === "zh" ? "今天" : "Today"}</button></div>`;
+  };
+  pop.addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    e.stopPropagation();
+    if (b.dataset.m) { view = new Date(view.getFullYear(), view.getMonth() + +b.dataset.m, 1); draw(); }
+    else if (b.dataset.d) set(b.dataset.d);
+    else if (b.hasAttribute("data-today")) set(iso(new Date()));
+    else if (b.hasAttribute("data-clear")) set("");
+  });
+  draw();
+  document.body.appendChild(pop);
+  const r = input.getBoundingClientRect(), ph = pop.offsetHeight, pw = pop.offsetWidth;
+  const top = r.bottom + 6 + ph > innerHeight && r.top - 6 - ph > 0 ? r.top - 6 - ph : r.bottom + 6;
+  pop.style.top = Math.max(8, top) + "px";
+  pop.style.left = Math.max(8, Math.min(r.left, innerWidth - pw - 8)) + "px";
+}
+document.addEventListener("mousedown", (e) => { if (dzCal && !e.target.closest(".dzc") && !e.target.closest('input[type="date"]')) dzCalClose(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && dzCal) { e.stopPropagation(); dzCalClose(); } }, true);
