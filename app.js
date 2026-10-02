@@ -6872,7 +6872,7 @@ function showCalc(calc) {
   // the same row — the row's <span class="cr-val"> becomes a small flex column instead
   // of adding a second row with its own label.
   const totalVal = calc.totalFmt != null ? calc.totalFmt : money(calc.total);
-  const pctVal = calc.pctFmt != null ? `<span class="cr-pct">${calc.pctFmt}</span>` : "";
+  const pctVal = "";   // the percentage is shown on the card itself, not repeated in the calculation
   $("#modalBody").innerHTML = `${calc.intro ? `<p class="muted" style="margin:0 0 14px;font-size:13px">${t(calc.intro)}</p>` : ""}${rows}
     <div class="calc-row total"><span>= ${t("Result")}</span><span class="cr-val">${totalVal}${pctVal}</span></div>
     <p class="muted" style="margin:14px 0 0;font-size:12px">${t("All values converted to base currency using stored exchange rates. Original amounts are preserved.")}</p>`;
