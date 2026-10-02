@@ -3063,3 +3063,9 @@ a.ticker.tk-name:hover { color: var(--brand); }
 .pfx-rz .dv-inc .data-table td { padding: 12px 14px; }
 .pfx-rz .dv-inc .data-table th { padding: 10px 14px; }
 .pfx-rz .dv-inc .data-table td:first-child { font-weight: 600; }
+/* Transactions: search (and the cash-type filter) sit at the right of the card title */
+.rc-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.rc-head h2 { margin: 0; }
+.rc-head .rc-tools { margin: 0; margin-left: auto; flex: 1 1 260px; justify-content: flex-end; }
+.rc-head .rc-search { max-width: 300px; }
+@media (max-width: 760px) { .rc-head .rc-tools { flex-basis: 100%; } .rc-head .rc-search { max-width: none; } }

@@ -3724,7 +3724,7 @@ function pageRecords() {
   const tools = ALL_TRANSACTIONS.length ? `<div class="rc-tools"><input type="search" id="recSearch" class="rc-search" placeholder="${esc(t("Search stock, type or note"))}" value="${escAttr(recSearch)}" autocomplete="off">${cashFilterSel}</div>` : "";
   const html = `<div class="pfx pfx-rec">${header}${strip}${nav}
     <div class="rc-grid">
-      <section class="pfx-card rc-main"><div class="rc-head"><h2>${t("All records")}<span class="pfx-sm" id="recCount">${list.length}</span></h2></div>${tools}${recordsTab === "cash" ? cashExtrasHTML(list) : ""}<div id="recBody">${recBodyHTML(list)}</div></section>
+      <section class="pfx-card rc-main"><div class="rc-head"><h2>${t("All records")}<span class="pfx-sm" id="recCount">${list.length}</span></h2>${tools}</div>${recordsTab === "cash" ? cashExtrasHTML(list) : ""}<div id="recBody">${recBodyHTML(list)}</div></section>
       <aside class="pfx-card rc-det" id="recDet">${recDetailHTML(ALL_TRANSACTIONS.find((x) => x.id === recSel))}</aside>
     </div><div class="rc-back" id="recBack"></div></div>`;
 
@@ -5344,7 +5344,7 @@ function pageDividends() {
   const periodSeg = `<div class="dz-seg" role="group">${periodTabs.map(([k, l]) => `<button type="button" class="${divIncomePeriod === k ? "on" : ""}" data-dvperiod="${k}">${l}</button>`).join("")}</div>`;
   const lifeKv = `<div class="dv-kv"><div><span>${t("Gross Dividends")}</span><b class="dz-n">${money(grossBase)}</b></div><div><span>${t("Withholding Tax")}</span><b class="dz-n${taxBase > 0 ? " neg" : ""}">${money(taxBase)}</b></div><div><span>${t("Net Dividends (Lifetime)")}</span><b class="dz-n pos">${money(netTotal)}</b></div></div>`;
   const incomeByPeriod = panel(`${t("Income by period")}<small class="pfx-sm">${t("dividends received, by month, quarter, year or stock")}</small>`, received.length
-      ? `<div class="pfx-rz"><div class="table-wrap pfx-dvt-wrap dv-inc"><table class="data-table pfx-txt"><thead><tr><th>${incomeLabels[divIncomePeriod] || t("Month")}</th><th>${t("Size")}</th><th class="pfn">${t("Net")} (${ccyLabel(FX.base)})</th></tr></thead><tbody>${incomeRowsByPeriod[divIncomePeriod] || monthRows}</tbody></table></div></div>`
+      ? `${lifeKv}<div class="pfx-rz"><div class="table-wrap pfx-dvt-wrap dv-inc"><table class="data-table pfx-txt"><thead><tr><th>${incomeLabels[divIncomePeriod] || t("Month")}</th><th>${t("Size")}</th><th class="pfn">${t("Net")} (${ccyLabel(FX.base)})</th></tr></thead><tbody>${incomeRowsByPeriod[divIncomePeriod] || monthRows}</tbody></table></div></div>`
       : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`, periodSeg);
   const historyTab = incomeByPeriod;
 
