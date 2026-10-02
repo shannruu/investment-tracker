@@ -122,7 +122,7 @@
   --dz-live: rgba(255,255,255,.04); --dz-live-sh: 0 0 0 0 transparent;
   --dz-panel: #12141c; --dz-card-base: #0c0e16; --dz-grid: rgba(255,255,255,.07); --dz-track: rgba(255,255,255,.08); --dz-dn-track: rgba(255,255,255,.06);
   --dz-ti: rgba(255,255,255,.05); --dz-ti-bd: rgba(255,255,255,.075); --dz-ti-tx: #aab0c6; --dz-ti-in: rgba(52,214,163,.11); --dz-ti-in-bd: rgba(52,214,163,.26); --dz-ti-out: rgba(255,111,142,.11); --dz-ti-out-bd: rgba(255,111,142,.26);
-  --dz-lnk: #3dd8f5; --dz-est: #f6bd60; --dz-est-bg: rgba(246,189,96,.13); --dz-eyebrow: #a99dff;
+  --dz-lnk: #a99dff; --dz-est: #f6bd60; --dz-est-bg: rgba(246,189,96,.13); --dz-eyebrow: #a99dff;
   --dz-gi-g: rgba(52,214,163,.14); --dz-gi-g-t: #34d6a3; --dz-gi-b: rgba(139,124,255,.20); --dz-gi-b-t: #b3a9ff; --dz-gi-a: rgba(246,189,96,.15); --dz-gi-a-t: #f6bd60; --dz-gi-t: rgba(61,216,245,.15); --dz-gi-t-t: #3dd8f5;
   --dz-base: rgba(255,255,255,.075); --dz-loss: rgba(255,111,142,.28);
   --dz-c1: #8b7cff; --dz-c2: #3dd8f5; --dz-c3: #ff8fb1; --dz-c4: #f6bd60; --dz-c5: #34d6a3; --dz-c6: #b3a9ff; --dz-cash: #5b6285; --dz-other: #3a4060;
@@ -2904,7 +2904,7 @@ a.ticker.tk-name:hover { color: var(--brand); }
 .pf-rl b { color: var(--text); }
 .pf-rl b.pos { color: var(--pos); } .pf-rl b.neg { color: var(--neg); }
 .pfx-rz .data-table th { text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 700; }
-.pf-assettype .sel-trigger { border: 0; background: none; box-shadow: none; color: var(--text); font-weight: 700; padding-right: 4px; }
+.pf-assettype .sel-trigger { border: 0; background: none; box-shadow: none; color: var(--dz-lnk); font-weight: 700; padding-right: 4px; }
 .pf-rz-mob, .dv-pay-mob { display: none; }
 .range52-labels { font-size: 12.5px; }
 @media (max-width: 760px) {
