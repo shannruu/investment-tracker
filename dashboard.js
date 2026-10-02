@@ -115,7 +115,7 @@ const dzIso = (n) => new Date(n * 86400000).toISOString().slice(0, 10);
 /* Fingerprint of everything the past depends on. Prices are left out on purpose: the series is
  * rebuilt daily anyway, and today's point is always live. */
 function dzSignature() {
-  const parts = [DZ_HIST_VERSION, FX.base];
+  const parts = [DZ_HIST_VERSION, FX.base, SETTINGS.costBasis];
   HOLDINGS.forEach((h) => parts.push("H", h.brokerId, h.ticker, h.shares, h.avgCost, h.openingFxRate, h.currency));
   ALL_TRANSACTIONS.forEach((x) => parts.push(x.id, x.date, x.type, x.brokerId, x.toBrokerId, x.ticker, x.qty, x.price, x.gross, x.fee, x.tax, x.fxRate,
     x.currency, x.fromCurrency, x.toCurrency, x.fromAmount, x.toAmount, x.status, x.paidTo, x.drip, x.override));

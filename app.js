@@ -729,6 +729,26 @@ const ZH = {
   "Time for a backup — Settings → Data & backup.": "该备份了 — 设置 → 数据与备份。",
   "Show amounts": "显示金额",
   "Hide amounts": "隐藏金额",
+  "FIFO (first in, first out)": "先进先出法 (FIFO)",
+  "When you sell part of a stock you bought at different prices, this decides which shares count as sold. Average cost: every share costs the average of all your buys. FIFO (first in, first out): the oldest shares are sold first. It changes the profit shown on sales and the cost of what you still hold — never your cash.": "当您分批以不同价格买入同一只股票并卖出一部分时，这决定哪些股份算作已卖出。平均成本法：每股成本为所有买入的平均价。先进先出法（FIFO）：先买入的股份先卖出。它只会改变卖出利润和剩余持仓成本，不会影响您的现金。",
+  "Time zone decides which day counts as \"today\". Gains and losses use the cost basis method you pick below.": "时区决定哪一天算“今天”。盈亏按您在下方选择的成本计算方法计算。",
+  "Profit = sale proceeds − cost of the oldest shares sold (FIFO) − fees and taxes on the sale. Dividends and interest are counted separately.": "利润 = 卖出所得 − 所卖出最早股份的成本（先进先出）− 卖出的费用和税项。股息和利息另行计算。",
+  "Dividend reminders": "股息提醒",
+  "Shows up in the bell, and as a notification if you switch that on. They are worked out when you open the app.": "显示在铃铛里；如果开启通知，也会弹出通知。提醒在您打开应用时计算。",
+  "Before the ex-dividend date": "除息日前",
+  "How many days before": "提前几天",
+  "On the payment day": "派息当天",
+  "1 day": "1 天",
+  "days": "天",
+  "Also send a notification": "同时发送通知",
+  "A pop-up from your phone or computer. It appears when you open the app; to get it while the app is closed the app needs a server, which isn't set up yet.": "来自手机或电脑的弹出通知。打开应用时出现；若要在应用关闭时也收到，需要服务器支持，目前尚未设置。",
+  "Ex-dividend": "除息",
+  "today": "今天",
+  "tomorrow": "明天",
+  "in {n} days": "{n} 天后",
+  "Keep your shares until then to receive this dividend": "持有股份至该日即可领取这笔股息",
+  "Dividend payment day": "股息派发日",
+  "Check that it reached your account": "请确认已到账",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -1076,11 +1096,12 @@ function computeTotals(ctx) {
   // What things are WORTH uses the rate of the day being valued; what they COST keeps the rates they were bought at.
   const valFx = (ccy) => (ctx && ctx.fxOf ? ctx.fxOf(ccy) : curFx(ccy));
 
+  const FIFO = SETTINGS.costBasis === "fifo";   // false = average cost
   const keyOf = (brokerId, ticker) => brokerId + "|" + ticker;
   const lots = {};
   const ensureLot = (brokerId, ticker, meta = {}) => {
     const k = keyOf(brokerId, ticker);
-    if (!lots[k]) lots[k] = { ticker, brokerId, company: "", market: "", currency: FX.base, shares: 0, costMYR: 0, costLocal: 0, priceCostMYR: 0, priceCostLocal: 0, netDivMYR: 0, realizedMYR: 0 };
+    if (!lots[k]) lots[k] = { ticker, brokerId, company: "", market: "", currency: FX.base, shares: 0, costMYR: 0, costLocal: 0, priceCostMYR: 0, priceCostLocal: 0, netDivMYR: 0, realizedMYR: 0, layers: [] };
     const l = lots[k];
     if (meta.company && !l.company) l.company = meta.company;
     if (meta.market && !l.market) l.market = meta.market;
@@ -1097,6 +1118,7 @@ function computeTotals(ctx) {
     l.costLocal += localCost;          // cost in the holding's own currency
     l.costMYR += localCost * fx;        // cost in base currency at historical FX
     l.priceCostLocal += localCost; l.priceCostMYR += localCost * fx;   // no fees on an opening position
+    if (FIFO && (+h.shares || 0) > 0) l.layers.push({ sh: +h.shares, m: localCost * fx, lo: localCost, pm: localCost * fx, pl: localCost });
     if (h.netDividends) l.netDivMYR += +h.netDividends;
   });
 
@@ -1134,6 +1156,7 @@ function computeTotals(ctx) {
         const localCost = q * price + fee + taxv;
         l.shares += q; l.costLocal += localCost; l.costMYR += localCost * fx;
         l.priceCostLocal += q * price; l.priceCostMYR += q * price * fx;   // same lot WITHOUT fees (Portfolio → Broker check)
+        if (FIFO && q > 0) l.layers.push({ sh: q, m: localCost * fx, lo: localCost, pm: q * price * fx, pl: q * price });
         // A DRIP-funded Buy never touched cash — the money it "spent" is the same dividend
         // whose own cash was already suppressed (paidTo: "reinvested") on its Dividend leg.
         if (!tx.drip) addCash(tx.brokerId, ccy, -(gross + fee + taxv));
@@ -1147,15 +1170,28 @@ function computeTotals(ctx) {
         const avgPriceMYR = l.shares > 0 ? l.priceCostMYR / l.shares : 0;
         const avgPriceLocal = l.shares > 0 ? l.priceCostLocal / l.shares : 0;
         const proceedsMYR = q * price * fx;
-        const realizedThis = proceedsMYR - avgMYR * q - feeMYR - taxMYR;   // nets commission + taxes
+        // Cost of the shares sold: the blended average, or (FIFO) the oldest buys first.
+        let outM = avgMYR * q, outL = avgLocal * q, outPM = avgPriceMYR * q, outPL = avgPriceLocal * q;
+        if (FIFO && l.layers.length) {
+          outM = outL = outPM = outPL = 0; let need = q;
+          while (need > 1e-9 && l.layers.length) {
+            const f = l.layers[0], take = Math.min(need, f.sh), r = f.sh > 0 ? take / f.sh : 1;
+            const dm = f.m * r, dl = f.lo * r, dpm = f.pm * r, dpl = f.pl * r;
+            outM += dm; outL += dl; outPM += dpm; outPL += dpl;
+            f.m -= dm; f.lo -= dl; f.pm -= dpm; f.pl -= dpl; f.sh -= take; need -= take;
+            if (f.sh < 1e-9) l.layers.shift();
+          }
+          if (need > 1e-9) { outM += avgMYR * need; outL += avgLocal * need; outPM += avgPriceMYR * need; outPL += avgPriceLocal * need; }   // oversold part: at the average
+        }
+        const realizedThis = proceedsMYR - outM - feeMYR - taxMYR;   // nets commission + taxes
         realizedPL += realizedThis; l.realizedMYR += realizedThis;
         addTo(realizedByBroker, tx.brokerId, realizedThis);
         realizedSales.push({ id: tx.id, date: tx.date, brokerId: tx.brokerId, ticker: tx.ticker, company: tx.company, qty: q, price, currency: ccy,
-          costMYR: avgMYR * q, proceedsMYR, feesMYR: feeMYR + taxMYR, pl: realizedThis });
-        l.shares -= q; l.costMYR -= avgMYR * q; l.costLocal -= avgLocal * q;
-        l.priceCostMYR -= avgPriceMYR * q; l.priceCostLocal -= avgPriceLocal * q;
+          costMYR: outM, proceedsMYR, feesMYR: feeMYR + taxMYR, pl: realizedThis });
+        l.shares -= q; l.costMYR -= outM; l.costLocal -= outL;
+        l.priceCostMYR -= outPM; l.priceCostLocal -= outPL;
         if (l.shares < 1e-9) {
-          l.shares = 0; l.costMYR = Math.max(0, l.costMYR); l.costLocal = Math.max(0, l.costLocal);
+          l.shares = 0; l.layers = []; l.costMYR = Math.max(0, l.costMYR); l.costLocal = Math.max(0, l.costLocal);
           l.priceCostMYR = Math.max(0, l.priceCostMYR); l.priceCostLocal = Math.max(0, l.priceCostLocal);
         }
         addCash(tx.brokerId, ccy, gross - fee - taxv); break;
@@ -1170,7 +1206,7 @@ function computeTotals(ctx) {
         }
         break;
       }
-      case "Stock split": { ensureLot(tx.brokerId, tx.ticker, tx).shares *= (q || 1); break; }
+      case "Stock split": { const sl = ensureLot(tx.brokerId, tx.ticker, tx); sl.shares *= (q || 1); sl.layers.forEach((f) => { f.sh *= (q || 1); }); break; }
       case "Transfer between brokers": {
         addCash(tx.brokerId, ccy, -gross); if (tx.toBrokerId) addCash(tx.toBrokerId, ccy, gross); break;
       }
@@ -2728,7 +2764,39 @@ function systemAlertItems() {
     if (suspended.length) items.push({ level: "warn", href: "#/dividends", html: `${t("Dividend appears suspended for")}: ${esc(suspended.join(", "))} — ${t("no payment near its usual schedule; see the Dividends page.")}` });
     if (cut.length) items.push({ level: "warn", href: "#/dividends", html: `${t("Dividend cut detected for")}: ${esc(cut.join(", "))} — ${t("the forecast has been adjusted down; see the Dividends page.")}` });
   }
+  items.push(...dividendReminderItems());
   return items;
+}
+
+/* Ex-dividend and payment-day reminders, worked out from the upcoming dividends of the stocks you hold. */
+function dividendReminderItems() {
+  const out = [];
+  if (SETTINGS.divRemEx === false && SETTINGS.divRemPay === false) return out;
+  let list = []; try { list = allUpcomingDivs(); } catch (e) { return out; }
+  const today = todayISO(), span = SETTINGS.divRemDays || 3;
+  const gap = (iso) => Math.round((new Date(iso + "T00:00:00") - new Date(today + "T00:00:00")) / 86400000);
+  list.forEach((d) => {
+    const name = esc(dzName(d.ticker, null)), amt = d.expectedNetMYR > 0 ? ` (≈ ${money(d.expectedNetMYR)})` : "";
+    if (SETTINGS.divRemEx !== false && d.exDate) {
+      const n = gap(d.exDate);
+      if (n >= 0 && n <= span) out.push({ id: `ex|${d.ticker}|${d.exDate}`, level: "warn", href: "#/dividends", html: `<strong>${t("Ex-dividend")} ${n === 0 ? t("today") : n === 1 ? t("tomorrow") : dzF("in {n} days", { n })} — ${name}.</strong> ${t("Keep your shares until then to receive this dividend")}${amt}.` });
+    }
+    if (SETTINGS.divRemPay !== false && d.payDate && gap(d.payDate) === 0) out.push({ id: `pay|${d.ticker}|${d.payDate}`, level: "warn", href: "#/dividends", html: `<strong>${t("Dividend payment day")} — ${name}.</strong> ${t("Check that it reached your account")}${amt}.` });
+  });
+  return out;
+}
+/* A phone / computer notification for today's reminders, once each, while the app is open. */
+function dividendNotify() {
+  if (!SETTINGS.divRemNotify || typeof Notification === "undefined" || Notification.permission !== "granted") return;
+  const key = "il-divrem-" + todayISO(); let seen = {};
+  try { seen = JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) {}
+  dividendReminderItems().forEach((it) => {
+    if (seen[it.id]) return; seen[it.id] = 1;
+    const body = it.html.replace(/<[^>]+>/g, "");
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) navigator.serviceWorker.ready.then((r) => r.showNotification("Divz", { body, icon: "/icons/icon-192.png", tag: it.id, data: { url: "/#/dividends" } })).catch(() => { try { new Notification("Divz", { body }); } catch (e) {} });
+    else { try { new Notification("Divz", { body }); } catch (e) {} }
+  });
+  try { localStorage.setItem(key, JSON.stringify(seen)); } catch (e) {}
 }
 
 /* =============================================================================
@@ -3348,7 +3416,7 @@ function realizedPLHTML() {
     `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${modeBtns}${filterBtns}${sortSel}</div>
      <div class="dcc-table-scroll pf-rz-desk">${`<div class="pfx-rz pfx-rz-${realizedView.mode}">${table(headers.map((h, i) => ({ label: h, num: i >= numFrom && i !== headers.length - 3, style: "width:" + w })), rows)}</div>`}</div>
      <div class="pf-rz-mob">${rzMob}</div>
-     <p class="muted" style="font-size:12px;margin:10px 0 0">${t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.")}</p>${bestWorst}`);
+     <p class="muted" style="font-size:12px;margin:10px 0 0">${(SETTINGS.costBasis === "fifo" ? t("Profit = sale proceeds − cost of the oldest shares sold (FIFO) − fees and taxes on the sale. Dividends and interest are counted separately.") : t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately."))}</p>${bestWorst}`);
 }
 
 function pfHeaderHTML() {
@@ -5863,7 +5931,7 @@ function pageSettings() {
       </div>`)}
 
     </div><div class="st-sec" data-sec="prefs">
-    ${panel(`${t("Preferences")}${infoTip(t("Time zone decides which day counts as \"today\". Gains and losses use the Average Cost method."))}`, `<div class="setting-rows">
+    ${panel(`${t("Preferences")}${infoTip(t("Time zone decides which day counts as \"today\". Gains and losses use the cost basis method you pick below."))}`, `<div class="setting-rows">
       ${settingRow(t("Date format"), `<div style="width:200px">${styledSelect("dateFmt", DATE_FORMATS.map((f) => ({ value: f.k, label: f.label })), SETTINGS.dateFormat, { id: "dateFmt" })}</div>`)}
       ${settingRow(t("Time zone"), `<div style="width:200px">${styledSelect("tzSel", [{ value: "", label: t("Device local") }, ...TIME_ZONES.map((z) => ({ value: z, label: z }))], SETTINGS.timeZone || "", { id: "tzSel" })}</div>`)}
       ${settingRow(t("Default return view"), `<div style="width:200px">${styledSelect("returnMode", [
@@ -5874,9 +5942,15 @@ function pageSettings() {
       ${settingRow(`<span class="lbl-t">${t("Dividend growth shown")}${hcTip(t("The yearly growth the long-term dividend estimate starts with. You can still switch it on the Dividends page."))}</span>`, `<div style="width:200px">${styledSelect("divGrowth", [0, 3, 6].map((n) => ({ value: String(n), label: `${n}% ${t("a year")}` })), String([0, 3, 6].includes(SETTINGS.divGrowth) ? SETTINGS.divGrowth : 3), { id: "divGrowthSel" })}</div>`)}
       ${settingRow(t("Start page"), `<div style="width:200px">${styledSelect("startPage", [["dashboard", t("Dashboard")], ["portfolio", t("Portfolio")], ["dividends", t("Dividends")], ["records", t("Transactions")], ["brokers", t("Brokers")]].map(([value, label]) => ({ value, label })), SETTINGS.startPage || "dashboard", { id: "startPageSel" })}</div>`)}
       ${settingRow(`<span class="lbl-t">${t("Default broker for new records")}${hcTip(t("The broker the Add record panel starts with. Its currency is used too."))}</span>`, `<div style="width:200px">${styledSelect("defBroker", [{ value: "", label: t("Last used") }, ...BROKERS.filter((b) => !b.archived).map((b) => ({ value: b.id, label: b.name }))], SETTINGS.defBroker || "", { id: "defBrokerSel" })}</div>`)}
-      ${settingRow(t("Cost basis method"), `<div style="width:200px">${styledSelect("costBasis", [{ value: "average", label: t("Average Cost") }], "average", { id: "costBasis" })}</div>`)}
+      ${settingRow(`<span class="lbl-t">${t("Cost basis method")}${hcTip(t("When you sell part of a stock you bought at different prices, this decides which shares count as sold. Average cost: every share costs the average of all your buys. FIFO (first in, first out): the oldest shares are sold first. It changes the profit shown on sales and the cost of what you still hold — never your cash."))}</span>`, `<div style="width:230px">${styledSelect("costBasis", [{ value: "average", label: t("Average Cost") }, { value: "fifo", label: t("FIFO (first in, first out)") }], SETTINGS.costBasis === "fifo" ? "fifo" : "average", { id: "costBasis" })}</div>`)}
       ${settingRow(t("Show reconciliation on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" aria-label="${escAttr(t("Show reconciliation on Brokers page"))}" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
       ${settingRow(t("Show Ex-Dividend Screener on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" aria-label="${escAttr(t("Show Ex-Dividend Screener on Dividends page"))}" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
+      </div>`)}
+    ${panel(`${t("Dividend reminders")}${infoTip(t("Shows up in the bell, and as a notification if you switch that on. They are worked out when you open the app."))}`, `<div class="setting-rows">
+      ${settingRow(t("Before the ex-dividend date"), `<label class="switch"><input type="checkbox" id="divRemEx" aria-label="${escAttr(t("Before the ex-dividend date"))}" ${SETTINGS.divRemEx !== false ? "checked" : ""}><span class="switch-track"></span></label>`)}
+      ${settingRow(t("How many days before"), `<div style="width:200px">${styledSelect("divRemDays", [1, 2, 3, 7].map((n) => ({ value: String(n), label: n === 1 ? t("1 day") : `${n} ${t("days")}` })), String(SETTINGS.divRemDays || 3), { id: "divRemDaysSel" })}</div>`)}
+      ${settingRow(t("On the payment day"), `<label class="switch"><input type="checkbox" id="divRemPay" aria-label="${escAttr(t("On the payment day"))}" ${SETTINGS.divRemPay !== false ? "checked" : ""}><span class="switch-track"></span></label>`)}
+      ${settingRow(`<span class="lbl-t">${t("Also send a notification")}${hcTip(t("A pop-up from your phone or computer. It appears when you open the app; to get it while the app is closed the app needs a server, which isn't set up yet."))}</span>`, `<label class="switch"><input type="checkbox" id="divRemNotify" aria-label="${escAttr(t("Also send a notification"))}" ${SETTINGS.divRemNotify ? "checked" : ""}><span class="switch-track"></span></label>`)}
       </div>`)}
     ${panel(`${t("Dividend tax by country")}${infoTip(t("Withholding tax taken from dividends, by the country of the stock's market. Used when dividends are logged automatically, unless the broker has its own rate. Leave blank for 0."))}`, `<div class="setting-rows">
       ${["Malaysia", "United States", "Singapore", "Hong Kong", "United Kingdom", "Australia", "Japan", "China"].map((c) => settingRow(t(c), `<span class="input-prefix"><input type="number" step="any" min="0" max="100" data-wht="${c}" value="${(SETTINGS.divTaxByCountry || {})[c] != null ? esc((SETTINGS.divTaxByCountry || {})[c]) : ""}" placeholder="0" style="width:90px"> %</span>`)).join("")}
@@ -5968,7 +6042,20 @@ function pageSettings() {
       $("#dateFmt").addEventListener("change", (e) => { SETTINGS.dateFormat = e.target.value; saveStore(); toast(t("Preferences saved")); render(); });
       $("#tzSel").addEventListener("change", (e) => { SETTINGS.timeZone = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#returnModeSel").addEventListener("change", (e) => { SETTINGS.returnMode = e.target.value; saveStore(); toast(t("Preferences saved")); });
-      $("#costBasis").addEventListener("change", () => { SETTINGS.costBasis = "average"; saveStore(); });
+      $("#costBasis").addEventListener("change", (e) => { SETTINGS.costBasis = e.target.value === "fifo" ? "fifo" : "average"; saveStore(); recompute(); toast(t("Preferences saved")); render(); });
+      const remSave = () => { saveStore(); toast(t("Preferences saved")); renderNotifications(); };
+      $("#divRemEx").addEventListener("change", (e) => { SETTINGS.divRemEx = e.target.checked; remSave(); });
+      $("#divRemPay").addEventListener("change", (e) => { SETTINGS.divRemPay = e.target.checked; remSave(); });
+      $("#divRemDaysSel").addEventListener("change", (e) => { SETTINGS.divRemDays = +e.target.value; remSave(); });
+      $("#divRemNotify").addEventListener("change", async (e) => {
+        const box = e.target;
+        if (box.checked) {
+          let perm = typeof Notification !== "undefined" ? Notification.permission : "denied";
+          if (perm === "default") { try { perm = await Notification.requestPermission(); } catch (err) { perm = "denied"; } }
+          if (perm !== "granted") { box.checked = false; SETTINGS.divRemNotify = false; saveStore(); toast(t("Notifications are blocked for this site — enable them in your browser's site settings, then reload this page.")); return; }
+        }
+        SETTINGS.divRemNotify = box.checked; remSave(); dividendNotify();
+      });
       $("#numFmtSel").addEventListener("change", (e) => { SETTINGS.numFmt = e.target.value; saveStore(); toast(t("Preferences saved")); render(); });
       $("#divGrowthSel").addEventListener("change", (e) => { SETTINGS.divGrowth = +e.target.value; divLtGrowth = SETTINGS.divGrowth; saveStore(); toast(t("Preferences saved")); });
       $("#backupRemindSel").addEventListener("change", (e) => { SETTINGS.backupRemind = e.target.value; saveStore(); toast(t("Preferences saved")); });
@@ -7854,6 +7941,7 @@ function init() {
   try { const saved = localStorage.getItem("il-theme"); if (saved) setTheme(saved); } catch (e) {}
   if (SETTINGS.startPage && (!location.hash || location.hash === "#" || location.hash === "#/")) history.replaceState(null, "", "#/" + SETTINGS.startPage);
   applyPrivacy();
+  setTimeout(dividendNotify, 5000); setTimeout(dividendNotify, 25000);   // dividend data loads in the background
   // Backup reminder: once per visit, only when there is data worth saving
   setTimeout(() => {
     const every = { weekly: 7, monthly: 30 }[SETTINGS.backupRemind]; if (!every || !ALL_TRANSACTIONS.length) return;
