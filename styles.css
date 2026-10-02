@@ -66,7 +66,7 @@
   --dz-dd: #eceafd; --dz-dd-bd: transparent; --dz-dd-tx: #3b33c4; --dz-dd-sm: #3b33c4;
   --dz-seg: #f0effa; --dz-seg-bd: rgba(49,40,120,.06); --dz-seg-on: #ffffff; --dz-seg-on-bd: transparent; --dz-seg-on-tx: #14122b; --dz-seg-on-sh: 0 1px 3px rgba(40,30,110,.16);
   --dz-live: #ffffff; --dz-live-sh: 0 1px 2px rgba(40,30,110,.08);
-  --dz-card-base: #ffffff; --dz-grid: #e6e4f4; --dz-track: #e0def3; --dz-dn-track: #eeecf9;
+  --dz-panel: #ffffff; --dz-card-base: #ffffff; --dz-grid: #e6e4f4; --dz-track: #e0def3; --dz-dn-track: #eeecf9;
   --dz-ti: #f6f5fc; --dz-ti-bd: transparent; --dz-ti-tx: #403c62; --dz-ti-in: #ddf6ec; --dz-ti-in-bd: transparent; --dz-ti-out: #fde4e8; --dz-ti-out-bd: transparent;
   --dz-lnk: #463cce; --dz-est: #8f5f0a; --dz-est-bg: #fcefd3; --dz-eyebrow: #5b54e8;
   --dz-gi-g: #ddf6ec; --dz-gi-g-t: #0a7a55; --dz-gi-b: #eceafd; --dz-gi-b-t: #4a41d6; --dz-gi-a: #fcefd3; --dz-gi-a-t: #8f5f0a; --dz-gi-t: #d8f3f9; --dz-gi-t-t: #08728a;
@@ -120,7 +120,7 @@
   --dz-dd: rgba(255,255,255,.045); --dz-dd-bd: rgba(255,255,255,.075); --dz-dd-tx: #eef0f8; --dz-dd-sm: #8189a6;
   --dz-seg: rgba(255,255,255,.045); --dz-seg-bd: rgba(255,255,255,.075); --dz-seg-on: linear-gradient(135deg, rgba(139,124,255,.30), rgba(61,216,245,.14)); --dz-seg-on-bd: rgba(139,124,255,.45); --dz-seg-on-tx: #eef0f8; --dz-seg-on-sh: 0 0 0 0 transparent;
   --dz-live: rgba(255,255,255,.04); --dz-live-sh: 0 0 0 0 transparent;
-  --dz-card-base: #0c0e16; --dz-grid: rgba(255,255,255,.07); --dz-track: rgba(255,255,255,.08); --dz-dn-track: rgba(255,255,255,.06);
+  --dz-panel: #12141c; --dz-card-base: #0c0e16; --dz-grid: rgba(255,255,255,.07); --dz-track: rgba(255,255,255,.08); --dz-dn-track: rgba(255,255,255,.06);
   --dz-ti: rgba(255,255,255,.05); --dz-ti-bd: rgba(255,255,255,.075); --dz-ti-tx: #aab0c6; --dz-ti-in: rgba(52,214,163,.11); --dz-ti-in-bd: rgba(52,214,163,.26); --dz-ti-out: rgba(255,111,142,.11); --dz-ti-out-bd: rgba(255,111,142,.26);
   --dz-lnk: #3dd8f5; --dz-est: #f6bd60; --dz-est-bg: rgba(246,189,96,.13); --dz-eyebrow: #a99dff;
   --dz-gi-g: rgba(52,214,163,.14); --dz-gi-g-t: #34d6a3; --dz-gi-b: rgba(139,124,255,.20); --dz-gi-b-t: #b3a9ff; --dz-gi-a: rgba(246,189,96,.15); --dz-gi-a-t: #f6bd60; --dz-gi-t: rgba(61,216,245,.15); --dz-gi-t-t: #3dd8f5;
@@ -2264,7 +2264,7 @@ button, input, select, textarea { font-family: inherit; }
 .pfx { display: flex; flex-direction: column; gap: 20px; min-width: 0; font-size: 14px; }
 .pfx .dz-live-slot { display: contents; }
 .pfx-card { background: var(--dz-card); border: 1px solid var(--dz-card-bd); box-shadow: var(--dz-card-sh); border-radius: 26px; min-width: 0; }
-.pfx .panel { background: var(--dz-card-base); border-color: var(--dz-card-bd); box-shadow: var(--dz-card-sh); border-radius: 26px; padding: 24px 26px 22px; margin-bottom: 0; }
+.pfx .panel { background: var(--dz-panel); border-color: var(--dz-card-bd); box-shadow: var(--dz-card-sh); border-radius: 26px; padding: 24px 26px 22px; margin-bottom: 0; }
 .pfx .panel-head { margin-bottom: 14px; }
 .pfx .panel-head h2 { font-size: 17px; font-weight: 700; letter-spacing: -.02em; }
 .pfx-foot { font-size: 12.5px; color: var(--muted); text-align: right; }
@@ -2302,12 +2302,12 @@ button, input, select, textarea { font-family: inherit; }
 .pfx-fcount { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 8px; padding: 0 5px; border-radius: 99px; background: var(--btn); color: var(--on-btn); font-size: 11px; }
 .pfx .pf-table { font-variant-numeric: tabular-nums; }
 .pfx .table-wrap { max-height: 70vh; overflow: auto; }
-.pfx .pf-table thead th, .pfx .dcc-table-scroll thead th { position: sticky; top: 0; z-index: 3; background: var(--dz-card-base); }
+.pfx .pf-table thead th, .pfx .dcc-table-scroll thead th { position: sticky; top: 0; z-index: 3; background: var(--dz-panel); }
 .pfx .pf-table thead th:first-child { z-index: 5; }
 .pfx .pf-table th, .pfx .pf-table td { padding: 14px; }
 .pfx .pf-table th { padding-top: 10px; padding-bottom: 10px; }
-.pfx .pf-table th:first-child, .pfx .pf-table td:first-child { background: var(--dz-card-base); padding-left: 0; }
-.pfx .pf-table tbody tr:hover td:first-child { background: var(--dz-card-base); }
+.pfx .pf-table th:first-child, .pfx .pf-table td:first-child { background: var(--dz-panel); padding-left: 0; }
+.pfx .pf-table tbody tr:hover td:first-child { background: var(--dz-panel); }
 .pfx .pf-table th.pfn, .pfx .pf-table td.pfn { text-align: right; }
 .pfx-hc { display: flex; align-items: center; gap: 12px; }
 .pfx-chip { width: 40px; height: 40px; border-radius: 14px; font-size: 12.5px; }
@@ -2322,12 +2322,12 @@ button, input, select, textarea { font-family: inherit; }
 /* Total row (minimal): one thin rule above bolder figures, no fill. It stays pinned to the bottom of the table box while the rows scroll
    (the cell is opaque so rows never show through) and keeps clear space above the horizontal scrollbar. */
 .pfx .pf-table tr.pfx-tot td, .pfx-rz tr.pfx-tot td {
-  position: sticky; bottom: 0; z-index: 2; background: var(--dz-card-base); border: 0; border-radius: 0;
+  position: sticky; bottom: 0; z-index: 2; background: var(--dz-panel); border: 0; border-radius: 0;
   font-weight: 700; font-size: 15px; padding-top: 18px; padding-bottom: 26px;
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 13%, transparent);
 }
 .pfx .pf-table tr.pfx-tot td:first-child { z-index: 4; }
-.pfx .pf-table tbody tr.pfx-tot:hover td:first-child { background: var(--dz-card-base); }
+.pfx .pf-table tbody tr.pfx-tot:hover td:first-child { background: var(--dz-panel); }
 .pfx .pf-table tr.pfx-tot td:first-child, .pfx-rz tr.pfx-tot td:first-child, .pfx-rz-sale tr.pfx-tot td:nth-child(2) { color: var(--text); font-size: 12.5px; letter-spacing: .08em; text-transform: uppercase; }
 .pfx-rz .data-table th.num, .pfx-rz .data-table td.pfn { text-align: right; font-variant-numeric: tabular-nums; }
 .pfx .dcc-table-scroll { overflow: visible; max-height: none; padding-right: 0; }
@@ -2627,7 +2627,7 @@ button, input, select, textarea { font-family: inherit; }
   #divCalScroll th:nth-child(6), #divCalScroll td:nth-child(6), #divCalScroll th:nth-child(8), #divCalScroll td:nth-child(8) { display: none; }
 }
 .panel-head h2 small.pfx-sm { margin-left: 8px; align-self: baseline; }
-.pfx-dvt-wrap thead th { position: sticky; top: 0; z-index: 2; background: var(--dz-card-base); }
+.pfx-dvt-wrap thead th { position: sticky; top: 0; z-index: 2; background: var(--dz-panel); }
 .pfx-chipd { white-space: normal; overflow-wrap: anywhere; overflow: visible; text-overflow: clip; }
 
 /* Name first, code second (every table that uses tickerCell) */
@@ -2934,7 +2934,7 @@ a.ticker.tk-name:hover { color: var(--brand); }
    FIDELITY PASS 3: colours/sizes measured against the approved samples
    ============================================================================= */
 /* panels carry the same soft top-light gradient as the samples (they were flat and darker) */
-.pfx .panel { background: var(--dz-card); }
+.pfx .panel { background: var(--dz-panel); }
 /* top cards: only the violet wash over the flat base (the extra white gradient made them lighter) */
 .pfx-sum > .pfx-card { background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 8%, transparent), transparent 70%), var(--dz-card-base); border-color: color-mix(in srgb, var(--brand) 30%, transparent); }
 /* table headings use the same quiet grey as the samples */
