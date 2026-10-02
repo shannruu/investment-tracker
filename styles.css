@@ -2669,13 +2669,12 @@ a.ticker.tk-name:hover { color: var(--brand); }
 .rc-desk.table-wrap { max-height: none; overflow-y: visible; }
 .rc-tbl th { text-align: left; }
 .rc-tbl th.pfn { text-align: right; }
-.rc-tbl td:first-child, .rc-tbl th:first-child { padding-left: 26px; }
+.rc-tbl td:first-child, .rc-tbl th:first-child { padding-left: 14px; }
 .rc-row { cursor: pointer; }
 .rc-row:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
 .rc-row.sel td { background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--text); }
 .rc-row.sel td:first-child { position: relative; border-radius: 10px 0 0 10px; }
 .rc-row.sel td:last-child { border-radius: 0 10px 10px 0; }
-.rc-row.sel td:first-child::before { content: ""; position: absolute; left: 11px; top: 50%; width: 7px; height: 7px; margin-top: -3.5px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 10px var(--brand); }
 .rc-mob { display: none; }
 .rc-more { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 16px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .rc-det { position: sticky; top: 20px; padding: 22px 24px; }
