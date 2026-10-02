@@ -4234,7 +4234,7 @@ function addForm2(type, editing) {
       ? `<input type="hidden" name="assetType" value="${tickerVal ? holdingType(tickerVal) : "Stock"}">`
       : "";
     core = `
-      <label style="grid-column:1/-1">${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
+      <label style="grid-column:1/-1">${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"></label>
       <label>${t("Quantity / Shares")}<input type="number" step="any" name="qty" value="${v(e.qty)}" placeholder="0"></label>
       <label class="amt-label">${t("Price / Share")}${amtCombo("price", v(e.price), "0.00")}</label>
       ${assetTypeField}
@@ -4249,7 +4249,7 @@ function addForm2(type, editing) {
     // new record — an explicit edit always wins once one exists.
     const defPaidTo = e.paidTo || (BROKERS.find((b) => b.id === defBroker) || {}).divPaidTo || "broker";
     core = `
-      <label>${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
+      <label>${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"></label>
       <label class="amt-label">${t("Gross dividend")}${amtCombo("divGross", type === "Dividend" ? v(e.gross) : "", "0.00")}</label>
       <label>${t("Withholding Tax")}<input type="number" step="any" name="tax" value="${v(e.tax)}" placeholder="0.00"></label>
       <label>${t("Paid to")}<select name="paidTo">
@@ -4268,7 +4268,7 @@ function addForm2(type, editing) {
     // derived, not entered, so there's no Quantity field here.
     const assetTypeField = `<input type="hidden" name="assetType" value="${tickerVal ? holdingType(tickerVal) : "Stock"}">`;
     core = `
-      <label>${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
+      <label>${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"></label>
       <label class="amt-label">${t("Gross dividend")}${amtCombo("divGross", v(e.gross), "0.00")}</label>
       <label>${t("Withholding Tax")}<input type="number" step="any" name="tax" value="${v(e.tax)}" placeholder="0.00"></label>
       <label>${t("Reinvest Price / Share")}<input type="number" step="any" name="price" value="${v(e.price)}" placeholder="0.00"></label>
@@ -4301,13 +4301,13 @@ function addForm2(type, editing) {
     extra = `<label>${t("Fee")}<input type="number" step="any" name="fee" value="${v(e.fee)}" placeholder="0.00"></label>${fxRow}`;
   } else if (type === "Stock split") {
     core = `
-      <label style="grid-column:1/-1">${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
+      <label style="grid-column:1/-1">${t("Stock code")}<input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"></label>
       <label>${t("Split ratio (new ÷ old)")}<input type="number" step="any" name="splitRatio" value="${type === "Stock split" ? v(e.qty) : ""}" placeholder="2"></label>
       <input type="hidden" name="currency" value="${defCcy}">`;
   } else if (type === "Transfer between brokers") {
     core = `
       <label>${t("To broker")}${styledSelect("toBroker", brokerList, e.toBrokerId || "")}</label>
-      <label><span>${t("Stock code")} <span class="form-optional">(${t("optional")})</span></span><input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off"></label>
+      <label><span>${t("Stock code")} <span class="form-optional">(${t("optional")})</span></span><input type="text" name="ticker" value="${tickerVal}" placeholder="AAPL, 1155.KL" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false"></label>
       <label class="amt-label" style="grid-column:1/-1"><span>${t("Amount")} <span class="form-optional">(${t("optional")})</span></span>${amtCombo("amount", v(e.gross), "0.00")}</label>
       ${fxRow}`;
   } else { // Deposit, Withdrawal, Fee, Interest — pure cash moves, no fees/taxes

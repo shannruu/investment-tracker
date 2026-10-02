@@ -340,7 +340,7 @@ document.addEventListener("click", (e) => { if (e.target.closest && e.target.clo
 
 /* ------------------------------------------------------------------ Date picker: our own calendar in place of the browser's grey one. */
 let dzCal = null;
-function dzCalClose() { if (dzCal) { dzCal.remove(); dzCal = null; } }
+function dzCalClose() { if (dzCal) { dzCal.remove(); dzCal = null; } document.querySelectorAll(".dzc-back").forEach((b) => b.remove()); }
 function dzCalOpen(input) {
   dzCalClose();
   const loc = LANG === "zh" ? "zh-CN" : "en";
@@ -374,6 +374,7 @@ function dzCalOpen(input) {
     else if (b.hasAttribute("data-clear")) set("");
   });
   draw();
+  if (innerWidth <= 760) { const back = document.createElement("div"); back.className = "dzc-back"; document.body.appendChild(back); pop.classList.add("dzc-sheet"); document.body.appendChild(pop); return; }
   document.body.appendChild(pop);
   const r = input.getBoundingClientRect(), ph = pop.offsetHeight, pw = pop.offsetWidth;
   const top = r.bottom + 6 + ph > innerHeight && r.top - 6 - ph > 0 ? r.top - 6 - ph : r.bottom + 6;
