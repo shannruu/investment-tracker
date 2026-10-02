@@ -1595,10 +1595,14 @@ function holdingSubLabel(h) {
  * that's actually part of the portfolio), plain text otherwise (a ticker no longer held,
  * or a market-wide row like the Ex-Dividend Screener that was never yours to begin with). */
 function tickerCell(ticker, brokerId, sub) {
+  // Name first (bold), stock code underneath — the same order as the Portfolio table. Falls back to the code alone when no name is known.
+  const name = typeof dzName === "function" ? dzName(ticker, sub) : sub;
+  const hasName = name && name !== ticker;
+  const text = esc(hasName ? name : ticker), cl = hasName ? "ticker tk-name" : "ticker";
   const label = brokerId
-    ? `<a class="ticker ticker-link" href="#/holding/${encodeURIComponent(brokerId + "|" + ticker)}">${esc(ticker)}</a>`
-    : `<span class="ticker">${esc(ticker)}</span>`;
-  return `${label}${sub ? `<div class="sub">${esc(sub)}</div>` : ""}`;
+    ? `<a class="${cl} ticker-link" href="#/holding/${encodeURIComponent(brokerId + "|" + ticker)}">${text}</a>`
+    : `<span class="${cl}">${text}</span>`;
+  return `${label}${hasName ? `<div class="sub">${esc(ticker)}</div>` : ""}`;
 }
 
 /* Compute dividends you're technically eligible for (held the stock on/after its ex-date)
@@ -4608,6 +4612,25 @@ let divIncomePeriod = "monthly"; // monthly | quarterly | annual — which Divid
 let exDivWindowDays = 14;        // 7 | 14 | 30 — how far ahead the ex-dividend screener looks
 let exDivSearch = "";            // client-side ticker/company filter for the ex-dividend screener
 let exDivMarket = "us";          // us | my — which market's ex-dividend calendar is shown
+/* Pop-up with the full details of one dividend (opened from the Dividends calendar / coming-up list). */
+function showDividendDetail(d) {
+  if (!d) return;
+  const hh = T.holdings.find((x) => x.ticker === d.ticker);
+  const row = (label, val) => `<div class="calc-row"><span>${label}</span><span class="cr-val">${val}</span></div>`;
+  const bid = d.brokerId || (hh && hh.brokerId);
+  $("#modalTitle").textContent = dzName(d.ticker, hh ? hh.company : null);
+  $("#modalBody").innerHTML = `<p class="muted" style="margin:0 0 12px;font-size:13px">${esc(d.ticker)}${bid ? " · " + esc(brokerName(bid)) : ""}</p>
+    ${row(t("Status"), statusBadge(d.status))}
+    ${row(t("Ex-Date"), fmtDate(d.exDate))}
+    ${row(t("Payout date"), `${d.payDisplay ? fmtDate(d.payDisplay) : "—"}${d.payEstimated ? ` <span class="muted">(${t("est.")})</span>` : ""}`)}
+    ${row(`${t("Amount")} (${ccyLabel(FX.base)})`, money(d.amtMYR))}
+    ${row(`${t("Per Share")} (${ccyLabel(FX.base)})`, d.perShareAmt != null ? fmt(d.perShareAmt, { maximumFractionDigits: 4 }) : "—")}
+    ${row(t("Dividend yield"), d.yieldPct != null ? fmt(d.yieldPct, { maximumFractionDigits: 2 }) + "%" : "—")}
+    ${hh && bid ? `<p style="margin:14px 0 0"><a class="link" id="dvOpenStock" href="#/holding/${encodeURIComponent(bid + "|" + d.ticker)}">${t("Open stock page")} →</a></p>` : ""}`;
+  const lk = $("#dvOpenStock"); if (lk) lk.addEventListener("click", closeModal);
+  $("#modal").hidden = false;
+}
+
 function pageDividends() {
   /* Calculation reference:
    * grossBase        = Σ (d.gross × fxRate) for all received dividends
@@ -4964,21 +4987,32 @@ function pageDividends() {
   const calMonth = divCalMonth || today.slice(0, 7);
   const [cy, cm] = calMonth.split("-").map(Number);
   const firstDow = (new Date(cy, cm - 1, 1).getDay() + 6) % 7, dim = new Date(cy, cm, 0).getDate();
-  const byDay = {}; allDivEntries.filter((d) => d.payDate.startsWith(calMonth)).forEach((d) => { const dd = +d.payDate.slice(8, 10); (byDay[dd] = byDay[dd] || []).push(d); });
+  const dvIdx = new Map(allDivEntries.map((d, i) => [d, i]));
+  const byDay = {};
+  const addDay = (iso, ev) => { const k = +iso.slice(8, 10); (byDay[k] = byDay[k] || []).push(ev); };
+  allDivEntries.forEach((d) => {
+    const pay = d.payDisplay || d.payDate;
+    if (d.exDate && d.exDate.startsWith(calMonth) && d.exDate !== pay) addDay(d.exDate, { kind: "ex", d });
+    if (pay && pay.startsWith(calMonth)) addDay(pay, { kind: "pay", d });
+  });
+  const dvChip = (e) => { const idx = dvIdx.get(e.d), nm = esc(dvNameOf(e.d.ticker));
+    return e.kind === "ex"
+      ? `<span class="pfx-chipd ex" role="button" tabindex="0" data-dvdetail="${idx}" title="${t("Ex-Date")}"><span class="lab">${t("Ex")}</span><br><span class="nm">${nm}</span></span>`
+      : `<span class="pfx-chipd${e.d.status === "Received" ? "" : " es"}" role="button" tabindex="0" data-dvdetail="${idx}" title="${t("Payout date")}"><span class="nm">${nm}</span><br><span class="rm">${ccyLabel(FX.base)} </span>${fmt(e.d.amtMYR)}</span>`; };
   const dowNames = [t("Mon"), t("Tue"), t("Wed"), t("Thu"), t("Fri"), t("Sat"), t("Sun")];
   let cells = dowNames.map((n) => `<div class="pfx-dh">${n}</div>`).join("");
   for (let i = 0; i < firstDow; i++) cells += `<div class="pfx-dc off"></div>`;
   for (let dday = 1; dday <= dim; dday++) {
     const iso = `${calMonth}-${String(dday).padStart(2, "0")}`, ev = byDay[dday] || [];
-    cells += `<div class="pfx-dc${iso === today ? " td" : ""}"><span>${dday}</span>${iso === today ? `<em>${t("today")}</em>` : ""}${ev.slice(0, 2).map((d) => `<span class="pfx-chipd${d.status === "Received" ? "" : " es"}"><span class="nm">${esc(dvNameOf(d.ticker))}</span><br><span class="rm">${ccyLabel(FX.base)} </span>${fmt(d.amtMYR)}</span>`).join("")}${ev.length > 2 ? `<span class="pfx-more">+${ev.length - 2}</span>` : ""}</div>`;
+    cells += `<div class="pfx-dc${iso === today ? " td" : ""}"><span>${dday}</span>${iso === today ? `<em>${t("today")}</em>` : ""}${ev.slice(0, 2).map(dvChip).join("")}${ev.length > 2 ? `<span class="pfx-more">+${ev.length - 2}</span>` : ""}</div>`;
   }
   for (let i = 0; i < (7 - ((firstDow + dim) % 7)) % 7; i++) cells += `<div class="pfx-dc off"></div>`;
   const monthTitle = new Date(cy, cm - 1, 1).toLocaleString(LANG === "zh" ? "zh-CN" : "en", { month: "long", year: "numeric" });
   const calNav = `<div class="dz-seg" role="group"><button type="button" data-dvcal="prev" aria-label="${t("Previous month")}">‹</button><button type="button" class="on" data-dvcal="today">${t("Today")}</button><button type="button" data-dvcal="next" aria-label="${t("Next month")}">›</button></div>`;
-  const monthCard = panel(`${monthTitle}<small class="pfx-sm">${t("your dividend dates")}</small>`, `<div class="pfx-cal7">${cells}</div>`, calNav);
-  const comingList = allDivEntries.filter((d) => d.payDate >= today).slice(0, 5).map((d, i) => { const dt = new Date(d.payDate + "T00:00:00");
-    return `<div class="pfx-nx"><div class="pfx-dd"><small>${dt.toLocaleString("en", { month: "short" }).toUpperCase()}</small><b class="dz-n">${dt.getDate()}</b></div>
-      <div class="pfx-nxt"><b>${esc(dvNameOf(d.ticker))}</b><span>${t("Ex-Date")} ${fmtDate(d.exDate)}</span></div>
+  const monthCard = panel(`${monthTitle}<small class="pfx-sm">${t("your dividend dates")}</small>`, `<div class="pfx-cal7">${cells}</div><div class="pfx-leg" style="margin-top:12px"><span><i class="pfx-leg-ex"></i>${t("Ex-date: own the stock before this day")}</span><span><i style="background:var(--dz-est)"></i>${t("Payout: the money arrives")}</span></div>`, calNav);
+  const comingList = allDivEntries.filter((d) => (d.payDisplay || d.payDate) >= today).slice(0, 5).map((d, i) => { const pay = d.payDisplay || d.payDate, dt = new Date(pay + "T00:00:00");
+    return `<div class="pfx-nx" role="button" tabindex="0" data-dvdetail="${dvIdx.get(d)}"><div class="pfx-dd" title="${t("Payout date")}"><small>${dt.toLocaleString("en", { month: "short" }).toUpperCase()}</small><b class="dz-n">${dt.getDate()}</b></div>
+      <div class="pfx-nxt"><b>${esc(dvNameOf(d.ticker))}</b><span>${t("Ex-Date")} ${fmtDate(d.exDate)} · ${t("Payout")} ${fmtDate(pay)}</span></div>
       <div class="pfx-nxa dz-n">${money(d.amtMYR)}<small>${i === 0 ? t("Next payment") : (d.status === "Estimated" ? t("Estimated") : t("Confirmed"))}</small></div></div>`; }).join("");
   const comingCard = panel(`${t("Coming up")}<small class="pfx-sm">${t("next payments")}</small>`, comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`);
   const listPanel = panel(`${t("Dividend Calendar")}${calendarTitleTip}`, allDivEntries.length
@@ -5011,6 +5045,11 @@ function pageDividends() {
         if (mm < 1) { mm = 12; yy--; } if (mm > 12) { mm = 1; yy++; }
         divCalMonth = `${yy}-${String(mm).padStart(2, "0")}`; render();
       }));
+      $$("[data-dvdetail]").forEach((el) => {
+        const open = () => showDividendDetail(allDivEntries[+el.dataset.dvdetail]);
+        el.addEventListener("click", open);
+        el.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } });
+      });
       const dvRev = $("#dvReview"); if (dvRev) dvRev.addEventListener("toggle", () => { divReviewOpen = dvRev.open; });
       $$("[data-div-refresh]").forEach((b) => b.addEventListener("click", () => {
         if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }

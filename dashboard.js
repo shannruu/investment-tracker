@@ -24,7 +24,7 @@
 /* ---------- Chinese strings for this page ----------
  * Only keys the main dictionary doesn't already have are added, so nothing existing is overridden. */
 const DZ_ZH = {
-  "Your holdings": "我的持仓", "Your dividends": "我的股息", "Net income received and expected": "已收和预期的净收入", "Add dividend": "添加股息", "Calendar": "日历", "History": "历史",
+  "Your holdings": "我的持仓", "Ex": "除息", "Payout": "派息", "Payout date": "派息日", "Dividend yield": "股息率", "Ex-date: own the stock before this day": "除息日：需在此日前持有股票", "Payout: the money arrives": "派息日：款项到账", "Open stock page": "查看股票页面", "Your dividends": "我的股息", "Net income received and expected": "已收和预期的净收入", "Add dividend": "添加股息", "Calendar": "日历", "History": "历史",
   "{n} dividend to review": "{n} 笔股息待审核", "{n} dividends to review": "{n} 笔股息待审核", "Real payments for stocks you hold that are not in your ledger yet. Review each one before adding it.": "您持有的股票的真实派息，尚未记入账本。请逐笔审核后再添加。",
   "Review": "审核", "Net dividends received": "已收净股息", "This year": "今年", "expected": "预期", "Average per month": "月均", "last 12 months": "近 12 个月", "tax": "税", "Dividend income": "股息收入",
   "Received": "已收到", "Expected": "预期", "Who pays you": "股息来源", "Coming up": "即将派息", "next payments": "接下来的派息", "your dividend dates": "您的派息日期", "Nothing scheduled yet.": "暂无安排。",
