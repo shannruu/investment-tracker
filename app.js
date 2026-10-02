@@ -3200,14 +3200,14 @@ function realizedPLHTML() {
   const fcard = (label, key, list) => mc(label, moneySigned(sumPl(list)) + `<div class="sub">${nStocks(list.length)}</div>`, list.length ? cls(sumPl(list)) : "",
     ` role="button" tabindex="0" data-rzfilter="${key}" aria-label="${label}"`);
   const rzCard = (label, val, pillTxt, c, attrs = "") => pfxStatCard(label, val, `<span class="pfx-pl ${c === "neg" ? "neg" : "pos"}">${pillTxt}</span>`, c, attrs);
-  const summary = `<div class="pfx-sum pfx-sum3">${rzCard(t("Total Realized P/L"), moneySigned(T.realizedPL), dzF(sales.length === 1 ? "{n} sale" : "{n} sales", { n: sales.length }), cls(T.realizedPL))}
+  const summary = `<div class="pfx-sum pfx-sum3">${rzCard(t("Total Realized P/L"), moneySigned(T.realizedPL), dzF(sales.length === 1 ? "{n} sale" : "{n} sales", { n: sales.length }), cls(T.realizedPL), `role="button" tabindex="0" data-rzfilter="all" aria-label="${t("All")}"`)}
     ${rzCard(t("Gained"), moneySigned(sumPl(gainG)), nStocks(gainG.length), cls(sumPl(gainG)), `role="button" tabindex="0" data-rzfilter="gain" aria-label="${t("Gained")}"`)}
     ${rzCard(t("Lost"), moneySigned(sumPl(lossG)), nStocks(lossG.length), cls(sumPl(lossG)), `role="button" tabindex="0" data-rzfilter="loss" aria-label="${t("Lost")}"`)}</div>`;
   const bestWorst = `<div class="pf-insight">${dzIcon("info", 16)}<span>${t("Best sale")}: ${esc(best.ticker)} ${moneySigned(best.pl)} · ${fmtDate(best.date)} &nbsp;|&nbsp; ${t("Worst sale")}: ${esc(worst.ticker)} ${moneySigned(worst.pl)} · ${fmtDate(worst.date)}</span></div>`;
-  const filterBtns = `<div class="seg" role="group" aria-label="${t("Gained")} / ${t("Lost")}">${[["all", t("All")], ["gain", t("Gained")], ["loss", t("Lost")]].map(([k, l]) =>
-    `<button class="seg-btn ${rzf === k ? "on" : ""}" data-rzfilter="${k}">${l}</button>`).join("")}</div>`;
-  const modeBtns = `<div class="seg" role="group">${[["stock", "By stock"], ["sale", "Each sale"]].map(([k, l]) =>
-    `<button class="seg-btn ${realizedView.mode === k ? "on" : ""}" data-rzmode="${k}">${t(l)}</button>`).join("")}</div>`;
+  const filterBtns = `<div class="dz-seg" role="group" aria-label="${t("Gained")} / ${t("Lost")}">${[["all", t("All")], ["gain", t("Gained")], ["loss", t("Lost")]].map(([k, l]) =>
+    `<button type="button" class="${rzf === k ? "on" : ""}" data-rzfilter="${k}">${l}</button>`).join("")}</div>`;
+  const modeBtns = `<div class="dz-seg" role="group">${[["stock", "By stock"], ["sale", "Each sale"]].map(([k, l]) =>
+    `<button type="button" class="${realizedView.mode === k ? "on" : ""}" data-rzmode="${k}">${t(l)}</button>`).join("")}</div>`;
   const sortSel = styledSelect("rzSort", [["high", "Highest profit first"], ["low", "Biggest loss first"], ["new", "Most recent first"]]
     .map(([value, label]) => ({ value, label: t(label) })), realizedView.sort, { id: "rzSort" });
   const w = (100 / headers.length).toFixed(1) + "%";
