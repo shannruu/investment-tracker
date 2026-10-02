@@ -7396,6 +7396,7 @@ function render() {
   // Stock / Dividends tabs survive a refresh, but opening the page from somewhere else always starts on Overview.
   if (key !== "holding") { holdingTabFor = ""; try { sessionStorage.removeItem("il-stock-tab"); } catch (e) {} }
   if (key !== "dividends") { divTab = "overview"; try { sessionStorage.removeItem("il-div-tab"); } catch (e) {} }
+  if (key !== "portfolio") portfolioTab = "holdings";   // Portfolio always opens on Holdings when entered from another page
   if (key !== "add") { editingTxId = null; addDraft = {}; closeAddDrawer(); }  // drop edit mode + draft + drawer when leaving Add
   if (key !== "brokers") closeBrokerDrawer();  // drop the broker drawer when leaving Brokers
   const root = $("#page");
