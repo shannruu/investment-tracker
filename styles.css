@@ -2794,9 +2794,3 @@ a.ticker.tk-name:hover { color: var(--brand); }
   background: linear-gradient(180deg, color-mix(in srgb, var(--brand) 8%, transparent), transparent 70%), var(--dz-card); }
 .pfx-sum > .pfx-card::after, .dz-hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px; pointer-events: none; opacity: .7;
   background: linear-gradient(90deg, transparent, var(--brand), var(--accent2), transparent); }
-.ct-tile { flex: none; width: 30px; height: 30px; border-radius: 10px; display: inline-grid; place-items: center; background: color-mix(in srgb, var(--brand) 14%, transparent); color: var(--brand); }
-.ct-tile .icon { width: 16px; height: 16px; }
-.pfx-lbl.has-tile { justify-content: flex-start; gap: 10px; }
-.pfx-lbl.has-tile > .go, .pfx-lbl.has-tile > .col-info { margin-left: auto; }
-.dz-lbl.has-tile { gap: 10px; }
-@media (max-width: 760px) { .ct-tile { width: 26px; height: 26px; border-radius: 9px; } .ct-tile .icon { width: 14px; height: 14px; } .pfx-lbl.has-tile, .dz-lbl.has-tile { gap: 8px; } }
