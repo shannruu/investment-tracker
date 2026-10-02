@@ -82,6 +82,10 @@ const TH_TIPS = {
   "Realized P/L|Return %": "Profit or loss as a % of what you paid.",
   "Realized P/L|Realized P/L": "Profit or loss on the sale, after fees.",
   "Share of total": "How much of your total money (stocks plus cash) is with this broker.",
+  "Position": "Shares you own, with your average cost per share underneath.",
+  "Dividends that year": "What you could collect in that year.",
+  "Total so far": "Everything you could have collected up to the end of that year.",
+  "If you keep what you own|Year": "How many years from now.",
   "Cash": "Cash held with this broker.",
 };
 
@@ -278,6 +282,10 @@ const TH_ZH = {
   "Average dividends per month over the last 12 months.": "过去 12 个月平均每月的股息。",
   "Your next expected dividend payment.": "您下一笔预计收到的股息。",
   "Return on shares you still hold. The Dashboard also counts shares you sold.": "仍持有股份的收益。仪表盘还会计入已卖出的股份。",
+  "Shares you own, with your average cost per share underneath.": "您持有的股数，下方是每股平均成本。",
+  "What you could collect in that year.": "当年您可以收到的股息。",
+  "Everything you could have collected up to the end of that year.": "到当年年底为止累计可收到的股息。",
+  "How many years from now.": "从现在起第几年。",
   /* the other info icons whose wording was shortened */
   "Time zone decides which day counts as \"today\". Gains and losses use the Average Cost method.": "时区决定哪一天算“今天”。盈亏按平均成本法计算。",
   "Add many records at once from a spreadsheet. You can preview before anything is saved.": "用表格一次添加多条记录。保存之前可以先预览。",

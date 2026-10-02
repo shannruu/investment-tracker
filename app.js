@@ -575,6 +575,20 @@ const ZH = {
   "Click a line to see the records behind it.": "点击一行可查看背后的记录。",
   "Avg": "均价",
   "of portfolio": "占投资组合",
+  "If you keep what you own": "如果您一直持有现有股票",
+  "Dividends you could collect, added up over the years.": "您可以累计收到的股息。",
+  "Dividends grow": "股息增长",
+  "{n}% a year": "每年 {n}%",
+  "In 1 year": "1 年后",
+  "In {n} years": "{n} 年后",
+  "{n}% of your cost back": "收回成本的 {n}%",
+  "Year {n}": "第 {n} 年",
+  "until": "至",
+  "Dividends that year": "当年股息",
+  "Total so far": "累计股息",
+  "… and so on up to year 10.": "……依此类推，直到第 10 年。",
+  "Based on the {n} of dividends expected over the next 12 months from the shares you hold today. Assumes you buy and sell nothing more and the companies keep paying. An estimate, not a promise.": "以您目前持有的股票在未来 12 个月预计收到的 {n} 股息为基础，假设您不再买卖，公司持续派息。这只是估算，不是承诺。",
+  "Position": "持仓",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -2782,11 +2796,11 @@ function loadPortfolioPrefs() {
     const raw = localStorage.getItem(PORTFOLIO_PREFS_KEY);
     const s = JSON.parse(raw || "{}");
     const phone = !raw && typeof matchMedia === "function" && matchMedia("(max-width: 760px)").matches;
-    const cols = Object.assign({}, phone ? COL_DEFAULTS_PHONE : COL_DEFAULTS, s.cols || {});
+    const cols = Object.assign({}, phone ? COL_DEFAULTS_PHONE : COL_DEFAULTS, s.v === 2 ? (s.cols || {}) : {});   // v2: columns saved before the Portfolio redesign are dropped once so everyone gets the new default view
     const allIds = COL_DEFS.map((d) => d.id);
     const saved = Array.isArray(s.colOrder) ? s.colOrder.filter((id) => allIds.includes(id)) : [];
     const colOrder = [...saved, ...allIds.filter((id) => !saved.includes(id))];
-    return { cols, colOrder };
+    return { cols, colOrder, v: 2 };
   } catch { return { cols: Object.assign({}, COL_DEFAULTS), colOrder: COL_DEFS.map((d) => d.id) }; }
 }
 function savePortfolioPrefs() {
@@ -3340,7 +3354,7 @@ function portfolioTable() {
   // Visible columns in user-defined order
   const orderedColIds = colOrder.filter((id) => cols[id]);
   const colLabels = {
-    broker: t("Broker"), shares: t("Shares"), avgCost: t("Avg Cost (incl. fees)"),
+    broker: t("Broker"), shares: cols.avgCost ? t("Shares") : t("Position"), avgCost: t("Avg Cost (incl. fees)"),
     avgCostEx: t("Avg Cost (excl. fees)"), buyFees: t("Buying fees"), costBasis: t("Cost Basis"),
     todayPct: t("Today"), realizedPL: t("Realized P/L"), pctPortfolio: t("% of Portfolio"),
     price: t("Price"), priceMyr: `≈ ${ccyLabel(FX.base)}`,
@@ -4755,6 +4769,7 @@ function dividendForecast(received, upcoming, tickerScope) {
  * ========================================================================== */
 let divCalendarFilter = "all";   // all | past | upcoming — filters the combined dividend calendar
 let divTab = (() => { try { const v = sessionStorage.getItem("il-div-tab"); return ["overview", "calendar", "history"].includes(v) ? v : "overview"; } catch (e) { return "overview"; } })();
+let divLtGrowth = 3;   // Dividends page, long-term section: assumed yearly growth of dividends (0 / 3 / 6 %)
 let divChartMode = "monthly", divCalMonth = "", divReviewOpen = false;   // Dividends page: tab, chart range, month shown on the calendar, review card open/closed
 let divCalScrollTop = null;      // calendar's scroll position — survives the page's background re-renders; null = not scrolled by the user yet, so jump to the next payment
 let divIncomePeriod = "monthly"; // monthly | quarterly | annual — which Dividend Income view is shown
@@ -5130,7 +5145,26 @@ function pageDividends() {
         <b class="dz-n">${money(v)}</b>${costAll > 0 ? `<small class="dz-n">${fmt((v / costAll) * 100, { maximumFractionDigits: 1 })}% ${t("of cost")}</small>` : ""}</div>`; }).join("")}</div>
     <p class="pfx-note2">${t("Green: received. Purple: expected.")} ${t("Estimate, not a promise — based on your dividend pattern.")}</p>${patternLine}
     <p class="pfx-note2"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`) : panel(t("Dividend Forecast"), forecastBody);
-  const overview = `${dvCards}<div class="pfx-two">${incomeCard}${whoCard}</div>${outlookCard}`;
+  // Long-term: if you keep the shares you hold today, what could the dividends add up to over the next years?
+  // Starts from what is expected over the next 12 months (the same figure the Dashboard shows) and grows it by the chosen rate.
+  const ltBase = (() => { const u = Math.round((typeof dzUpcomingList === "function" ? dzUpcomingList() : []).reduce((sx, d) => sx + Math.round((+d.amtMYR || 0) * 100) / 100, 0) * 100) / 100; return u > 0 ? u : (fc.ttm || 0); })();
+  const ltCard = (() => {
+    if (!(ltBase > 0)) return "";
+    const g = divLtGrowth / 100, perYear = Array.from({ length: 10 }, (_, i) => ltBase * Math.pow(1 + g, i));
+    const cum = perYear.reduce((arr, v) => (arr.push((arr.length ? arr[arr.length - 1] : 0) + v), arr), []);
+    const growthSeg = `<div class="dz-seg" role="group" aria-label="${esc(t("Dividends grow"))}">${[0, 3, 6].map((n) => `<button type="button" class="${divLtGrowth === n ? "on" : ""}" data-dvgrowth="${n}">${n === 0 ? "0%" : dzF("{n}% a year", { n })}</button>`).join("")}</div>`;
+    const miles = [1, 3, 5, 10].map((n) => { const c = cum[n - 1], back = costAll > 0 ? (c / costAll) * 100 : null;
+      return `<div class="lt-m"><div class="lt-y">${n === 1 ? t("In 1 year") : dzF("In {n} years", { n })}</div><div class="lt-v dz-n">${money(c)}</div>
+        ${back != null ? `<div class="lt-bar"><i style="width:${Math.min(100, back).toFixed(0)}%"></i></div><div class="lt-s">${dzF("{n}% of your cost back", { n: fmt(back, { maximumFractionDigits: 0 }) })}</div>` : ""}</div>`; }).join("");
+    const endOf = (n) => { const d = new Date(todayDate()); d.setFullYear(d.getFullYear() + n); return d.toLocaleDateString(LANG === "zh" ? "zh-CN" : "en-GB", { month: "short", year: "numeric" }); };
+    const rows = [1, 2, 3, 4, 5].map((n) => `<tr><td>${dzF("Year {n}", { n })} <span class="muted">· ${t("until")} ${endOf(n)}</span></td><td class="pfn">${money(perYear[n - 1])}</td><td class="pfn">${money(cum[n - 1])}</td></tr>`).join("");
+    return panel(t("If you keep what you own"), `<p class="pfx-note2" style="margin:-6px 0 14px">${t("Dividends you could collect, added up over the years.")}</p><div class="lt-ms">${miles}</div>
+      <div class="table-wrap"><table class="data-table pfx-txt lt-tbl"><thead><tr><th>${t("Year")}</th><th class="pfn">${t("Dividends that year")}</th><th class="pfn">${t("Total so far")}</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="pfx-note2">${t("… and so on up to year 10.")}</p>
+      <p class="pfx-note2">${dzF("Based on the {n} of dividends expected over the next 12 months from the shares you hold today. Assumes you buy and sell nothing more and the companies keep paying. An estimate, not a promise.", { n: money(ltBase) })}</p>`,
+      `<div class="lt-grow"><span>${t("Dividends grow")}</span>${growthSeg}</div>`);
+  })();
+  const overview = `${dvCards}<div class="pfx-two">${incomeCard}${whoCard}</div>${outlookCard}${ltCard}`;
 
   // --- Calendar: month view + coming up (Option C), then the full list
   const calMonth = divCalMonth || today.slice(0, 7);
@@ -5186,6 +5220,7 @@ function pageDividends() {
     title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
     mount() {
       const dvBell = $("#dzBell"); if (dvBell) dvBell.addEventListener("click", () => toggleMoreSheet());
+      $$("[data-dvgrowth]").forEach((b) => b.addEventListener("click", () => { divLtGrowth = +b.dataset.dvgrowth; render(); }));
       $$("[data-dvtab]").forEach((b) => b.addEventListener("click", () => { divTab = b.dataset.dvtab; try { sessionStorage.setItem("il-div-tab", divTab); } catch (e) {} render(); }));
       $$("[data-dvchart]").forEach((b) => b.addEventListener("click", () => { divChartMode = b.dataset.dvchart; render(); }));
       $$("[data-dvcal]").forEach((b) => b.addEventListener("click", () => {

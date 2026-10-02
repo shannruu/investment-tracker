@@ -2817,3 +2817,26 @@ a.ticker.tk-name:hover { color: var(--brand); }
 .pf-chip { width: 38px; height: 38px; border-radius: 12px; font-size: 12px; }
 .pf-ev .rc-am small.pos { color: var(--pos); }
 .pf-ev .rc-am small.neg { color: var(--neg); }
+
+/* =============================================================================
+   DIVIDENDS: "If you keep what you own" (long-term section)
+   ============================================================================= */
+.lt-grow { display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.lt-ms { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
+.lt-m { padding: 16px 18px; border-radius: 20px; background: color-mix(in srgb, var(--text) 5%, transparent); border: 1px solid var(--border); }
+.lt-y { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.lt-v { font-size: 22px; font-weight: 700; letter-spacing: -.03em; margin-top: 6px; white-space: nowrap; }
+.lt-bar { height: 6px; border-radius: 99px; background: color-mix(in srgb, var(--text) 10%, transparent); margin-top: 12px; overflow: hidden; }
+.lt-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--brand), var(--accent2)); }
+.lt-s { font-size: 12px; font-weight: 600; color: var(--muted); margin-top: 8px; }
+.lt-tbl td:first-child, .lt-tbl th:first-child { text-align: left; }
+@media (max-width: 760px) {
+  .lt-ms { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .lt-m { padding: 13px 14px; border-radius: 18px; }
+  .lt-v { font-size: 18px; }
+  .lt-grow span { display: none; }
+}
+@media (max-width: 760px) {
+  .lt-tbl th, .lt-tbl td { padding: 11px 4px; }
+  .lt-tbl td:first-child .muted { display: none; }
+}
