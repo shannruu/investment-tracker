@@ -6250,18 +6250,16 @@ function pageHolding() {
   const txType = (x) => (x.type === "Buy" || x.type === "Sell" || x.type === "Dividend" ? x.type : "Other");
   const txYears = [...new Set(txs.map((x) => (x.date || "").slice(0, 4)).filter(Boolean))].sort().reverse();
   const txShown = txs.filter((x) => (holdingTxFilter.type === "all" || txType(x) === holdingTxFilter.type) && (!holdingTxFilter.year || (x.date || "").startsWith(holdingTxFilter.year)));
+  const dashX = `<span class="muted">—</span>`;
   const txRowsF = txShown.map((x) => `<tr><td class="dcc-c">${fmtDate(x.date)}</td><td class="dcc-c">${typeChip(x.type)}</td>
-    <td class="dcc-c">${x.qty != null ? fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 }) : "—"}</td>
-    <td class="dcc-c">${x.price != null ? ccyLabel(x.currency) + " " + fmt(x.price) : "—"}</td>
-    <td class="dcc-c">${x.gross != null ? ccyLabel(x.currency) + " " + fmt(x.gross) : "—"}</td>
-    <td class="dcc-c">${x.fee ? ccyLabel(x.currency) + " " + fmt(x.fee) : "—"}</td></tr>`).join("");
+    <td class="dcc-c pfn">${x.qty != null ? fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 }) : dashX}</td>
+    <td class="dcc-c pfn">${x.price != null ? ccyLabel(x.currency) + " " + fmt(x.price) : dashX}</td>
+    <td class="dcc-c pfn ${x.type === "Dividend" ? "pos" : ""}">${x.gross != null ? (x.type === "Dividend" ? "+" : "") + ccyLabel(x.currency) + " " + fmt(x.gross) : dashX}</td>
+    <td class="dcc-c pfn">${x.fee ? ccyLabel(x.currency) + " " + fmt(x.fee) : dashX}</td></tr>`).join("");
   const txBar = `<div class="pfx-txf"><div class="dz-seg" role="group">${[["all", t("All")], ["Buy", t("Buy")], ["Sell", t("Sell")], ["Dividend", t("Dividend")], ["Other", t("Other")]].map(([k, l]) =>
       `<button type="button" class="${holdingTxFilter.type === k ? "on" : ""}" data-txf="${k}">${l}</button>`).join("")}</div>
     <div style="width:150px">${styledSelect("txYear", [{ value: "", label: t("All years") }, ...txYears.map((y) => ({ value: y, label: y }))], holdingTxFilter.year, { id: "txYearSel" })}</div></div>`;
-  const txPanel = panel(`${t("Transactions")} (${txShown.length === txs.length ? txs.length : txShown.length + " / " + txs.length})`, txBar + (txRowsF ? `<div class="pfx-tx">${table([
-    { label: t("Date"), style: "width:16.6%" }, { label: t("Type"), style: "width:16.6%" }, { label: t("Qty"), style: "width:16.6%" },
-    { label: t("Price"), style: "width:16.6%" }, { label: t("Gross"), style: "width:16.6%" }, { label: t("Fee"), style: "width:16.6%" },
-  ], txRowsF)}</div>` : emptyState(txs.length ? t("No transactions match this filter.") : t("No transactions for this holding."))));
+  const txPanel = panel(`${t("Transactions")} (${txShown.length === txs.length ? txs.length : txShown.length + " / " + txs.length})`, txBar + (txRowsF ? `<div class="table-wrap pfx-tx"><table class="data-table pfx-txt"><thead><tr><th>${t("Date")}</th><th>${t("Type")}</th><th class="pfn">${t("Qty")}</th><th class="pfn">${t("Price")}</th><th class="pfn">${t("Gross")}</th><th class="pfn">${t("Fee")}</th></tr></thead><tbody>${txRowsF}</tbody></table></div>` : emptyState(txs.length ? t("No transactions match this filter.") : t("No transactions for this holding."))));
 
   const stTabs = [["overview", t("Overview")], ["dividends", t("Dividends")], ["tx", `${t("Transactions")} (${txs.length})`]];
   const stNav = `<div class="pfx-tabs"><div class="dz-seg" role="tablist">${stTabs.map(([k, l]) =>
