@@ -81,6 +81,8 @@ const TH_TIPS = {
   "Realized P/L|Date": "The day you sold.",
   "Realized P/L|Return %": "Profit or loss as a % of what you paid.",
   "Realized P/L|Realized P/L": "Profit or loss on the sale, after fees.",
+  "Share of total": "How much of your total money (stocks plus cash) is with this broker.",
+  "Cash": "Cash held with this broker.",
 };
 
 const _thNorm = (s) => String(s == null ? "" : s).replace(/\s+/g, " ").trim().toLowerCase();
@@ -126,12 +128,65 @@ function decorateTableTitles(scope) {
   });
 }
 
+/* ------------------------------------------------------------------ Descriptions for labels that are NOT table titles
+ * (rows of a detail panel, summary-card titles, the totals strip). Same behaviour as the table titles: with a mouse you hover
+ * the label itself, on a touch screen the little icon stays and a tap shows it. Looked up by label (optionally "context|label"),
+ * then falls back to TH_TIPS so a word like "Date" or "Unrealized P/L" is described once. */
+const LBL_TIPS = {
+  "Market Value": "What your holdings here are worth at today's prices.",
+  "Available Cash": "Cash ready to invest or withdraw.",
+  "Money in": "Total you have deposited.",
+  "Money out": "Total you have withdrawn.",
+  "Money Left In This Broker": "Money in minus money out. Click to see the sum.",
+  "Dividends paid to": "Whether dividends stay in this broker's cash or go to your bank.",
+  "Default dividend tax rate": "Used for new dividends from this broker unless you change it on one.",
+  "Reconciliation": "Whether your calculated cash matches what the broker shows.",
+  "Fees": "Commission and fees on the trade.",
+  "Price per share": "Price for one share on that trade.",
+  "Original amount": "Amount in the record's own currency.",
+  "Exchange rate": "Rate used to convert it into {base}.",
+  "strip|Bought": "Total spent buying shares.",
+  "strip|Sold": "Total received from selling shares.",
+  "strip|Dividends": "Dividends received, after tax.",
+  "Net dividends received": "All dividends you have received, after tax.",
+  "This year": "Dividends received so far this year.",
+  "Average per month": "Average dividends per month over the last 12 months.",
+  "Next payment": "Your next expected dividend payment.",
+  "Total return · current holdings": "Return on shares you still hold. The Dashboard also counts shares you sold.",
+};
+let _lblLookup = null, _lblLookupLang = null;
+function _lblKey(text) { return _thKey(text).replace(/\s*\(\d{4}\)\s*$/, ""); }
+function _lblBuildLookup() {
+  const m = new Map();
+  [TH_TIPS, LBL_TIPS].forEach((src) => Object.keys(src).forEach((key) => {
+    const parts = key.split("|"), label = parts.pop(), ctx = parts.join("|");
+    m.set(ctx + "|" + _lblKey(t(label)), src[key]);   // LBL_TIPS is read second, so it wins over a TH_TIPS entry of the same label
+  }));
+  _lblLookup = m; _lblLookupLang = LANG;
+}
+function decorateLabels(scope) {
+  if (!_lblLookup || _lblLookupLang !== LANG) _lblBuildLookup();
+  (scope || document).querySelectorAll(".rc-sr > span:first-child, .rc-strip i, .pfx-lbl").forEach((el) => {
+    if (el.dataset.tipDone) return;
+    if (el.querySelector(".col-info")) { el.dataset.tipDone = "1"; return; }
+    const label = _lblKey(el.textContent);
+    if (!label) return;
+    const ctx = el.closest(".rc-strip") ? "strip" : "";
+    const en = _lblLookup.get(ctx + "|" + label) || _lblLookup.get("|" + label);
+    if (!en) return;
+    const text = t(en).replace(/\{base\}/g, ccyLabel(FX.base));
+    el.dataset.tiphost = "1";
+    el.insertAdjacentHTML("beforeend", `<span class="col-info tip-down" data-tip="${esc(text)}">${COL_INFO_ICON_SVG}</span>`);
+    el.dataset.tipDone = "1";
+  });
+}
+
 /* Tables are drawn and redrawn all over the app (page renders, filters, tabs, import previews), so rather
  * than touching every one, watch for new <th> elements and decorate them once per frame. */
 (function watchTableTitles() {
   let queued = false;
-  const run = () => { queued = false; decorateTableTitles(document); };
-  const hasTable = (n) => n.nodeType === 1 && (n.tagName === "TH" || n.tagName === "TABLE" || n.tagName === "THEAD" || n.tagName === "TR" || n.querySelector("th"));
+  const run = () => { queued = false; decorateTableTitles(document); decorateLabels(document); };
+  const hasTable = (n) => n.nodeType === 1 && (n.tagName === "TH" || n.tagName === "TABLE" || n.tagName === "THEAD" || n.tagName === "TR" || n.querySelector("th, .rc-sr, .pfx-lbl, .rc-strip") || n.matches(".rc-sr, .pfx-lbl, .rc-strip"));
   const start = () => {
     new MutationObserver((records) => {
       if (queued) return;
@@ -203,6 +258,24 @@ const TH_ZH = {
   "The day you sold.": "您卖出的日期。",
   "Profit or loss as a % of what you paid.": "盈亏占买入成本的百分比。",
   "Profit or loss on the sale, after fees.": "这笔卖出的盈亏（扣除手续费）。",
+  "How much of your total money (stocks plus cash) is with this broker.": "您总资金（股票加现金）中放在这个券商的比例。",
+  "Cash held with this broker.": "存放在这个券商的现金。",
+  "Cash ready to invest or withdraw.": "可随时投资或提取的现金。",
+  "Total you have deposited.": "您累计存入的金额。",
+  "Total you have withdrawn.": "您累计提取的金额。",
+  "Money in minus money out. Click to see the sum.": "存入减去提取。点击查看计算。",
+  "Whether your calculated cash matches what the broker shows.": "根据记录算出的现金是否与券商显示的一致。",
+  "Commission and fees on the trade.": "这笔交易的佣金和费用。",
+  "Price for one share on that trade.": "该笔交易中一股的价格。",
+  "Amount in the record's own currency.": "这条记录自己货币的金额。",
+  "Rate used to convert it into {base}.": "换算成 {base} 所用的汇率。",
+  "Total spent buying shares.": "买入股票累计花费的金额。",
+  "Total received from selling shares.": "卖出股票累计收到的金额。",
+  "All dividends you have received, after tax.": "您已收到的全部股息（税后）。",
+  "Dividends received so far this year.": "今年迄今收到的股息。",
+  "Average dividends per month over the last 12 months.": "过去 12 个月平均每月的股息。",
+  "Your next expected dividend payment.": "您下一笔预计收到的股息。",
+  "Return on shares you still hold. The Dashboard also counts shares you sold.": "仍持有股份的收益。仪表盘还会计入已卖出的股份。",
   /* the other info icons whose wording was shortened */
   "Time zone decides which day counts as \"today\". Gains and losses use the Average Cost method.": "时区决定哪一天算“今天”。盈亏按平均成本法计算。",
   "Add many records at once from a spreadsheet. You can preview before anything is saved.": "用表格一次添加多条记录。保存之前可以先预览。",

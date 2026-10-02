@@ -2290,7 +2290,7 @@ function mountColInfoTaps() {
     const icon = target.closest(".col-info");
     if (icon) return { el: icon, icon: true, rect: () => icon.getBoundingClientRect() };
     if (!canHover.matches) return null;
-    const th = target.closest("th");
+    const th = target.closest("th, [data-tiphost]");
     const ic = th && th.querySelector(".col-info[data-tip]");
     if (!ic) return null;
     // anchor the tooltip to the title's own text, not the whole (possibly much wider) header cell
@@ -2301,7 +2301,7 @@ function mountColInfoTaps() {
     const text = el.getAttribute("data-tip");
     if (!text) return;
     // A column title's tooltip leads with the title itself (bold), then the short description.
-    const th = el.closest && el.closest("th");
+    const th = el.closest && el.closest("th, [data-tiphost]");
     const title = th ? (th.textContent || "").replace(/\s+/g, " ").trim() : "";
     tip.textContent = "";
     if (title) { const b = document.createElement("b"); b.textContent = title; tip.appendChild(b); }
