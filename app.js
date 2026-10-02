@@ -6170,7 +6170,11 @@ function pageHolding() {
   })();
 
   /* ---- Stock page layout: header, tabs (Overview / Dividends / Transactions), insight panels ---- */
-  if (holdingTabFor !== key) { holdingTab = "overview"; holdingTabFor = key; holdingTxFilter = { type: "all", year: "" }; }
+  if (holdingTabFor !== key) {
+    let saved = null; try { saved = JSON.parse(sessionStorage.getItem("il-stock-tab") || "null"); } catch (e) {}
+    holdingTab = saved && saved.key === key && ["overview", "dividends", "tx"].includes(saved.tab) ? saved.tab : "overview";
+    holdingTabFor = key; holdingTxFilter = { type: "all", year: "" };
+  }
   const stName = dzName(h.ticker, h.company);
   const chg = h.hasPrice && h.changePct != null ? h.changePct : null;
   const stActions = `${h.hasPrice ? `<span class="pfx-pp">${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}${chg != null ? ` <small class="${cls(chg)}">${pctTxt(chg)} ${t("today")}</small>` : ""}</span>` : ""}
@@ -6255,11 +6259,12 @@ function pageHolding() {
     <td class="dcc-c pfn">${x.qty != null ? fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 }) : dashX}</td>
     <td class="dcc-c pfn">${x.price != null ? ccyLabel(x.currency) + " " + fmt(x.price) : dashX}</td>
     <td class="dcc-c pfn ${x.type === "Dividend" ? "pos" : ""}">${x.gross != null ? (x.type === "Dividend" ? "+" : "") + ccyLabel(x.currency) + " " + fmt(x.gross) : dashX}</td>
-    <td class="dcc-c pfn">${x.fee ? ccyLabel(x.currency) + " " + fmt(x.fee) : dashX}</td></tr>`).join("");
+    <td class="dcc-c pfn">${x.fee ? ccyLabel(x.currency) + " " + fmt(x.fee) : dashX}</td>
+    <td class="dcc-c pfn pfx-tt ${x.type === "Dividend" ? "pos" : ""}">${x.gross != null ? (x.type === "Dividend" ? "+" : "") + ccyLabel(x.currency) + " " + fmt(x.type === "Sell" ? x.gross - (+x.fee || 0) : x.gross + (+x.fee || 0)) : dashX}</td></tr>`).join("");
   const txBar = `<div class="pfx-txf"><div class="dz-seg" role="group">${[["all", t("All")], ["Buy", t("Buy")], ["Sell", t("Sell")], ["Dividend", t("Dividend")], ["Other", t("Other")]].map(([k, l]) =>
       `<button type="button" class="${holdingTxFilter.type === k ? "on" : ""}" data-txf="${k}">${l}</button>`).join("")}</div>
     <div style="width:150px">${styledSelect("txYear", [{ value: "", label: t("All years") }, ...txYears.map((y) => ({ value: y, label: y }))], holdingTxFilter.year, { id: "txYearSel" })}</div></div>`;
-  const txPanel = panel(`${t("Transactions")} (${txShown.length === txs.length ? txs.length : txShown.length + " / " + txs.length})`, txBar + (txRowsF ? `<div class="table-wrap pfx-tx"><table class="data-table pfx-txt"><thead><tr><th>${t("Date")}</th><th>${t("Type")}</th><th class="pfn">${t("Qty")}</th><th class="pfn">${t("Price")}</th><th class="pfn">${t("Gross")}</th><th class="pfn">${t("Fee")}</th></tr></thead><tbody>${txRowsF}</tbody></table></div>` : emptyState(txs.length ? t("No transactions match this filter.") : t("No transactions for this holding."))));
+  const txPanel = panel(`${t("Transactions")} (${txShown.length === txs.length ? txs.length : txShown.length + " / " + txs.length})`, txBar + (txRowsF ? `<div class="table-wrap pfx-tx"><table class="data-table pfx-txt"><thead><tr><th>${t("Date")}</th><th>${t("Type")}</th><th class="pfn">${t("Qty")}</th><th class="pfn">${t("Price")}</th><th class="pfn">${t("Gross")}</th><th class="pfn">${t("Fee")}</th><th class="pfn">${t("Total")}</th></tr></thead><tbody>${txRowsF}</tbody></table></div>` : emptyState(txs.length ? t("No transactions match this filter.") : t("No transactions for this holding."))));
 
   const stTabs = [["overview", t("Overview")], ["dividends", t("Dividends")], ["tx", `${t("Transactions")} (${txs.length})`]];
   const stNav = `<div class="pfx-tabs"><div class="dz-seg" role="tablist">${stTabs.map(([k, l]) =>
@@ -6277,7 +6282,7 @@ function pageHolding() {
       const stBell = $("#dzBell"); if (stBell) stBell.addEventListener("click", () => toggleMoreSheet());
       $$("[data-txf]").forEach((b) => b.addEventListener("click", () => { holdingTxFilter.type = b.dataset.txf; render(); }));
       const txYr = $("#txYearSel"); if (txYr) txYr.addEventListener("change", (e) => { holdingTxFilter.year = e.target.value; render(); });
-      $$("[data-sttab]").forEach((b) => b.addEventListener("click", () => { holdingTab = b.dataset.sttab; render(); }));
+      $$("[data-sttab]").forEach((b) => b.addEventListener("click", () => { holdingTab = b.dataset.sttab; try { sessionStorage.setItem("il-stock-tab", JSON.stringify({ key, tab: holdingTab })); } catch (e) {} render(); }));
       $$("[data-dtl-live]").forEach((lv) => lv.addEventListener("click", async () => {
         if (!LIVE_ENABLED) { toast(t("Live prices only work on the deployed site (or with vercel dev).")); return; }
         // Same re-entry guard as Portfolio's refresh button (pfRefreshBtn) — without it, a
@@ -6311,6 +6316,7 @@ function pageHolding() {
           if (fetched && document.getElementById("dtlPrice")) render();
         });
         fetchMyRealPayDates().then((found) => { if (found && document.getElementById("dtlPrice")) render(); });
+        fetchAllMySymbols().then((found) => { if (found && document.getElementById("dtlPrice")) render(); });
       }
     } };
 }

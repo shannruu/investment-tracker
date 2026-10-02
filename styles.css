@@ -2542,24 +2542,27 @@ button, input, select, textarea { font-family: inherit; }
   .pfx-txf .dz-seg button { flex: 1; padding: 6px 4px; font-size: 12px; }
 }
 
-/* Stock page: Transactions table (same look as the Portfolio table: right-aligned figures, quiet header, roomy rows) */
-.pfx-txt { width: 100%; font-variant-numeric: tabular-nums; }
-.pfx-txt th { text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 700; color: var(--muted); padding: 10px 16px; white-space: nowrap; }
-.pfx-txt td { padding: 14px 16px; white-space: nowrap; font-size: 14px; border-bottom: 1px solid var(--border); }
+/* Stock page: Transactions table (like the Portfolio table: right-aligned figures, quiet header; figures grouped on the right, so the gaps stay small) */
+.pfx-txt { width: 100%; font-variant-numeric: tabular-nums; table-layout: auto; }
+.pfx-txt th { text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 700; color: var(--muted); padding: 10px 14px; white-space: nowrap; }
+.pfx-txt td { padding: 13px 14px; white-space: nowrap; font-size: 14px; border-bottom: 1px solid var(--border); }
 .pfx-txt tbody tr:last-child td { border-bottom: 0; }
-.pfx-txt th:first-child, .pfx-txt td:first-child { padding-left: 0; width: 18%; }
-.pfx-txt th:nth-child(2), .pfx-txt td:nth-child(2) { width: 16%; }
+.pfx-txt th:first-child, .pfx-txt td:first-child { padding-left: 14px; }
+.pfx-txt th:last-child, .pfx-txt td:last-child { padding-right: 14px; }
+.pfx-txt th:nth-child(2) { width: 110px; }
+.pfx-txt th:nth-child(3) { width: 80px; }
+.pfx-txt th:nth-child(4), .pfx-txt th:nth-child(5), .pfx-txt th:nth-child(6) { width: 130px; }
+.pfx-txt th:nth-child(7) { width: 150px; }
 .pfx-txt th.pfn, .pfx-txt td.pfn { text-align: right; }
-.pfx-txt th:last-child, .pfx-txt td:last-child { padding-right: 16px; }
+.pfx-txt td.pfx-tt { font-weight: 700; }
 .pfx-txt tbody tr:hover td { background: color-mix(in srgb, var(--text) 4%, transparent); }
+.pfx-txt tbody tr:hover td:first-child { border-radius: 10px 0 0 10px; }
+.pfx-txt tbody tr:hover td:last-child { border-radius: 0 10px 10px 0; }
 @media (max-width: 760px) {
-  .pfx-txt th, .pfx-txt td { padding: 11px 6px; font-size: 12.5px; }
+  .pfx-txt th, .pfx-txt td { padding: 11px 3px; font-size: 11.5px; }
   .pfx-txt th { font-size: 10.5px; }
-  .pfx-txt th:first-child, .pfx-txt td:first-child { width: auto; }
-  .pfx-txt th:nth-child(6), .pfx-txt td:nth-child(6) { display: none; }
-  .pfx-txt th, .pfx-txt td { padding-left: 4px; padding-right: 4px; }
-  .pfx-txt th:first-child, .pfx-txt td:first-child { padding-left: 0; }
+  .pfx-txt th:first-child, .pfx-txt td:first-child { padding-left: 2px; }
   .pfx-txt th:last-child, .pfx-txt td:last-child { padding-right: 8px; }
-  .pfx-txt th:nth-child(2), .pfx-txt td:nth-child(2) { width: auto; }
-  .pfx-txt td { font-size: 12px; }
+  .pfx-txt th:nth-child(n), .pfx-txt td:nth-child(n) { width: auto; }
+  .pfx-txt th:nth-child(5), .pfx-txt td:nth-child(5), .pfx-txt th:nth-child(6), .pfx-txt td:nth-child(6) { display: none; }
 }
