@@ -806,6 +806,7 @@ const ZH = {
   "App info copied.": "已复制应用信息。",
   "Couldn't copy.": "复制失败。",
   "Contact us": "联系我们",
+  "Contact details are coming soon. They will appear here.": "联系方式即将公布，届时会显示在这里。",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -6347,7 +6348,7 @@ function helpContactLinks(topic) {
   };
 }
 function helpContactHTML() {
-  if (!contactOn()) return "";
+  if (!contactOn()) return `<section class="pfx-card hp-contact" id="hpContact"><div class="rc-head"><h2>${t("Still need help?")}</h2></div><p class="hp-cp">${t("Contact details are coming soon. They will appear here.")}</p></section>`;
   const L = helpContactLinks("problem");
   return `<section class="pfx-card hp-contact" id="hpContact"><div class="rc-head"><h2>${t("Still need help?")}</h2></div>
     <p class="hp-cp">${t("Tell me what happened. A screenshot helps a lot. Your message already includes your app version so I can find the problem faster.")}</p>
@@ -6493,7 +6494,7 @@ function pageHelp() {
   const items = sections.map((sec, i) => sec.items.map((it) => `<details class="help-item" data-hpsec="${i}"><summary>${it.q}</summary><p>${it.a}</p></details>`).join("")).join("");
   const html = `<div class="pfx pfx-help">${dzTopHTML({ eyebrow: t("Help"), h1: t("How can we help?"), sub: t("Plain answers about your numbers"), noLive: true })}
     <section class="pfx-card pfx-hp"><div class="rc-head"><h2>${t("Help")}<span class="pfx-sm">${dzF("{n} questions", { n: total })}</span></h2><div class="rc-tools"><input type="search" id="hpSearch" class="rc-search" placeholder="${esc(t("Search a question"))}" autocomplete="off"></div></div>
-      ${pills}<div class="hp-grid" id="hpGrid">${items}</div><p class="muted" id="hpNone" hidden style="margin:14px 0 0">${t("No question matches your search.")}${contactOn() ? ` <a href="#hpContact" id="hpToContact">${t("Ask me directly")}</a>` : ""}</p></section>${helpContactHTML()}</div>`;
+      ${pills}<div class="hp-grid" id="hpGrid">${items}</div><p class="muted" id="hpNone" hidden style="margin:14px 0 0">${t("No question matches your search.")} <a href="#hpContact" id="hpToContact">${t("Ask me directly")}</a></p></section>${helpContactHTML()}</div>`;
   return { title: "Help", subtitle: "Getting started, how calculations work, and answers to common questions.", html,
     mount() {
       const bell = $("#dzBell"); if (bell) bell.addEventListener("click", () => toggleMoreSheet());
@@ -8103,7 +8104,7 @@ function init() {
   try { const saved = localStorage.getItem("il-theme"); if (saved) setTheme(saved); } catch (e) {}
   if (SETTINGS.startPage && (!location.hash || location.hash === "#" || location.hash === "#/")) history.replaceState(null, "", "#/" + SETTINGS.startPage);
   applyPrivacy();
-  if (contactOn()) { const fl = document.querySelector(".footer-links"); if (fl) fl.insertAdjacentHTML("beforeend", `<span aria-hidden="true">·</span><a href="#/help/contact">${t("Contact us")}</a>`); }
+  { const fl = document.querySelector(".footer-links"); if (fl) fl.insertAdjacentHTML("beforeend", `<span aria-hidden="true">·</span><a href="#/help/contact">${t("Contact us")}</a>`); }
   // Backup reminder: once per visit, only when there is data worth saving
   setTimeout(() => {
     const every = { weekly: 7, monthly: 30 }[SETTINGS.backupRemind]; if (!every || !ALL_TRANSACTIONS.length) return;
