@@ -6794,14 +6794,14 @@ function drawStockPriceChart(h) {
   const avg = h.avgCostLocal > 0 && (!hist.currency || hist.currency === h.currency) ? h.avgCostLocal : null;
   const vals = closes.concat(avg ? [avg] : []);
   let lo = Math.min(...vals), hi = Math.max(...vals); const padV = (hi - lo) * 0.08 || hi * 0.05; lo -= padV; hi += padV;
-  const W = 640, H = 170, pl = 46, pr = 12, pt = 12, pb = 24, pw = W - pl - pr, ph = H - pt - pb;
+  const W = Math.max(300, Math.round(box.clientWidth || 640)), H = 160, pl = 40, pr = 8, pt = 10, pb = 22, pw = W - pl - pr, ph = H - pt - pb;
   const ms = (d) => new Date(d + "T00:00:00Z").getTime(), t0 = ms(dates[0]), t1 = ms(dates[dates.length - 1]) || t0 + 1;
   const X = (d) => pl + ((ms(d) - t0) / (t1 - t0 || 1)) * pw, Y = (v) => pt + (1 - (v - lo) / (hi - lo)) * ph;
   const f = (n) => n.toFixed(1);
   const line = dates.map((d, i) => `${i ? "L" : "M"}${f(X(d))},${f(Y(closes[i]))}`).join("");
   const area = `${line} L${f(X(dates[dates.length - 1]))},${f(pt + ph)} L${f(X(dates[0]))},${f(pt + ph)} Z`;
   let grid = ""; for (let k = 0; k <= 3; k++) { const v = lo + ((hi - lo) * k) / 3, y = Y(v); grid += `<line class="sp-grid" x1="${pl}" x2="${W - pr}" y1="${f(y)}" y2="${f(y)}"/><text class="sp-yl" x="${pl - 6}" y="${f(y + 4)}" text-anchor="end">${fmt(v, { maximumFractionDigits: v < 10 ? 2 : 0, minimumFractionDigits: v < 10 ? 2 : 0 })}</text>`; }
-  const nx = Math.min(5, Math.max(2, Math.floor(pw / 110))); let xl = "";
+  const nx = Math.min(5, Math.max(2, Math.floor(pw / 90))); let xl = "";
   for (let k = 0; k < nx; k++) { const tt = t0 + ((t1 - t0) * k) / (nx - 1), d = new Date(tt); xl += `<text class="sp-xl" x="${f(pl + (pw * k) / (nx - 1))}" y="${H - 8}" text-anchor="${k === 0 ? "start" : k === nx - 1 ? "end" : "middle"}">${d.toLocaleDateString(LANG === "zh" ? "zh-CN" : "en", stPriceRange === "3M" ? { month: "short", day: "numeric", timeZone: "UTC" } : { month: "short", year: "2-digit", timeZone: "UTC" })}</text>`; }
   const look = (d) => { let l = 0, r = dates.length - 1, res = -1; while (l <= r) { const m = (l + r) >> 1; if (dates[m] <= d) { res = m; l = m + 1; } else r = m - 1; } return res < 0 ? null : closes[res]; };
   let marks = "";
@@ -6815,7 +6815,7 @@ function drawStockPriceChart(h) {
   const avgLine = avg && avg > lo && avg < hi ? `<line class="sp-avg" x1="${pl}" x2="${W - pr}" y1="${f(Y(avg))}" y2="${f(Y(avg))}"/><text class="sp-avgl" x="${W - pr}" y="${f(Y(avg) - 4)}" text-anchor="end">${t("Your average cost")} ${fmt(avg, { maximumFractionDigits: 2 })}</text>` : "";
   const last = closes[closes.length - 1], first = closes[0], chgPct = first ? ((last - first) / first) * 100 : 0;
   box.innerHTML = `<div class="sp-head"><b class="dz-n">${hist.currency ? ccyLabel(hist.currency) + " " : ""}${fmt(last)}</b><span class="${cls(chgPct)}">${pctTxt(chgPct)} · ${stPriceRange === "3Y" ? t("3 years") : stPriceRange === "1Y" ? t("1 year") : t("3 months")}</span></div>
-    <div class="sp-wrap"><svg class="sp-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("Price history"))}">
+    <div class="sp-wrap"><svg class="sp-chart" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(t("Price history"))}">
     <defs><linearGradient id="spG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8b7cff" stop-opacity=".35"/><stop offset="1" stop-color="#8b7cff" stop-opacity="0"/></linearGradient></defs>
     ${grid}${xl}${avgLine}<path d="${area}" fill="url(#spG)"/><path class="sp-line" d="${line}"/>${marks}
     <line class="sp-guide" y1="${pt}" y2="${pt + ph}" x1="0" x2="0" style="display:none"/><circle class="sp-hd" r="4" cx="0" cy="0" style="display:none"/>
@@ -6836,7 +6836,7 @@ function drawStockPriceChart(h) {
 function stockNotesPanelHTML(h) {
   const n = (SETTINGS.stockNotes || {})[h.ticker] || {};
   const chips = (n.tags || []).map((g) => `<span class="sn-chip">${esc(g)}</span>`).join("");
-  return `<div class="sn-bar"><button type="button" class="sn-btn" id="stNoteBtn" aria-label="${esc(t("My notes"))}" title="${esc(t("My notes"))}"><svg class="icon"><use href="#i-edit"/></svg><span>${n.note || chips ? t("Edit note") : t("Add a note")}</span></button>${chips}${n.note ? `<span class="sn-prev">${esc(n.note.length > 90 ? n.note.slice(0, 90) + "…" : n.note)}</span>` : ""}</div>`;
+  return chips || n.note ? `<div class="sn-bar">${chips}${n.note ? `<span class="sn-prev">${esc(n.note.length > 120 ? n.note.slice(0, 120) + "…" : n.note)}</span>` : ""}</div>` : "";
 }
 function showStockNoteModal(h) {
   modalResolve = null;
@@ -7124,7 +7124,7 @@ function pageHolding() {
   const stName = dzName(h.ticker, h.company);
   const chg = h.hasPrice && h.changePct != null ? h.changePct : null;
   const stActions = `${h.hasPrice ? `<span class="pfx-pp">${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}${chg != null ? ` <small class="${cls(chg)}">${pctTxt(chg)} ${t("today")}</small>` : ""}</span>` : ""}
-    <button type="button" class="pfx-btn" id="dtlPrice">＄ ${t("Set price")}</button>`;
+    <button type="button" class="pfx-btn" id="dtlPrice">＄ ${t("Set price")}</button><button type="button" class="pfx-btn sn-ico" id="stNoteBtn" aria-label="${esc(t("My notes"))}" title="${esc(t("My notes"))}"><svg class="icon"><use href="#i-edit"/></svg></button>`;
   const stHeader = dzTopHTML({ eyebrow: t("Stock"), h1: esc(stName),
     sub: [stName !== h.ticker ? esc(h.ticker) : "", esc(brokerName(h.brokerId)), esc(meta.country || h.country) || ""].filter(Boolean).join(" · "),
     actions: stActions, refreshAttr: "data-dtl-live", noLive: true });
