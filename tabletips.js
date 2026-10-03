@@ -383,3 +383,38 @@ function dzCalOpen(input) {
 }
 document.addEventListener("mousedown", (e) => { if (dzCal && !e.target.closest(".dzc") && !e.target.closest('input[type="date"]')) dzCalClose(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && dzCal) { e.stopPropagation(); dzCalClose(); } }, true);
+
+/* ------------------------------------------------------------------ Pull down to refresh prices (touch screens, from the top of a page). */
+(function () {
+  const TH = 72;
+  let y0 = 0, x0 = 0, pull = 0, tracking = false, busy = false, el = null;
+  const indicator = () => {
+    if (!el) { el = document.createElement("div"); el.className = "ptr"; el.setAttribute("aria-hidden", "true"); el.innerHTML = '<span class="ptr-i"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M6 13l6 6 6-6"/></svg></span>'; document.body.appendChild(el); }
+    return el;
+  };
+  const blocked = (t) => (t.closest && t.closest(".table-wrap, .dcc-table-scroll, .sel-pop, .col-panel-list, .rc-det, .dzc, .auth-gate, input, textarea, select")) ||
+    document.querySelector(".drawer-backdrop:not([hidden]), #modal:not([hidden]), #moreSheet:not([hidden]), .auth-gate:not([hidden])");
+  const show = (dy) => { const e = indicator(); e.style.transform = `translate(-50%, ${Math.min(dy, 110) - 44}px) rotate(0)`; e.style.opacity = String(Math.min(1, dy / TH)); e.classList.toggle("ready", dy >= TH); };
+  const hide = () => { if (!el) return; el.classList.remove("ready", "busy"); el.style.transform = ""; el.style.opacity = ""; };
+  document.addEventListener("touchstart", (e) => {
+    tracking = false; pull = 0;
+    if (busy || e.touches.length !== 1 || window.scrollY > 0 || innerWidth > 760 || blocked(e.target)) return;
+    y0 = e.touches[0].clientY; x0 = e.touches[0].clientX; tracking = true;
+  }, { passive: true });
+  document.addEventListener("touchmove", (e) => {
+    if (!tracking) return;
+    const dy = e.touches[0].clientY - y0, dx = Math.abs(e.touches[0].clientX - x0);
+    if (dy <= 0 || dx > dy || window.scrollY > 0) { tracking = false; hide(); return; }
+    pull = dy * 0.55; show(pull);
+  }, { passive: true });
+  const end = () => {
+    if (!tracking) return; tracking = false;
+    if (pull < TH) { hide(); return; }
+    busy = true; const e = indicator(); e.classList.add("busy"); e.style.transform = "translate(-50%, 24px)"; e.style.opacity = "1";
+    const btn = document.querySelector("#page [data-dz-refresh], #page [data-pf-refresh], #page [data-div-refresh], #page [data-dtl-live]");
+    if (btn) btn.click();
+    setTimeout(() => { busy = false; hide(); }, 1300);
+  };
+  document.addEventListener("touchend", end, { passive: true });
+  document.addEventListener("touchcancel", () => { tracking = false; hide(); }, { passive: true });
+})();

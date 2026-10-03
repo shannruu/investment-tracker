@@ -7994,6 +7994,7 @@ function mountNotifBell() {
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !pop.hidden) close(); });
 }
 
+let prevPageKey = "";   // for the slide direction between pages on phones
 function render() {
   const key = currentPageKey();
   const isNavigation = location.hash !== lastRenderedHash;
@@ -8012,6 +8013,11 @@ function render() {
     const page = PAGES[key]();
     root.innerHTML = page.html;
     if (isNavigation) { root.scrollTop = 0; window.scrollTo(0, 0); }
+    if (isNavigation && prevPageKey && prevPageKey !== key && key !== "add" && prevPageKey !== "add" && matchMedia("(max-width: 760px)").matches && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const ord = { dashboard: 0, portfolio: 1, holding: 1.5, dividends: 2, records: 3, brokers: 4, settings: 5, help: 6, profile: 7, privacy: 8, terms: 9 };
+      root.classList.remove("pg-in-r", "pg-in-l"); void root.offsetWidth;
+      root.classList.add((ord[key] ?? 0) < (ord[prevPageKey] ?? 0) ? "pg-in-l" : "pg-in-r");
+    }
     if (page.mount) page.mount();
     translateDOM(root);  // swap any matching text to the current language
   } catch (err) {
@@ -8023,6 +8029,7 @@ function render() {
       <span class="muted">If you just updated the files, do a hard refresh (Ctrl+Shift+R) to clear the cache.</span></div></div>`;
   }
 
+  prevPageKey = key;
   // active nav state — sidebar items highlight directly; mobile "More" highlights on secondary pages.
   // The add drawer renders over Transactions (key "add" → route #/records), so with it open
   // both the Transactions item and the mobile quick-add "+" read as active.
