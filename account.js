@@ -151,11 +151,11 @@ function pageAccount() {
       const bell = $("#dzBell"); if (bell) bell.addEventListener("click", () => toggleMoreSheet());
       $$("[data-acopen]").forEach((b) => b.addEventListener("click", () => {
         acctTab = b.dataset.acopen; acctPhoneOpen = true;
-        const w = $(".st-wrap"); w.dataset.tab = "ac" + acctTab; w.dataset.open = "1"; $("#acSh").textContent = (tabs.find((x) => x[0] === acctTab) || [0, ""])[1];
+        const w = $(".st-wrap"); w.dataset.tab = "ac" + acctTab; w.dataset.open = "1"; stPush(".st-main"); $("#acSh").textContent = (tabs.find((x) => x[0] === acctTab) || [0, ""])[1];
         $$("[data-actab]").forEach((x) => x.classList.toggle("on", x.dataset.actab === acctTab));
         window.scrollTo(0, 0);
       }));
-      const acBackBtn = $("#acBack"); if (acBackBtn) acBackBtn.addEventListener("click", () => { acctPhoneOpen = false; $(".st-wrap").dataset.open = "0"; window.scrollTo(0, 0); });
+      const acBackBtn = $("#acBack"); if (acBackBtn) acBackBtn.addEventListener("click", () => { acctPhoneOpen = false; $(".st-wrap").dataset.open = "0"; stPush(".st-menu", true); window.scrollTo(0, 0); });
       $$("[data-actab]").forEach((b) => b.addEventListener("click", () => {
         acctTab = b.dataset.actab;
         $(".st-wrap").dataset.tab = "ac" + acctTab;

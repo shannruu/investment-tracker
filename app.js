@@ -6105,7 +6105,14 @@ function pageProfile() {
  * PAGE: SETTINGS  (incl. theme switcher)
  * ========================================================================== */
 let settingsTab = "currency";
-let stPhoneOpen = false;   // phone: false = the list of sections, true = one section open
+let stPhoneOpen = false;
+/* iPhone-style push: the opened screen slides in from the right, going back slides the list in from the left */
+function stPush(sel, back) {
+  const el = $(sel); if (!el || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  el.classList.remove("push-in", "push-back"); void el.offsetWidth;
+  el.classList.add(back ? "push-back" : "push-in");
+  el.addEventListener("animationend", () => el.classList.remove("push-in", "push-back"), { once: true });
+}   // phone: false = the list of sections, true = one section open
 var acctTab = "profile";
 var acctPhoneOpen = false;   // Account page tab (var: account.js loads after this file)
 function pageSettings() {
@@ -6229,11 +6236,11 @@ function pageSettings() {
       const stBell = $("#dzBell"); if (stBell) stBell.addEventListener("click", () => toggleMoreSheet());
       $$("[data-stopen]").forEach((b) => b.addEventListener("click", () => {
         settingsTab = b.dataset.stopen; stPhoneOpen = true;
-        const w = $(".st-wrap"); w.dataset.tab = settingsTab; w.dataset.open = "1"; $("#stSh").textContent = (stItems.find((x) => x[0] === settingsTab) || [0, ""])[1];
+        const w = $(".st-wrap"); w.dataset.tab = settingsTab; w.dataset.open = "1"; stPush(".st-main"); $("#stSh").textContent = (stItems.find((x) => x[0] === settingsTab) || [0, ""])[1];
         $$("[data-sttab2]").forEach((x) => x.classList.toggle("on", x.dataset.sttab2 === settingsTab));
         window.scrollTo(0, 0);
       }));
-      const stBackBtn = $("#stBack"); if (stBackBtn) stBackBtn.addEventListener("click", () => { stPhoneOpen = false; $(".st-wrap").dataset.open = "0"; window.scrollTo(0, 0); });
+      const stBackBtn = $("#stBack"); if (stBackBtn) stBackBtn.addEventListener("click", () => { stPhoneOpen = false; $(".st-wrap").dataset.open = "0"; stPush(".st-menu", true); window.scrollTo(0, 0); });
       $$("[data-sttab2]").forEach((b) => b.addEventListener("click", () => {
         settingsTab = b.dataset.sttab2;
         $(".st-wrap").dataset.tab = settingsTab;

@@ -3857,3 +3857,9 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
 
 /* the card already has its own title: the opened section shows only the back button above it */
 @media (max-width: 760px) { .pfx-set .st-wrap[data-open="1"] .st-sh { display: none !important; } }
+
+/* push transition (Settings / Account on phones) */
+@keyframes stPushIn { from { opacity: 0; transform: translateX(44px); } to { opacity: 1; transform: none; } }
+@keyframes stPushBack { from { opacity: 0; transform: translateX(-32px); } to { opacity: 1; transform: none; } }
+.push-in { animation: stPushIn .34s cubic-bezier(.32,.72,0,1); }
+.push-back { animation: stPushBack .34s cubic-bezier(.32,.72,0,1); }
