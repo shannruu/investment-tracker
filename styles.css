@@ -3879,22 +3879,3 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
 @media (max-width: 760px) { .pfx-set .st-wrap[data-open="0"] .st-menu { display: flex; } }
 
 .pfx .panel-head h2 > .pfx-sm, .pfx .panel-head h2 small.pfx-sm { margin-left: 10px !important; }
-
-/* ===== Settings sections on phones: iOS-style grouped rows (label left, current value right) ===== */
-@media (max-width: 760px) {
-  .pfx-set:not(.pfx-acct) .st-sec .panel { padding: 0 !important; overflow: hidden; }
-  .pfx-set:not(.pfx-acct) .st-sec .panel-head { margin: 0 !important; padding: 16px 16px 6px; }
-  .pfx-set:not(.pfx-acct) .st-sec .panel-head h2 { font-size: 12px !important; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-  .pfx-set .setting-rows { padding: 0; }
-  .pfx-set .setting-row { padding: 13px 16px !important; gap: 12px; border-top: 1px solid var(--border-soft); border-bottom: 0 !important; min-height: 52px; }
-  .pfx-set .setting-row:first-child { border-top: 0; }
-  .pfx-set .setting-row .sr-label { font-size: 14px; font-weight: 600; color: var(--text); }
-  .pfx-set .setting-row .sr-value { flex: 0 1 auto !important; width: auto !important; max-width: 55%; }
-  .pfx-set .setting-row .sr-value > div[style] { width: auto !important; }
-  .pfx-set .setting-row .sel { width: auto !important; }
-  .pfx-set .setting-row .sel-trigger { border: 0 !important; background: none !important; box-shadow: none !important; padding: 0 !important; min-height: 0 !important; height: auto !important; gap: 8px; justify-content: flex-end; color: var(--muted); font-size: 14px !important; font-weight: 500; }
-  .pfx-set .setting-row .sel-val { color: var(--muted); }
-  .pfx-set .setting-row .sel-caret { color: var(--muted); }
-  .pfx-set .setting-row .sel-pop { left: auto; right: 0; min-width: 200px; }
-}
-@media (max-width: 760px) { .pfx-set .setting-row .sr-value .dz-seg { width: 170px !important; flex: none !important; } .pfx-set .setting-row .sr-value { max-width: none; } }
