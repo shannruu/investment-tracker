@@ -3262,3 +3262,14 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
   .pfx .panel-head > .dz-seg, .pfx .panel-head-actions > .dz-seg { flex: 1 1 100%; margin: 0; justify-content: center; }
   .pfx .panel-head > .dz-seg > button, .pfx .panel-head-actions > .dz-seg > button { flex: 1 1 auto; text-align: center; justify-content: center; }
 }
+
+/* Phone: bigger pill bars; tables keep clean lines while sliding under the fixed first column */
+@media (max-width: 760px) {
+  .dz-seg { padding: 5px; }
+  .dz-seg button { min-height: 42px; padding: 10px 16px; font-size: 14px; }
+  .pf-rzbar > .dz-seg { flex: 1 1 100%; justify-content: center; }
+  .pf-rzbar > .dz-seg > button { flex: 1 1 auto; }
+  .pf-rzbar > .sel { flex: 1 1 100%; }
+  .pfx .data-table { border-collapse: separate; border-spacing: 0; }
+  .pfx .data-table th:first-child, .pfx .data-table td:first-child { border-right: 0; box-shadow: inset -1px 0 0 color-mix(in srgb, var(--text) 16%, transparent); }
+}

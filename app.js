@@ -3476,7 +3476,7 @@ function realizedPLHTML() {
     .map(([value, label]) => ({ value, label: t(label) })), realizedView.sort, { id: "rzSort" });
   const w = (100 / headers.length).toFixed(1) + "%";
   return summary + panel(`${t("Realized P/L")}<small class="pfx-sm">${t("profit or loss you locked in by selling")}</small>`,
-    `<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${modeBtns}${filterBtns}${sortSel}</div>
+    `<div class="pf-rzbar" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${modeBtns}${filterBtns}${sortSel}</div>
      <div class="dcc-table-scroll pf-rz-desk">${`<div class="pfx-rz pfx-rz-${realizedView.mode}">${table(headers.map((h, i) => ({ label: h, num: i >= numFrom && i !== headers.length - 3, style: "width:" + w })), rows)}</div>`}</div>
      <div class="pf-rz-mob">${rzMob}</div>
      <p class="muted" style="font-size:12px;margin:10px 0 0">${(SETTINGS.costBasis === "fifo" ? t("Profit = sale proceeds − cost of the oldest shares sold (FIFO) − fees and taxes on the sale. Dividends and interest are counted separately.") : t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately."))}</p>${bestWorst}`);
