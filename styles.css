@@ -3810,3 +3810,12 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
 .gs-act .btn, .gs-act .pfx-btn, .wls-act .pfx-btn { height: 42px !important; min-height: 42px !important; }
 .icon-btn, .dz-ib { width: 36px !important; height: 36px !important; min-height: 36px !important; }
 .sel-trigger { min-height: 38px !important; }
+
+/* ===== Phone: every pill bar identical - full width, 38px tall, equal options ===== */
+@media (max-width: 760px) {
+  .dz-seg, .pf-rzbar > .dz-seg, .panel-head > .dz-seg, .panel-head-actions > .dz-seg, .pfx .panel-head > .dz-seg { display: flex !important; width: 100% !important; flex: 1 1 100% !important; padding: 3px !important; gap: 0 !important; box-sizing: border-box; margin: 0 !important; }
+  .panel-head-actions:has(> .dz-seg) { flex: 1 1 100% !important; margin-left: 0 !important; }
+  .dz-seg > button, .pf-rzbar > .dz-seg > button, .pfx-tabs .dz-seg > button { flex: 1 1 0 !important; min-width: 0 !important; height: 32px !important; min-height: 0 !important; padding: 0 4px !important; font-size: 13px !important; font-weight: 700; line-height: 1 !important; white-space: nowrap; display: inline-flex !important; align-items: center; justify-content: center; }
+  .pf-rzbar { display: flex !important; flex-direction: column; align-items: stretch; gap: 10px !important; }
+  .pf-rzbar > .sel { width: 100%; }
+}
