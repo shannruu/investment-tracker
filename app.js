@@ -807,6 +807,12 @@ const ZH = {
   "Couldn't copy.": "复制失败。",
   "Contact us": "联系我们",
   "Contact details are coming soon. They will appear here.": "联系方式即将公布，届时会显示在这里。",
+  "Ex-date": "除息日",
+  "Own the stock before this day.": "须在这一天之前持有股票。",
+  "Payout": "派息",
+  "The day the money arrives.": "钱到账的日子。",
+  "Estimated": "估算",
+  "A guess, so the date may move.": "这是估算，日期可能会变。",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -5512,7 +5518,7 @@ function pageDividends() {
   for (let i = 0; i < (7 - ((firstDow + dim) % 7)) % 7; i++) cells += `<div class="pfx-dc off"></div>`;
   const monthTitle = new Date(cy, cm - 1, 1).toLocaleString(LANG === "zh" ? "zh-CN" : "en", { month: "long", year: "numeric" });
   const calNav = `<div class="dz-seg" role="group"><button type="button" data-dvcal="prev" aria-label="${t("Previous month")}">‹</button><button type="button" class="on" data-dvcal="today">${t("Today")}</button><button type="button" data-dvcal="next" aria-label="${t("Next month")}">›</button></div>`;
-  const monthCard = panel(`${monthTitle}<small class="pfx-sm">${t("your dividend dates")}</small>`, `<div class="pfx-cal7">${cells}</div><div class="pfx-leg" style="margin-top:12px"><span><i class="pfx-leg-ex"></i>${t("Ex-date: own the stock before this day")}</span><span><i style="background:var(--brand)"></i>${t("Payout: the money arrives")}</span></div>`, calNav);
+  const monthCard = panel(`${monthTitle}<small class="pfx-sm">${t("your dividend dates")}</small>`, `<div class="pfx-cal7">${cells}</div><div class="pfx-leg pfx-leg2"><div><i class="pfx-leg-ex"></i><span><b>${t("Ex-date")}</b>${t("Own the stock before this day.")}</span></div><div><i class="lg-rec"></i><span><b>${t("Payout")}</b>${t("The day the money arrives.")}</span></div><div><i class="lg-est"></i><span><b>${t("Estimated")}</b>${t("A guess, so the date may move.")}</span></div></div>`, calNav);
   const dvAmt = (d) => money(d.amtMYR);
   const dvLocal = (d) => (d.ccy && d.ccy !== FX.base && d.amtLocal != null ? `<small class="dv-ccy">${ccyLabel(d.ccy)} ${fmt(d.amtLocal)}</small>` : "");
   const comingList = allDivEntries.filter((d) => (d.payDisplay || d.payDate) >= today).slice(0, 4).map((d) => { const pay = d.payDisplay || d.payDate, dt = new Date(pay + "T00:00:00");
