@@ -3449,3 +3449,37 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
   .setting-row .lbl-t { display: block; }
   .setting-row .lbl-t .col-info { margin-left: 6px; vertical-align: middle; }
 }
+
+/* Close buttons: the cross is drawn with two lines, so it is exactly centred in its circle (a text glyph sits off-centre) */
+#moreClose, #addDrawerClose, #brokerDrawerClose, #modalClose, #saveErrorDismiss, #staleDataDismiss, #cloudStaleDismiss, .rc-close, .update-x { font-size: 0 !important; line-height: 0; position: relative; padding: 0; }
+#moreClose::before, #addDrawerClose::before, #brokerDrawerClose::before, #modalClose::before, #saveErrorDismiss::before, #staleDataDismiss::before, #cloudStaleDismiss::before, .rc-close::before, .update-x::before, #moreClose::after, #addDrawerClose::after, #brokerDrawerClose::after, #modalClose::after, #saveErrorDismiss::after, #staleDataDismiss::after, #cloudStaleDismiss::after, .rc-close::after, .update-x::after { content: ""; position: absolute; left: 50%; top: 50%; width: 14px; height: 2px; border-radius: 2px; background: currentColor; transform: translate(-50%, -50%) rotate(45deg); }
+#moreClose::after, #addDrawerClose::after, #brokerDrawerClose::after, #modalClose::after, #saveErrorDismiss::after, #staleDataDismiss::after, #cloudStaleDismiss::after, .rc-close::after, .update-x::after { transform: translate(-50%, -50%) rotate(-45deg); }
+.update-x { width: 36px; height: 36px; }
+.update-bar .btn { height: 40px; padding: 0 18px; font-size: 14px; }
+@media (max-width: 760px) {
+  .update-bar { padding: 12px 12px 12px 16px; font-size: 15px; border-radius: 18px; bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
+  .update-bar .btn { height: 40px; padding: 0 18px; font-size: 14px; }
+  /* Settings tabs: 3 + 2 tidy chips */
+  .st-nav { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; padding: 6px; border-radius: 20px; }
+  .st-nav button { grid-column: span 2; border: 1px solid var(--border); background: color-mix(in srgb, var(--text) 3%, transparent); min-height: 40px; display: flex; align-items: center; justify-content: center; padding: 6px 4px; }
+  .st-nav button:nth-child(n+4) { grid-column: span 3; }
+  .st-nav button.on { border-color: var(--dz-seg-on-bd); }
+  .st-nav button.dng { border-color: color-mix(in srgb, var(--neg) 35%, var(--border)); }
+  /* pills: text centred vertically, exact height */
+  .dz-seg button { line-height: 1; height: 36px; min-height: 0; padding-block: 0; }
+  /* Currency & exchange rates */
+  .fx-base-row .setting-row { padding-top: 0; }
+  .fx-list { margin-top: 4px; }
+  .fx-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-soft); }
+  .fx-row .fx-ccy { flex: 0 0 56px; font-weight: 700; }
+  .fx-row .fx-row-controls { flex: 1 1 auto; justify-content: flex-end; gap: 8px; }
+  .fx-row .fx-rate { flex: 1 1 auto; max-width: 160px; text-align: right; }
+  .fx-row .fx-rate-static { margin-left: auto; color: var(--muted); }
+  .fx-row-add { display: grid !important; grid-template-columns: 1fr; gap: 10px; border-bottom: 0; padding-top: 14px; }
+  .fx-row-add .fx-pick { width: 100%; }
+  .fx-row-add .fx-row-controls { display: grid; grid-template-columns: 1fr auto; width: 100%; gap: 10px; }
+  .fx-row-add .fx-row-controls .fx-input { width: 100%; min-width: 0; }
+  .fx-row-add .btn { height: 44px; padding: 0 22px; }
+  .fx-foot { margin-top: 14px; gap: 8px; }
+  .fx-foot .btn { height: 38px; padding: 0 14px; font-size: 13px; }
+}
