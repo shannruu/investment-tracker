@@ -877,6 +877,9 @@ const ZH = {
   "Your annual return needs at least a month of records.": "年化回报需要至少一个月的记录。",
   "{n} went from {a} to {b} since {d} ({p} in total).": "自 {d} 起，{n} 从 {a} 变为 {b}（累计 {p}）。",
   "Your annual return (XIRR) counts your deposits, dividends and fees. The index shows only its price, without dividends, so it can look lower than a fair comparison. Both cover the time since your first record.": "您的年化回报 (XIRR) 已计入存款、股息和费用。指数只反映价格、不含股息，所以可能比公平比较偏低。两者的时间范围都是从您的第一笔记录起。",
+  "Edit note": "编辑笔记",
+  "Add a note": "添加笔记",
+  "Only you can see this. Tags are separated by commas.": "只有您能看到。标签之间用逗号分隔。",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -6791,7 +6794,7 @@ function drawStockPriceChart(h) {
   const avg = h.avgCostLocal > 0 && (!hist.currency || hist.currency === h.currency) ? h.avgCostLocal : null;
   const vals = closes.concat(avg ? [avg] : []);
   let lo = Math.min(...vals), hi = Math.max(...vals); const padV = (hi - lo) * 0.08 || hi * 0.05; lo -= padV; hi += padV;
-  const W = 640, H = 230, pl = 46, pr = 12, pt = 14, pb = 26, pw = W - pl - pr, ph = H - pt - pb;
+  const W = 640, H = 170, pl = 46, pr = 12, pt = 12, pb = 24, pw = W - pl - pr, ph = H - pt - pb;
   const ms = (d) => new Date(d + "T00:00:00Z").getTime(), t0 = ms(dates[0]), t1 = ms(dates[dates.length - 1]) || t0 + 1;
   const X = (d) => pl + ((ms(d) - t0) / (t1 - t0 || 1)) * pw, Y = (v) => pt + (1 - (v - lo) / (hi - lo)) * ph;
   const f = (n) => n.toFixed(1);
@@ -6833,80 +6836,27 @@ function drawStockPriceChart(h) {
 function stockNotesPanelHTML(h) {
   const n = (SETTINGS.stockNotes || {})[h.ticker] || {};
   const chips = (n.tags || []).map((g) => `<span class="sn-chip">${esc(g)}</span>`).join("");
-  return panel(`${t("My notes")}${infoTip(t("Why you bought it, what to watch for, anything you want to remember. Only you can see this. Tags are separated by commas."))}`,
-    `${chips ? `<div class="sn-chips">${chips}</div>` : ""}<form id="stNotesForm" class="sn-form"><textarea name="note" rows="3" maxlength="800" placeholder="${esc(t("Write a note about this stock…"))}">${esc(n.note || "")}</textarea>
-     <input name="tags" maxlength="80" placeholder="${esc(t("Tags, e.g. bank, reit, long term"))}" value="${esc((n.tags || []).join(", "))}"><div><button type="submit" class="btn primary small">${t("Save note")}</button></div></form>`);
+  return `<div class="sn-bar"><button type="button" class="sn-btn" id="stNoteBtn" aria-label="${esc(t("My notes"))}" title="${esc(t("My notes"))}"><svg class="icon"><use href="#i-edit"/></svg><span>${n.note || chips ? t("Edit note") : t("Add a note")}</span></button>${chips}${n.note ? `<span class="sn-prev">${esc(n.note.length > 90 ? n.note.slice(0, 90) + "…" : n.note)}</span>` : ""}</div>`;
 }
-
-/* ---- Portfolio extras: watchlist, target mix (with a rebalancing hint) and "compared with the market" ---- */
-const WATCH_Q = {};            // ticker -> latest quote (this session)
-const BENCH_HIST = {};         // index symbol -> { dates, closes }
-const BENCHMARKS = [["^KLSE", "FBM KLCI"], ["^GSPC", "S&P 500"], ["^IXIC", "Nasdaq"], ["^STI", "Straits Times (STI)"], ["^HSI", "Hang Seng"]];
-function watchlistHTML() {
-  const list = SETTINGS.watchlist || [];
-  const form = `<form id="wlForm" class="wl-form" autocomplete="off"><label class="ac-wrap"><input name="ticker" placeholder="${esc(t("Add a stock: code or name"))}" autocapitalize="characters" autocorrect="off" spellcheck="false"></label><button type="submit" class="btn primary small">${t("Add")}</button></form><small class="muted" id="wlStatus"></small>`;
-  const held = new Set(T.holdings.map((h) => h.ticker));
-  const rows = list.map((w) => {
-    const q = WATCH_Q[w.ticker], nm = esc((q && q.name) || w.name || w.ticker);
-    const pos = q && q.fiftyTwoWeekHigh != null && q.fiftyTwoWeekLow != null && q.fiftyTwoWeekHigh > q.fiftyTwoWeekLow ? Math.max(0, Math.min(100, ((q.price - q.fiftyTwoWeekLow) / (q.fiftyTwoWeekHigh - q.fiftyTwoWeekLow)) * 100)) : null;
-    return `<div class="wl-row"><div class="wl-n"><b>${nm}</b><span>${esc(w.ticker)}${held.has(w.ticker) ? ` · <i class="wl-own">${t("You own this")}</i>` : ""}</span></div>
-      <div class="wl-p dz-n">${q ? `${ccyLabel(q.currency)} ${fmt(q.price)}<small class="${cls(q.changePct)}">${pctTxt(q.changePct)} ${t("today")}</small>` : `<small>${t("Loading…")}</small>`}</div>
-      <div class="wl-r">${pos != null ? `<div class="wl-bar"><i style="left:${pos.toFixed(0)}%"></i></div><small>${t("52-week range")}: ${fmt(q.fiftyTwoWeekLow)} – ${fmt(q.fiftyTwoWeekHigh)}</small>` : ""}</div>
-      <button type="button" class="icon-btn" data-wlrm="${escAttr(w.ticker)}" aria-label="${t("Remove")}" title="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></div>`;
-  }).join("");
-  return panel(`${t("Watchlist")}${infoTip(t("Stocks you are following but do not own yet. Prices come from the market; nothing here counts toward your portfolio."))}`,
-    `${form}<div class="wl-list">${rows || `<p class="muted" style="margin:14px 0 0">${t("Nothing on your watchlist yet. Add a stock above to follow its price.")}</p>`}</div>`);
+function showStockNoteModal(h) {
+  modalResolve = null;
+  const n = (SETTINGS.stockNotes || {})[h.ticker] || {};
+  $("#modalTitle").textContent = `${t("My notes")} — ${dzName(h.ticker, h.company)}`;
+  $("#modalBody").innerHTML = `<form id="stNotesForm" class="sn-form"><textarea name="note" rows="4" maxlength="800" placeholder="${esc(t("Write a note about this stock…"))}">${esc(n.note || "")}</textarea>
+    <input name="tags" maxlength="80" placeholder="${esc(t("Tags, e.g. bank, reit, long term"))}" value="${esc((n.tags || []).join(", "))}">
+    <p class="muted" style="font-size:12px;margin:0">${t("Only you can see this. Tags are separated by commas.")}</p>
+    <div class="form-actions"><button type="submit" class="btn primary">${t("Save note")}</button><button type="button" class="btn ghost" id="stNoteCancel">${t("Cancel")}</button></div></form>`;
+  $("#modal").hidden = false;
+  const form = $("#stNotesForm"); form.note.focus();
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const map = SETTINGS.stockNotes || (SETTINGS.stockNotes = {});
+    const note = form.note.value.trim(), tags = form.tags.value.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 8);
+    if (!note && !tags.length) delete map[h.ticker]; else map[h.ticker] = { note, tags };
+    saveStore(); closeModal(); toast(t("Note saved")); render();
+  });
+  $("#stNoteCancel").addEventListener("click", closeModal);
 }
-async function loadWatchQuotes() {
-  const list = SETTINGS.watchlist || []; let got = false;
-  await Promise.all(list.map(async (w) => { const q = await fetchQuote(w.ticker); if (q) { WATCH_Q[w.ticker] = q; got = true; } }));
-  if (got && portfolioTab === "watch" && currentPageKey() === "portfolio") render();
-}
-function targetMixHTML(dimKey, items, total) {
-  if (!(total > 0)) return "";
-  const store = (SETTINGS.targetMix || {})[dimKey] || {};
-  const names = [...new Set(items.map((x) => x.label).concat(Object.keys(store)))];
-  const actual = {}; items.forEach((x) => { actual[x.label] = (x.value / total) * 100; });
-  const sum = names.reduce((s, n) => s + (+store[n] || 0), 0);
-  const rows = names.map((n) => {
-    const tg = store[n] != null && store[n] !== "" ? +store[n] : null, ac = actual[n] || 0, diff = tg == null ? null : ac - tg, amt = tg == null ? null : ((tg - ac) / 100) * total;
-    const hint = tg == null ? "" : Math.abs(diff) < 1 ? `<span class="pos">${t("On target")}</span>` : diff > 0 ? `<span class="tm-over">${dzF("{p}% over · sell about {a}", { p: fmt(diff, { maximumFractionDigits: 1 }), a: money(Math.abs(amt)) })}</span>` : `<span class="tm-under">${dzF("{p}% under · buy about {a}", { p: fmt(-diff, { maximumFractionDigits: 1 }), a: money(Math.abs(amt)) })}</span>`;
-    return `<div class="tm-row"><div class="tm-n"><b>${esc(n)}</b><small>${t("Now")} ${fmt(ac, { maximumFractionDigits: 1 })}%</small></div><div class="tm-bar"><i style="width:${Math.min(100, ac).toFixed(1)}%"></i>${tg != null ? `<u style="left:${Math.min(100, tg)}%"></u>` : ""}</div>
-      <label class="tm-in"><input type="number" min="0" max="100" step="any" data-tm="${escAttr(n)}" value="${tg != null ? tg : ""}" placeholder="–" inputmode="decimal"><span>%</span></label><div class="tm-h">${hint}</div></div>`;
-  }).join("");
-  return panel(`${t("Target mix")}${infoTip(t("Set the share you would like each part of your portfolio to have. Divz shows how far you are from it and about how much you would buy or sell to get there. A guide only, it does not trade anything."))}`,
-    `<div class="tm-list">${rows}</div><div class="tm-foot"><span class="${sum > 100.5 ? "neg" : "muted"}">${t("Targets add up to")} ${fmt(sum, { maximumFractionDigits: 1 })}%</span><button type="button" class="btn primary small" id="tmSave" data-tmdim="${escAttr(dimKey)}">${t("Save targets")}</button><button type="button" class="btn ghost small" id="tmClear" data-tmdim="${escAttr(dimKey)}">${t("Clear")}</button></div>`);
-}
-function benchmarkHTML() {
-  const sym = SETTINGS.benchmark || "^KLSE", nm = (BENCHMARKS.find((b) => b[0] === sym) || [sym, sym])[1];
-  const first = ALL_TRANSACTIONS.map((x) => x.date).filter(Boolean).sort()[0];
-  const sel = styledSelect("benchSel", BENCHMARKS.map(([value, label]) => ({ value, label })), sym, { id: "benchSel" });
-  const hist = BENCH_HIST[sym];
-  let body;
-  if (!first) body = `<p class="muted" style="margin:0">${t("Add some records first to compare.")}</p>`;
-  else if (hist === "fail") body = `<p class="muted" style="margin:0">${t("Market data isn't available right now.")}</p>`;
-  else if (!hist) body = `<p class="muted" style="margin:0">${t("Loading…")}</p>`;
-  else {
-    const i0 = hist.dates.findIndex((d) => d >= first), start = hist.closes[i0 < 0 ? hist.closes.length - 1 : i0], end = hist.closes[hist.closes.length - 1];
-    const days = Math.max(1, (new Date() - new Date(first + "T00:00:00")) / 864e5), idxTotal = (end / start - 1) * 100, idxAnn = (Math.pow(end / start, 365 / days) - 1) * 100;
-    const you = T.xirr, hasYou = you != null && isFinite(you) && days >= 30;
-    const mx = Math.max(Math.abs(idxAnn), hasYou ? Math.abs(you) : 0, 1), w = (v) => (Math.min(100, (Math.abs(v) / mx) * 100)).toFixed(0);
-    const diff = hasYou ? you - idxAnn : null;
-    body = `<div class="bm-rows"><div class="bm-r"><span>${t("You")} <small>${t("Annual return")}</small></span><div class="bm-b"><i class="you" style="width:${hasYou ? w(you) : 0}%"></i></div><b class="dz-n ${hasYou ? cls(you) : ""}">${hasYou ? pctTxt(you) : "–"}</b></div>
-      <div class="bm-r"><span>${esc(nm)} <small>${t("Per year")}</small></span><div class="bm-b"><i class="idx" style="width:${w(idxAnn)}%"></i></div><b class="dz-n ${cls(idxAnn)}">${pctTxt(idxAnn)}</b></div></div>
-      <p class="bm-note">${hasYou ? (diff >= 0 ? dzF("You are ahead of {n} by {p} points a year.", { n: esc(nm), p: fmt(diff, { maximumFractionDigits: 1 }) }) : dzF("You are behind {n} by {p} points a year.", { n: esc(nm), p: fmt(-diff, { maximumFractionDigits: 1 }) })) : t("Your annual return needs at least a month of records.")}
-      ${dzF("{n} went from {a} to {b} since {d} ({p} in total).", { n: esc(nm), a: fmt(start), b: fmt(end), d: fmtDate(first), p: pctTxt(idxTotal) })}</p>`;
-  }
-  return panel(`${t("Compared with the market")}${infoTip(t("Your annual return (XIRR) counts your deposits, dividends and fees. The index shows only its price, without dividends, so it can look lower than a fair comparison. Both cover the time since your first record."))}`, `<div class="bm-sel">${sel}</div>${body}`);
-}
-async function loadBenchmark() {
-  const sym = SETTINGS.benchmark || "^KLSE", first = ALL_TRANSACTIONS.map((x) => x.date).filter(Boolean).sort()[0];
-  if (BENCH_HIST[sym] || !first) return;
-  const r = typeof dzFetchHistory === "function" ? await dzFetchHistory(sym, first) : null;
-  BENCH_HIST[sym] = r || "fail";
-  if (portfolioTab === "allocation" && currentPageKey() === "portfolio") render();
-}
-
 function pageHolding() {
   const key = decodeURIComponent((location.hash.split("/")[2] || ""));
   const [brokerId, ticker] = key.split("|");
@@ -7306,14 +7256,7 @@ function pageHolding() {
       if (p) p.addEventListener("click", () => showSetPriceModal(h));
       if ($("#stPriceBox")) loadStockPriceChart(h);
       $$("[data-sprange]").forEach((b) => b.addEventListener("click", () => { stPriceRange = b.dataset.sprange; $$("[data-sprange]").forEach((x) => x.classList.toggle("on", x === b)); drawStockPriceChart(h); }));
-      const notesForm = $("#stNotesForm");
-      if (notesForm) notesForm.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const map = SETTINGS.stockNotes || (SETTINGS.stockNotes = {});
-        const note = notesForm.note.value.trim(), tags = notesForm.tags.value.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 8);
-        if (!note && !tags.length) delete map[h.ticker]; else map[h.ticker] = { note, tags };
-        saveStore(); toast(t("Note saved")); render();
-      });
+      const noteBtn = $("#stNoteBtn"); if (noteBtn) noteBtn.addEventListener("click", () => showStockNoteModal(h));
       const stBell = $("#dzBell"); if (stBell) stBell.addEventListener("click", () => toggleMoreSheet());
       $$("[data-txf]").forEach((b) => b.addEventListener("click", () => { holdingTxFilter.type = b.dataset.txf; render(); }));
       const txYr = $("#txYearSel"); if (txYr) txYr.addEventListener("change", (e) => { holdingTxFilter.year = e.target.value; render(); });
