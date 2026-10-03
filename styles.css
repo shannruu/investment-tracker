@@ -3943,3 +3943,25 @@ a.dz-lnk, .dz-lnk { color: var(--dz-lnk); }
   .alert-banner .btn { grid-area: act; width: 100%; height: 44px !important; min-height: 44px !important; justify-content: center; background: var(--btn) !important; color: var(--on-btn) !important; border-color: transparent !important; font-size: 14px !important; }
 }
 @media (max-width: 760px) { .alert-stack .alert-banner .btn, .alert-stack .alert-banner .btn.small { background: var(--btn) !important; color: var(--on-btn) !important; border-color: transparent !important; box-shadow: var(--btn-sh); } }
+
+/* ===== One switch size everywhere: 46 x 28 (knob 22) ===== */
+.switch-track { width: 46px !important; height: 28px !important; }
+.switch-track::after { top: 3px !important; left: 3px !important; width: 22px !important; height: 22px !important; }
+.switch input:checked + .switch-track { background: linear-gradient(135deg, #8b7cff, #3dd8f5) !important; }
+.switch input:checked + .switch-track::after { transform: translateX(18px) !important; }
+.st-main, .st-menu { contain: none !important; }
+/* Edit columns on phones: reorder by dragging the handle on the right (the up/down buttons are gone) */
+@media (max-width: 760px) {
+  #colPanel .col-move-btns { display: none !important; }
+  #colPanel .col-grip { display: grid !important; order: 3; width: 40px; height: 40px; place-items: center; margin-right: -8px; opacity: .7; touch-action: none; cursor: grab; border-radius: 10px; }
+  #colPanel .col-grip svg { width: 20px; height: 20px; }
+  #colPanel .col-toggle-row { user-select: none; -webkit-user-select: none; background: var(--dz-panel, var(--surface)); position: relative; }
+  #colPanel .col-row-lifted { z-index: 5; background: color-mix(in srgb, var(--text) 10%, var(--dz-panel, var(--surface))); box-shadow: 0 10px 30px rgba(0,0,0,.45); border-radius: 14px; }
+  #colPanel .col-panel-list { touch-action: pan-y; }
+  /* dropdown lists = bottom sheets */
+  .sel-pop { position: fixed !important; left: 0 !important; right: 0 !important; top: auto !important; bottom: 0 !important; width: auto !important; min-width: 0 !important; max-width: none !important; max-height: 70vh; border-radius: 24px 24px 0 0 !important; padding: 8px 8px calc(12px + env(safe-area-inset-bottom, 0px)) !important; z-index: 300 !important; animation: sheetUp .26s cubic-bezier(.2,.8,.2,1); }
+  .sel-pop .sel-opt { min-height: 52px; font-size: 16px; padding: 0 16px; display: flex; align-items: center; border-radius: 14px; }
+  body:has(.sel.open)::after { z-index: 400; }
+  .sel.open { z-index: 401 !important; }
+  .sel.open .sel-pop { z-index: 401 !important; }
+}

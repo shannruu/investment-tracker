@@ -3499,6 +3499,37 @@ function pagePortfolio() {
           }
           _panelDragId = null;
         });
+        // Touch / pen: press the handle (right side of the row) and drag the row up or down, like the iPhone's own reorder.
+        let _td = null;
+        colPanel.addEventListener("pointerdown", (e) => {
+          if (e.pointerType === "mouse") return;
+          const grip = e.target.closest(".col-grip"); if (!grip) return;
+          const row = grip.closest(".col-toggle-row"); if (!row) return;
+          e.preventDefault();
+          try { grip.setPointerCapture(e.pointerId); } catch (err) {}
+          _td = { row, grip, id: e.pointerId, startY: e.clientY };
+          row.classList.add("col-row-lifted");
+        });
+        colPanel.addEventListener("pointermove", (e) => {
+          if (!_td || e.pointerId !== _td.id) return;
+          e.preventDefault();
+          const { row } = _td, list = row.parentElement;
+          const others = [...list.querySelectorAll(".col-toggle-row")].filter((r) => r !== row);
+          const y = e.clientY;
+          const target = others.find((r) => { const b = r.getBoundingClientRect(); return y < b.top + b.height / 2; });
+          if (target) { if (row.nextElementSibling !== target) list.insertBefore(row, target); } else if (row.nextElementSibling) list.appendChild(row);
+          const lb = list.parentElement.getBoundingClientRect();
+          if (y > lb.bottom - 50) list.scrollTop += 8; else if (y < lb.top + 70) list.scrollTop -= 8;
+        });
+        const endTouchDrag = (e) => {
+          if (!_td || (e && e.pointerId !== _td.id)) return;
+          const row = _td.row; row.classList.remove("col-row-lifted"); row.style.transform = "";
+          const order = [...colPanel.querySelectorAll(".col-toggle-row")].map((r) => r.dataset.colId);
+          _td = null;
+          if (order.join() !== portfolioPrefs.colOrder.join()) applyColOrder(order);
+        };
+        colPanel.addEventListener("pointerup", endTouchDrag);
+        colPanel.addEventListener("pointercancel", endTouchDrag);
         // Touch-friendly alternative to drag: HTML5 drag-and-drop never fires on
         // touch browsers, so without these buttons the reorder feature is dead
         // weight on a phone. Visible only on coarse-pointer devices (see CSS).
