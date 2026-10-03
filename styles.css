@@ -3791,3 +3791,17 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
   .pfx-stock .dz-topr { position: static !important; transform: none !important; margin: 0 0 6px !important; flex: none; justify-content: flex-end; }
   .pfx-stock .dz-h1 { font-size: 26px; }
 }
+
+/* ===== One pill-bar design (phone and desktop): quiet track, selected = soft violet fill, no outline, equal-width options ===== */
+.dz-seg, .st-nav, .hp-pills { background: color-mix(in srgb, var(--text) 5%, transparent) !important; border: 0 !important; box-shadow: none !important; }
+.dz-seg button, .st-nav button { border: 0 !important; background: transparent !important; box-shadow: none !important; color: var(--muted); font-weight: 600; }
+.dz-seg button.on, .st-nav button.on { background: color-mix(in srgb, var(--brand) 30%, transparent) !important; color: var(--text) !important; font-weight: 700; box-shadow: none !important; }
+.hp-pills button { border: 0 !important; background: transparent !important; color: var(--muted); }
+.hp-pills button.on { background: color-mix(in srgb, var(--brand) 30%, transparent) !important; color: var(--text); box-shadow: none !important; }
+@media (max-width: 760px) {
+  .dz-seg { display: flex; width: 100%; padding: 3px; gap: 0; }
+  .dz-seg > button { flex: 1 1 0 !important; min-width: 0; height: 36px; padding: 0 4px !important; font-size: 13px; white-space: nowrap; text-align: center; }
+  .pfx-tabs .dz-seg > button { font-size: 12.5px; }
+  .pf-rzbar { gap: 8px !important; }
+  .pf-rzbar .sel-trigger { height: 40px; }
+}

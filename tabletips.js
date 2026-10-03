@@ -200,7 +200,6 @@ function decorateSwipeHints(scope) {
     if (el.scrollWidth <= el.clientWidth + 8) return;
     el.dataset.swipeDone = "1";
     if (el.nextElementSibling && el.nextElementSibling.classList.contains("swipe-hint")) return;
-    el.insertAdjacentHTML("afterend", `<div class="swipe-hint">← ${esc(t("swipe sideways to see more columns"))} →</div>`);
   });
 }
 

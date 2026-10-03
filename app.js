@@ -3601,7 +3601,7 @@ function realizedPLHTML() {
   return summary + panel(`${t("Realized P/L")}${infoTip(t("profit or loss you locked in by selling") + " " + (SETTINGS.costBasis === "fifo" ? t("Profit = sale proceeds − cost of the oldest shares sold (FIFO) − fees and taxes on the sale. Dividends and interest are counted separately.") : t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.")))}`,
     `<div class="pf-rzbar" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${modeBtns}${filterBtns}${sortSel}</div>
      <div class="dcc-table-scroll pf-rz-desk">${`<div class="pfx-rz pfx-rz-${realizedView.mode}">${table(headers.map((h, i) => ({ label: h, num: i >= numFrom, style: "width:" + w })), rows)}</div>`}</div>
-     <div class="pf-rz-mob">${rzMob}</div>${bestWorst}`);
+     <div class="pf-rz-mob">${rzMob}</div>`);
 }
 
 function pfHeaderHTML() {
@@ -6849,6 +6849,70 @@ function drawStockPriceChart(h) {
   };
   const out = () => { guide.style.display = "none"; hd.style.display = "none"; tip.hidden = true; };
   hit.addEventListener("pointermove", move); hit.addEventListener("pointerdown", move); hit.addEventListener("pointerleave", out); hit.addEventListener("pointerup", () => setTimeout(out, 1500));
+}
+const WATCH_Q = {};            // ticker -> latest quote (this session)
+let wlDraft = "", wlFocus = false;
+const WATCH_AT = {};          // ticker -> when its price was last fetched
+const WATCH_DIV = {};          // ticker -> { last: {date, amount}, ttm } per share
+function wdivHTML(tk, q) {
+  const d = WATCH_DIV[tk]; if (d === undefined) return `<div class="wl-st"><small>${t("Loading…")}</small></div>`;
+  if (!d || !d.last) return `<div class="wl-st"><div><small>${t("Dividend yield")}</small><b>–</b></div><div><small>${t("Last dividend")}</small><b>${t("None on record")}</b></div></div>`;
+  const cc = ccyLabel((q && q.currency) || d.currency || FX.base), y = q && q.price > 0 && d.ttm > 0 ? (d.ttm / q.price) * 100 : null;
+  return `<div class="wl-st"><div><small>${t("Dividend yield")}</small><b class="dz-n">${y != null ? fmt(y, { maximumFractionDigits: 2 }) + "%" : "–"}</b></div><div><small>${t("Last dividend")}</small><b class="dz-n">${cc} ${fmt(d.last.amount, { maximumFractionDigits: 4 })}</b><small>${fmtDate(d.last.date)}</small></div></div>`;
+}
+function watchlistHTML() {
+  const list = SETTINGS.watchlist || [];
+  const form = `<form id="wlForm" class="wl-form" autocomplete="off"><label class="ac-wrap"><svg class="icon wl-si"><use href="#i-search"/></svg><input name="ticker" type="search" enterkeyhint="search" placeholder="${esc(t("Search a stock to follow"))}" autocapitalize="characters" autocorrect="off" spellcheck="false"></label></form><small class="muted" id="wlStatus"></small>`;
+  const rows = list.map((w) => {
+    const q = WATCH_Q[w.ticker], nm = esc((q && q.name) || w.name || w.ticker);
+    return `<div class="rc-ev wl-item" role="button" tabindex="0" data-wlopen="${escAttr(w.ticker)}"><span class="dz-chip pf-chip" aria-hidden="true">${dzInitials(nm)}</span><div class="rc-tx"><div class="rc-t1">${nm}</div><div class="rc-t2">${esc(w.ticker)}</div></div>
+      <div class="rc-am">${q ? `${ccyLabel(q.currency)} ${fmt(q.price)}<small class="${cls(q.changePct)}">${pctTxt(q.changePct)}</small>` : `<small>${t("Loading…")}</small>`}</div></div>`;
+  }).join("");
+  return panel(`${t("Watchlist")}${infoTip(t("Stocks you are following but do not own yet. Prices come from the market; nothing here counts toward your portfolio. Tap a stock for details."))}`,
+    `${form}<div class="wl-list">${rows || `<p class="muted" style="margin:14px 0 0">${t("Nothing on your watchlist yet. Add a stock above to follow its price.")}</p>`}</div>`);
+}
+function showWatchSheet(tk) {
+  const w = (SETTINGS.watchlist || []).find((x) => x.ticker === tk); if (!w) return;
+  modalResolve = null;
+  const q = WATCH_Q[tk], nm = (q && q.name) || w.name || tk, own = T.holdings.some((h) => h.ticker === tk);
+  const pos = q && q.fiftyTwoWeekHigh != null && q.fiftyTwoWeekLow != null && q.fiftyTwoWeekHigh > q.fiftyTwoWeekLow ? Math.max(0, Math.min(100, ((q.price - q.fiftyTwoWeekLow) / (q.fiftyTwoWeekHigh - q.fiftyTwoWeekLow)) * 100)) : null;
+  const row = (l, v) => `<div class="wls-r"><span>${l}</span><b>${v}</b></div>`;
+  $("#modalTitle").textContent = nm;
+  $("#modalBody").innerHTML = `<div class="wls"><div class="wls-sub">${esc(tk)}${own ? ` <em class="wl-own">${t("You own this")}</em>` : ""}</div>
+    <div class="wls-big dz-n">${q ? `${ccyLabel(q.currency)} ${fmt(q.price)}` : "–"}${q ? `<small class="${cls(q.changePct)}">${pctTxt(q.changePct)} ${t("today")}</small>` : ""}</div>
+    ${wdivHTML(tk, q)}
+    ${pos != null ? `<div class="wls-rg"><small>${t("52-week range")}</small><div class="wl-rg"><span>${fmt(q.fiftyTwoWeekLow)}</span><div class="wl-bar"><i style="left:${pos.toFixed(0)}%"></i></div><span>${fmt(q.fiftyTwoWeekHigh)}</span></div></div>` : ""}
+    <div class="form-actions wls-act"><button type="button" class="pfx-btn rc-del" id="wlsRemove">${t("Remove from watchlist")}</button></div></div>`;
+  $("#modal").hidden = false;
+  $("#wlsRemove").addEventListener("click", () => { SETTINGS.watchlist = (SETTINGS.watchlist || []).filter((x) => x.ticker !== tk); saveStore(); closeModal(); render(); });
+}
+async function loadWatchQuotes() {
+  const list = (SETTINGS.watchlist || []).filter((w) => !WATCH_AT[w.ticker] || Date.now() - WATCH_AT[w.ticker] > 90000); let got = false;
+  list.forEach((w) => { WATCH_AT[w.ticker] = Date.now(); });   // mark first: a redraw must not start the same fetch again
+  await Promise.all(list.map(async (w) => {
+    const q = await fetchQuote(w.ticker); if (q) { WATCH_Q[w.ticker] = q; got = true; }
+    if (WATCH_DIV[w.ticker] === undefined) {
+      const r = await fetchDivHistory(w.ticker), today = todayISO(), yr = dateToISO(new Date(Date.now() - 365 * 864e5));
+      const past = ((r && r.divs) || []).filter((x) => x && x.date && x.date <= today && +x.amount > 0).sort((p, s) => (p.date < s.date ? -1 : 1));
+      WATCH_DIV[w.ticker] = past.length ? { last: past[past.length - 1], ttm: past.filter((x) => x.date > yr).reduce((s, x) => s + +x.amount, 0), currency: past[past.length - 1].currency } : null;
+      got = true;
+    }
+  }));
+  const typing = document.activeElement && document.activeElement.closest && document.activeElement.closest("#wlForm");
+  if (got && !typing && portfolioTab === "watch" && currentPageKey() === "portfolio") render();
+}
+function showGoalSheet() {
+  modalResolve = null;
+  const cur = +SETTINGS.divGoal || 0;
+  $("#modalTitle").textContent = t("Monthly dividend goal");
+  $("#modalBody").innerHTML = `<form id="goalSheet" class="gs-form"><div class="gs-in"><span>${ccyLabel(FX.base)}</span><input name="goal" type="number" inputmode="decimal" step="any" min="1" value="${cur || ""}" placeholder="0" aria-label="${esc(t("Monthly goal"))}"></div>
+    <div class="gs-chips" aria-label="${esc(t("Quick pick"))}">${[500, 1000, 2000, 5000].map((n) => `<button type="button" data-gs="${n}">${fmt(n, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}</button>`).join("")}</div>
+    <div class="form-actions gs-act"><button type="submit" class="btn primary">${t("Save")}</button>${cur ? `<button type="button" class="pfx-btn rc-del" id="gsRemove">${t("Remove")}</button>` : ""}</div></form>`;
+  $("#modal").hidden = false;
+  const f = $("#goalSheet");
+  $$("[data-gs]").forEach((b) => b.addEventListener("click", () => { f.goal.value = b.dataset.gs; }));
+  f.addEventListener("submit", (e) => { e.preventDefault(); const v = parseFloat(f.goal.value); if (!(v > 0)) { toast(t("Enter a goal above 0.")); return; } SETTINGS.divGoal = v; saveStore(); closeModal(); toast(t("Goal saved")); render(); });
+  const rm = $("#gsRemove"); if (rm) rm.addEventListener("click", () => { delete SETTINGS.divGoal; saveStore(); closeModal(); render(); });
 }
 function pageHolding() {
   const key = decodeURIComponent((location.hash.split("/")[2] || ""));
