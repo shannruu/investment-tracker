@@ -5,7 +5,7 @@
   <!-- viewport-fit=cover: without it every env(safe-area-inset-*) resolves to 0, so the
        insets already written into .content / .bottom-nav / .toast did nothing on a
        notched phone. -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Divz - Portfolio & Dividend Tracker</title>
   <meta name="description" content="Track investments across multiple brokers in one place." />
   <link rel="manifest" href="manifest.json" />
@@ -19,7 +19,7 @@
        dark-theme user saw a full white screen flash on every cold launch — the
        single most "this is a web page" moment in the whole app. -->
   <script>try{var t=localStorage.getItem("il-theme");if(t){document.documentElement.setAttribute("data-theme",t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",t==="dark"?"#06070c":"#f4f3fb");}}catch(e){}</script>
-  <link rel="stylesheet" href="styles.css?v=523" />
+  <link rel="stylesheet" href="styles.css?v=524" />
 </head>
 <body>
   <!-- Opening page: covers the app until Cloud Sync says who is here (see sync.js, authGateSync) -->
@@ -224,12 +224,12 @@
     </div>
   </div>
 
-  <script type="module" src="supabase-client.js?v=523"></script>
-  <script src="data.js?v=523"></script>
-  <script src="app.js?v=523"></script>
-  <script src="dashboard.js?v=523"></script>
-  <script src="tabletips.js?v=523"></script>
-  <script src="sync.js?v=523"></script>
-  <script src="account.js?v=523"></script>
+  <script type="module" src="supabase-client.js?v=524"></script>
+  <script src="data.js?v=524"></script>
+  <script src="app.js?v=524"></script>
+  <script src="dashboard.js?v=524"></script>
+  <script src="tabletips.js?v=524"></script>
+  <script src="sync.js?v=524"></script>
+  <script src="account.js?v=524"></script>
 </body>
 </html>

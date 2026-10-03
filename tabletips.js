@@ -418,3 +418,9 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && dzCal) {
   document.addEventListener("touchend", end, { passive: true });
   document.addEventListener("touchcancel", () => { tracking = false; hide(); }, { passive: true });
 })();
+
+/* App feel: no pinch-zoom or double-tap zoom (iOS Safari ignores the viewport setting, so block its gesture events too). */
+["gesturestart", "gesturechange", "gestureend"].forEach((ev) => document.addEventListener(ev, (e) => e.preventDefault()));
+document.addEventListener("touchmove", (e) => { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+let lastTap = 0;
+document.addEventListener("touchend", (e) => { const n = Date.now(); if (n - lastTap < 300 && !(e.target.closest && e.target.closest("input, textarea, select"))) e.preventDefault(); lastTap = n; }, { passive: false });

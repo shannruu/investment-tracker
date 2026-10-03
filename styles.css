@@ -3656,3 +3656,20 @@ th .col-info, .rc-rows .col-info, .rc-grp .col-info { transform: translateY(-1px
   .pfx-sum3:not(.pfx-sumst) > :first-child:nth-last-child(3) { grid-column: 1 / -1; }
   .pfx-sum3:not(.pfx-sumst) > :nth-child(n+2):nth-last-child(-n+2) { grid-column: auto; }
 }
+
+/* Stock search list: symbol + market on the first line, company name on its own line */
+.ac-item { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "sym exch" "name name"; row-gap: 2px; padding: 10px 12px; text-align: left; }
+.ac-sym { grid-area: sym; font-size: 14px; } .ac-exch { grid-area: exch; } .ac-name { grid-area: name; font-size: 12.5px; }
+.ac-menu { width: max(100%, 320px); }
+.wl-form { position: relative; } .wl-form .ac-wrap { position: static; }
+.wl-form .ac-menu { left: 0; right: 0; width: auto; max-width: none; top: calc(100% + 6px); }
+@media (max-width: 760px) {
+  /* watchlist rows: name, price and remove button on one line; dividend and range below */
+  .wl-row { grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 12px; row-gap: 10px; }
+  .wl-row .wl-n { grid-column: 1; grid-row: 1; } .wl-row .wl-p { grid-column: 2; grid-row: 1; }
+  .wl-row .icon-btn { display: inline-grid !important; grid-column: 3; grid-row: 1; width: 36px; height: 36px; }
+  .wl-row .wl-d { grid-column: 1 / -1; grid-row: 2; } .wl-row .wl-r { grid-column: 1 / -1; grid-row: 3; }
+  /* realized P/L table: no repeated date / broker lines inside the holding cell */
+  .pf-rz-desk .pfx-only-m, .pf-rz-desk td.td-holding .sub { display: none; }
+}
+html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }

@@ -894,6 +894,7 @@ const ZH = {
   "No dividend on record": "没有股息记录",
   "yield": "股息率",
   "Last": "最近一次",
+  "Cost (incl. fees)": "成本（含费用）",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -2256,8 +2257,8 @@ function attachAutocomplete(form, statusEl, opts = {}) {
       menu.innerHTML = results.map((r, i) =>
         `<button type="button" class="ac-item" data-i="${i}">
           <span class="ac-sym">${esc(r.symbol)}</span>
-          <span class="ac-name">${esc(r.name) || ""}</span>
-          <span class="ac-exch">${esc(r.exchange) || ""}</span></button>`).join("");
+          <span class="ac-exch">${esc(r.exchange) || ""}</span>
+          <span class="ac-name">${esc(r.name) || ""}</span></button>`).join("");
       menu.hidden = false;
     }, 260);
   });
@@ -3315,6 +3316,10 @@ function pagePortfolio() {
         const wf = $("#wlForm");
         if (wf) {
           attachAutocomplete(wf, $("#wlStatus"), { noFill: true });
+          wf.ticker.value = wlDraft;
+          wf.ticker.addEventListener("input", () => { wlDraft = wf.ticker.value; });
+          wf.ticker.addEventListener("focus", () => { wlFocus = true; }); wf.ticker.addEventListener("blur", () => { setTimeout(() => { wlFocus = false; }, 400); });
+          if (wlFocus && document.activeElement !== wf.ticker) { wf.ticker.focus(); try { const n = wf.ticker.value.length; wf.ticker.setSelectionRange(n, n); } catch (e) {} wf.ticker.dispatchEvent(new Event("input", { bubbles: true })); }
           wf.addEventListener("submit", async (e) => {
             e.preventDefault();
             const sym = normalizeSymbol(wf.ticker.value), st = $("#wlStatus"); if (!sym) return;
@@ -3323,7 +3328,7 @@ function pagePortfolio() {
             const q = await fetchQuote(sym);
             if (!q) { st.textContent = t("Couldn't find that stock. Check the code (for example 1155.KL)."); return; }
             (SETTINGS.watchlist || (SETTINGS.watchlist = [])).push({ ticker: q.symbol || sym, name: q.name || "" });
-            WATCH_Q[q.symbol || sym] = q; saveStore(); toast(t("Added to your watchlist")); render();
+            WATCH_Q[q.symbol || sym] = q; wlDraft = ""; saveStore(); toast(t("Added to your watchlist")); render();
           });
         }
         $$("[data-wlrm]").forEach((b) => b.addEventListener("click", () => { SETTINGS.watchlist = (SETTINGS.watchlist || []).filter((w) => w.ticker !== b.dataset.wlrm); saveStore(); render(); }));
@@ -3528,7 +3533,7 @@ function realizedPLHTML() {
   const byStock = {};
   sales.forEach((x) => {
     const g = byStock[x.ticker] || (byStock[x.ticker] = { ticker: x.ticker, company: x.company, n: 0, cost: 0, proceeds: 0, pl: 0, date: "" });
-    g.n++; g.cost += x.costMYR; g.proceeds += x.proceedsMYR; g.pl += x.pl; if (x.date > g.date) g.date = x.date;
+    g.n++; g.cost += x.costMYR + (x.feesMYR || 0); g.proceeds += x.proceedsMYR; g.pl += x.pl; if (x.date > g.date) g.date = x.date;
     if (!g.company && x.company) g.company = x.company;
   });
   const groups = Object.values(byStock);
@@ -3536,7 +3541,7 @@ function realizedPLHTML() {
   const rzMaxSale = Math.max(1e-9, ...shown.map((x) => Math.abs(x.pl))), rzMaxGroup = Math.max(1e-9, ...shownGroups.map((g) => Math.abs(g.pl)));
   const rzBar = (pl, mx) => `<td class="dcc-c"><div class="pf-dv"><i class="${pl >= 0 ? "p" : "n"}" style="width:${((Math.abs(pl) / mx) * 50).toFixed(0)}%"></i></div></td>`;
   const tSrc = realizedView.mode === "sale" ? shown : shownGroups;
-  const tCost = tSrc.reduce((s, x) => s + (x.costMYR != null ? x.costMYR : x.cost), 0), tProc = tSrc.reduce((s, x) => s + (x.proceedsMYR != null ? x.proceedsMYR : x.proceeds), 0), tPl = tSrc.reduce((s, x) => s + x.pl, 0);
+  const tCost = tSrc.reduce((s, x) => s + (x.costMYR != null ? x.costMYR + (x.feesMYR || 0) : x.cost), 0), tProc = tSrc.reduce((s, x) => s + (x.proceedsMYR != null ? x.proceedsMYR : x.proceeds), 0), tPl = tSrc.reduce((s, x) => s + x.pl, 0);
   const tN = shownGroups.reduce((s, g) => s + g.n, 0);
   const numFrom = realizedView.mode === "sale" ? 2 : 1;
   if (realizedView.mode === "sale") {
@@ -3544,17 +3549,17 @@ function realizedPLHTML() {
       <td class="dcc-c">${fmtDate(x.date)}</td>
       <td class="dcc-c td-holding">${tickerCell(x.ticker, null, tickerSubLabel(x.ticker, x.company))}<div class="sub">${esc(brokerName(x.brokerId))}</div><div class="sub pfx-only-m">${fmtDate(x.date)} · ${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} ${t("shares")}</div></td>
       <td class="dcc-c pfn">${fmt(x.qty, { minimumFractionDigits: 0, maximumFractionDigits: 4 })} @ ${fmt(x.price)} ${ccyLabel(x.currency)}</td>
-      <td class="dcc-c pfn">${money(x.costMYR)}</td><td class="dcc-c pfn">${money(x.proceedsMYR)}</td>
-      ${rzBar(x.pl, rzMaxSale)}<td class="dcc-c pfn ${cls(x.pl)}">${moneySigned(x.pl)}</td><td class="dcc-c pfn ${cls(x.pl)}">${pct(x.pl, x.costMYR)}</td></tr>`).join("")
-      + (!shown.length ? "" : `<tr class="pfx-tot"><td class="dcc-c"></td><td class="dcc-c">${t("Total")}</td><td class="dcc-c pfn"></td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c"></td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`);
-    headers = [t("Date"), t("Holding"), t("Sold"), t("Cost"), t("Proceeds"), t("Gain / loss"), t("Realized P/L"), t("Return %")];
+      <td class="dcc-c pfn">${money(x.costMYR + (x.feesMYR || 0))}</td><td class="dcc-c pfn">${money(x.proceedsMYR)}</td>
+      ${rzBar(x.pl, rzMaxSale)}<td class="dcc-c pfn ${cls(x.pl)}">${moneySigned(x.pl)}</td><td class="dcc-c pfn ${cls(x.pl)}">${pct(x.pl, x.costMYR + (x.feesMYR || 0))}</td></tr>`).join("")
+      + (!shown.length ? "" : `<tr class="pfx-tot"><td class="dcc-c">${t("Total")}</td><td class="dcc-c"></td><td class="dcc-c pfn"></td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c"></td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`);
+    headers = [t("Date"), t("Holding"), t("Sold"), t("Cost (incl. fees)"), t("Proceeds"), t("Gain / loss"), t("Realized P/L"), t("Return %")];
   } else {
     rows = [...shownGroups].sort(sortFn).map((g) => `<tr>
       <td class="dcc-c td-holding">${tickerCell(g.ticker, null, tickerSubLabel(g.ticker, g.company))}</td>
       <td class="dcc-c pfn">${g.n}</td><td class="dcc-c pfn">${money(g.cost)}</td><td class="dcc-c pfn">${money(g.proceeds)}</td>
       ${rzBar(g.pl, rzMaxGroup)}<td class="dcc-c pfn ${cls(g.pl)}">${moneySigned(g.pl)}</td><td class="dcc-c pfn ${cls(g.pl)}">${pct(g.pl, g.cost)}</td></tr>`).join("")
       + (!shownGroups.length ? "" : `<tr class="pfx-tot"><td class="dcc-c">${t("Total")}</td><td class="dcc-c pfn">${tN}</td><td class="dcc-c pfn">${money(tCost)}</td><td class="dcc-c pfn">${money(tProc)}</td><td class="dcc-c"></td><td class="dcc-c pfn ${cls(tPl)}">${moneySigned(tPl)}</td><td class="dcc-c pfn ${cls(tPl)}">${pct(tPl, tCost)}</td></tr>`);
-    headers = [t("Holding"), t("Sales"), t("Cost"), t("Proceeds"), t("Gain / loss"), t("Realized P/L"), t("Return %")];
+    headers = [t("Holding"), t("Sales"), t("Cost (incl. fees)"), t("Proceeds"), t("Gain / loss"), t("Realized P/L"), t("Return %")];
   }
   const best = [...sales].sort((a, b) => b.pl - a.pl)[0], worst = [...sales].sort((a, b) => a.pl - b.pl)[0];
   const gainG = groups.filter((g) => g.pl > 0), lossG = groups.filter((g) => g.pl < 0);
@@ -6865,6 +6870,7 @@ function showStockNoteModal(h) {
 }
 /* ---- Portfolio extras: watchlist, target mix (with a rebalancing hint) and "compared with the market" ---- */
 const WATCH_Q = {};            // ticker -> latest quote (this session)
+let wlDraft = "", wlFocus = false;
 const WATCH_DIV = {};          // ticker -> { last: {date, amount}, ttm } per share
 function wdivHTML(tk, q) {
   const d = WATCH_DIV[tk]; if (d === undefined) return `<small>${t("Loading…")}</small>`;
