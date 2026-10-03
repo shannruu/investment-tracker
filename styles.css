@@ -3509,3 +3509,10 @@ html:not([data-theme="dark"]) body:has(.sel.open)::after { background: rgba(40, 
   .pfx:not(.pfx-stock) .dz-top:has(.pfx-btn) .dz-topr { grid-column: 2; grid-row: 2; margin: 0; align-self: center; justify-content: flex-end; flex-wrap: nowrap; }
   .pfx:not(.pfx-stock) .dz-topr .pfx-btn { min-height: 38px; padding-inline: 14px; white-space: nowrap; font-size: 13px; }
 }
+
+@media (max-width: 760px) {
+  /* Action button floats at the right, level with the title block, without pushing the title down */
+  .pfx:not(.pfx-stock) .dz-top:has(.pfx-btn) { display: block; position: relative; }
+  .pfx:not(.pfx-stock) .dz-top:has(.pfx-btn) .dz-greet { display: block; padding-right: 150px; }
+  .pfx:not(.pfx-stock) .dz-top:has(.pfx-btn) .dz-topr { position: absolute; right: 0; top: 50%; transform: translateY(-50%); margin: 0; display: flex; }
+}
