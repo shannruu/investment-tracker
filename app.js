@@ -905,6 +905,8 @@ const ZH = {
   "Dividend yield": "股息率",
   "Last dividend": "最近股息",
   "None on record": "没有记录",
+  "Remove from watchlist": "从自选股移除",
+  "Stocks you are following but do not own yet. Prices come from the market; nothing here counts toward your portfolio. Tap a stock for details.": "您关注但尚未持有的股票。价格来自市场，这里的内容不计入您的投资组合。点一下股票可查看详情。",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -3342,7 +3344,7 @@ function pagePortfolio() {
             WATCH_Q[q.symbol || sym] = q; wlDraft = ""; saveStore(); toast(t("Added to your watchlist")); render();
           });
         }
-        $$("[data-wlrm]").forEach((b) => b.addEventListener("click", () => { SETTINGS.watchlist = (SETTINGS.watchlist || []).filter((w) => w.ticker !== b.dataset.wlrm); saveStore(); render(); }));
+        $$("[data-wlopen]").forEach((el) => { el.addEventListener("click", () => showWatchSheet(el.dataset.wlopen)); el.addEventListener("keydown", (e) => { if (e.key === "Enter") showWatchSheet(el.dataset.wlopen); }); });
         if (LIVE_ENABLED) loadWatchQuotes();
       }
       $$("[data-pfalloc]").forEach((b) => b.addEventListener("click", () => { pfAllocDim = b.dataset.pfalloc; render(); }));
@@ -5601,7 +5603,7 @@ function pageDividends() {
     const pct = Math.max(0, Math.min(100, (expM / goal) * 100)), g = divLtGrowth / 100;
     let yrs = null; if (expM >= goal) yrs = 0; else if (expM > 0 && g > 0) { for (let n = 1; n <= 40; n++) if (expM * Math.pow(1 + g, n) >= goal) { yrs = n; break; } }
     const when = yrs === 0 ? t("You have reached your goal.") : yrs ? dzF("About {n} years at {g}% growth a year, with no new money added.", { n: yrs, g: divLtGrowth }) : (g === 0 ? t("With 0% growth and no new money, you will not reach it. Add stocks or pick a growth rate above.") : t("More than 40 years at this pace. Adding stocks would speed it up."));
-    return `<section class="pfx-card dg-card" id="dvGoalEdit" role="button" tabindex="0" aria-label="${esc(t("Edit goal"))}"><div class="dg-h"><span>${t("Your dividend goal")}${tip}</span><span class="dg-pill"><svg class="icon"><use href="#i-edit"/></svg>${t("Edit")}</span></div>
+    return `<section class="pfx-card dg-card" id="dvGoalEdit" role="button" tabindex="0" aria-label="${esc(t("Edit goal"))}"><div class="dg-h"><span>${t("Your dividend goal")}${tip}</span><span class="pfx-btn dg-pill"><svg class="icon"><use href="#i-edit"/></svg>${t("Edit")}</span></div>
       <div class="dg-top"><div class="dg-big dz-n">${money(expM)}<small> / ${t("month")}</small></div><div class="dg-of">${t("of")} ${money(goal)}</div></div>
       <div class="dg-bar"><i style="width:${pct.toFixed(1)}%"></i></div>
       <div class="dg-row"><b>${fmt(pct, { maximumFractionDigits: 0 })}%</b><span>${t("of your goal")}</span><span class="dg-r">${t("Last 12 months")}: ${money(recvM)}</span></div>
@@ -6890,18 +6892,28 @@ function wdivHTML(tk, q) {
 function watchlistHTML() {
   const list = SETTINGS.watchlist || [];
   const form = `<form id="wlForm" class="wl-form" autocomplete="off"><label class="ac-wrap"><svg class="icon wl-si"><use href="#i-search"/></svg><input name="ticker" type="search" enterkeyhint="search" placeholder="${esc(t("Search a stock to follow"))}" autocapitalize="characters" autocorrect="off" spellcheck="false"></label></form><small class="muted" id="wlStatus"></small>`;
-  const held = new Set(T.holdings.map((h) => h.ticker));
   const rows = list.map((w) => {
     const q = WATCH_Q[w.ticker], nm = esc((q && q.name) || w.name || w.ticker);
-    const pos = q && q.fiftyTwoWeekHigh != null && q.fiftyTwoWeekLow != null && q.fiftyTwoWeekHigh > q.fiftyTwoWeekLow ? Math.max(0, Math.min(100, ((q.price - q.fiftyTwoWeekLow) / (q.fiftyTwoWeekHigh - q.fiftyTwoWeekLow)) * 100)) : null;
-    return `<div class="wl-row"><span class="dz-chip pf-chip wl-chip" aria-hidden="true">${dzInitials(nm)}</span><div class="wl-n"><b>${nm}</b><span>${esc(w.ticker)}</span>${held.has(w.ticker) ? `<em class="wl-own">${t("You own this")}</em>` : ""}</div>
-      <div class="wl-p dz-n">${q ? `${ccyLabel(q.currency)} ${fmt(q.price)}<small class="${cls(q.changePct)}">${pctTxt(q.changePct)} ${t("today")}</small>` : `<small>${t("Loading…")}</small>`}</div>
-      <div class="wl-d">${wdivHTML(w.ticker, q)}</div>
-      <div class="wl-r">${pos != null ? `<small>${t("52-week range")}</small><div class="wl-rg"><span>${fmt(q.fiftyTwoWeekLow)}</span><div class="wl-bar"><i style="left:${pos.toFixed(0)}%"></i></div><span>${fmt(q.fiftyTwoWeekHigh)}</span></div>` : ""}</div>
-      <button type="button" class="wl-x" data-wlrm="${escAttr(w.ticker)}" aria-label="${t("Remove")}" title="${t("Remove")}">×</button></div>`;
+    return `<div class="rc-ev wl-item" role="button" tabindex="0" data-wlopen="${escAttr(w.ticker)}"><span class="dz-chip pf-chip" aria-hidden="true">${dzInitials(nm)}</span><div class="rc-tx"><div class="rc-t1">${nm}</div><div class="rc-t2">${esc(w.ticker)}</div></div>
+      <div class="rc-am">${q ? `${ccyLabel(q.currency)} ${fmt(q.price)}<small class="${cls(q.changePct)}">${pctTxt(q.changePct)}</small>` : `<small>${t("Loading…")}</small>`}</div></div>`;
   }).join("");
-  return panel(`${t("Watchlist")}${infoTip(t("Stocks you are following but do not own yet. Prices come from the market; nothing here counts toward your portfolio."))}`,
+  return panel(`${t("Watchlist")}${infoTip(t("Stocks you are following but do not own yet. Prices come from the market; nothing here counts toward your portfolio. Tap a stock for details."))}`,
     `${form}<div class="wl-list">${rows || `<p class="muted" style="margin:14px 0 0">${t("Nothing on your watchlist yet. Add a stock above to follow its price.")}</p>`}</div>`);
+}
+function showWatchSheet(tk) {
+  const w = (SETTINGS.watchlist || []).find((x) => x.ticker === tk); if (!w) return;
+  modalResolve = null;
+  const q = WATCH_Q[tk], nm = (q && q.name) || w.name || tk, own = T.holdings.some((h) => h.ticker === tk);
+  const pos = q && q.fiftyTwoWeekHigh != null && q.fiftyTwoWeekLow != null && q.fiftyTwoWeekHigh > q.fiftyTwoWeekLow ? Math.max(0, Math.min(100, ((q.price - q.fiftyTwoWeekLow) / (q.fiftyTwoWeekHigh - q.fiftyTwoWeekLow)) * 100)) : null;
+  const row = (l, v) => `<div class="wls-r"><span>${l}</span><b>${v}</b></div>`;
+  $("#modalTitle").textContent = nm;
+  $("#modalBody").innerHTML = `<div class="wls"><div class="wls-sub">${esc(tk)}${own ? ` <em class="wl-own">${t("You own this")}</em>` : ""}</div>
+    <div class="wls-big dz-n">${q ? `${ccyLabel(q.currency)} ${fmt(q.price)}` : "–"}${q ? `<small class="${cls(q.changePct)}">${pctTxt(q.changePct)} ${t("today")}</small>` : ""}</div>
+    ${wdivHTML(tk, q)}
+    ${pos != null ? `<div class="wls-rg"><small>${t("52-week range")}</small><div class="wl-rg"><span>${fmt(q.fiftyTwoWeekLow)}</span><div class="wl-bar"><i style="left:${pos.toFixed(0)}%"></i></div><span>${fmt(q.fiftyTwoWeekHigh)}</span></div></div>` : ""}
+    <div class="form-actions wls-act"><button type="button" class="pfx-btn rc-del" id="wlsRemove">${t("Remove from watchlist")}</button></div></div>`;
+  $("#modal").hidden = false;
+  $("#wlsRemove").addEventListener("click", () => { SETTINGS.watchlist = (SETTINGS.watchlist || []).filter((x) => x.ticker !== tk); saveStore(); closeModal(); render(); });
 }
 async function loadWatchQuotes() {
   const list = (SETTINGS.watchlist || []).filter((w) => !WATCH_AT[w.ticker] || Date.now() - WATCH_AT[w.ticker] > 90000); let got = false;
@@ -6924,7 +6936,7 @@ function showGoalSheet() {
   $("#modalTitle").textContent = t("Monthly dividend goal");
   $("#modalBody").innerHTML = `<form id="goalSheet" class="gs-form"><div class="gs-in"><span>${ccyLabel(FX.base)}</span><input name="goal" type="number" inputmode="decimal" step="any" min="1" value="${cur || ""}" placeholder="0" aria-label="${esc(t("Monthly goal"))}"></div>
     <div class="gs-chips" aria-label="${esc(t("Quick pick"))}">${[500, 1000, 2000, 5000].map((n) => `<button type="button" data-gs="${n}">${fmt(n, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}</button>`).join("")}</div>
-    <div class="form-actions gs-act"><button type="submit" class="btn primary">${t("Save")}</button>${cur ? `<button type="button" class="btn ghost" id="gsRemove">${t("Remove")}</button>` : ""}</div></form>`;
+    <div class="form-actions gs-act"><button type="submit" class="btn primary">${t("Save")}</button>${cur ? `<button type="button" class="pfx-btn rc-del" id="gsRemove">${t("Remove")}</button>` : ""}</div></form>`;
   $("#modal").hidden = false;
   const f = $("#goalSheet"); f.goal.focus();
   $$("[data-gs]").forEach((b) => b.addEventListener("click", () => { f.goal.value = b.dataset.gs; }));

@@ -3741,3 +3741,17 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
   .wl-row .wl-d, .wl-row .wl-r { grid-column: 1 / -1; }
   .wl-row .wl-d { grid-row: 2; } .wl-row .wl-r { grid-row: 3; }
 }
+
+/* Total row: left (sticky) cell keeps the top line AND the column divider */
+@media (max-width: 760px) {
+  .pfx .pf-table tr.pfx-tot td:first-child, .pfx-rz tr.pfx-tot td:first-child { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 13%, transparent), inset -1px 0 0 color-mix(in srgb, var(--text) 16%, transparent) !important; }
+  .pfx .data-table tbody tr:last-child td { border-bottom-color: transparent; }
+}
+.dg-pill { height: 32px; padding: 0 14px; background: var(--dz-live); font-size: 13px; }
+.gs-act { flex-direction: row; gap: 10px; } .gs-act .btn.primary { flex: 1; } .gs-act .btn { width: auto; }
+.wl-item { cursor: pointer; }
+.wls-sub { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.wls-big { font-size: 28px; font-weight: 700; letter-spacing: -.02em; margin-bottom: 14px; } .wls-big small { display: block; font-size: 13px; font-weight: 700; margin-top: 2px; letter-spacing: 0; }
+.wls .wl-st { margin-bottom: 14px; } .wls-rg small { display: block; margin-bottom: 8px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.wls-act { margin-top: 18px; } .wls-act .btn { width: 100%; height: 46px; }
+.wls-act .pfx-btn, .gs-act .pfx-btn { justify-content: center; height: 46px; } .wls-act .pfx-btn { width: 100%; }
