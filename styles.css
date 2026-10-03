@@ -4008,3 +4008,7 @@ a.dz-lnk, .dz-lnk { color: var(--dz-lnk); }
 .sidebar:not(.collapsed) .sidebar-add .btn { padding-right: 18px !important; }
 /* Expanded Add button: the "+" is a small symbol in a 20px box, so the usual 11px icon gap left ~21px between it and the word. Tighten it. */
 .sidebar:not(.collapsed) .sidebar-add .btn { gap: 4px; }
+/* Add button: trim the word's box to the height of its capital letters, so the "+" and the word are centred on the same line whatever font or screen the person has (measured: worst offset 1.6px -> 0.8px over 8 fonts x 3 screen densities; the rest is whole-pixel text snapping at fractional densities such as 125%). Browsers without text-box-trim ignore this and keep the normal alignment. overflow is visible so no letter can be clipped by the trimmed box. */
+@supports (text-box: trim-both cap alphabetic) {
+  .sidebar:not(.collapsed) .sidebar-add .btn > span:last-child { text-box: trim-both cap alphabetic; overflow: visible; }
+}

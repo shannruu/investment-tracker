@@ -19,7 +19,7 @@
  *    the shell stays current online, falling back to the last cached copy only
  *    when there's no connection at all.
  * ========================================================================== */
-const CACHE_NAME = "il-shell-v253";
+const CACHE_NAME = "il-shell-v254";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
