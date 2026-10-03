@@ -3807,7 +3807,7 @@ function pfxHeroCard(label, amount, pill = "", attrs = "", tip = "") {
 }
 function pfxGo(tip) { return `<span class="col-info tip-down pfx-go" data-tip="${esc(tip)}">${dzIcon("info", 15)}</span>`; }
 function pfxStatCard(label, value, pill = "", c = "", attrs = "", tip = "") {
-  return `<div class="pfx-card pfx-sc${attrs ? "" : " pfx-static"}" ${attrs}><div class="pfx-lbl"><span>${label}</span>${tip || attrs ? pfxGo(tip || t("Click the card to see how this is worked out.")) : ""}</div><div class="pfx-vr"><div class="pfx-v dz-n ${c}">${value}</div>${pill}</div></div>`;
+  return `<div class="pfx-card pfx-sc${attrs ? "" : " pfx-static"}" ${attrs}><div class="pfx-lbl"><span class="pfx-lt">${label}</span>${pill ? `<span class="pfx-pw-top">${pill}</span>` : ""}${tip || attrs ? pfxGo(tip || t("Click the card to see how this is worked out.")) : ""}</div><div class="pfx-vr"><div class="pfx-v dz-n ${c}">${value}</div>${pill ? `<span class="pfx-pw-low">${pill}</span>` : ""}</div></div>`;
 }
 // Transactions page (redesign): header, totals strip, tabs, search, table + detail panel (a bottom sheet on phones).
 let recSearch = "", recSel = null, recLimit = 40;
