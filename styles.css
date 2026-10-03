@@ -3791,3 +3791,22 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
   .pfx-stock .dz-topr { position: static !important; transform: none !important; margin: 0 0 6px !important; flex: none; justify-content: flex-end; }
   .pfx-stock .dz-h1 { font-size: 26px; }
 }
+
+/* long card titles: the % sits beside the number instead of squeezing the title */
+.pfx-lowpill .pfx-vr { flex-direction: row !important; align-items: center !important; justify-content: space-between; gap: 8px !important; }
+.pfx-pw-low2 .pfx-pl { padding: 2px 8px; font-size: 11px; }
+.pfx-sc .pfx-lt { overflow: hidden; text-overflow: ellipsis; }
+/* Realized P/L controls: compact, in one tidy block */
+@media (max-width: 760px) {
+  .pf-rzbar { display: grid !important; grid-template-columns: auto 1fr; gap: 8px !important; align-items: center; }
+  .pf-rzbar > .dz-seg { width: auto !important; flex: none !important; padding: 2px; }
+  .pf-rzbar > .dz-seg button { height: 30px !important; min-height: 0 !important; font-size: 12.5px !important; padding: 0 12px !important; flex: none !important; }
+  .pf-rzbar > .sel { grid-column: 1 / -1; }
+  .pf-rzbar .sel-trigger { min-height: 38px !important; height: 38px; font-size: 14px; }
+}
+/* ===== Button sizes: sized to their content, not oversized ===== */
+.btn, .pfx-btn, .pfx-ftoggle, .pf-linkbtn, .btn.small, .btn.ghost.small, .btn.primary.small { height: 34px !important; min-height: 34px !important; font-size: 13px !important; padding-left: 14px !important; padding-right: 14px !important; }
+.drawer-body .btn, #modalBody .btn, #modalBody .pfx-btn { height: 42px !important; min-height: 42px !important; }
+.gs-act .btn, .gs-act .pfx-btn, .wls-act .pfx-btn { height: 42px !important; min-height: 42px !important; }
+.icon-btn, .dz-ib { width: 36px !important; height: 36px !important; min-height: 36px !important; }
+.sel-trigger { min-height: 38px !important; }
