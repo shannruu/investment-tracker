@@ -3502,7 +3502,7 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
 /* Dropdown lists: brand-tinted dark panel / clean white panel, violet highlight */
 
 /* Dropdown lists: back to the lifted grey panel, now with a dimmed + softly blurred page behind it while open */
-body:has(.sel.open)::after { content: ""; position: fixed; inset: 0; z-index: 65; background: rgba(6, 7, 16, .5); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+body:has(.sel.open)::after { content: ""; position: fixed; inset: 0; z-index: 65; background: rgba(6, 7, 16, .5); }
 html:not([data-theme="dark"]) body:has(.sel.open)::after { background: rgba(40, 36, 80, .22); }
 .sel.open { position: relative; z-index: 70; }
 @media (max-width: 760px) {
@@ -3986,3 +3986,17 @@ a.dz-lnk, .dz-lnk { color: var(--dz-lnk); }
 }
 /* Text inputs that only changed their border colour on focus now also show a soft ring. */
 .fx-input:focus-visible, .sel-search-input:focus-visible, .wl-form input:focus-visible, .form textarea:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 28%, transparent); }
+
+/* Watchlist rows: the card layout (.rc-ev) is only defined for phones, so on desktop the rows fell apart into plain stacked text. */
+@media (min-width: 761px) {
+  .wl-item { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 8px; border-bottom: 1px solid var(--border); border-radius: 12px; }
+  .wl-item:last-child { border-bottom: 0; }
+  .wl-item:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+  .wl-item .rc-t1 { font-size: 14.5px; font-weight: 700; }
+  .wl-item .rc-t2 { margin-top: 2px; font-size: 12px; color: var(--muted); }
+  .wl-item .rc-am { text-align: right; font-size: 14.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .wl-item .rc-am small { display: block; margin-top: 2px; font-size: 12px; font-weight: 700; }
+}
+/* Watchlist change %: green / red on phones too (the phone card style was turning it grey). */
+.wl-item .rc-am small.pos { color: var(--pos); }
+.wl-item .rc-am small.neg { color: var(--neg); }
