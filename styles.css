@@ -3826,3 +3826,14 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
   .dz-seg > button, .dz-seg-s > button { height: 30px !important; min-height: 0 !important; padding: 0 14px !important; font-size: 13px !important; font-weight: 700 !important; line-height: 1 !important; display: inline-flex !important; align-items: center; justify-content: center; white-space: nowrap; }
 }
 .dz-seg > button, .st-nav button, .hp-pills button { font-size: 13px !important; font-weight: 700 !important; }
+
+/* ===== Button system: 1) full pill  2) 36px in pages / 44px in panels & sheets  3) gradient = main, outlined = normal, red outline = remove ===== */
+.btn, .pfx-btn, .pfx-ftoggle, .pf-linkbtn, .tp-tab { border-radius: 99px !important; }
+.btn, .pfx-btn, .pfx-ftoggle, .pf-linkbtn, .btn.small, .btn.ghost.small, .btn.primary.small { height: 36px !important; min-height: 36px !important; font-size: 13px !important; font-weight: 700 !important; padding-left: 16px !important; padding-right: 16px !important; }
+.drawer-body .btn, #modalBody .btn, #modalBody .pfx-btn, .gs-act .btn, .gs-act .pfx-btn, .wls-act .pfx-btn { height: 44px !important; min-height: 44px !important; font-size: 14px !important; }
+.btn:not(.primary):not(.danger):not(.pfx-btn-p), .pfx-btn:not(.pfx-btn-p):not(.rc-del), .pfx-ftoggle, .pf-linkbtn { background: var(--dz-live) !important; border: 1px solid var(--border) !important; color: var(--text) !important; box-shadow: none; }
+.btn.danger, .pfx-btn.rc-del, .rc-del { background: var(--dz-live) !important; border: 1px solid var(--border) !important; color: var(--neg) !important; box-shadow: none; }
+.btn.primary, .pfx-btn-p { border-radius: 99px !important; }
+.icon-btn { border-radius: 50% !important; }
+.pf-linkbtn { padding-left: 16px !important; padding-right: 16px !important; }
+.st-nav button { border-radius: 99px !important; }
