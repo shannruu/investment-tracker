@@ -3888,3 +3888,9 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
   .pfx-set .st-wrap[data-open="1"] .st-sh { display: block; margin: 0 0 6px; font-size: 28px; line-height: 1.15; letter-spacing: -.02em; font-weight: 700; }
   .pfx-set .st-wrap[data-open="1"] .st-main { gap: 12px; }
 }
+
+/* Page titles on phones: one size (22px bold) everywhere - same as Dashboard, Portfolio, Dividends... */
+@media (max-width: 760px) {
+  .pfx-set .st-wrap[data-open="1"] .st-sh, .pfx-stock .dz-h1, .dz-h1 { font-size: 22px !important; line-height: 1.2; letter-spacing: -.02em; }
+  .pfx-set .st-wrap[data-open="1"] .st-back { font-size: 14px !important; height: 36px; }
+}
