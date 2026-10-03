@@ -901,6 +901,10 @@ const ZH = {
   "Set a monthly goal": "设定每月目标",
   "Monthly dividend goal": "每月股息目标",
   "Quick pick": "快速选择",
+  "Edit": "编辑",
+  "Dividend yield": "股息率",
+  "Last dividend": "最近股息",
+  "None on record": "没有记录",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -5597,7 +5601,7 @@ function pageDividends() {
     const pct = Math.max(0, Math.min(100, (expM / goal) * 100)), g = divLtGrowth / 100;
     let yrs = null; if (expM >= goal) yrs = 0; else if (expM > 0 && g > 0) { for (let n = 1; n <= 40; n++) if (expM * Math.pow(1 + g, n) >= goal) { yrs = n; break; } }
     const when = yrs === 0 ? t("You have reached your goal.") : yrs ? dzF("About {n} years at {g}% growth a year, with no new money added.", { n: yrs, g: divLtGrowth }) : (g === 0 ? t("With 0% growth and no new money, you will not reach it. Add stocks or pick a growth rate above.") : t("More than 40 years at this pace. Adding stocks would speed it up."));
-    return `<section class="pfx-card dg-card" id="dvGoalEdit" role="button" tabindex="0" aria-label="${esc(t("Edit goal"))}"><div class="dg-h"><span>${t("Your dividend goal")}${tip}</span><span class="dg-chev">›</span></div>
+    return `<section class="pfx-card dg-card" id="dvGoalEdit" role="button" tabindex="0" aria-label="${esc(t("Edit goal"))}"><div class="dg-h"><span>${t("Your dividend goal")}${tip}</span><span class="dg-pill"><svg class="icon"><use href="#i-edit"/></svg>${t("Edit")}</span></div>
       <div class="dg-top"><div class="dg-big dz-n">${money(expM)}<small> / ${t("month")}</small></div><div class="dg-of">${t("of")} ${money(goal)}</div></div>
       <div class="dg-bar"><i style="width:${pct.toFixed(1)}%"></i></div>
       <div class="dg-row"><b>${fmt(pct, { maximumFractionDigits: 0 })}%</b><span>${t("of your goal")}</span><span class="dg-r">${t("Last 12 months")}: ${money(recvM)}</span></div>
@@ -6878,10 +6882,10 @@ let wlDraft = "", wlFocus = false;
 const WATCH_AT = {};          // ticker -> when its price was last fetched
 const WATCH_DIV = {};          // ticker -> { last: {date, amount}, ttm } per share
 function wdivHTML(tk, q) {
-  const d = WATCH_DIV[tk]; if (d === undefined) return `<small>${t("Loading…")}</small>`;
-  if (!d || !d.last) return `<small>${t("No dividend on record")}</small>`;
+  const d = WATCH_DIV[tk]; if (d === undefined) return `<div class="wl-st"><small>${t("Loading…")}</small></div>`;
+  if (!d || !d.last) return `<div class="wl-st"><div><small>${t("Dividend yield")}</small><b>–</b></div><div><small>${t("Last dividend")}</small><b>${t("None on record")}</b></div></div>`;
   const cc = ccyLabel((q && q.currency) || d.currency || FX.base), y = q && q.price > 0 && d.ttm > 0 ? (d.ttm / q.price) * 100 : null;
-  return `<b class="dz-n">${y != null ? `${fmt(y, { maximumFractionDigits: 2 })}% ${t("yield")}` : "–"}</b><small>${t("Last")}: ${cc} ${fmt(d.last.amount, { maximumFractionDigits: 4 })} · ${fmtDate(d.last.date)}</small>`;
+  return `<div class="wl-st"><div><small>${t("Dividend yield")}</small><b class="dz-n">${y != null ? fmt(y, { maximumFractionDigits: 2 }) + "%" : "–"}</b></div><div><small>${t("Last dividend")}</small><b class="dz-n">${cc} ${fmt(d.last.amount, { maximumFractionDigits: 4 })}</b><small>${fmtDate(d.last.date)}</small></div></div>`;
 }
 function watchlistHTML() {
   const list = SETTINGS.watchlist || [];
@@ -6890,10 +6894,10 @@ function watchlistHTML() {
   const rows = list.map((w) => {
     const q = WATCH_Q[w.ticker], nm = esc((q && q.name) || w.name || w.ticker);
     const pos = q && q.fiftyTwoWeekHigh != null && q.fiftyTwoWeekLow != null && q.fiftyTwoWeekHigh > q.fiftyTwoWeekLow ? Math.max(0, Math.min(100, ((q.price - q.fiftyTwoWeekLow) / (q.fiftyTwoWeekHigh - q.fiftyTwoWeekLow)) * 100)) : null;
-    return `<div class="wl-row"><span class="dz-chip pf-chip wl-chip" aria-hidden="true">${dzInitials(nm)}</span><div class="wl-n"><b>${nm}</b><span>${esc(w.ticker)}${held.has(w.ticker) ? ` · <i class="wl-own">${t("You own this")}</i>` : ""}</span></div>
+    return `<div class="wl-row"><span class="dz-chip pf-chip wl-chip" aria-hidden="true">${dzInitials(nm)}</span><div class="wl-n"><b>${nm}</b><span>${esc(w.ticker)}</span>${held.has(w.ticker) ? `<em class="wl-own">${t("You own this")}</em>` : ""}</div>
       <div class="wl-p dz-n">${q ? `${ccyLabel(q.currency)} ${fmt(q.price)}<small class="${cls(q.changePct)}">${pctTxt(q.changePct)} ${t("today")}</small>` : `<small>${t("Loading…")}</small>`}</div>
       <div class="wl-d">${wdivHTML(w.ticker, q)}</div>
-      <div class="wl-r">${pos != null ? `<div class="wl-bar"><i style="left:${pos.toFixed(0)}%"></i></div><small>${t("52-week range")}: ${fmt(q.fiftyTwoWeekLow)} – ${fmt(q.fiftyTwoWeekHigh)}</small>` : ""}</div>
+      <div class="wl-r">${pos != null ? `<small>${t("52-week range")}</small><div class="wl-rg"><span>${fmt(q.fiftyTwoWeekLow)}</span><div class="wl-bar"><i style="left:${pos.toFixed(0)}%"></i></div><span>${fmt(q.fiftyTwoWeekHigh)}</span></div>` : ""}</div>
       <button type="button" class="wl-x" data-wlrm="${escAttr(w.ticker)}" aria-label="${t("Remove")}" title="${t("Remove")}">×</button></div>`;
   }).join("");
   return panel(`${t("Watchlist")}${infoTip(t("Stocks you are following but do not own yet. Prices come from the market; nothing here counts toward your portfolio."))}`,

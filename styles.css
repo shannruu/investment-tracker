@@ -3721,3 +3721,23 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
 .gs-chips button { flex: 1 1 0; min-width: 64px; height: 42px; border-radius: 99px; border: 1px solid var(--border); background: transparent; color: var(--text); font: inherit; font-weight: 700; cursor: pointer; }
 .gs-chips button:active { background: color-mix(in srgb, var(--brand) 22%, transparent); }
 .gs-act { flex-direction: column; } .gs-act .btn { width: 100%; height: 48px; }
+
+/* Total row line = same as Holdings */
+@media (max-width: 760px) { .pfx .pf-table tr.pfx-tot td, .pfx-rz tr.pfx-tot td { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 13%, transparent); } }
+/* Goal edit pill */
+.dg-pill { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border-radius: 99px; background: color-mix(in srgb, var(--brand) 18%, transparent); color: var(--text); font-size: 13px; font-weight: 700; }
+.dg-pill .icon { width: 14px; height: 14px; }
+/* Watchlist: card-style rows */
+.wl-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; column-gap: 12px; row-gap: 12px; padding: 16px 0; align-items: center; }
+.wl-n b { display: block; font-size: 15px; } .wl-n span { font-size: 12.5px; color: var(--muted); }
+.wl-own { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 99px; font-style: normal; font-size: 11px; font-weight: 700; color: var(--pos); background: var(--pos-bg); }
+.wl-st { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
+.wl-st > div { padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--text) 5%, transparent); }
+.wl-st small { display: block; font-size: 11px; color: var(--muted); font-weight: 600; } .wl-st b { display: block; margin-top: 2px; font-size: 15px; }
+.wl-r small { display: block; margin-bottom: 6px; }
+.wl-rg { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--muted); font-weight: 600; } .wl-rg .wl-bar { flex: 1; margin: 0; }
+@media (max-width: 760px) {
+  .wl-row .wl-chip { grid-row: 1; align-self: center; }
+  .wl-row .wl-d, .wl-row .wl-r { grid-column: 1 / -1; }
+  .wl-row .wl-d { grid-row: 2; } .wl-row .wl-r { grid-row: 3; }
+}
