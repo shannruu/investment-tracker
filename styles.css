@@ -3371,3 +3371,8 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
   .lt-grow > .dz-seg { flex: 1 1 auto; justify-content: center; }
   .lt-grow > .dz-seg > button { flex: 1 1 0; padding-inline: 6px; text-align: center; }
 }
+
+/* Portfolio: "Prices as of ..." sits at the right, above the table, not squeezed beside the title */
+.pf-stamp { display: flex; justify-content: flex-end; margin: -4px 0 12px; font-size: 12px; color: var(--muted); }
+.pf-stamp:has(#pfPriceStamp:empty) { display: none; }
+.pf-stamp .meta-note { justify-content: flex-end; }

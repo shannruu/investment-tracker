@@ -3221,7 +3221,7 @@ function pagePortfolio() {
        ${pfNav}
        ${portfolioTab === "realized" ? realizedPLHTML() : !has ? panel(t("Holdings"), emptyContent)
           : portfolioTab === "allocation" ? breakdowns
-          : panel(`${t("All Holdings")}<small class="pfx-sm">${priceStampHtml}</small>`, filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
+          : panel(t("All Holdings"), `<div class="pf-stamp">${priceStampHtml}</div>` + filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
               `<div class="panel-head-actions">${filterToggleBtn}${colPanelHtml}</div>`)}</div>`
     : panel(t("Holdings"), emptyContent);
 
