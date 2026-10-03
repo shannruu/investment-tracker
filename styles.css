@@ -3364,3 +3364,10 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
   .pfx .panel-head h2 { flex-wrap: wrap; row-gap: 3px; }
   .pfx .panel-head h2 > .pfx-sm { flex: 0 1 auto; margin-left: 0; }
 }
+
+@media (max-width: 760px) {
+  /* "Dividends grow" 0% / 3% / 6% bar spans the card */
+  .pfx .panel-head > .lt-grow { flex: 1 1 100%; margin: 0; }
+  .lt-grow > .dz-seg { flex: 1 1 auto; justify-content: center; }
+  .lt-grow > .dz-seg > button { flex: 1 1 0; padding-inline: 6px; text-align: center; }
+}
