@@ -3914,3 +3914,17 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
 .dg-empty { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 16px 18px; border-radius: 22px; border: 1px dashed color-mix(in srgb, var(--text) 26%, transparent); background: transparent; color: var(--text); font: inherit; cursor: pointer; }
 .dg-empty b { display: block; font-size: 15px; } .dg-empty small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--muted); font-weight: 500; line-height: 1.4; }
 .dg-plus { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; background: linear-gradient(135deg, #8b7cff, #3dd8f5); color: #0b0d17; }
+
+/* ===== App arrows (SVG) and one link colour/size: same as the Dashboard links (--dz-lnk, 13px bold) ===== */
+.chev, .st-back svg, .pf-back svg { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none; display: block; }
+.st-mc { display: grid; place-items: center; color: var(--muted); } .st-mc .chev { width: 18px; height: 18px; }
+.st-back, .pf-back { gap: 2px; }
+.st-back::first-letter, .pf-back::first-letter { font-size: inherit !important; padding: 0 !important; }
+.pf-back { color: var(--dz-lnk) !important; } .pf-back svg { width: 22px; height: 22px; margin-left: -4px; }
+.pfx-set .st-wrap[data-open="1"] .st-back { color: var(--dz-lnk) !important; } .st-back svg { width: 22px; height: 22px; margin-left: -4px; }
+.pfx-btn .dz-ic, .btn .dz-ic, .pf-linkbtn .dz-ic { flex: none; }
+.link, .pf-linkbtn, .panel-head .pf-linkbtn, .ticker-link, .dzc-f button, .dz-ib.dz-eye.on { color: var(--dz-lnk) !important; }
+.link, .pf-linkbtn, .panel-head .pf-linkbtn { font-size: 13px !important; font-weight: 700 !important; }
+.pf-linkbtn, .panel-head .pf-linkbtn { display: inline-flex; align-items: center; gap: 6px; }
+a.dz-lnk, .dz-lnk { color: var(--dz-lnk); }
+@media (max-width: 760px) { .link, .pf-linkbtn, .panel-head .pf-linkbtn { font-size: 12px !important; } }

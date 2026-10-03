@@ -603,7 +603,7 @@ function dzChartCardHTML() {
   const hasTxn = ALL_TRANSACTIONS.some((x) => x.type === "Buy" || x.type === "Deposit") || HOLDINGS.length > 0;
   if (!hasTxn) {
     return `<section class="dz-card dz-pad dz-chartcard"><div class="dz-ch"><div class="dz-ct">${t("Your gain over time")}</div></div>
-      ${emptyState(`${t("Record your first deposit or Buy to start tracking.")}<div style="margin-top:14px"><a class="btn primary" href="#/add">${t("Add a transaction")} →</a></div>`)}</section>`;
+      ${emptyState(`${t("Record your first deposit or Buy to start tracking.")}<div style="margin-top:14px"><a class="btn primary" href="#/add">${t("Add a transaction")} ${dzIcon("arrow", 15)}</a></div>`)}</section>`;
   }
   const pills = Object.keys(DZ_RANGES).map((k) => `<button type="button" class="${k === dzRange ? "on" : ""}" data-dz-range="${k}" aria-pressed="${k === dzRange}">${k === "All" ? t("All") : k}</button>`).join("");
   const total = SETTINGS.returnMode !== "price";
@@ -647,7 +647,7 @@ function dzDonutSVG(slices, size, thick, gapDeg) {
 function dzAllocBodyHTML() {
   const slices = dzAllocSlices(dzAllocMode);
   const total = slices.reduce((s, x) => s + x.value, 0);
-  if (!(total > 0)) return emptyState(`${t("No holdings yet. Add a buy transaction to create your first holding.")}<div style="margin-top:14px"><a class="btn primary" href="#/add">${t("Add a transaction")} →</a></div>`);
+  if (!(total > 0)) return emptyState(`${t("No holdings yet. Add a buy transaction to create your first holding.")}<div style="margin-top:14px"><a class="btn primary" href="#/add">${t("Add a transaction")} ${dzIcon("arrow", 15)}</a></div>`);
   const rows = slices.map((s) => `<div class="dz-lr"><i style="background:${s.color}"></i><span class="dz-lrn">${esc(s.label)}</span><span class="dz-lrv"><b class="dz-n">${fmt(s.value / total * 100, { maximumFractionDigits: 1, minimumFractionDigits: 1 })}%</b><span class="dz-lra mu dz-n">${dzMoney0(s.value)}</span></span></div>`).join("");
   return `<div class="dz-alloc"><div class="dz-dnw">${dzDonutSVG(slices, 176, 20, 2.6)}<div class="dz-dnc"><small>${dzL("Net worth", "Net Worth")}</small><b class="dz-n">${dzMoney0(total)}</b></div></div><div class="dz-lgd">${rows}</div></div>`;
 }
