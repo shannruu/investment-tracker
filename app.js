@@ -886,6 +886,11 @@ const ZH = {
   "Dividend goal": "股息目标",
   "Price history chart": "价格走势图",
   "Compare with the market": "与大盘比较",
+  "Set a monthly dividend target and watch your progress. On the Dividends page.": "设定每月股息目标并查看进度。位于“股息”页面。",
+  "A price graph on each stock page, with your buys and sells marked.": "每只股票页面上的价格图，并标出您的买入和卖出。",
+  "Follow stocks you do not own yet. A tab on the Portfolio page.": "关注您尚未持有的股票。位于“投资组合”页面的标签。",
+  "Choose how you want your money split (for example by country) and see what to buy or sell.": "选择您想要的资金分配（例如按国家），并查看需要买入或卖出什么。",
+  "See if you are beating an index such as the FBM KLCI or the S&P 500.": "查看您是否跑赢 FBM KLCI 或标普 500 等指数。",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -6136,7 +6141,7 @@ function pageSettings() {
       ${settingRow(t("Show reconciliation on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" aria-label="${escAttr(t("Show reconciliation on Brokers page"))}" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
       ${settingRow(t("Show Ex-Dividend Screener on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" aria-label="${escAttr(t("Show Ex-Dividend Screener on Dividends page"))}" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
       </div>`)}
-    ${panel(`${t("Optional tools")}${infoTip(t("Switch off anything you do not use, and it disappears from the app. Your saved goal, notes and watchlist are kept."))}`, `<div class="setting-rows">${[["goal", "Dividend goal"], ["chart", "Price history chart"], ["watch", "Watchlist"], ["mix", "Target mix"], ["bench", "Compare with the market"]].map(([k, l]) => settingRow(t(l), `<label class="switch"><input type="checkbox" data-feat="${k}" aria-label="${escAttr(t(l))}" ${featOn(k) ? "checked" : ""}><span class="switch-track"></span></label>`)).join("")}</div>`)}
+    ${panel(`${t("Optional tools")}${infoTip(t("Switch off anything you do not use, and it disappears from the app. Your saved goal, notes and watchlist are kept."))}`, `<div class="setting-rows">${[["goal", "Dividend goal", "Set a monthly dividend target and watch your progress. On the Dividends page."], ["chart", "Price history chart", "A price graph on each stock page, with your buys and sells marked."], ["watch", "Watchlist", "Follow stocks you do not own yet. A tab on the Portfolio page."], ["mix", "Target mix", "Choose how you want your money split (for example by country) and see what to buy or sell."], ["bench", "Compare with the market", "See if you are beating an index such as the FBM KLCI or the S&P 500."]].map(([k, l, d]) => settingRow(`${t(l)}<small class="sr-desc">${t(d)}</small>`, `<label class="switch"><input type="checkbox" data-feat="${k}" aria-label="${escAttr(t(l))}" ${featOn(k) ? "checked" : ""}><span class="switch-track"></span></label>`)).join("")}</div>`)}
     ${panel(`${t("Dividend tax by country")}${infoTip(t("Withholding tax taken from dividends, by the country of the stock's market. Used when dividends are logged automatically, unless the broker has its own rate. Leave blank for 0."))}`, `
       <div class="fx-list">
         ${Object.entries(SETTINGS.divTaxByCountry || {}).map(([c, r]) => `<div class="fx-row"><span class="fx-ccy">${esc(t(c))}</span><span class="fx-row-controls"><input class="fx-input" type="number" step="any" min="0" max="100" data-wht="${esc(c)}" value="${esc(r)}" style="width:90px"><span class="muted">%</span><button class="icon-btn" data-whtdel="${esc(c)}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></span></div>`).join("") || `<p class="muted" style="margin:0 0 6px">${t("No country added yet — every dividend is taken as 0% tax.")}</p>`}
@@ -6870,6 +6875,75 @@ function showStockNoteModal(h) {
   });
   $("#stNoteCancel").addEventListener("click", closeModal);
 }
+/* ---- Portfolio extras: watchlist, target mix (with a rebalancing hint) and "compared with the market" ---- */
+const WATCH_Q = {};            // ticker -> latest quote (this session)
+const BENCH_HIST = {};         // index symbol -> { dates, closes }
+const BENCHMARKS = [["^KLSE", "FBM KLCI"], ["^GSPC", "S&P 500"], ["^IXIC", "Nasdaq"], ["^STI", "Straits Times (STI)"], ["^HSI", "Hang Seng"]];
+function watchlistHTML() {
+  const list = SETTINGS.watchlist || [];
+  const form = `<form id="wlForm" class="wl-form" autocomplete="off"><label class="ac-wrap"><input name="ticker" placeholder="${esc(t("Add a stock: code or name"))}" autocapitalize="characters" autocorrect="off" spellcheck="false"></label><button type="submit" class="btn primary small">${t("Add")}</button></form><small class="muted" id="wlStatus"></small>`;
+  const held = new Set(T.holdings.map((h) => h.ticker));
+  const rows = list.map((w) => {
+    const q = WATCH_Q[w.ticker], nm = esc((q && q.name) || w.name || w.ticker);
+    const pos = q && q.fiftyTwoWeekHigh != null && q.fiftyTwoWeekLow != null && q.fiftyTwoWeekHigh > q.fiftyTwoWeekLow ? Math.max(0, Math.min(100, ((q.price - q.fiftyTwoWeekLow) / (q.fiftyTwoWeekHigh - q.fiftyTwoWeekLow)) * 100)) : null;
+    return `<div class="wl-row"><div class="wl-n"><b>${nm}</b><span>${esc(w.ticker)}${held.has(w.ticker) ? ` · <i class="wl-own">${t("You own this")}</i>` : ""}</span></div>
+      <div class="wl-p dz-n">${q ? `${ccyLabel(q.currency)} ${fmt(q.price)}<small class="${cls(q.changePct)}">${pctTxt(q.changePct)} ${t("today")}</small>` : `<small>${t("Loading…")}</small>`}</div>
+      <div class="wl-r">${pos != null ? `<div class="wl-bar"><i style="left:${pos.toFixed(0)}%"></i></div><small>${t("52-week range")}: ${fmt(q.fiftyTwoWeekLow)} – ${fmt(q.fiftyTwoWeekHigh)}</small>` : ""}</div>
+      <button type="button" class="icon-btn" data-wlrm="${escAttr(w.ticker)}" aria-label="${t("Remove")}" title="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></div>`;
+  }).join("");
+  return panel(`${t("Watchlist")}${infoTip(t("Stocks you are following but do not own yet. Prices come from the market; nothing here counts toward your portfolio."))}`,
+    `${form}<div class="wl-list">${rows || `<p class="muted" style="margin:14px 0 0">${t("Nothing on your watchlist yet. Add a stock above to follow its price.")}</p>`}</div>`);
+}
+async function loadWatchQuotes() {
+  const list = SETTINGS.watchlist || []; let got = false;
+  await Promise.all(list.map(async (w) => { const q = await fetchQuote(w.ticker); if (q) { WATCH_Q[w.ticker] = q; got = true; } }));
+  if (got && portfolioTab === "watch" && currentPageKey() === "portfolio") render();
+}
+function targetMixHTML(dimKey, items, total) {
+  if (!(total > 0)) return "";
+  const store = (SETTINGS.targetMix || {})[dimKey] || {};
+  const names = [...new Set(items.map((x) => x.label).concat(Object.keys(store)))];
+  const actual = {}; items.forEach((x) => { actual[x.label] = (x.value / total) * 100; });
+  const sum = names.reduce((s, n) => s + (+store[n] || 0), 0);
+  const rows = names.map((n) => {
+    const tg = store[n] != null && store[n] !== "" ? +store[n] : null, ac = actual[n] || 0, diff = tg == null ? null : ac - tg, amt = tg == null ? null : ((tg - ac) / 100) * total;
+    const hint = tg == null ? "" : Math.abs(diff) < 1 ? `<span class="pos">${t("On target")}</span>` : diff > 0 ? `<span class="tm-over">${dzF("{p}% over · sell about {a}", { p: fmt(diff, { maximumFractionDigits: 1 }), a: money(Math.abs(amt)) })}</span>` : `<span class="tm-under">${dzF("{p}% under · buy about {a}", { p: fmt(-diff, { maximumFractionDigits: 1 }), a: money(Math.abs(amt)) })}</span>`;
+    return `<div class="tm-row"><div class="tm-n"><b>${esc(n)}</b><small>${t("Now")} ${fmt(ac, { maximumFractionDigits: 1 })}%</small></div><div class="tm-bar"><i style="width:${Math.min(100, ac).toFixed(1)}%"></i>${tg != null ? `<u style="left:${Math.min(100, tg)}%"></u>` : ""}</div>
+      <label class="tm-in"><input type="number" min="0" max="100" step="any" data-tm="${escAttr(n)}" value="${tg != null ? tg : ""}" placeholder="–" inputmode="decimal"><span>%</span></label><div class="tm-h">${hint}</div></div>`;
+  }).join("");
+  return panel(`${t("Target mix")}${infoTip(t("Set the share you would like each part of your portfolio to have. Divz shows how far you are from it and about how much you would buy or sell to get there. A guide only, it does not trade anything."))}`,
+    `<div class="tm-list">${rows}</div><div class="tm-foot"><span class="${sum > 100.5 ? "neg" : "muted"}">${t("Targets add up to")} ${fmt(sum, { maximumFractionDigits: 1 })}%</span><button type="button" class="btn primary small" id="tmSave" data-tmdim="${escAttr(dimKey)}">${t("Save targets")}</button><button type="button" class="btn ghost small" id="tmClear" data-tmdim="${escAttr(dimKey)}">${t("Clear")}</button></div>`);
+}
+function benchmarkHTML() {
+  const sym = SETTINGS.benchmark || "^KLSE", nm = (BENCHMARKS.find((b) => b[0] === sym) || [sym, sym])[1];
+  const first = ALL_TRANSACTIONS.map((x) => x.date).filter(Boolean).sort()[0];
+  const sel = styledSelect("benchSel", BENCHMARKS.map(([value, label]) => ({ value, label })), sym, { id: "benchSel" });
+  const hist = BENCH_HIST[sym];
+  let body;
+  if (!first) body = `<p class="muted" style="margin:0">${t("Add some records first to compare.")}</p>`;
+  else if (hist === "fail") body = `<p class="muted" style="margin:0">${t("Market data isn't available right now.")}</p>`;
+  else if (!hist) body = `<p class="muted" style="margin:0">${t("Loading…")}</p>`;
+  else {
+    const i0 = hist.dates.findIndex((d) => d >= first), start = hist.closes[i0 < 0 ? hist.closes.length - 1 : i0], end = hist.closes[hist.closes.length - 1];
+    const days = Math.max(1, (new Date() - new Date(first + "T00:00:00")) / 864e5), idxTotal = (end / start - 1) * 100, idxAnn = (Math.pow(end / start, 365 / days) - 1) * 100;
+    const you = T.xirr, hasYou = you != null && isFinite(you) && days >= 30;
+    const mx = Math.max(Math.abs(idxAnn), hasYou ? Math.abs(you) : 0, 1), w = (v) => (Math.min(100, (Math.abs(v) / mx) * 100)).toFixed(0);
+    const diff = hasYou ? you - idxAnn : null;
+    body = `<div class="bm-rows"><div class="bm-r"><span>${t("You")} <small>${t("Annual return")}</small></span><div class="bm-b"><i class="you" style="width:${hasYou ? w(you) : 0}%"></i></div><b class="dz-n ${hasYou ? cls(you) : ""}">${hasYou ? pctTxt(you) : "–"}</b></div>
+      <div class="bm-r"><span>${esc(nm)} <small>${t("Per year")}</small></span><div class="bm-b"><i class="idx" style="width:${w(idxAnn)}%"></i></div><b class="dz-n ${cls(idxAnn)}">${pctTxt(idxAnn)}</b></div></div>
+      <p class="bm-note">${hasYou ? (diff >= 0 ? dzF("You are ahead of {n} by {p} points a year.", { n: esc(nm), p: fmt(diff, { maximumFractionDigits: 1 }) }) : dzF("You are behind {n} by {p} points a year.", { n: esc(nm), p: fmt(-diff, { maximumFractionDigits: 1 }) })) : t("Your annual return needs at least a month of records.")}
+      ${dzF("{n} went from {a} to {b} since {d} ({p} in total).", { n: esc(nm), a: fmt(start), b: fmt(end), d: fmtDate(first), p: pctTxt(idxTotal) })}</p>`;
+  }
+  return panel(`${t("Compared with the market")}${infoTip(t("Your annual return (XIRR) counts your deposits, dividends and fees. The index shows only its price, without dividends, so it can look lower than a fair comparison. Both cover the time since your first record."))}`, `<div class="bm-sel">${sel}</div>${body}`);
+}
+async function loadBenchmark() {
+  const sym = SETTINGS.benchmark || "^KLSE", first = ALL_TRANSACTIONS.map((x) => x.date).filter(Boolean).sort()[0];
+  if (BENCH_HIST[sym] || !first) return;
+  const r = typeof dzFetchHistory === "function" ? await dzFetchHistory(sym, first) : null;
+  BENCH_HIST[sym] = r || "fail";
+  if (portfolioTab === "allocation" && currentPageKey() === "portfolio") render();
+}
+
 function pageHolding() {
   const key = decodeURIComponent((location.hash.split("/")[2] || ""));
   const [brokerId, ticker] = key.split("|");

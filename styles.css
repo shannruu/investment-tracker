@@ -3640,3 +3640,4 @@ html:not([data-theme="dark"]) body:has(.sel.open)::after { background: rgba(40, 
 /* Card titles: a description lives in the (i) icon, never beside the title */
 .panel-head h2 { align-items: center; }
 .panel-head h2 .col-info { margin-left: 8px; }
+.sr-desc { display: block; margin-top: 3px; font-size: 12px; font-weight: 500; color: var(--muted); line-height: 1.4; }
