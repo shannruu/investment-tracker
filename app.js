@@ -880,6 +880,12 @@ const ZH = {
   "Edit note": "编辑笔记",
   "Add a note": "添加笔记",
   "Only you can see this. Tags are separated by commas.": "只有您能看到。标签之间用逗号分隔。",
+  "Edit goal": "编辑目标",
+  "Optional tools": "可选工具",
+  "Switch off anything you do not use, and it disappears from the app. Your saved goal, notes and watchlist are kept.": "关闭您不使用的功能，它就会从应用中消失。您已保存的目标、笔记和自选股会保留。",
+  "Dividend goal": "股息目标",
+  "Price history chart": "价格走势图",
+  "Compare with the market": "与大盘比较",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -3279,7 +3285,7 @@ function pagePortfolio() {
   const priceStampHtml = `<span id="pfPriceStamp">${latestFetch ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${fmtDateTime(latestFetch)}`) : ""}</span>`;
   // Holdings table vs. allocation breakdowns — same tp-tab pills as the Records page,
   // so switching doesn't feel like a different component elsewhere in the app.
-  const pfTabs = [["holdings", "Holdings"], ["allocation", "Allocation"], ["realized", "Realized P/L"], ["watch", "Watchlist"]];
+  const pfTabs = [["holdings", "Holdings"], ["allocation", "Allocation"], ["realized", "Realized P/L"], ...(featOn("watch") ? [["watch", "Watchlist"]] : [])];
   const pfNav = `<div class="pfx-tabs"><div class="dz-seg" role="tablist">${pfTabs.map(([k, lbl]) =>
     `<button type="button" role="tab" aria-selected="${portfolioTab === k}" class="${portfolioTab === k ? "on" : ""}" data-pftab="${k}">${t(lbl)}</button>`).join("")}</div></div>`;
   const hasSales = (T.realizedSales || []).length > 0;
@@ -3655,7 +3661,7 @@ function pfAllocationHTML() {
   const sectorNote = dimOn[0] === "sector" && noSector ? `<div class="pf-insight">${dzIcon("info", 16)}<span>${noSector}</span></div>` : "";
   const sitsTip = [dimOn[0] === "sector" && noSector ? noSector : "", insight].filter(Boolean).join(" ");
   const sitsCard = panel(`${t("Where your money sits")}${sitsTip ? infoTip(sitsTip) : ""}`, `${facts}${sitsBar}`, dimSeg);
-  return `<div class="pfx-two">${panel(t("By holding"), ring)}${sitsCard}</div>${targetMixHTML(dimOn[0], sitsItems, total)}${benchmarkHTML()}`;
+  return `<div class="pfx-two">${panel(t("By holding"), ring)}${sitsCard}</div>${featOn("mix") ? targetMixHTML(dimOn[0], sitsItems, total) : ""}${featOn("bench") ? benchmarkHTML() : ""}`;
 }
 
 /* Fresh-computed at click time (not baked in at render) since #pfSummary can be
@@ -5574,14 +5580,16 @@ function pageDividends() {
   // Starts from what is expected over the next 12 months (the same figure the Dashboard shows) and grows it by the chosen rate.
   const ltBase = (() => { const u = Math.round((typeof dzUpcomingList === "function" ? dzUpcomingList() : []).reduce((sx, d) => sx + Math.round((+d.amtMYR || 0) * 100) / 100, 0) * 100) / 100; return u > 0 ? u : (fc.ttm || 0); })();
   const goalCard = (() => {
+    if (!featOn("goal")) return "";
     const goal = +SETTINGS.divGoal || 0, expM = ltBase / 12, recvM = (fc.ttm || 0) / 12;
-    const form = `<form id="dvGoalForm" class="dg-form"><input type="number" step="any" min="1" name="goal" inputmode="decimal" placeholder="${esc(t("Monthly goal"))} (${ccyLabel(FX.base)})" value="${goal || ""}" aria-label="${esc(t("Monthly goal"))}"><button type="submit" class="btn primary small">${goal ? t("Save") : t("Set goal")}</button>${goal ? `<button type="button" class="btn ghost small" id="dvGoalClear">${t("Remove")}</button>` : ""}</form>`;
+    const form = (goal && !dvGoalEditing) ? "" : `<form id="dvGoalForm" class="dg-form"><input type="number" step="any" min="1" name="goal" inputmode="decimal" placeholder="${esc(t("Monthly goal"))} (${ccyLabel(FX.base)})" value="${goal || ""}" aria-label="${esc(t("Monthly goal"))}"><button type="submit" class="btn primary small">${goal ? t("Save") : t("Set goal")}</button>${goal ? `<button type="button" class="btn ghost small" id="dvGoalCancel">${t("Cancel")}</button><button type="button" class="btn ghost small" id="dvGoalClear">${t("Remove")}</button>` : ""}</form>`;
+    const editBtn = goal && !dvGoalEditing ? `<button type="button" class="sn-btn dg-edit" id="dvGoalEdit" aria-label="${esc(t("Edit goal"))}" title="${esc(t("Edit goal"))}"><svg class="icon"><use href="#i-edit"/></svg></button>` : "";
     if (!goal) return panel(`${t("Your dividend goal")}${infoTip(t("Pick how much dividend income you would like each month. Divz shows how close you are, and about when you could get there if you add no new money."))}`, `<p class="muted" style="margin:0 0 12px">${t("How much dividend income would you like to receive each month?")}</p>${form}`);
     const pct = Math.max(0, Math.min(100, (expM / goal) * 100)), g = divLtGrowth / 100;
     let yrs = null; if (expM >= goal) yrs = 0; else if (expM > 0 && g > 0) { for (let n = 1; n <= 40; n++) if (expM * Math.pow(1 + g, n) >= goal) { yrs = n; break; } }
     const when = yrs === 0 ? t("You have reached your goal.") : yrs ? dzF("About {n} years at {g}% growth a year, with no new money added.", { n: yrs, g: divLtGrowth }) : (g === 0 ? t("With 0% growth and no new money, you will not reach it. Add stocks or pick a growth rate above.") : t("More than 40 years at this pace. Adding stocks would speed it up."));
     return panel(`${t("Your dividend goal")}${infoTip(t("Based on the dividends expected over the next 12 months from what you hold today, divided by 12. Growth uses the rate chosen in the card below. An estimate, not a promise."))}`,
-      `<div class="dg-top"><div class="dg-big dz-n">${money(expM)}<small> / ${t("month")}</small></div><div class="dg-of">${t("of")} ${money(goal)}</div></div>
+      `<div class="dg-top"><div class="dg-big dz-n">${money(expM)}<small> / ${t("month")}</small></div><div class="dg-of">${t("of")} ${money(goal)}</div>${editBtn}</div>
        <div class="dg-bar"><i style="width:${pct.toFixed(1)}%"></i></div>
        <div class="dg-row"><b>${fmt(pct, { maximumFractionDigits: 0 })}%</b><span>${t("of your goal")}</span><span class="dg-r">${t("Last 12 months")}: ${money(recvM)} / ${t("month")}</span></div>
        <p class="dg-when">${when}</p>${form}`);
@@ -5670,8 +5678,10 @@ function pageDividends() {
     mount() {
       const dvBell = $("#dzBell"); if (dvBell) dvBell.addEventListener("click", () => toggleMoreSheet());
       const goalForm = $("#dvGoalForm");
-      if (goalForm) goalForm.addEventListener("submit", (e) => { e.preventDefault(); const v = parseFloat(goalForm.goal.value); if (!(v > 0)) { toast(t("Enter a goal above 0.")); return; } SETTINGS.divGoal = v; saveStore(); toast(t("Goal saved")); render(); });
-      const goalClear = $("#dvGoalClear"); if (goalClear) goalClear.addEventListener("click", () => { delete SETTINGS.divGoal; saveStore(); render(); });
+      if (goalForm) goalForm.addEventListener("submit", (e) => { e.preventDefault(); const v = parseFloat(goalForm.goal.value); if (!(v > 0)) { toast(t("Enter a goal above 0.")); return; } SETTINGS.divGoal = v; dvGoalEditing = false; saveStore(); toast(t("Goal saved")); render(); });
+      const goalClear = $("#dvGoalClear"); if (goalClear) goalClear.addEventListener("click", () => { delete SETTINGS.divGoal; dvGoalEditing = false; saveStore(); render(); });
+      const goalEdit = $("#dvGoalEdit"); if (goalEdit) goalEdit.addEventListener("click", () => { dvGoalEditing = true; render(); });
+      const goalCancel = $("#dvGoalCancel"); if (goalCancel) goalCancel.addEventListener("click", () => { dvGoalEditing = false; render(); });
       $$("[data-dvgrowth]").forEach((b) => b.addEventListener("click", () => { divLtGrowth = +b.dataset.dvgrowth; render(); }));
       $$("[data-dvperiod]").forEach((b) => b.addEventListener("click", () => { divIncomePeriod = b.dataset.dvperiod; render(); }));
       $$("[data-dvpay]").forEach((b) => b.addEventListener("click", () => { divCalendarFilter = b.dataset.dvpay; divPayLimit = 25; render(); }));
@@ -6127,6 +6137,7 @@ function pageSettings() {
       ${settingRow(t("Show reconciliation on Brokers page"), `<label class="switch"><input type="checkbox" id="showRecon" aria-label="${escAttr(t("Show reconciliation on Brokers page"))}" ${SETTINGS.showReconciliation ? "checked" : ""}><span class="switch-track"></span></label>`)}
       ${settingRow(t("Show Ex-Dividend Screener on Dividends page"), `<label class="switch"><input type="checkbox" id="showExDivScreener" aria-label="${escAttr(t("Show Ex-Dividend Screener on Dividends page"))}" ${SETTINGS.showExDivScreener ? "checked" : ""}><span class="switch-track"></span></label>`)}
       </div>`)}
+    ${panel(`${t("Optional tools")}${infoTip(t("Switch off anything you do not use, and it disappears from the app. Your saved goal, notes and watchlist are kept."))}`, `<div class="setting-rows">${[["goal", "Dividend goal"], ["chart", "Price history chart"], ["watch", "Watchlist"], ["mix", "Target mix"], ["bench", "Compare with the market"]].map(([k, l]) => settingRow(t(l), `<label class="switch"><input type="checkbox" data-feat="${k}" aria-label="${escAttr(t(l))}" ${featOn(k) ? "checked" : ""}><span class="switch-track"></span></label>`)).join("")}</div>`)}
     ${panel(`${t("Dividend tax by country")}${infoTip(t("Withholding tax taken from dividends, by the country of the stock's market. Used when dividends are logged automatically, unless the broker has its own rate. Leave blank for 0."))}`, `
       <div class="fx-list">
         ${Object.entries(SETTINGS.divTaxByCountry || {}).map(([c, r]) => `<div class="fx-row"><span class="fx-ccy">${esc(t(c))}</span><span class="fx-row-controls"><input class="fx-input" type="number" step="any" min="0" max="100" data-wht="${esc(c)}" value="${esc(r)}" style="width:90px"><span class="muted">%</span><button class="icon-btn" data-whtdel="${esc(c)}" title="${t("Remove")}" aria-label="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></span></div>`).join("") || `<p class="muted" style="margin:0 0 6px">${t("No country added yet — every dividend is taken as 0% tax.")}</p>`}
@@ -6240,11 +6251,12 @@ function pageSettings() {
       $("#backupRemindSel").addEventListener("change", (e) => { SETTINGS.backupRemind = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#resetPrefs").addEventListener("click", async () => {
         if (!(await showConfirmModal(t("Reset all preferences to their defaults? Your records are not touched."), { okLabel: t("Reset") }))) return;
-        Object.assign(SETTINGS, { dateFormat: "D MMM YYYY", timeZone: "", returnMode: "total", startPage: "", defBroker: "", numFmt: "en", divGrowth: 3, privacy: false, backupRemind: "off", showReconciliation: false, showExDivScreener: false, divTaxByCountry: {} });
+        Object.assign(SETTINGS, { dateFormat: "D MMM YYYY", timeZone: "", returnMode: "total", startPage: "", defBroker: "", numFmt: "en", divGrowth: 3, privacy: false, backupRemind: "off", showReconciliation: false, showExDivScreener: false, divTaxByCountry: {}, features: {} });
         divLtGrowth = 3; saveStore(); applyPrivacy(); toast(t("Preferences saved")); render();
       });
       $("#startPageSel").addEventListener("change", (e) => { SETTINGS.startPage = e.target.value; saveStore(); toast(t("Preferences saved")); });
       $("#defBrokerSel").addEventListener("change", (e) => { SETTINGS.defBroker = e.target.value; saveStore(); toast(t("Preferences saved")); });
+      $$("[data-feat]").forEach((c) => c.addEventListener("change", () => { (SETTINGS.features || (SETTINGS.features = {}))[c.dataset.feat] = c.checked; saveStore(); toast(t("Preferences saved")); }));
       $("#whtAdd").addEventListener("click", () => {
         const raw = $("#whtNew").value.trim().toLowerCase(), rate = parseFloat($("#whtRate").value);
         const known = countryNames().find((c) => c.toLowerCase() === raw);
@@ -6772,6 +6784,8 @@ let holdingDivFilter = "upcoming";   // all | past | upcoming
 let holdingTxFilter = { type: "all", year: "" };
 let holdingTab = "overview", holdingTabFor = "";   // Stock page tab: overview | dividends | tx (reset when you open another stock)
 /* ---- Stock page: price history chart (with your buys / sells / dividends marked) and personal notes + tags ---- */
+const featOn = (k) => !(SETTINGS.features && SETTINGS.features[k] === false);   // optional tools: on unless switched off in Settings
+let dvGoalEditing = false;
 const STOCK_HIST = {};   // ticker -> { currency, dates, closes } (this session)
 let stPriceRange = "1Y";
 const ST_RANGE_DAYS = { "3M": 92, "1Y": 366, "3Y": 1096 };
@@ -7244,7 +7258,7 @@ function pageHolding() {
       `<div class="lt-grow"><span>${t("Dividends grow")}</span>${seg}</div>`);
   })();
   const divTabBody = `${dvCardsTab}<div class="pfx-two pfx-two-cal">${dvHistoryHTML || panel(t("Dividends by year"), `<p class="muted" style="margin:0">${t("Not enough dividends yet to draw a chart.")}</p>`)}${nextCardSt}</div>${ltCardSt}${dvCalendarHTML}`;
-  const priceHistPanel = LIVE_ENABLED ? panel(t("Price history"), `<div id="stPriceBox"><p class="muted" style="margin:0">${t("Loading…")}</p></div>`, `<div class="dz-seg" role="group">${["3M", "1Y", "3Y"].map((k) => `<button type="button" class="${stPriceRange === k ? "on" : ""}" data-sprange="${k}">${k}</button>`).join("")}</div>`) : "";
+  const priceHistPanel = LIVE_ENABLED && featOn("chart") ? panel(t("Price history"), `<div id="stPriceBox"><p class="muted" style="margin:0">${t("Loading…")}</p></div>`, `<div class="dz-seg" role="group">${["3M", "1Y", "3Y"].map((k) => `<button type="button" class="${stPriceRange === k ? "on" : ""}" data-sprange="${k}">${k}</button>`).join("")}</div>`) : "";
   const stBody = holdingTab === "dividends" ? (divTabBody.trim() ? divTabBody : panel(t("Dividends"), emptyState(t("No dividend data for this holding yet."))))
     : holdingTab === "tx" ? `${dvCardsTab}${txPanel}`
     : `${stSum}<div class="pfx-two2">${priceBlock}${returnPanel}</div>${priceHistPanel}${positionPanel}${stockNotesPanelHTML(h)}${chartsHTML}`;

@@ -3630,3 +3630,9 @@ html:not([data-theme="dark"]) body:has(.sel.open)::after { background: rgba(40, 
 .sn-ico .icon { width: 16px; height: 16px; }
 .sn-bar { margin-top: 4px; }
 .pfx-stock .dz-topr { gap: 8px; }
+
+.dg-top { position: relative; }
+.dg-edit { margin-left: auto; width: 34px; padding: 0; justify-content: center; }
+.dg-bar { max-width: none; }
+.dg-form { margin-top: 4px; }
+.dg-edit { position: absolute; right: 0; top: -2px; margin: 0; }
