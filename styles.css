@@ -3376,3 +3376,17 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
 .pf-stamp { display: flex; justify-content: flex-end; margin: -4px 0 12px; font-size: 12px; color: var(--muted); }
 .pf-stamp:has(#pfPriceStamp:empty) { display: none; }
 .pf-stamp .meta-note { justify-content: flex-end; }
+
+@media (max-width: 760px) {
+  /* Cash tab totals: even 2 x 2 tiles, like the Portfolio facts */
+  .rc-main .cash-strip { grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 0 14px; row-gap: 10px; border-bottom: 0; }
+  .rc-main .cash-item, .rc-main .cash-item:first-child, .rc-main .cash-item:nth-child(odd), .rc-main .cash-item:nth-child(3) { padding: 12px 14px; margin: 0; border: 1px solid var(--border) !important; border-radius: 14px; background: color-mix(in srgb, var(--text) 4%, transparent); }
+  .rc-main .cash-v { font-size: 18px; }
+  /* search + filter: the filter only needs its own width */
+  .rc-tools { gap: 8px; }
+  .rc-tools .rc-search { flex: 1 1 0; min-width: 0; }
+  .rc-tools > div[style] { flex: 0 0 116px; width: 116px !important; }
+  /* no row looks "selected" until you tap one (the first row was highlighted by default) */
+  .pfx .rc-row.sel td, .pfx .rc-row.sel td:first-child { background: transparent; border-radius: 0; }
+  .rc-sheet .pfx .rc-row.sel td, .rc-sheet .pfx .rc-row.sel td:first-child, .pfx.rc-sheet .rc-row.sel td, .pfx.rc-sheet .rc-row.sel td:first-child { background: color-mix(in srgb, var(--text) 7%, var(--dz-panel)); }
+}
