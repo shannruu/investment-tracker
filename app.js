@@ -909,6 +909,11 @@ const ZH = {
   "Stocks you are following but do not own yet. Prices come from the market; nothing here counts toward your portfolio. Tap a stock for details.": "您关注但尚未持有的股票。价格来自市场，这里的内容不计入您的投资组合。点一下股票可查看详情。",
   "Dividends": "股息",
   "Everything this stock has paid you in dividends, after tax. The % is the dividend yield over the last 12 months.": "这只股票派给您的全部股息（税后）。百分比是过去 12 个月的股息率。",
+  "Base currency and exchange rates": "基准货币和汇率",
+  "Theme, language, hide amounts": "主题、语言、隐藏金额",
+  "Date format, cost method, dividend tax": "日期格式、成本方法、股息税",
+  "Export, import and tax report": "导出、导入和税务报告",
+  "Reset preferences or clear all data": "重置偏好设置或清除所有数据",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -6101,12 +6106,18 @@ function pageProfile() {
  * PAGE: SETTINGS  (incl. theme switcher)
  * ========================================================================== */
 let settingsTab = "currency";
+let stPhoneOpen = false;   // phone: false = the list of sections, true = one section open
 var acctTab = "profile";   // Account page tab (var: account.js loads after this file)
 function pageSettings() {
   const stHead = dzTopHTML({ eyebrow: t("Settings"), h1: t("Settings"), sub: t("Currency, preferences and your data"), noLive: true });
+  const stIco = { currency: '<circle cx="12" cy="12" r="9"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.4 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1 0-2-.5-2.5-1.5M12 6.5V8m0 8v1.5"/>', look: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>', prefs: '<path d="M4 7h10M18 7h2M4 17h2m4 0h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>', data: '<path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/>', danger: '<path d="M12 4 3 20h18L12 4zM12 10v4m0 3v.01"/>' };
+  const stDesc = { currency: t("Base currency and exchange rates"), look: t("Theme, language, hide amounts"), prefs: t("Date format, cost method, dividend tax"), data: t("Export, import and tax report"), danger: t("Reset preferences or clear all data") };
+  const stMenuRow = ([k, l]) => `<button type="button" class="st-mi${k === "danger" ? " dng" : ""}" data-stopen="${k}"><span class="st-mt"><b>${l}</b><small>${stDesc[k]}</small></span><span class="st-mc">›</span></button>`;
+  const stItems = [["currency", t("Currency")], ["look", t("Appearance")], ["prefs", t("Preferences")], ["data", t("Data & backup")], ["danger", t("Danger zone")]];
+  const stMenu = `<div class="st-menu"><div class="st-mg">${stItems.slice(0, 4).map(stMenuRow).join("")}</div><div class="st-mg">${stMenuRow(stItems[4])}</div></div>`;
   const stNav = `<nav class="st-nav" role="tablist">${[["currency", t("Currency")], ["look", t("Appearance")], ["prefs", t("Preferences")], ["data", t("Data & backup")], ["danger", t("Danger zone")]].map(([k, l]) =>
     `<button type="button" role="tab" class="${settingsTab === k ? "on" : ""}${k === "danger" ? " dng" : ""}" data-sttab2="${k}">${l}</button>`).join("")}</nav>`;
-  const html = `<div class="pfx pfx-set">${stHead}<div class="st-wrap" data-tab="${settingsTab}">${stNav}<div class="st-main"><div class="st-sec" data-sec="currency">
+  const html = `<div class="pfx pfx-set">${stHead}<div class="st-wrap" data-tab="${settingsTab}" data-open="${stPhoneOpen ? 1 : 0}">${stNav}${stMenu}<div class="st-main"><button type="button" class="st-back" id="stBack">‹ ${t("Settings")}</button><div class="st-sec" data-sec="currency">
     ${panel(`${t("Currency & Exchange Rates")}${infoTip(`${t("Each record keeps its own currency. Base-currency amounts come from exchange rates.")} ${t("Pull today's market rate or type your own.")}`)}`, `
       <div class="fx-base-row">
         ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
@@ -6216,6 +6227,13 @@ function pageSettings() {
   return { title: "Settings", subtitle: "Currency, preferences and data.", html,
     mount() {
       const stBell = $("#dzBell"); if (stBell) stBell.addEventListener("click", () => toggleMoreSheet());
+      $$("[data-stopen]").forEach((b) => b.addEventListener("click", () => {
+        settingsTab = b.dataset.stopen; stPhoneOpen = true;
+        const w = $(".st-wrap"); w.dataset.tab = settingsTab; w.dataset.open = "1";
+        $$("[data-sttab2]").forEach((x) => x.classList.toggle("on", x.dataset.sttab2 === settingsTab));
+        window.scrollTo(0, 0);
+      }));
+      const stBackBtn = $("#stBack"); if (stBackBtn) stBackBtn.addEventListener("click", () => { stPhoneOpen = false; $(".st-wrap").dataset.open = "0"; window.scrollTo(0, 0); });
       $$("[data-sttab2]").forEach((b) => b.addEventListener("click", () => {
         settingsTab = b.dataset.sttab2;
         $(".st-wrap").dataset.tab = settingsTab;
@@ -8282,7 +8300,7 @@ function render() {
   if (key !== "holding") { holdingTabFor = ""; try { sessionStorage.removeItem("il-stock-tab"); } catch (e) {} }
   if (key !== "dividends") { divTab = "overview"; try { sessionStorage.removeItem("il-div-tab"); } catch (e) {} }
   if (key !== "records" && key !== "add") { recordsTab = "all"; cashSubFilter = "all"; recSearch = ""; recLimit = 40; }   // Transactions opens on All when entered from another page
-  if (key !== "settings") settingsTab = "currency";
+  if (key !== "settings") { settingsTab = "currency"; stPhoneOpen = false; }
   if (key !== "profile") acctTab = "profile";
   if (key !== "portfolio") portfolioTab = "holdings";   // Portfolio always opens on Holdings when entered from another page
   if (key !== "add") { editingTxId = null; addDraft = {}; closeAddDrawer(); }  // drop edit mode + draft + drawer when leaving Add

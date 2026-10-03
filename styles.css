@@ -3849,3 +3849,22 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
   .st-nav button { flex: 1 1 30% !important; padding: 0 6px !important; margin: 1px 0; }
   .pfx-acct .st-nav button, .pfx-acct .st-nav button:nth-child(n+4) { flex: 1 1 40% !important; }
 }
+
+/* ===== Settings on phones: a list of sections, each opens on its own screen ===== */
+.st-menu, .st-back { display: none; }
+@media (max-width: 760px) {
+  .pfx-set:not(.pfx-acct) .st-nav { display: none !important; }
+  .pfx-set:not(.pfx-acct) .st-wrap[data-open="0"] .st-main { display: none; }
+  .pfx-set:not(.pfx-acct) .st-wrap[data-open="0"] .st-menu { display: flex; flex-direction: column; gap: 16px; }
+  .pfx-set:not(.pfx-acct) .st-wrap[data-open="1"] .st-back { display: inline-flex; align-items: center; height: 32px; margin-bottom: 4px; padding: 0; border: 0; background: none; color: var(--brand-ink, #a99dff); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .st-mg { background: var(--dz-card); border: 1px solid var(--dz-card-bd); border-radius: 20px; overflow: hidden; }
+  .st-mi { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; border: 0; border-top: 1px solid var(--border-soft); background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+  .st-mi:first-child { border-top: 0; }
+  .st-mi:active { background: color-mix(in srgb, var(--text) 6%, transparent); }
+  .st-mic { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; flex: none; background: color-mix(in srgb, var(--text) 7%, transparent); color: #a99dff; }
+  .st-mic svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .st-mt { flex: 1; min-width: 0; } .st-mt b { display: block; font-size: 15px; } .st-mt small { display: block; margin-top: 1px; font-size: 12.5px; color: var(--muted); font-weight: 500; }
+  .st-mc { color: var(--muted); font-size: 22px; line-height: 1; }
+  .st-mi.dng b, .st-mi.dng .st-mic { color: var(--neg); }
+}
+@media (max-width: 760px) { .st-mi { padding: 16px 18px; } }
