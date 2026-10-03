@@ -132,13 +132,16 @@ function pageAccount() {
       : `<p class="muted" style="margin:0">${t("Cloud sync isn't set up for this deployment yet.")}</p>`);
   }
 
-  const tabs = signedIn ? [["profile", t("Profile")], ["security", t("Security")], ["sync", t("Cloud sync")]] : [["profile", t("Profile")], ["sync", t("Back up & sync")]];
+  const tabs = signedIn ? [["profile", t("Profile")], ["security", t("Security")], ["sync", t("Cloud sync")], ["danger", t("Danger zone")]] : [["profile", t("Profile")], ["sync", t("Back up & sync")]];
   if (!tabs.some((x) => x[0] === acctTab)) acctTab = "profile";
   const nav = `<nav class="st-nav" role="tablist">${tabs.map(([k, l]) => `<button type="button" role="tab" class="${acctTab === k ? "on" : ""}" data-actab="${k}">${l}</button>`).join("")}</nav>`;
   const html = `<div class="pfx pfx-set pfx-acct">${head}<div class="st-wrap" data-tab="ac${acctTab}">${nav}<div class="st-main">
     <div class="st-sec" data-sec="acprofile">${hero}${profile}${glance}</div>
     ${signedIn ? `<div class="st-sec" data-sec="acsecurity">${security}</div>` : ""}
     <div class="st-sec" data-sec="acsync">${sync}</div>
+    ${signedIn ? `<div class="st-sec" data-sec="acdanger">${acctSection("acctDanger", t("Delete my account"), `<p class="ap-intro" style="margin-bottom:14px">${t("This permanently deletes your Divz account and the copy of your records stored in it. It cannot be undone. Records saved on this device are cleared too, so export a backup first if you want to keep them.")}</p>
+      <form id="delForm" class="form" autocomplete="off" novalidate><label>${t("Type DELETE to confirm")}<input id="delConfirm" name="confirm" autocomplete="off" autocapitalize="characters" placeholder="DELETE"></label>
+      <p class="ap-status err" id="delStatus" role="alert"></p><div class="form-actions"><button class="btn danger" type="submit" id="delBtn" disabled>${t("Delete my account")}</button></div></form>`)}</div>` : ""}
   </div></div></div>`;
 
   return { title: "Account", subtitle: "Your profile, security and sync.", html,
@@ -220,6 +223,32 @@ function pageAccount() {
           btn.disabled = false;
         });
       }
+      /* delete my account (signed in) */
+      const delForm = $("#delForm");
+      if (delForm) {
+        const inp = $("#delConfirm"), btn = $("#delBtn"), msg = $("#delStatus");
+        inp.addEventListener("input", () => { btn.disabled = inp.value.trim() !== "DELETE"; });
+        delForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          if (inp.value.trim() !== "DELETE") return;
+          btn.disabled = true; msg.textContent = "";
+          try {
+            const { data } = await SUPABASE.auth.getSession();
+            const token = data && data.session && data.session.access_token;
+            const r = await fetch(`${API_BASE}/api/delete-account`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+            if (!r.ok) {
+              const j = await r.json().catch(() => ({}));
+              msg.textContent = j.error === "not-configured" ? t("Account deletion isn't switched on for this site yet. Please contact support.") : t("Couldn't delete your account — try again.");
+              btn.disabled = false; return;
+            }
+            try { await SUPABASE.auth.signOut(); } catch (err) { /* the account is already gone */ }
+            SYNC_USER = null; clearAllData();
+            try { localStorage.clear(); } catch (err) {}
+            toast(t("Your account was deleted."));
+            setTimeout(() => location.replace("/"), 800);
+          } catch (err) { msg.textContent = t("Something went wrong — try again."); btn.disabled = false; }
+        });
+      }
       /* sign out on every device */
       const allBtn = $("#signOutAllBtn");
       if (allBtn) allBtn.addEventListener("click", async () => {
@@ -250,6 +279,13 @@ function pageAccount() {
 
 /* ------------------------------------------------------------------ Chinese (zh) — only adds keys the app doesn't already have */
 const ACCT_ZH = {
+  "Delete my account": "删除我的账户",
+  "This permanently deletes your Divz account and the copy of your records stored in it. It cannot be undone. Records saved on this device are cleared too, so export a backup first if you want to keep them.": "这会永久删除您的 Divz 账户以及保存在账户里的记录副本，无法撤销。此设备上保存的记录也会被清除，如需保留请先导出备份。",
+  "Type DELETE to confirm": "输入 DELETE 以确认",
+  "Account deletion isn't switched on for this site yet. Please contact support.": "此网站尚未开启账户删除功能，请联系客服。",
+  "Couldn't delete your account — try again.": "无法删除您的账户，请重试。",
+  "Your account was deleted.": "您的账户已删除。",
+
   "Profile, security and sync": "个人资料、安全与同步",
   "Account": "账户",
   "Shown in the sidebar, on this page and in your Dashboard greeting.": "显示在侧边栏、本页面和仪表盘的问候语中。",

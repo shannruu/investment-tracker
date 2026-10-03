@@ -3104,7 +3104,7 @@ a.ticker.tk-name:hover { color: var(--brand); }
 .st-nav button.on { background: var(--dz-seg-on); color: var(--dz-seg-on-tx); box-shadow: inset 0 0 0 1px var(--dz-seg-on-bd); }
 .st-nav button.dng { color: var(--neg); }
 .st-sec { display: none; flex-direction: column; gap: 20px; }
-.st-wrap[data-tab="acprofile"] .st-sec[data-sec="acprofile"], .st-wrap[data-tab="acsecurity"] .st-sec[data-sec="acsecurity"], .st-wrap[data-tab="acsync"] .st-sec[data-sec="acsync"], .st-wrap[data-tab="currency"] .st-sec[data-sec="currency"], .st-wrap[data-tab="look"] .st-sec[data-sec="look"], .st-wrap[data-tab="prefs"] .st-sec[data-sec="prefs"], .st-wrap[data-tab="data"] .st-sec[data-sec="data"], .st-wrap[data-tab="danger"] .st-sec[data-sec="danger"] { display: flex; }
+.st-wrap[data-tab="acprofile"] .st-sec[data-sec="acprofile"], .st-wrap[data-tab="acsecurity"] .st-sec[data-sec="acsecurity"], .st-wrap[data-tab="acsync"] .st-sec[data-sec="acsync"], .st-wrap[data-tab="acdanger"] .st-sec[data-sec="acdanger"], .st-wrap[data-tab="currency"] .st-sec[data-sec="currency"], .st-wrap[data-tab="look"] .st-sec[data-sec="look"], .st-wrap[data-tab="prefs"] .st-sec[data-sec="prefs"], .st-wrap[data-tab="data"] .st-sec[data-sec="data"], .st-wrap[data-tab="danger"] .st-sec[data-sec="danger"] { display: flex; }
 .pfx-set .panel { margin: 0; }
 .hp-pills { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 18px; }
 .hp-pills button { border: 1px solid var(--dz-seg-bd, var(--border)); background: var(--dz-seg, transparent); color: var(--muted); font: inherit; font-weight: 700; font-size: 13px; padding: 8px 15px; border-radius: 99px; cursor: pointer; }
@@ -3602,3 +3602,9 @@ html:not([data-theme="dark"]) body:has(.sel.open)::after { background: rgba(40, 
 .bm-r b { text-align: right; }
 .bm-note { margin: 14px 0 0; font-size: 13px; color: var(--text-soft); line-height: 1.55; }
 @media (max-width: 760px) { .bm-r { grid-template-columns: 96px minmax(0, 1fr) 62px; gap: 8px; font-size: 12.5px; } .tm-row { grid-template-columns: minmax(0, 1fr) 80px; grid-template-areas: "n in" "bar bar" "h h"; } }
+
+@media (max-width: 760px) {
+  .pfx-acct .st-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pfx-acct .st-nav button, .pfx-acct .st-nav button:nth-child(n+4) { grid-column: auto; }
+}
+.pfx-acct .st-nav button[data-actab="danger"] { color: var(--neg); }

@@ -175,3 +175,17 @@ Re-deploy (push the updated `supabase-client.js`), then the opening page will as
 in or create an account, and the Account page will show Cloud sync instead of "not set up."
 
 ---
+
+---
+
+## Optional: "Delete my account" (Account -> Danger zone)
+
+The button calls `api/delete-account.js`, which needs two environment variables in Vercel
+(Settings -> Environment Variables, Production), then a redeploy:
+
+| Name | Value |
+|---|---|
+| `SUPABASE_URL` | Same Project URL as `supabase-client.js` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase -> Settings -> API -> `service_role` secret. **Never put it in any file in the repo.** |
+
+Until they are set the button answers "Account deletion isn't switched on for this site yet".
