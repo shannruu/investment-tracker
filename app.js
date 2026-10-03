@@ -814,6 +814,22 @@ const ZH = {
   "Estimated": "估算",
   "A guess, so the date may move.": "这是估算，日期可能会变。",
   "Unrealized and realized profit, plus dividends and interest, minus fees. Covers the stocks you hold now only; the Dashboard also counts the stocks you sold.": "未实现和已实现盈亏，加上股息和利息，再减去费用。仅包含您目前持有的股票；仪表盘还包含已卖出的股票。",
+  "Your dividend goal": "您的股息目标",
+  "Pick how much dividend income you would like each month. Divz shows how close you are, and about when you could get there if you add no new money.": "设定您每月想收到的股息。Divz 会显示您离目标有多近，以及不再投入新资金时大约何时达到。",
+  "How much dividend income would you like to receive each month?": "您希望每个月收到多少股息？",
+  "Monthly goal": "每月目标",
+  "Set goal": "设定目标",
+  "month": "月",
+  "of": "/",
+  "of your goal": "目标已达成",
+  "Last 12 months": "过去 12 个月",
+  "You have reached your goal.": "您已达成目标。",
+  "About {n} years at {g}% growth a year, with no new money added.": "约需 {n} 年（股息每年增长 {g}%，不再投入新资金）。",
+  "With 0% growth and no new money, you will not reach it. Add stocks or pick a growth rate above.": "股息零增长且不再投入资金，将无法达到。请增加持股或在上方选择增长率。",
+  "More than 40 years at this pace. Adding stocks would speed it up.": "按目前速度需要 40 年以上，增加持股可更快达成。",
+  "Based on the dividends expected over the next 12 months from what you hold today, divided by 12. Growth uses the rate chosen in the card below. An estimate, not a promise.": "依据您目前持股未来 12 个月预计的股息除以 12。增长率采用下方卡片所选的比率。仅为估算，并非承诺。",
+  "Enter a goal above 0.": "请输入大于 0 的目标。",
+  "Goal saved": "目标已保存",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -5477,6 +5493,19 @@ function pageDividends() {
   // Long-term: if you keep the shares you hold today, what could the dividends add up to over the next years?
   // Starts from what is expected over the next 12 months (the same figure the Dashboard shows) and grows it by the chosen rate.
   const ltBase = (() => { const u = Math.round((typeof dzUpcomingList === "function" ? dzUpcomingList() : []).reduce((sx, d) => sx + Math.round((+d.amtMYR || 0) * 100) / 100, 0) * 100) / 100; return u > 0 ? u : (fc.ttm || 0); })();
+  const goalCard = (() => {
+    const goal = +SETTINGS.divGoal || 0, expM = ltBase / 12, recvM = (fc.ttm || 0) / 12;
+    const form = `<form id="dvGoalForm" class="dg-form"><input type="number" step="any" min="1" name="goal" inputmode="decimal" placeholder="${esc(t("Monthly goal"))} (${ccyLabel(FX.base)})" value="${goal || ""}" aria-label="${esc(t("Monthly goal"))}"><button type="submit" class="btn primary small">${goal ? t("Save") : t("Set goal")}</button>${goal ? `<button type="button" class="btn ghost small" id="dvGoalClear">${t("Remove")}</button>` : ""}</form>`;
+    if (!goal) return panel(`${t("Your dividend goal")}${infoTip(t("Pick how much dividend income you would like each month. Divz shows how close you are, and about when you could get there if you add no new money."))}`, `<p class="muted" style="margin:0 0 12px">${t("How much dividend income would you like to receive each month?")}</p>${form}`);
+    const pct = Math.max(0, Math.min(100, (expM / goal) * 100)), g = divLtGrowth / 100;
+    let yrs = null; if (expM >= goal) yrs = 0; else if (expM > 0 && g > 0) { for (let n = 1; n <= 40; n++) if (expM * Math.pow(1 + g, n) >= goal) { yrs = n; break; } }
+    const when = yrs === 0 ? t("You have reached your goal.") : yrs ? dzF("About {n} years at {g}% growth a year, with no new money added.", { n: yrs, g: divLtGrowth }) : (g === 0 ? t("With 0% growth and no new money, you will not reach it. Add stocks or pick a growth rate above.") : t("More than 40 years at this pace. Adding stocks would speed it up."));
+    return panel(`${t("Your dividend goal")}${infoTip(t("Based on the dividends expected over the next 12 months from what you hold today, divided by 12. Growth uses the rate chosen in the card below. An estimate, not a promise."))}`,
+      `<div class="dg-top"><div class="dg-big dz-n">${money(expM)}<small> / ${t("month")}</small></div><div class="dg-of">${t("of")} ${money(goal)}</div></div>
+       <div class="dg-bar"><i style="width:${pct.toFixed(1)}%"></i></div>
+       <div class="dg-row"><b>${fmt(pct, { maximumFractionDigits: 0 })}%</b><span>${t("of your goal")}</span><span class="dg-r">${t("Last 12 months")}: ${money(recvM)} / ${t("month")}</span></div>
+       <p class="dg-when">${when}</p>${form}`);
+  })();
   const ltCard = (() => {
     if (!(ltBase > 0)) return "";
     const g = divLtGrowth / 100, perYear = Array.from({ length: 10 }, (_, i) => ltBase * Math.pow(1 + g, i));
@@ -5527,7 +5556,7 @@ function pageDividends() {
       <div class="pfx-nxa dz-n pos">+${money(d.amtMYR)}${dvLocal(d)}</div></div>`; }).join("");
   const comingCard = panel(`${t("Coming up")}<small class="pfx-sm">${t("next payments")}</small>`, (comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`));
   const nextCard = panel(t("Next payments"), comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`, `<button type="button" class="pf-linkbtn" data-dvtab="calendar">${t("Calendar")} →</button>`);
-  overview = `<div class="pfx-two pfx-two-cal">${incomeCard}${nextCard}</div>${ltCard || panel(t("Dividend Forecast"), forecastBody)}`;
+  overview = `<div class="pfx-two pfx-two-cal">${incomeCard}${nextCard}</div>${goalCard}${ltCard || panel(t("Dividend Forecast"), forecastBody)}`;
   const payFilters = [["all", t("All")], ["past", t("Received")], ["upcoming", t("Upcoming")]];
   const paySeg = `<div class="dz-seg" role="group">${payFilters.map(([k, l]) => `<button type="button" class="${divCalendarFilter === k ? "on" : ""}" data-dvpay="${k}">${l}</button>`).join("")}</div>`;
   const payList = [...calendarFiltered].sort((x, y) => ((y.payDisplay || y.payDate) > (x.payDisplay || x.payDate) ? 1 : -1));
@@ -5560,6 +5589,9 @@ function pageDividends() {
     title: "Dividends", subtitle: "Calendar, history and withholding-tax summary.", html,
     mount() {
       const dvBell = $("#dzBell"); if (dvBell) dvBell.addEventListener("click", () => toggleMoreSheet());
+      const goalForm = $("#dvGoalForm");
+      if (goalForm) goalForm.addEventListener("submit", (e) => { e.preventDefault(); const v = parseFloat(goalForm.goal.value); if (!(v > 0)) { toast(t("Enter a goal above 0.")); return; } SETTINGS.divGoal = v; saveStore(); toast(t("Goal saved")); render(); });
+      const goalClear = $("#dvGoalClear"); if (goalClear) goalClear.addEventListener("click", () => { delete SETTINGS.divGoal; saveStore(); render(); });
       $$("[data-dvgrowth]").forEach((b) => b.addEventListener("click", () => { divLtGrowth = +b.dataset.dvgrowth; render(); }));
       $$("[data-dvperiod]").forEach((b) => b.addEventListener("click", () => { divIncomePeriod = b.dataset.dvperiod; render(); }));
       $$("[data-dvpay]").forEach((b) => b.addEventListener("click", () => { divCalendarFilter = b.dataset.dvpay; divPayLimit = 25; render(); }));
