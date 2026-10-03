@@ -3784,3 +3784,10 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
   .pfx-stock .dz-topr { position: static !important; transform: none !important; margin: 10px 0 0 !important; justify-content: flex-start; }
   .pfx-stock .dz-h1 { font-size: 30px; }
 }
+
+@media (max-width: 760px) {
+  .pfx-stock .dz-top { display: flex !important; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0 12px; }
+  .pfx-stock .dz-greet { display: block !important; flex: 1 1 0; min-width: 0; padding-right: 0 !important; }
+  .pfx-stock .dz-topr { position: static !important; transform: none !important; margin: 0 0 6px !important; flex: none; justify-content: flex-end; }
+  .pfx-stock .dz-h1 { font-size: 26px; }
+}
