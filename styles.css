@@ -4006,3 +4006,5 @@ a.dz-lnk, .dz-lnk { color: var(--dz-lnk); }
 @media (max-width: 760px) { .wl-list { display: block; } .wl-tbl { display: none; } }
 /* Expanded Add button: the drawn "+ Add" sat ~1.7px right of the middle (side bearings of the icon and the label), so give it a little extra on the right. The global button padding is !important, hence this one too. */
 .sidebar:not(.collapsed) .sidebar-add .btn { padding-right: 18px !important; }
+/* Expanded Add button: the "+" is a small symbol in a 20px box, so the usual 11px icon gap left ~21px between it and the word. Tighten it. */
+.sidebar:not(.collapsed) .sidebar-add .btn { gap: 4px; }
