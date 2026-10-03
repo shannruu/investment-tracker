@@ -3273,3 +3273,9 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
   .pfx .data-table { border-collapse: separate; border-spacing: 0; }
   .pfx .data-table th:first-child, .pfx .data-table td:first-child { border-right: 0; box-shadow: inset -1px 0 0 color-mix(in srgb, var(--text) 16%, transparent); }
 }
+
+/* Info boxes: more room after the "i", and lines that belong apart sit on their own line */
+.pf-insight { gap: 14px; }
+.pf-insight .icon { margin-top: 3px; }
+.pf-lines { display: flex; flex-direction: column; gap: 6px; }
+.col-info { margin-left: 6px; }
