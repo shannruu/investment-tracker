@@ -3534,3 +3534,29 @@ html:not([data-theme="dark"]) body:has(.sel.open)::after { background: rgba(40, 
 .dg-form input { height: 42px; padding: 0 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; }
 .dg-form input:focus { outline: none; border-color: var(--brand); }
 .dg-form .btn { height: 42px; }
+
+/* Stock page: price history chart + notes */
+.sp-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+.sp-head b { font-size: 22px; letter-spacing: -.02em; }
+.sp-head span { font-size: 13px; font-weight: 700; }
+.sp-wrap { position: relative; }
+.sp-chart { width: 100%; height: auto; display: block; touch-action: pan-y; }
+.sp-grid { stroke: rgba(128,128,160,.18); stroke-width: 1; }
+.sp-yl, .sp-xl { fill: var(--muted); font-size: 11px; }
+.sp-line { fill: none; stroke: #8b7cff; stroke-width: 2.2; stroke-linejoin: round; }
+.sp-avg { stroke: #f2b84b; stroke-width: 1.4; stroke-dasharray: 5 4; }
+.sp-avgl { fill: #f2b84b; font-size: 11px; font-weight: 700; }
+.sp-buy { fill: #34d399; } .sp-sell { fill: #fb7185; } .sp-div { fill: #f2b84b; stroke: var(--dz-panel, #111); stroke-width: 1.4; }
+.sp-guide { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; } .sp-hd { fill: #8b7cff; stroke: #fff; stroke-width: 1.5; }
+.sp-hit { fill: transparent; }
+.sp-tip { position: absolute; top: 0; padding: 6px 10px; border-radius: 10px; background: var(--dz-panel, var(--surface)); border: 1px solid var(--border); box-shadow: 0 8px 24px rgba(0,0,0,.35); font-size: 12px; color: var(--muted); pointer-events: none; white-space: nowrap; }
+.sp-tip b { display: block; color: var(--text); font-size: 14px; }
+.sp-leg { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 10px; font-size: 12px; color: var(--muted); font-weight: 600; }
+.sp-leg span { display: inline-flex; align-items: center; gap: 6px; }
+.sp-k { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
+.sp-k.buy { background: #34d399; } .sp-k.sell { background: #fb7185; } .sp-k.div { background: #f2b84b; border-radius: 50%; } .sp-k.avg { height: 0; width: 14px; border-top: 2px dashed #f2b84b; border-radius: 0; }
+.sn-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.sn-chip { padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; background: color-mix(in srgb, var(--brand) 16%, transparent); color: var(--text); }
+.sn-form { display: flex; flex-direction: column; gap: 10px; }
+.sn-form textarea, .sn-form input { border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font: inherit; padding: 10px 14px; resize: vertical; }
+.sn-form textarea:focus, .sn-form input:focus { outline: none; border-color: var(--brand); }

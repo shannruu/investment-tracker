@@ -830,6 +830,23 @@ const ZH = {
   "Based on the dividends expected over the next 12 months from what you hold today, divided by 12. Growth uses the rate chosen in the card below. An estimate, not a promise.": "依据您目前持股未来 12 个月预计的股息除以 12。增长率采用下方卡片所选的比率。仅为估算，并非承诺。",
   "Enter a goal above 0.": "请输入大于 0 的目标。",
   "Goal saved": "目标已保存",
+  "Price history isn't available for this stock right now.": "目前无法取得这只股票的价格历史。",
+  "Not enough price history to draw a chart.": "价格历史不足，无法绘制图表。",
+  "Your average cost": "您的平均成本",
+  "You bought": "您的买入",
+  "You sold": "您的卖出",
+  "Dividend received": "收到的股息",
+  "3 years": "3 年",
+  "1 year": "1 年",
+  "3 months": "3 个月",
+  "Price history": "价格走势",
+  "Loading…": "加载中…",
+  "My notes": "我的笔记",
+  "Why you bought it, what to watch for, anything you want to remember. Only you can see this. Tags are separated by commas.": "买入原因、需要留意的事项，或任何想记住的内容。只有您能看到。标签之间用逗号分隔。",
+  "Write a note about this stock…": "写下关于这只股票的笔记…",
+  "Tags, e.g. bank, reit, long term": "标签，例如：银行, 房地产信托, 长期",
+  "Save note": "保存笔记",
+  "Note saved": "笔记已保存",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -6675,6 +6692,76 @@ function pageTerms() {
 let holdingDivFilter = "upcoming";   // all | past | upcoming
 let holdingTxFilter = { type: "all", year: "" };
 let holdingTab = "overview", holdingTabFor = "";   // Stock page tab: overview | dividends | tx (reset when you open another stock)
+/* ---- Stock page: price history chart (with your buys / sells / dividends marked) and personal notes + tags ---- */
+const STOCK_HIST = {};   // ticker -> { currency, dates, closes } (this session)
+let stPriceRange = "1Y";
+const ST_RANGE_DAYS = { "3M": 92, "1Y": 366, "3Y": 1096 };
+async function loadStockPriceChart(h) {
+  const box = document.getElementById("stPriceBox"); if (!box) return;
+  if (!STOCK_HIST[h.ticker]) {
+    const from = dateToISO(new Date(Date.now() - 3 * 365 * 864e5));
+    const r = typeof dzFetchHistory === "function" ? await dzFetchHistory(h.ticker, from) : null;
+    if (!r) { box.innerHTML = `<p class="muted" style="margin:0">${t("Price history isn't available for this stock right now.")}</p>`; return; }
+    STOCK_HIST[h.ticker] = r;
+  }
+  drawStockPriceChart(h);
+}
+function drawStockPriceChart(h) {
+  const box = document.getElementById("stPriceBox"), hist = STOCK_HIST[h.ticker]; if (!box || !hist) return;
+  const cutoff = dateToISO(new Date(Date.now() - ST_RANGE_DAYS[stPriceRange] * 864e5));
+  const idx = []; hist.dates.forEach((d, i) => { if (d >= cutoff) idx.push(i); });
+  if (idx.length < 2) { box.innerHTML = `<p class="muted" style="margin:0">${t("Not enough price history to draw a chart.")}</p>`; return; }
+  const dates = idx.map((i) => hist.dates[i]), closes = idx.map((i) => hist.closes[i]);
+  const avg = h.avgCostLocal > 0 && (!hist.currency || hist.currency === h.currency) ? h.avgCostLocal : null;
+  const vals = closes.concat(avg ? [avg] : []);
+  let lo = Math.min(...vals), hi = Math.max(...vals); const padV = (hi - lo) * 0.08 || hi * 0.05; lo -= padV; hi += padV;
+  const W = 640, H = 230, pl = 46, pr = 12, pt = 14, pb = 26, pw = W - pl - pr, ph = H - pt - pb;
+  const ms = (d) => new Date(d + "T00:00:00Z").getTime(), t0 = ms(dates[0]), t1 = ms(dates[dates.length - 1]) || t0 + 1;
+  const X = (d) => pl + ((ms(d) - t0) / (t1 - t0 || 1)) * pw, Y = (v) => pt + (1 - (v - lo) / (hi - lo)) * ph;
+  const f = (n) => n.toFixed(1);
+  const line = dates.map((d, i) => `${i ? "L" : "M"}${f(X(d))},${f(Y(closes[i]))}`).join("");
+  const area = `${line} L${f(X(dates[dates.length - 1]))},${f(pt + ph)} L${f(X(dates[0]))},${f(pt + ph)} Z`;
+  let grid = ""; for (let k = 0; k <= 3; k++) { const v = lo + ((hi - lo) * k) / 3, y = Y(v); grid += `<line class="sp-grid" x1="${pl}" x2="${W - pr}" y1="${f(y)}" y2="${f(y)}"/><text class="sp-yl" x="${pl - 6}" y="${f(y + 4)}" text-anchor="end">${fmt(v, { maximumFractionDigits: v < 10 ? 2 : 0, minimumFractionDigits: v < 10 ? 2 : 0 })}</text>`; }
+  const nx = Math.min(5, Math.max(2, Math.floor(pw / 110))); let xl = "";
+  for (let k = 0; k < nx; k++) { const tt = t0 + ((t1 - t0) * k) / (nx - 1), d = new Date(tt); xl += `<text class="sp-xl" x="${f(pl + (pw * k) / (nx - 1))}" y="${H - 8}" text-anchor="${k === 0 ? "start" : k === nx - 1 ? "end" : "middle"}">${d.toLocaleDateString(LANG === "zh" ? "zh-CN" : "en", stPriceRange === "3M" ? { month: "short", day: "numeric", timeZone: "UTC" } : { month: "short", year: "2-digit", timeZone: "UTC" })}</text>`; }
+  const look = (d) => { let l = 0, r = dates.length - 1, res = -1; while (l <= r) { const m = (l + r) >> 1; if (dates[m] <= d) { res = m; l = m + 1; } else r = m - 1; } return res < 0 ? null : closes[res]; };
+  let marks = "";
+  ALL_TRANSACTIONS.filter((x) => x.ticker === h.ticker && x.brokerId === h.brokerId).forEach((x) => {
+    const d = x.type === "Dividend" ? (x.payDate || x.date) : x.date; if (!d || d < dates[0] || d > dates[dates.length - 1]) return;
+    const p = look(d); if (p == null) return; const cx = X(d), cy = Y(p);
+    if (x.type === "Buy") marks += `<path class="sp-buy" d="M${f(cx)},${f(cy - 3)} l6,10 h-12 Z"/>`;
+    else if (x.type === "Sell") marks += `<path class="sp-sell" d="M${f(cx)},${f(cy + 3)} l6,-10 h-12 Z"/>`;
+    else if (x.type === "Dividend" && x.status !== "Expected") marks += `<circle class="sp-div" cx="${f(cx)}" cy="${f(pt + ph - 6)}" r="3.6"/>`;
+  });
+  const avgLine = avg && avg > lo && avg < hi ? `<line class="sp-avg" x1="${pl}" x2="${W - pr}" y1="${f(Y(avg))}" y2="${f(Y(avg))}"/><text class="sp-avgl" x="${W - pr}" y="${f(Y(avg) - 4)}" text-anchor="end">${t("Your average cost")} ${fmt(avg, { maximumFractionDigits: 2 })}</text>` : "";
+  const last = closes[closes.length - 1], first = closes[0], chgPct = first ? ((last - first) / first) * 100 : 0;
+  box.innerHTML = `<div class="sp-head"><b class="dz-n">${hist.currency ? ccyLabel(hist.currency) + " " : ""}${fmt(last)}</b><span class="${cls(chgPct)}">${pctTxt(chgPct)} · ${stPriceRange === "3Y" ? t("3 years") : stPriceRange === "1Y" ? t("1 year") : t("3 months")}</span></div>
+    <div class="sp-wrap"><svg class="sp-chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t("Price history"))}">
+    <defs><linearGradient id="spG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8b7cff" stop-opacity=".35"/><stop offset="1" stop-color="#8b7cff" stop-opacity="0"/></linearGradient></defs>
+    ${grid}${xl}${avgLine}<path d="${area}" fill="url(#spG)"/><path class="sp-line" d="${line}"/>${marks}
+    <line class="sp-guide" y1="${pt}" y2="${pt + ph}" x1="0" x2="0" style="display:none"/><circle class="sp-hd" r="4" cx="0" cy="0" style="display:none"/>
+    <rect class="sp-hit" x="${pl}" y="0" width="${pw}" height="${H}"/></svg><div class="sp-tip" hidden></div></div>
+    <div class="sp-leg"><span><i class="sp-k buy"></i>${t("You bought")}</span><span><i class="sp-k sell"></i>${t("You sold")}</span><span><i class="sp-k div"></i>${t("Dividend received")}</span>${avgLine ? `<span><i class="sp-k avg"></i>${t("Your average cost")}</span>` : ""}</div>`;
+  const svg = box.querySelector("svg"), hit = box.querySelector(".sp-hit"), guide = box.querySelector(".sp-guide"), hd = box.querySelector(".sp-hd"), tip = box.querySelector(".sp-tip");
+  const move = (e) => {
+    const r = svg.getBoundingClientRect(), px = ((e.clientX - r.left) / r.width) * W; let best = 0, bd = 1e12;
+    dates.forEach((d, i) => { const dx = Math.abs(X(d) - px); if (dx < bd) { bd = dx; best = i; } });
+    const cx = X(dates[best]), cy = Y(closes[best]);
+    guide.setAttribute("x1", cx); guide.setAttribute("x2", cx); guide.style.display = ""; hd.setAttribute("cx", cx); hd.setAttribute("cy", cy); hd.style.display = "";
+    tip.hidden = false; tip.innerHTML = `${fmtDate(dates[best])}<b>${hist.currency ? ccyLabel(hist.currency) + " " : ""}${fmt(closes[best])}</b>`;
+    const w = tip.offsetWidth, left = Math.min(Math.max((cx / W) * r.width - w / 2, 0), r.width - w); tip.style.left = left + "px";
+  };
+  const out = () => { guide.style.display = "none"; hd.style.display = "none"; tip.hidden = true; };
+  hit.addEventListener("pointermove", move); hit.addEventListener("pointerdown", move); hit.addEventListener("pointerleave", out); hit.addEventListener("pointerup", () => setTimeout(out, 1500));
+}
+function stockNotesPanelHTML(h) {
+  const n = (SETTINGS.stockNotes || {})[h.ticker] || {};
+  const chips = (n.tags || []).map((g) => `<span class="sn-chip">${esc(g)}</span>`).join("");
+  return panel(`${t("My notes")}${infoTip(t("Why you bought it, what to watch for, anything you want to remember. Only you can see this. Tags are separated by commas."))}`,
+    `${chips ? `<div class="sn-chips">${chips}</div>` : ""}<form id="stNotesForm" class="sn-form"><textarea name="note" rows="3" maxlength="800" placeholder="${esc(t("Write a note about this stock…"))}">${esc(n.note || "")}</textarea>
+     <input name="tags" maxlength="80" placeholder="${esc(t("Tags, e.g. bank, reit, long term"))}" value="${esc((n.tags || []).join(", "))}"><div><button type="submit" class="btn primary small">${t("Save note")}</button></div></form>`);
+}
+
 function pageHolding() {
   const key = decodeURIComponent((location.hash.split("/")[2] || ""));
   const [brokerId, ticker] = key.split("|");
@@ -7062,15 +7149,26 @@ function pageHolding() {
       `<div class="lt-grow"><span>${t("Dividends grow")}</span>${seg}</div>`);
   })();
   const divTabBody = `${dvCardsTab}<div class="pfx-two pfx-two-cal">${dvHistoryHTML || panel(t("Dividends by year"), `<p class="muted" style="margin:0">${t("Not enough dividends yet to draw a chart.")}</p>`)}${nextCardSt}</div>${ltCardSt}${dvCalendarHTML}`;
+  const priceHistPanel = LIVE_ENABLED ? panel(t("Price history"), `<div id="stPriceBox"><p class="muted" style="margin:0">${t("Loading…")}</p></div>`, `<div class="dz-seg" role="group">${["3M", "1Y", "3Y"].map((k) => `<button type="button" class="${stPriceRange === k ? "on" : ""}" data-sprange="${k}">${k}</button>`).join("")}</div>`) : "";
   const stBody = holdingTab === "dividends" ? (divTabBody.trim() ? divTabBody : panel(t("Dividends"), emptyState(t("No dividend data for this holding yet."))))
     : holdingTab === "tx" ? `${dvCardsTab}${txPanel}`
-    : `${stSum}<div class="pfx-two2">${priceBlock}${returnPanel}</div>${positionPanel}${chartsHTML}`;
+    : `${stSum}<div class="pfx-two2">${priceBlock}${returnPanel}</div>${priceHistPanel}${positionPanel}${stockNotesPanelHTML(h)}${chartsHTML}`;
   const html = `<div class="pfx pfx-stock"><p style="margin:-4px 0 0"><a class="link" href="#/portfolio">← ${t("Back to Portfolio")}</a></p>${stHeader}${stNav}${stBody}</div>`;
 
   return { title: h.ticker, subtitle: h.company || t("Holding detail"), html,
     mount() {
       const p = $("#dtlPrice");
       if (p) p.addEventListener("click", () => showSetPriceModal(h));
+      if ($("#stPriceBox")) loadStockPriceChart(h);
+      $$("[data-sprange]").forEach((b) => b.addEventListener("click", () => { stPriceRange = b.dataset.sprange; $$("[data-sprange]").forEach((x) => x.classList.toggle("on", x === b)); drawStockPriceChart(h); }));
+      const notesForm = $("#stNotesForm");
+      if (notesForm) notesForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const map = SETTINGS.stockNotes || (SETTINGS.stockNotes = {});
+        const note = notesForm.note.value.trim(), tags = notesForm.tags.value.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 8);
+        if (!note && !tags.length) delete map[h.ticker]; else map[h.ticker] = { note, tags };
+        saveStore(); toast(t("Note saved")); render();
+      });
       const stBell = $("#dzBell"); if (stBell) stBell.addEventListener("click", () => toggleMoreSheet());
       $$("[data-txf]").forEach((b) => b.addEventListener("click", () => { holdingTxFilter.type = b.dataset.txf; render(); }));
       const txYr = $("#txYearSel"); if (txYr) txYr.addEventListener("change", (e) => { holdingTxFilter.year = e.target.value; render(); });
