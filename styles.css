@@ -3853,10 +3853,10 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
 /* ===== Settings on phones: a list of sections, each opens on its own screen ===== */
 .st-menu, .st-back { display: none; }
 @media (max-width: 760px) {
-  .pfx-set:not(.pfx-acct) .st-nav { display: none !important; }
-  .pfx-set:not(.pfx-acct) .st-wrap[data-open="0"] .st-main { display: none; }
-  .pfx-set:not(.pfx-acct) .st-wrap[data-open="0"] .st-menu { display: flex; flex-direction: column; gap: 16px; }
-  .pfx-set:not(.pfx-acct) .st-wrap[data-open="1"] .st-back { display: inline-flex; align-items: center; height: 32px; margin-bottom: 4px; padding: 0; border: 0; background: none; color: var(--brand-ink, #a99dff); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+  .pfx-set .st-nav { display: none !important; }
+  .pfx-set .st-wrap[data-open="0"] .st-main { display: none; }
+  .pfx-set .st-wrap[data-open="0"] .st-menu { display: flex; flex-direction: column; gap: 16px; }
+  .pfx-set .st-wrap[data-open="1"] .st-back { display: inline-flex; align-items: center; height: 32px; margin-bottom: 4px; padding: 0; border: 0; background: none; color: var(--brand-ink, #a99dff); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
   .st-mg { background: var(--dz-card); border: 1px solid var(--dz-card-bd); border-radius: 20px; overflow: hidden; }
   .st-mi { display: flex; align-items: center; gap: 14px; width: 100%; padding: 14px 16px; border: 0; border-top: 1px solid var(--border-soft); background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
   .st-mi:first-child { border-top: 0; }
@@ -3874,5 +3874,6 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
   .st-mi { padding: 13px 16px !important; gap: 12px; min-height: 56px; }
   .st-mt b { font-size: 14px !important; font-weight: 700; } .st-mt small { font-size: 12px !important; }
   .st-mc { font-size: 20px; }
-  .pfx-set:not(.pfx-acct) .st-wrap[data-open="1"] .st-back { font-size: 13px !important; }
+  .pfx-set .st-wrap[data-open="1"] .st-back { font-size: 13px !important; }
 }
+@media (max-width: 760px) { .pfx-set .st-wrap[data-open="0"] .st-menu { display: flex; } }

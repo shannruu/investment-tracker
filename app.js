@@ -6107,7 +6107,8 @@ function pageProfile() {
  * ========================================================================== */
 let settingsTab = "currency";
 let stPhoneOpen = false;   // phone: false = the list of sections, true = one section open
-var acctTab = "profile";   // Account page tab (var: account.js loads after this file)
+var acctTab = "profile";
+var acctPhoneOpen = false;   // Account page tab (var: account.js loads after this file)
 function pageSettings() {
   const stHead = dzTopHTML({ eyebrow: t("Settings"), h1: t("Settings"), sub: t("Currency, preferences and your data"), noLive: true });
   const stIco = { currency: '<circle cx="12" cy="12" r="9"/><path d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.4 0-2.5.8-2.5 2s1 1.7 2.5 2 2.5.8 2.5 2-1.1 2-2.5 2c-1 0-2-.5-2.5-1.5M12 6.5V8m0 8v1.5"/>', look: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>', prefs: '<path d="M4 7h10M18 7h2M4 17h2m4 0h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>', data: '<path d="M12 4v11m0 0-4-4m4 4 4-4M5 19h14"/>', danger: '<path d="M12 4 3 20h18L12 4zM12 10v4m0 3v.01"/>' };
@@ -8301,7 +8302,7 @@ function render() {
   if (key !== "dividends") { divTab = "overview"; try { sessionStorage.removeItem("il-div-tab"); } catch (e) {} }
   if (key !== "records" && key !== "add") { recordsTab = "all"; cashSubFilter = "all"; recSearch = ""; recLimit = 40; }   // Transactions opens on All when entered from another page
   if (key !== "settings") { settingsTab = "currency"; stPhoneOpen = false; }
-  if (key !== "profile") acctTab = "profile";
+  if (key !== "profile") { acctTab = "profile"; acctPhoneOpen = false; }
   if (key !== "portfolio") portfolioTab = "holdings";   // Portfolio always opens on Holdings when entered from another page
   if (key !== "add") { editingTxId = null; addDraft = {}; closeAddDrawer(); }  // drop edit mode + draft + drawer when leaving Add
   if (key !== "brokers") closeBrokerDrawer();  // drop the broker drawer when leaving Brokers
