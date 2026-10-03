@@ -2975,7 +2975,6 @@ function openPickSearch(sel) {
   const pop = sel.querySelector(".sel-pop");
   pop.innerHTML = `<div class="sel-search"><input type="text" class="sel-search-input" placeholder="${t("Search…")}" autocomplete="off"></div><div class="sel-search-list">${pickItems(sel.dataset.pick, "")}</div>`;
   openSel(sel);
-  const inp = pop.querySelector(".sel-search-input"); if (inp) setTimeout(() => inp.focus(), 0);
 }
 
 /* Currency options for a picker: base first, (future) recently-used, then all known rates. */
@@ -3029,7 +3028,6 @@ function openCurrencySearch(sel) {
   pop.innerHTML = `<div class="sel-search"><input type="text" class="sel-search-input" placeholder="${t("Search currency…")}" autocomplete="off"></div>
     <div class="sel-search-list">${worldCurrencyOptions("")}</div>`;
   openSel(sel);
-  const inp = pop.querySelector(".sel-search-input"); if (inp) setTimeout(() => inp.focus(), 0);
 }
 async function pickWorldCurrency(sel, code) {
   if (!FX.rates[code]) {
@@ -4510,7 +4508,6 @@ function mountAddForm(type, editing) {
     noteToggle.addEventListener("click", () => {
       noteToggle.style.display = "none";
       noteField.style.display = "";
-      noteInput.focus();
     });
     noteInput.addEventListener("blur", () => {
       if (!noteInput.value.trim()) {
@@ -5598,16 +5595,17 @@ function pageDividends() {
   const goalCard = (() => {
     if (!featOn("goal")) return "";
     const goal = +SETTINGS.divGoal || 0, expM = ltBase / 12, recvM = (fc.ttm || 0) / 12;
-    const tip = infoTip(t("Based on the dividends expected over the next 12 months from what you hold today, divided by 12. Growth uses the rate chosen in the card below. An estimate, not a promise."));
+    let tip = "";
     if (!goal) return `<button type="button" class="dg-empty" id="dvGoalEdit"><span class="dg-plus">+</span><span><b>${t("Set a monthly goal")}</b><small>${t("How much dividend income would you like to receive each month?")}</small></span></button>`;
     const pct = Math.max(0, Math.min(100, (expM / goal) * 100)), g = divLtGrowth / 100;
     let yrs = null; if (expM >= goal) yrs = 0; else if (expM > 0 && g > 0) { for (let n = 1; n <= 40; n++) if (expM * Math.pow(1 + g, n) >= goal) { yrs = n; break; } }
     const when = yrs === 0 ? t("You have reached your goal.") : yrs ? dzF("About {n} years at {g}% growth a year, with no new money added.", { n: yrs, g: divLtGrowth }) : (g === 0 ? t("With 0% growth and no new money, you will not reach it. Add stocks or pick a growth rate above.") : t("More than 40 years at this pace. Adding stocks would speed it up."));
-    return `<section class="pfx-card dg-card" id="dvGoalEdit" role="button" tabindex="0" aria-label="${esc(t("Edit goal"))}"><div class="dg-h"><span>${t("Your dividend goal")}${tip}</span><span class="pfx-btn dg-pill"><svg class="icon"><use href="#i-edit"/></svg>${t("Edit")}</span></div>
+    tip = infoTip(when + " " + t("Based on the dividends expected over the next 12 months from what you hold today, divided by 12. Growth uses the rate chosen in the card below. An estimate, not a promise."));
+    return `<section class="pfx-card dg-card" id="dvGoalEdit" role="button" tabindex="0" aria-label="${esc(t("Edit goal"))}"><div class="dg-h"><span>${t("Your dividend goal")}${tip}</span></div>
       <div class="dg-top"><div class="dg-big dz-n">${money(expM)}<small> / ${t("month")}</small></div><div class="dg-of">${t("of")} ${money(goal)}</div></div>
       <div class="dg-bar"><i style="width:${pct.toFixed(1)}%"></i></div>
       <div class="dg-row"><b>${fmt(pct, { maximumFractionDigits: 0 })}%</b><span>${t("of your goal")}</span><span class="dg-r">${t("Last 12 months")}: ${money(recvM)}</span></div>
-      <p class="dg-when">${when}</p></section>`;
+      </section>`;
   })();
   const ltCard = (() => {
     if (!(ltBase > 0)) return "";
@@ -6868,7 +6866,7 @@ function showStockNoteModal(h) {
     <p class="muted" style="font-size:12px;margin:0">${t("Only you can see this. Tags are separated by commas.")}</p>
     <div class="form-actions"><button type="submit" class="btn primary">${t("Save note")}</button><button type="button" class="btn ghost" id="stNoteCancel">${t("Cancel")}</button></div></form>`;
   $("#modal").hidden = false;
-  const form = $("#stNotesForm"); form.note.focus();
+  const form = $("#stNotesForm");
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     const map = SETTINGS.stockNotes || (SETTINGS.stockNotes = {});
@@ -6938,7 +6936,7 @@ function showGoalSheet() {
     <div class="gs-chips" aria-label="${esc(t("Quick pick"))}">${[500, 1000, 2000, 5000].map((n) => `<button type="button" data-gs="${n}">${fmt(n, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}</button>`).join("")}</div>
     <div class="form-actions gs-act"><button type="submit" class="btn primary">${t("Save")}</button>${cur ? `<button type="button" class="pfx-btn rc-del" id="gsRemove">${t("Remove")}</button>` : ""}</div></form>`;
   $("#modal").hidden = false;
-  const f = $("#goalSheet"); f.goal.focus();
+  const f = $("#goalSheet");
   $$("[data-gs]").forEach((b) => b.addEventListener("click", () => { f.goal.value = b.dataset.gs; }));
   f.addEventListener("submit", (e) => { e.preventDefault(); const v = parseFloat(f.goal.value); if (!(v > 0)) { toast(t("Enter a goal above 0.")); return; } SETTINGS.divGoal = v; saveStore(); closeModal(); toast(t("Goal saved")); render(); });
   const rm = $("#gsRemove"); if (rm) rm.addEventListener("click", () => { delete SETTINGS.divGoal; saveStore(); closeModal(); render(); });
@@ -7589,7 +7587,6 @@ function showTypeToConfirmModal(message, confirmWord, opts = {}) {
       modalResolve = null; resolve(true); closeModal();
     });
     $("#typeConfirmCancel").addEventListener("click", () => closeModal());
-    input.focus();
   });
 }
 
@@ -7616,7 +7613,6 @@ function showReconciliationModal(brokerId) {
   $("#modal").hidden = false;
   const form = $("#reconForm");
   const actualInput = form.querySelector('[name="actual"]');
-  actualInput.focus();
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     const actual = parseFloat(actualInput.value);
@@ -7650,7 +7646,6 @@ function showSetPriceModal(h) {
   $("#modal").hidden = false;
   const form = $("#setPriceForm");
   const priceInput = form.querySelector('[name="price"]');
-  priceInput.focus();
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     const price = parseFloat(priceInput.value);

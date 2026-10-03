@@ -180,7 +180,7 @@ function pageAccount() {
       if (emForm && emToggle) {
         const msg = $("#emStatus");
         const close = () => { emForm.hidden = true; emForm.reset(); msg.textContent = ""; emToggle.setAttribute("aria-expanded", "false"); };
-        emToggle.addEventListener("click", () => { emForm.hidden = !emForm.hidden; emToggle.setAttribute("aria-expanded", String(!emForm.hidden)); if (!emForm.hidden) $("#acctNewEmail").focus(); });
+        emToggle.addEventListener("click", () => { emForm.hidden = !emForm.hidden; emToggle.setAttribute("aria-expanded", String(!emForm.hidden)) });
         $("#emCancel").addEventListener("click", close);
         emForm.addEventListener("submit", async (e) => {
           e.preventDefault();
@@ -205,7 +205,6 @@ function pageAccount() {
         pwToggle.addEventListener("click", () => {
           pwForm.hidden = !pwForm.hidden;
           pwToggle.setAttribute("aria-expanded", String(!pwForm.hidden));
-          if (!pwForm.hidden) $("#acctPw").focus();
         });
         $("#pwCancel").addEventListener("click", close);
         pwForm.addEventListener("submit", async (e) => {

@@ -3768,3 +3768,19 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
 }
 @keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 .wls-act .rc-del, .gs-act .rc-del { color: var(--neg); }
+
+/* Stock page header: buttons sit on the right, level with the title block (same as Dividends / Brokers) */
+@media (max-width: 760px) {
+  .pfx-stock .dz-top { display: block !important; position: relative; }
+  .pfx-stock .dz-greet { display: block !important; padding-right: 150px; }
+  .pfx-stock .dz-topr { position: absolute !important; right: 0; top: 50%; transform: translateY(-50%); margin: 0 !important; display: flex; flex-wrap: nowrap !important; gap: 8px; }
+  .pfx-stock .dz-h1 { font-size: 28px; }
+  .dg-card .dg-h { margin-bottom: 4px; }
+}
+
+.dg-card { padding: 22px 24px !important; } .dg-card .dg-h { margin-bottom: 14px; }
+@media (max-width: 760px) {
+  .pfx-stock .dz-greet { padding-right: 0 !important; }
+  .pfx-stock .dz-topr { position: static !important; transform: none !important; margin: 10px 0 0 !important; justify-content: flex-start; }
+  .pfx-stock .dz-h1 { font-size: 30px; }
+}
