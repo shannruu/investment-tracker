@@ -3641,3 +3641,7 @@ html:not([data-theme="dark"]) body:has(.sel.open)::after { background: rgba(40, 
 .panel-head h2 { align-items: center; }
 .panel-head h2 .col-info { margin-left: 8px; }
 .sr-desc { display: block; margin-top: 3px; font-size: 12px; font-weight: 500; color: var(--muted); line-height: 1.4; }
+
+/* (i) icons sit on the optical middle of the text next to them */
+.panel-head h2 .col-info, .pfx .panel-head h2 .col-info { transform: translateY(1.5px); }
+th .col-info, .rc-rows .col-info, .rc-grp .col-info { transform: translateY(-1px); }
