@@ -3673,3 +3673,51 @@ th .col-info, .rc-rows .col-info, .rc-grp .col-info { transform: translateY(-1px
   .pf-rz-desk .pfx-only-m, .pf-rz-desk td.td-holding .sub { display: none; }
 }
 html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+/* ===== Brokers / sticky first column: always opaque so scrolled cells never show through ===== */
+@media (max-width: 760px) {
+  .pfx .data-table td:first-child, .pfx .data-table th:first-child { background: var(--dz-panel) !important; }
+  .pfx .rc-row.sel td:first-child { background: var(--dz-panel) !important; }
+  .rc-sheet .pfx .rc-row.sel td:first-child, .pfx.rc-sheet .rc-row.sel td:first-child { background: color-mix(in srgb, var(--text) 9%, var(--dz-panel)) !important; }
+  /* Total rows: a plain bold row, not a tall pinned strip */
+  .pfx .pf-table tr.pfx-tot td, .pfx-rz tr.pfx-tot td { position: static; padding-top: 14px; padding-bottom: 14px; box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 18%, transparent); font-size: 13px; }
+  .pfx .pf-table tr.pfx-tot td:first-child, .pfx-rz tr.pfx-tot td:first-child { position: sticky; z-index: 3; }
+}
+.pfx-rz-sale tr.pfx-tot td:nth-child(2) { text-transform: none; letter-spacing: 0; font-size: inherit; }
+/* ===== An app has no scroll bars ===== */
+@media (max-width: 760px), (hover: none) {
+  * { scrollbar-width: none; -ms-overflow-style: none; }
+  *::-webkit-scrollbar, html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }
+}
+/* ===== Watchlist, app style ===== */
+.wl-form { display: block; }
+.wl-form .ac-wrap { display: flex; align-items: center; position: relative; }
+.wl-si { position: absolute; left: 14px; width: 17px; height: 17px; color: var(--muted); pointer-events: none; }
+.wl-form input { padding-left: 42px; height: 46px; border-radius: 14px; }
+.wl-form input::-webkit-search-cancel-button { -webkit-appearance: none; }
+.wl-row { grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; column-gap: 12px; }
+.wl-row .wl-chip { grid-column: 1; grid-row: 1 / span 2; width: 40px; height: 40px; }
+.wl-x { width: 30px; height: 30px; border-radius: 50%; border: 0; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+@media (max-width: 760px) {
+  .wl-row { grid-template-columns: auto minmax(0, 1fr) auto auto; row-gap: 6px; padding: 14px 0; }
+  .wl-row .wl-n { grid-column: 2; grid-row: 1; } .wl-row .wl-p { grid-column: 3; grid-row: 1; } .wl-row .wl-x { grid-column: 4; grid-row: 1; }
+  .wl-row .wl-d { grid-column: 2 / -1; grid-row: 2; } .wl-row .wl-r { grid-column: 2 / -1; grid-row: 3; }
+  .wl-row .wl-chip { grid-row: 1 / span 2; align-self: start; }
+}
+/* ===== Dividend goal, app style ===== */
+.dg-card { padding: 18px 20px; cursor: pointer; }
+.dg-card:active { transform: scale(.985); }
+.dg-h { display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+.dg-chev { font-size: 22px; color: var(--muted); line-height: 1; }
+.dg-card .dg-when { margin: 10px 0 0; }
+.dg-empty { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 16px 18px; border-radius: 22px; border: 1px dashed color-mix(in srgb, var(--text) 26%, transparent); background: transparent; color: var(--text); font: inherit; cursor: pointer; }
+.dg-empty b { display: block; font-size: 15px; } .dg-empty small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--muted); font-weight: 500; line-height: 1.4; }
+.dg-plus { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; background: linear-gradient(135deg, #8b7cff, #3dd8f5); color: #0b0d17; }
+.gs-form { display: flex; flex-direction: column; gap: 16px; }
+.gs-in { display: flex; align-items: center; gap: 10px; padding: 6px 16px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface-2); }
+.gs-in span { font-size: 18px; color: var(--muted); font-weight: 600; }
+.gs-in input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 30px; font-weight: 700; height: 56px; text-align: right; outline: none; padding: 0; }
+.gs-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.gs-chips button { flex: 1 1 0; min-width: 64px; height: 42px; border-radius: 99px; border: 1px solid var(--border); background: transparent; color: var(--text); font: inherit; font-weight: 700; cursor: pointer; }
+.gs-chips button:active { background: color-mix(in srgb, var(--brand) 22%, transparent); }
+.gs-act { flex-direction: column; } .gs-act .btn { width: 100%; height: 48px; }
