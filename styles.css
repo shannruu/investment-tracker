@@ -3514,3 +3514,28 @@ html:not([data-theme="dark"]) .sel-opt:hover, html:not([data-theme="dark"]) .sel
 html:not([data-theme="dark"]) .sel-opt.on { background: rgba(90,70,220,.15); color: #2d1fa8; }
 html:not([data-theme="dark"]) .sel-search-input { background: #f4f3fb; color: #1c1d33; border-color: rgba(90,70,220,.25); }
 html:not([data-theme="dark"]) .sel-name { color: #6b6d8c; }
+
+/* Dropdown lists: back to the lifted grey panel, now with a dimmed + softly blurred page behind it while open */
+.sel-pop, .sel-search { background: color-mix(in srgb, var(--text) 9%, var(--dz-panel, var(--surface))); }
+.sel-pop { border: 1px solid color-mix(in srgb, var(--text) 24%, transparent); box-shadow: 0 18px 44px rgba(0,0,0,.55), 0 0 0 1px rgba(0,0,0,.25); border-radius: 10px; padding: 4px; }
+.sel-opt, .sel-search-opt { color: var(--text); border-radius: 8px; }
+.sel-opt:hover, .sel-search-opt:hover, .sel-opt.on { background: color-mix(in srgb, var(--text) 10%, transparent); color: var(--text); }
+.sel-search-input { background: color-mix(in srgb, var(--text) 6%, transparent); border: 1px solid var(--border); color: var(--text); }
+.sel-name { color: var(--text-soft); }
+html:not([data-theme="dark"]) .sel-pop, html:not([data-theme="dark"]) .sel-search { background: #fff; }
+html:not([data-theme="dark"]) .sel-opt, html:not([data-theme="dark"]) .sel-search-opt { color: var(--text); }
+html:not([data-theme="dark"]) .sel-opt.on { color: var(--text); }
+html:not([data-theme="dark"]) .sel-search-input { color: var(--text); }
+body:has(.sel.open)::after { content: ""; position: fixed; inset: 0; z-index: 65; background: rgba(6, 7, 16, .5); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+html:not([data-theme="dark"]) body:has(.sel.open)::after { background: rgba(40, 36, 80, .22); }
+.sel.open { position: relative; z-index: 70; }
+@media (max-width: 760px) {
+  /* page action button (Add dividend, Add Broker...) sits on the right, level with the page title */
+  .pfx:not(.pfx-stock) .dz-top:has(.pfx-btn) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; align-items: end; }
+  .pfx:not(.pfx-stock) .dz-top:has(.pfx-btn) .dz-greet { display: contents; }
+  .pfx:not(.pfx-stock) .dz-top:has(.pfx-btn) .dz-eyebrow { grid-column: 1 / -1; grid-row: 1; }
+  .pfx:not(.pfx-stock) .dz-top:has(.pfx-btn) .dz-h1 { grid-column: 1; grid-row: 2; }
+  .pfx:not(.pfx-stock) .dz-top:has(.pfx-btn) .dz-sub { grid-column: 1 / -1; grid-row: 3; }
+  .pfx:not(.pfx-stock) .dz-top:has(.pfx-btn) .dz-topr { grid-column: 2; grid-row: 2; margin: 0; align-self: center; justify-content: flex-end; flex-wrap: nowrap; }
+  .pfx:not(.pfx-stock) .dz-topr .pfx-btn { min-height: 38px; padding-inline: 14px; white-space: nowrap; font-size: 13px; }
+}
