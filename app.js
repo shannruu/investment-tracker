@@ -813,6 +813,7 @@ const ZH = {
   "The day the money arrives.": "钱到账的日子。",
   "Estimated": "估算",
   "A guess, so the date may move.": "这是估算，日期可能会变。",
+  "Unrealized and realized profit, plus dividends and interest, minus fees. Covers the stocks you hold now only; the Dashboard also counts the stocks you sold.": "未实现和已实现盈亏，加上股息和利息，再减去费用。仅包含您目前持有的股票；仪表盘还包含已卖出的股票。",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -3221,8 +3222,7 @@ function pagePortfolio() {
        ${portfolioTab === "realized" ? realizedPLHTML() : !has ? panel(t("Holdings"), emptyContent)
           : portfolioTab === "allocation" ? breakdowns
           : panel(`${t("All Holdings")}<small class="pfx-sm">${priceStampHtml}</small>`, filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
-              `<div class="panel-head-actions">${filterToggleBtn}${colPanelHtml}</div>`)}
-       <div class="pfx-foot">${t("Total return here covers current holdings only; the Dashboard also counts sold stocks.")}</div></div>`
+              `<div class="panel-head-actions">${filterToggleBtn}${colPanelHtml}</div>`)}</div>`
     : panel(t("Holdings"), emptyContent);
 
   return { title: "Portfolio", subtitle: LANG === "zh"
@@ -3506,7 +3506,7 @@ function portfolioSummaryHTML() {
   return `<div class="pfx-sum">
     ${pfxHeroCard(t("Market Value"), mv, "", pfxCalc("pfMarket", () => portfolioSummaryCalc("pfMarket")), dzF("What your holdings are worth at today's prices. You paid {n} for them.", { n: money(cost) }))}
     ${pfxStatCard(t("Unrealized P/L"), moneySigned(unrealized), pill(unrealized), cls(unrealized), pfxCalc("pfUnrealized", () => portfolioSummaryCalc("pfUnrealized")), t("Profit or loss if you sold everything now. Not locked in until you sell."))}
-    ${pfxStatCard(t("Total Return"), moneySigned(totalReturn), pill(totalReturn), cls(totalReturn), pfxCalc("pfTotalReturn", () => portfolioSummaryCalc("pfTotalReturn")), t("Unrealized and realized profit, plus dividends and interest, minus fees. Covers the stocks you hold now only."))}
+    ${pfxStatCard(t("Total Return"), moneySigned(totalReturn), pill(totalReturn), cls(totalReturn), pfxCalc("pfTotalReturn", () => portfolioSummaryCalc("pfTotalReturn")), t("Unrealized and realized profit, plus dividends and interest, minus fees. Covers the stocks you hold now only; the Dashboard also counts the stocks you sold."))}
   </div>`;
 }
 
@@ -3557,7 +3557,8 @@ function pfAllocationHTML() {
   const sitsBar = sitsItems.length ? `<div class="pf-sits"><div class="pfx-bar">${sitsItems.map((x, i) => `<i style="width:${(x.value / total) * 100}%;background:${sitsItems.length === 1 ? "linear-gradient(90deg,#8b7cff,#3dd8f5)" : PF_PAL[i % PF_PAL.length]}"></i>`).join("")}</div>
     <div class="pf-sits-l"><div>${sitsItems.map((x, i) => `<span>${sitsItems.length > 1 ? `<s style="background:${PF_PAL[i % PF_PAL.length]}"></s>` : ""}${esc(x.label)} <b class="dz-n">${pc(x.value)}</b></span>`).join("")}</div><span class="dz-n">${money(total)}</span></div></div>` : "";
   const sectorNote = dimOn[0] === "sector" && noSector ? `<div class="pf-insight">${dzIcon("info", 16)}<span>${noSector}</span></div>` : "";
-  const sitsCard = panel(t("Where your money sits"), `${facts}${sitsBar}${sectorNote}${insight ? `<div class="pf-insight">${dzIcon("info", 16)}<span>${insight}</span></div>` : ""}`, dimSeg);
+  const sitsTip = [dimOn[0] === "sector" && noSector ? noSector : "", insight].filter(Boolean).join(" ");
+  const sitsCard = panel(`${t("Where your money sits")}${sitsTip ? infoTip(sitsTip) : ""}`, `${facts}${sitsBar}`, dimSeg);
   return `<div class="pfx-two">${panel(t("By holding"), ring)}${sitsCard}</div>`;
 }
 
