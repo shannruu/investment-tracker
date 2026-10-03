@@ -5486,8 +5486,7 @@ function pageDividends() {
         ${back != null ? `<div class="lt-bar"><i style="width:${Math.min(100, back).toFixed(0)}%"></i></div><div class="lt-s">${dzF("{n}% of your cost back", { n: fmt(back, { maximumFractionDigits: 0 }) })}</div>` : ""}</div>`; }).join("");
     const endOf = (n) => { const d = new Date(todayDate()); d.setFullYear(d.getFullYear() + n); return d.toLocaleDateString(LANG === "zh" ? "zh-CN" : "en-GB", { month: "short", year: "numeric" }); };
     const rows = [1, 2, 3, 4, 5].map((n) => `<tr><td>${dzF("Year {n}", { n })} <span class="muted">· ${t("until")} ${endOf(n)}</span></td><td class="pfn">${money(perYear[n - 1])}</td><td class="pfn">${money(cum[n - 1])}</td></tr>`).join("");
-    return panel(`${t("If you keep what you own")}<small class="pfx-sm">${t("dividends you could collect, added up over the years")}</small>`, `<div class="lt-ms">${miles}</div>
-      <p class="pfx-note2">${dzF("Based on the {n} of dividends expected over the next 12 months from the shares you hold today. Assumes you buy and sell nothing more and the companies keep paying. An estimate, not a promise.", { n: money(ltBase) })} <a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`,
+    return panel(`${t("If you keep what you own")}${infoTip(dzF("Based on the {n} of dividends expected over the next 12 months from the shares you hold today. Assumes you buy and sell nothing more and the companies keep paying. An estimate, not a promise.", { n: money(ltBase) }))}<small class="pfx-sm">${t("dividends you could collect, added up over the years")}</small>`, `<div class="lt-ms">${miles}</div>`,
       `<div class="lt-grow"><span>${t("Dividends grow")}</span>${growthSeg}</div>`);
   })();
   let overview = "";   // assembled below, once the "next payments" list exists
@@ -7026,8 +7025,7 @@ function pageHolding() {
     const seg = `<div class="dz-seg" role="group" aria-label="${esc(t("Dividends grow"))}">${[0, 3, 6].map((n) => `<button type="button" class="${divLtGrowth === n ? "on" : ""}" data-dvgrowth="${n}">${n === 0 ? "0%" : dzF("{n}% a year", { n })}</button>`).join("")}</div>`;
     const miles = [1, 3, 5, 10].map((n) => { const c = cum[n - 1], back = h.costBasis > 0 ? (c / h.costBasis) * 100 : null;
       return `<div class="lt-m"><div class="lt-y">${n === 1 ? t("In 1 year") : dzF("In {n} years", { n })}</div><div class="lt-v dz-n">${money(c)}</div>${back != null ? `<div class="lt-bar"><i style="width:${Math.min(100, back).toFixed(0)}%"></i></div><div class="lt-s">${dzF("{n}% of your cost back", { n: fmt(back, { maximumFractionDigits: 0 }) })}</div>` : ""}</div>`; }).join("");
-    return panel(`${t("If you keep this stock")}<small class="pfx-sm">${t("dividends you could collect, added up over the years")}</small>`, `<div class="lt-ms">${miles}</div>
-      <p class="pfx-note2">${dzF("Based on the {n} of dividends expected over the next 12 months from the shares you hold today. Assumes you buy and sell nothing more and the companies keep paying. An estimate, not a promise.", { n: money(ltBaseSt) })}</p>`,
+    return panel(`${t("If you keep this stock")}${infoTip(dzF("Based on the {n} of dividends expected over the next 12 months from the shares you hold today. Assumes you buy and sell nothing more and the companies keep paying. An estimate, not a promise.", { n: money(ltBaseSt) }))}<small class="pfx-sm">${t("dividends you could collect, added up over the years")}</small>`, `<div class="lt-ms">${miles}</div>`,
       `<div class="lt-grow"><span>${t("Dividends grow")}</span>${seg}</div>`);
   })();
   const divTabBody = `${dvCardsTab}<div class="pfx-two pfx-two-cal">${dvHistoryHTML || panel(t("Dividends by year"), `<p class="muted" style="margin:0">${t("Not enough dividends yet to draw a chart.")}</p>`)}${nextCardSt}</div>${ltCardSt}${dvCalendarHTML}`;
