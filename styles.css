@@ -3928,3 +3928,18 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
 .pf-linkbtn, .panel-head .pf-linkbtn { display: inline-flex; align-items: center; gap: 6px; }
 a.dz-lnk, .dz-lnk { color: var(--dz-lnk); }
 @media (max-width: 760px) { .link, .pf-linkbtn, .panel-head .pf-linkbtn { font-size: 12px !important; } }
+
+.alert-banner .w-ico svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; display: block; }
+.alert-banner .w-ico { display: grid; place-items: center; }
+/* phones: a floating notice card, text on top, one clear action below */
+@media (max-width: 760px) {
+  .alert-stack { top: 0; padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 0; gap: 8px; pointer-events: none; }
+  .alert-banner { pointer-events: auto; display: grid !important; grid-template-columns: 36px minmax(0, 1fr) 36px; grid-template-areas: "ico msg x" "act act act"; column-gap: 12px; row-gap: 12px; align-items: start; padding: 14px !important; border: 1px solid var(--border) !important; border-radius: 20px; background: var(--dz-panel, var(--surface)) !important; box-shadow: 0 14px 40px rgba(0,0,0,.5); }
+  .alert-banner[hidden] { display: none !important; }
+  .alert-banner .w-ico { grid-area: ico; width: 36px; height: 36px; border-radius: 50%; background: color-mix(in srgb, var(--brand) 22%, transparent); color: var(--dz-lnk); }
+  .alert-banner.crit .w-ico { background: var(--neg-bg); color: var(--neg); }
+  .alert-banner span:not(.w-ico) { grid-area: msg; font-size: 14px; line-height: 1.4; color: var(--text); padding-top: 6px; }
+  .alert-banner .icon-btn { grid-area: x; width: 36px !important; height: 36px !important; justify-self: end; }
+  .alert-banner .btn { grid-area: act; width: 100%; height: 44px !important; min-height: 44px !important; justify-content: center; background: var(--btn) !important; color: var(--on-btn) !important; border-color: transparent !important; font-size: 14px !important; }
+}
+@media (max-width: 760px) { .alert-stack .alert-banner .btn, .alert-stack .alert-banner .btn.small { background: var(--btn) !important; color: var(--on-btn) !important; border-color: transparent !important; box-shadow: var(--btn-sh); } }

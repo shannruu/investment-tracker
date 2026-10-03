@@ -19,7 +19,7 @@
        dark-theme user saw a full white screen flash on every cold launch — the
        single most "this is a web page" moment in the whole app. -->
   <script>try{var t=localStorage.getItem("il-theme");if(t){document.documentElement.setAttribute("data-theme",t);var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",t==="dark"?"#06070c":"#f4f3fb");}}catch(e){}</script>
-  <link rel="stylesheet" href="styles.css?v=567" />
+  <link rel="stylesheet" href="styles.css?v=569" />
 </head>
 <body>
   <!-- Opening page: covers the app until Cloud Sync says who is here (see sync.js, authGateSync) -->
@@ -207,30 +207,30 @@
 
   <div class="alert-stack">
     <div class="alert-banner crit" id="saveErrorBanner" role="alert" hidden>
-      <span class="w-ico">⚠</span>
+      <span class="w-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4 3 20h18L12 4zM12 10v4m0 3v.01"/></svg></span>
       <span id="saveErrorMsg"></span>
       <button type="button" class="icon-btn" id="saveErrorDismiss" aria-label="Dismiss">✕</button>
     </div>
     <div class="alert-banner info" id="staleDataBanner" role="alert" hidden>
-      <span class="w-ico">⟳</span>
+      <span class="w-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2M3 12A9 9 0 0 1 18.500 5.800M18.500 2v4h-4M5.500 22v-4h4"/></svg></span>
       <span id="staleDataMsg"></span>
       <button type="button" class="btn small" id="staleDataReload">Reload</button>
       <button type="button" class="icon-btn" id="staleDataDismiss" aria-label="Dismiss">✕</button>
     </div>
     <div class="alert-banner info" id="cloudStaleBanner" role="alert" hidden>
-      <span class="w-ico">⟳</span>
+      <span class="w-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 0 1-15.5 6.2M3 12A9 9 0 0 1 18.500 5.800M18.500 2v4h-4M5.500 22v-4h4"/></svg></span>
       <span id="cloudStaleMsg"></span>
       <button type="button" class="btn small" id="cloudStalePull">Pull latest</button>
       <button type="button" class="icon-btn" id="cloudStaleDismiss" aria-label="Dismiss">✕</button>
     </div>
   </div>
 
-  <script type="module" src="supabase-client.js?v=567"></script>
-  <script src="data.js?v=567"></script>
-  <script src="app.js?v=567"></script>
-  <script src="dashboard.js?v=567"></script>
-  <script src="tabletips.js?v=567"></script>
-  <script src="sync.js?v=567"></script>
-  <script src="account.js?v=567"></script>
+  <script type="module" src="supabase-client.js?v=569"></script>
+  <script src="data.js?v=569"></script>
+  <script src="app.js?v=569"></script>
+  <script src="dashboard.js?v=569"></script>
+  <script src="tabletips.js?v=569"></script>
+  <script src="sync.js?v=569"></script>
+  <script src="account.js?v=569"></script>
 </body>
 </html>
