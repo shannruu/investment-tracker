@@ -3356,3 +3356,11 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
   .pfx-div .pfx-dc { gap: 3px; }
 }
 .pfx-leg2 i { width: 10px; height: 10px; }
+
+@media (max-width: 760px) {
+  /* Income by period: every period is shown, like on desktop (it used to stop at 6 rows) */
+  .dv-inc tbody tr:nth-child(n+7) { display: table-row; }
+  /* card title + its small description: the description drops under the title instead of squeezing beside it */
+  .pfx .panel-head h2 { flex-wrap: wrap; row-gap: 3px; }
+  .pfx .panel-head h2 > .pfx-sm { flex: 0 1 auto; margin-left: 0; }
+}
