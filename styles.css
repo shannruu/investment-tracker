@@ -3296,3 +3296,6 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
   .pf-sits-l > div { flex: 1 1 auto; min-width: 0; }
   .pf-sits-l > span.dz-n { white-space: nowrap; flex: none; }
 }
+
+/* Upcoming dividends: no double line between the last row and the total */
+.dz-dr:has(+ .dz-total) { border-bottom: 0; }
