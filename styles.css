@@ -3837,3 +3837,15 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
 .icon-btn { border-radius: 50% !important; }
 .pf-linkbtn { padding-left: 16px !important; padding-right: 16px !important; }
 .st-nav button { border-radius: 99px !important; }
+
+/* ===== Settings / Account section picker = the same pill bar as every other page ===== */
+.st-wrap { grid-template-columns: 1fr !important; gap: 16px !important; }
+.st-nav { position: static !important; display: flex !important; flex-direction: row !important; flex-wrap: wrap; gap: 0 !important; padding: 3px !important; border-radius: 99px !important; width: 100%; box-shadow: none !important; background: var(--dz-seg) !important; border: 1px solid var(--dz-seg-bd) !important; overflow: visible !important; }
+.st-nav button { flex: 1 1 0 !important; grid-column: auto !important; min-width: 0; height: 32px !important; min-height: 0 !important; padding: 0 12px !important; border: 0 !important; background: none !important; color: var(--muted); font-size: 13px !important; font-weight: 700 !important; border-radius: 99px !important; display: inline-flex !important; align-items: center; justify-content: center; text-align: center; white-space: nowrap; line-height: 1; }
+.st-nav button.on { background: var(--dz-seg-on) !important; color: var(--dz-seg-on-tx) !important; box-shadow: inset 0 0 0 1px var(--dz-seg-on-bd), var(--dz-seg-on-sh) !important; }
+.st-nav button.dng { color: var(--neg); }
+@media (max-width: 760px) {
+  .st-nav { border-radius: 22px !important; }
+  .st-nav button { flex: 1 1 30% !important; padding: 0 6px !important; margin: 1px 0; }
+  .pfx-acct .st-nav button, .pfx-acct .st-nav button:nth-child(n+4) { flex: 1 1 40% !important; }
+}
