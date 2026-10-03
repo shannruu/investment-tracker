@@ -3854,3 +3854,6 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
   .pfx-set .st-wrap[data-open="1"] .st-back::first-letter { font-size: 30px; line-height: 1; padding-right: 4px; }
   .pfx-set .st-wrap[data-open="1"] .st-sh { position: absolute; top: 0; left: 50%; transform: translateX(-50%); height: 48px; margin: 0 !important; display: flex !important; align-items: center; font-size: 16px !important; font-weight: 700; letter-spacing: 0; max-width: 50%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* the card already has its own title: the opened section shows only the back button above it */
+@media (max-width: 760px) { .pfx-set .st-wrap[data-open="1"] .st-sh { display: none !important; } }
