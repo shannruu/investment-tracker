@@ -907,6 +907,8 @@ const ZH = {
   "None on record": "没有记录",
   "Remove from watchlist": "从自选股移除",
   "Stocks you are following but do not own yet. Prices come from the market; nothing here counts toward your portfolio. Tap a stock for details.": "您关注但尚未持有的股票。价格来自市场，这里的内容不计入您的投资组合。点一下股票可查看详情。",
+  "Dividends": "股息",
+  "Everything this stock has paid you in dividends, after tax. The % is the dividend yield over the last 12 months.": "这只股票派给您的全部股息（税后）。百分比是过去 12 个月的股息率。",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -3923,7 +3925,7 @@ function pfxHeroCard(label, amount, pill = "", attrs = "", tip = "") {
 }
 function pfxGo(tip) { return `<span class="col-info tip-down pfx-go" data-tip="${esc(tip)}">${dzIcon("info", 15)}</span>`; }
 function pfxStatCard(label, value, pill = "", c = "", attrs = "", tip = "") {
-  const longT = String(label).length > 12;
+  const longT = false;
   return `<div class="pfx-card pfx-sc${attrs ? "" : " pfx-static"}${longT ? " pfx-lowpill" : ""}" ${attrs}><div class="pfx-lbl"><span class="pfx-lt">${label}</span>${pill && !longT ? `<span class="pfx-pw-top">${pill}</span>` : ""}${tip || attrs ? pfxGo(tip || t("Click the card to see how this is worked out.")) : ""}</div><div class="pfx-vr"><div class="pfx-v dz-n ${c}">${value}</div>${pill && longT ? `<span class="pfx-pw-low2">${pill}</span>` : ""}</div></div>`;
 }
 // Transactions page (redesign): header, totals strip, tabs, search, table + detail panel (a bottom sheet on phones).
@@ -7199,7 +7201,7 @@ function pageHolding() {
       total: h.totalReturn, totalFmt: moneySigned(h.totalReturn), pctFmt: costB > 0 ? pctTxt((h.totalReturn / costB) * 100) : undefined }), "stTR")}
     ${stCard(t("Price Return"), t("Profit or loss from the share price alone, against your cost (fees included). Dividends are not counted."), moneySigned(h.priceUnrealized), pct1(h.priceUnrealized), cls(h.priceUnrealized), () => ({ title: "Price Return",
       rows: [{ op: "", label: "Market Value", val: money(h.marketValue) }, { op: "−", label: "What you paid for these shares", val: money(h.marketValue - (h.priceUnrealized || 0)) }], total: h.priceUnrealized || 0, totalFmt: moneySigned(h.priceUnrealized || 0), pctFmt: costB > 0 ? pctTxt(((h.priceUnrealized || 0) / costB) * 100) : undefined }), "stPR")}
-    ${stCard(t("Dividends received"), t("Everything this stock has paid you in dividends, after tax."), money(totalDivReceived), ttmYield != null && ttmYield > 0 ? `<span class="pfx-pl pos">${fmt(ttmYield, { maximumFractionDigits: 2 })}% ${t("yield")}</span>` : "", totalDivReceived > 0 ? "pos" : "", () => ({ title: "Dividends received", rows: [{ op: "", label: dzF(tReceived.length === 1 ? "{n} dividend payment" : "{n} dividend payments", { n: tReceived.length }), val: money(totalDivReceived), go: goStDiv }], total: totalDivReceived, totalFmt: money(totalDivReceived) }), "stDiv")}</div>`;
+    ${stCard(t("Dividends"), t("Everything this stock has paid you in dividends, after tax. The % is the dividend yield over the last 12 months."), money(totalDivReceived), ttmYield != null && ttmYield > 0 ? `<span class="pfx-pl pos">${fmt(ttmYield, { maximumFractionDigits: 2 })}%</span>` : "", totalDivReceived > 0 ? "pos" : "", () => ({ title: "Dividends received", rows: [{ op: "", label: dzF(tReceived.length === 1 ? "{n} dividend payment" : "{n} dividend payments", { n: tReceived.length }), val: money(totalDivReceived), go: goStDiv }], total: totalDivReceived, totalFmt: money(totalDivReceived) }), "stDiv")}</div>`;
 
   // How long you have held it + next payment
   const todayIso = todayISO();
@@ -7282,7 +7284,7 @@ function pageHolding() {
     `<button type="button" role="tab" aria-selected="${holdingTab === k}" class="${holdingTab === k ? "on" : ""}" data-sttab="${k}">${l}</button>`).join("")}</div></div>`;
   // Cards shared by the Dividends and Transactions tabs: numbers only, the explanations live in the "i" icons
   const dvCardsTab = `<div class="pfx-sum pfx-sumst">
-    ${stCard(t("Total dividends received"), t("Everything this stock has paid you in dividends, after tax."), money(totalDivReceived), ttmYield != null && ttmYield > 0 ? `<span class="pfx-pl pos">${fmt(ttmYield, { maximumFractionDigits: 2 })}% ${t("yield")}</span>` : "", totalDivReceived > 0 ? "pos" : "", () => ({ title: "Dividends received", rows: [{ op: "", label: dzF(tReceived.length === 1 ? "{n} dividend payment" : "{n} dividend payments", { n: tReceived.length }), val: money(totalDivReceived), go: goStDiv }], total: totalDivReceived, totalFmt: money(totalDivReceived) }), "stDiv2")}
+    ${stCard(t("Dividends"), t("Everything this stock has paid you in dividends, after tax. The % is the dividend yield over the last 12 months."), money(totalDivReceived), ttmYield != null && ttmYield > 0 ? `<span class="pfx-pl pos">${fmt(ttmYield, { maximumFractionDigits: 2 })}%</span>` : "", totalDivReceived > 0 ? "pos" : "", () => ({ title: "Dividends received", rows: [{ op: "", label: dzF(tReceived.length === 1 ? "{n} dividend payment" : "{n} dividend payments", { n: tReceived.length }), val: money(totalDivReceived), go: goStDiv }], total: totalDivReceived, totalFmt: money(totalDivReceived) }), "stDiv2")}
     ${stCard(t("Yield on cost"), t("Dividends from the last 12 months as a % of what you originally paid, not today's price."), h.costBasis ? `${fmt((tFc.ttm / h.costBasis) * 100, { maximumFractionDigits: 2 })}%` : "—", "", tFc.ttm > 0 ? "pos" : "", () => ({ title: "Yield on cost", rows: [{ op: "", label: "Dividends in the last 12 months", val: money(tFc.ttm), go: goStDiv }, { op: "÷", label: "What you paid", val: money(h.costBasis) }], total: 0, totalFmt: h.costBasis ? `${fmt((tFc.ttm / h.costBasis) * 100, { maximumFractionDigits: 2 })}%` : "—" }), "stYoC")}
     ${stCard(t("Dividends so far"), t("All the dividends you have received, as a % of what you paid for the shares you hold."), h.costBasis > 0 ? `${fmt((totalDivReceived / h.costBasis) * 100, { maximumFractionDigits: 1 })}%` : "—", "", totalDivReceived > 0 ? "pos" : "", () => ({ title: "Dividends so far", rows: [{ op: "", label: "Dividends received", val: money(totalDivReceived), go: goStDiv }, { op: "÷", label: "What you paid", val: money(h.costBasis) }], total: 0, totalFmt: h.costBasis > 0 ? `${fmt((totalDivReceived / h.costBasis) * 100, { maximumFractionDigits: 1 })}%` : "—" }), "stSoFar")}
 </div>`;
