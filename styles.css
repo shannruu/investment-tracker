@@ -3876,3 +3876,41 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
 .push-in { animation: stPushIn .28s cubic-bezier(.25,.8,.25,1) both; will-change: transform, opacity; backface-visibility: hidden; }
 .push-back { animation: stPushBack .28s cubic-bezier(.25,.8,.25,1) both; will-change: transform, opacity; backface-visibility: hidden; }
 .st-main, .st-menu { contain: layout paint; }
+
+/* "Calendar" link in a card header: plain text link, not a button */
+.panel-head .pf-linkbtn, .pf-linkbtn { background: none !important; border: 0 !important; box-shadow: none !important; height: 36px !important; padding: 0 2px !important; color: var(--brand-ink, #a99dff) !important; font-size: 14px !important; font-weight: 700 !important; border-radius: 8px !important; }
+.pf-linkbtn:active { opacity: .6; }
+
+@media (max-width: 760px), (hover: none) {
+  /* no scroll bars anywhere on phones (specific selectors in older rules were beating the global one) */
+  html, body, * { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+  *::-webkit-scrollbar, .pfx .table-wrap::-webkit-scrollbar, .pfx .dcc-table-scroll::-webkit-scrollbar, .col-panel-list::-webkit-scrollbar, .sel-pop::-webkit-scrollbar, .modal::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
+  .pfx .table-wrap { scrollbar-gutter: auto !important; padding-right: 0 !important; }
+}
+
+/* ===== Edit columns = bottom sheet with switches (phones) ===== */
+@media (max-width: 760px) {
+  body:has(#colPanel:not([hidden]))::after { content: ""; position: fixed; inset: 0; z-index: 290; background: rgba(6, 7, 16, .55); }
+  #colPanel { position: fixed !important; left: 0 !important; right: 0 !important; top: auto !important; bottom: 0 !important; width: auto !important; max-height: 80vh !important; z-index: 300; border-radius: 24px 24px 0 0; border-bottom: 0; padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--dz-panel, var(--surface)); animation: sheetUp .26s cubic-bezier(.2,.8,.2,1); }
+  #colPanel .col-panel-header { padding: 18px 20px 12px; border-bottom: 1px solid var(--border-soft); }
+  #colPanel .col-panel-title { font-size: 17px; font-weight: 700; }
+  #colPanel .col-panel-close { width: 36px; height: 36px; border-radius: 50%; background: color-mix(in srgb, var(--text) 8%, transparent); }
+  #colPanel .col-panel-hint { display: none; }
+  #colPanel .col-panel-list { max-height: none; padding: 4px 0 10px; }
+  #colPanel .col-toggle-row { height: 54px; margin: 0; padding: 0 20px; border-radius: 0; gap: 12px; border-bottom: 1px solid var(--border-soft); }
+  #colPanel .col-grip { display: none; }
+  #colPanel .col-toggle { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; flex-direction: row-reverse; gap: 12px; font-size: 15px; font-weight: 600; color: var(--text); }
+  #colPanel .col-toggle > span { flex: 1; }
+  #colPanel .col-toggle input[type="checkbox"] { appearance: none; -webkit-appearance: none; flex: none; width: 46px; height: 28px; border-radius: 99px; background: color-mix(in srgb, var(--text) 18%, transparent); position: relative; transition: background .18s; margin: 0; border: 0; }
+  #colPanel .col-toggle input[type="checkbox"]::after { content: ""; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform .18s; }
+  #colPanel .col-toggle input[type="checkbox"]:checked { background: linear-gradient(135deg, #8b7cff, #3dd8f5); }
+  #colPanel .col-toggle input[type="checkbox"]:checked::after { transform: translateX(18px); }
+  #colPanel .col-move-btns { order: -1; display: flex; gap: 6px; }
+  #colPanel .col-move-btns button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--muted); font-size: 11px; }
+  #colPanel .col-move-btns button:disabled { opacity: .3; }
+}
+
+/* Dividend goal: empty state */
+.dg-empty { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 16px 18px; border-radius: 22px; border: 1px dashed color-mix(in srgb, var(--text) 26%, transparent); background: transparent; color: var(--text); font: inherit; cursor: pointer; }
+.dg-empty b { display: block; font-size: 15px; } .dg-empty small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--muted); font-weight: 500; line-height: 1.4; }
+.dg-plus { flex: none; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 22px; background: linear-gradient(135deg, #8b7cff, #3dd8f5); color: #0b0d17; }
