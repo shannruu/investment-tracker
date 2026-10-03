@@ -6109,9 +6109,12 @@ let stPhoneOpen = false;
 /* iPhone-style push: the opened screen slides in from the right, going back slides the list in from the left */
 function stPush(sel, back) {
   const el = $(sel); if (!el || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  el.classList.remove("push-in", "push-back"); void el.offsetWidth;
-  el.classList.add(back ? "push-back" : "push-in");
-  el.addEventListener("animationend", () => el.classList.remove("push-in", "push-back"), { once: true });
+  window.scrollTo(0, 0);                       // jump to the top first, so nothing moves in the middle of the slide
+  el.classList.remove("push-in", "push-back");
+  requestAnimationFrame(() => requestAnimationFrame(() => {   // start after the new layout is painted: no first-frame stutter
+    el.classList.add(back ? "push-back" : "push-in");
+    el.addEventListener("animationend", () => el.classList.remove("push-in", "push-back"), { once: true });
+  }));
 }   // phone: false = the list of sections, true = one section open
 var acctTab = "profile";
 var acctPhoneOpen = false;   // Account page tab (var: account.js loads after this file)
