@@ -3299,3 +3299,25 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
 
 /* Upcoming dividends: no double line between the last row and the total */
 .dz-dr:has(+ .dz-total) { border-bottom: 0; }
+
+@media (max-width: 760px) {
+  /* Stock page: the price pill and Set price sit on the "STOCK" line instead of a row of their own */
+  .pfx-stock .dz-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; }
+  .pfx-stock .dz-greet { display: contents; }
+  .pfx-stock .dz-eyebrow { grid-column: 1; grid-row: 1; }
+  .pfx-stock .dz-topr { grid-column: 2; grid-row: 1; margin-top: 0; flex-wrap: nowrap; justify-content: flex-end; gap: 8px; }
+  .pfx-stock .dz-topr .pfx-btn { min-height: 38px; padding-inline: 14px; white-space: nowrap; }
+  .pfx-stock .dz-h1, .pfx-stock .dz-sub { grid-column: 1 / -1; }
+  /* Four-card rows: same height, and a last card on its own uses the full width (no empty half) */
+  .pfx-sum4 > .pfx-sc { min-height: 118px; }
+  .pfx-sum4 > :last-child:nth-child(odd) { grid-column: 1 / -1; min-height: 0; }
+}
+
+@media (max-width: 760px) {
+  .pfx-sumst > .pfx-sc { min-height: 112px; }
+  .pfx-sumst > :last-child:nth-child(odd) { grid-column: 1 / -1; min-height: 0; }
+  .pfx-stock .dz-top { row-gap: 0; }
+  .pfx-stock .dz-eyebrow { margin: 0; }
+  .pfx-stock .dz-h1 { margin: 4px 0 0; line-height: 1.1; }
+  .pfx-stock .dz-sub { margin-top: 4px; }
+}
