@@ -907,7 +907,6 @@ const ZH = {
   "None on record": "没有记录",
   "Remove from watchlist": "从自选股移除",
   "Stocks you are following but do not own yet. Prices come from the market; nothing here counts toward your portfolio. Tap a stock for details.": "您关注但尚未持有的股票。价格来自市场，这里的内容不计入您的投资组合。点一下股票可查看详情。",
-  "Notes": "笔记",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -2767,7 +2766,7 @@ const PALETTE = ["#4a3ed9", "#6d5efc", "#8b80ff", "#a99dff", "#352c9e", "#c4bcff
 
 function donutHTML(slices, centerLabel, centerValue, colors) {
   slices = (slices || []).filter((s) => s.value > 0);
-  if (!slices.length) return emptyState(`${t("No holdings yet. Add a buy transaction to create your first holding.")}<div style="margin-top:14px"><a class="btn primary" href="#/add">${t("Add a transaction")}</a></div>`);
+  if (!slices.length) return emptyState(`${t("No holdings yet. Add a buy transaction to create your first holding.")}<div style="margin-top:14px"><a class="btn primary" href="#/add">${t("Add a transaction")} →</a></div>`);
   const total = slices.reduce((s, x) => s + x.value, 0) || 1;
   const R = 70, r = 44, C = 88;
   const clr = (i) => (colors && colors[i]) || PALETTE[i % PALETTE.length];
@@ -3297,11 +3296,11 @@ function pagePortfolio() {
   const emptyContent = BROKERS.length
     ? `<div class="portfolio-empty">
          <p class="pe-msg">${t("No holdings yet — record a Buy on the Add page and it appears here automatically.")}</p>
-         <a class="btn primary" href="#/add">${t("Record your first Buy")}</a>
+         <a class="btn primary" href="#/add"><svg class="icon" aria-hidden="true" style="width:14px;height:14px;flex:none"><use href="#i-add"/></svg>${t("Record your first Buy")}</a>
        </div>`
     : `<div class="portfolio-empty">
          <p class="pe-msg">${t("Add a broker first, then record a Buy and it appears here.")}</p>
-         <a class="btn ghost" href="#/brokers">${t("Add a broker")}</a>
+         <a class="btn ghost" href="#/brokers">${t("Add a broker")} →</a>
        </div>`;
 
   const latestFetch = T.holdings.filter((h) => h.priceFetchedAt).map((h) => h.priceFetchedAt).sort().pop();
@@ -4108,7 +4107,7 @@ function recordsTable(list) {
   if (!ALL_TRANSACTIONS.length) {
     // The panel's "＋ Add" button only renders when a broker exists (see addBtn a few
     // lines up) — telling the user to tap it when there's nothing to tap is a dead end.
-    if (!BROKERS.length) return emptyState(`${t("You need a broker before you can record transactions — every transaction belongs to a broker.")}<div class="form-actions" style="margin-top:14px;justify-content:center"><a class="btn primary" href="#/brokers">${t("Add a broker")}</a></div>`);
+    if (!BROKERS.length) return emptyState(`${t("You need a broker before you can record transactions — every transaction belongs to a broker.")}<div class="form-actions" style="margin-top:14px;justify-content:center"><a class="btn primary" href="#/brokers">${t("Add a broker")} →</a></div>`);
     return emptyState(t("No transactions yet. Tap ＋ Add to record your first deposit or investment."));
   }
   if (!list.length) return emptyState(t("No records in this view yet."));
@@ -4217,7 +4216,7 @@ function renderAddDrawerBody(type, editing) {
     : `<p class="form-note">${BROKERS.length
         ? t("Your only broker is archived. Add (or restore) an active broker to record transactions.")
         : t("You need a broker before you can record transactions — every transaction belongs to a broker.")}</p>
-        <div class="form-actions" style="margin-top:14px"><a class="btn primary" href="#/brokers">${t("Add a broker")}</a></div>`;
+        <div class="form-actions" style="margin-top:14px"><a class="btn primary" href="#/brokers">${t("Add a broker")} →</a></div>`;
   const body = $("#addDrawerBody");
   if (!body) return;
   body.innerHTML = `${selector}${formContent}`;
@@ -4927,7 +4926,7 @@ function brokerCashPanelsHTML() {
 
   const cashBody = ccyRows
     ? table([{label:t("Broker")},{label:t("Balance")},{label:`≈ ${ccyLabel(FX.base)}`}], ccyRows + ccyTotalRow)
-    : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No cash recorded yet.")}</p><a class="btn ghost" href="#/add/deposit">${t("Record a deposit")}</a>`;
+    : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No cash recorded yet.")}</p><a class="btn ghost" href="#/add/deposit">${t("Record a deposit")} →</a>`;
   return `${panel(`${t("Cash Balances by Currency")}`, cashBody)}
     ${reconPanel}`;
 }
@@ -5416,7 +5415,7 @@ function pageDividends() {
         ${miniCard(t("Next Year"), fc.nextYear > 0 ? money(fc.nextYear) : dash)}${multiYearCards}</div>
       ${patternLine}
       <p class="muted" style="margin:8px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`
-    : `<div class="div-fc-empty"><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}<div class="form-actions" style="margin-top:10px"><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")}</a></div></div></div>
+    : `<div class="div-fc-empty"><div><strong>${t("Forecast needs more data")}</strong><p class="muted" style="margin:6px 0 0;font-size:13px">${t("Record at least 2 dividends for any holding to enable pattern-based estimates.")}</p>${fc.ttm > 0 ? `<p class="muted" style="margin:4px 0 0;font-size:13px">${t("TTM received")}: <strong>${money(fc.ttm)}</strong></p>` : ""}<div class="form-actions" style="margin-top:10px"><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a></div></div></div>
       <p class="muted" style="margin:10px 0 0;font-size:12px"><a class="link" href="#/help">${t("How is the forecast calculated?")}</a></p>`;
 
   // Ex-Dividend Screener — market-wide upcoming ex-dividend dates, distinct from the
@@ -5532,7 +5531,7 @@ function pageDividends() {
   const netTotal = grossBase - taxBase;
 
   const dvHeader = dzTopHTML({ eyebrow: t("Dividends"), h1: t("Your dividends"), sub: t("Net income received and expected"),
-    actions: `<a class="pfx-btn pfx-btn-p" href="#/add/dividend">${t("Add dividend")}</a>`, refreshAttr: "data-div-refresh", noLive: true });
+    actions: `<a class="pfx-btn pfx-btn-p" href="#/add/dividend">＋ ${t("Add dividend")}</a>`, refreshAttr: "data-div-refresh", noLive: true });
 
   const dvReview = pendingAutoDivs.length ? `<details class="pfx-attn" id="dvReview"${divReviewOpen ? " open" : ""}><summary>
       <span class="pfx-attn-i">${dzIcon("info", 20)}</span>
@@ -5600,11 +5599,11 @@ function pageDividends() {
     if (!featOn("goal")) return "";
     const goal = +SETTINGS.divGoal || 0, expM = ltBase / 12, recvM = (fc.ttm || 0) / 12;
     const tip = infoTip(t("Based on the dividends expected over the next 12 months from what you hold today, divided by 12. Growth uses the rate chosen in the card below. An estimate, not a promise."));
-    if (!goal) return `<section class="pfx-card dg-card"><div class="dg-h"><span>${t("Your dividend goal")}${tip}</span></div><p class="muted" style="margin:0 0 14px;font-size:13.5px">${t("How much dividend income would you like to receive each month?")}</p><button type="button" class="pfx-btn pfx-btn-p" id="dvGoalEdit">${t("Set a monthly goal")}</button></section>`;
+    if (!goal) return `<button type="button" class="dg-empty" id="dvGoalEdit"><span class="dg-plus">+</span><span><b>${t("Set a monthly goal")}</b><small>${t("How much dividend income would you like to receive each month?")}</small></span></button>`;
     const pct = Math.max(0, Math.min(100, (expM / goal) * 100)), g = divLtGrowth / 100;
     let yrs = null; if (expM >= goal) yrs = 0; else if (expM > 0 && g > 0) { for (let n = 1; n <= 40; n++) if (expM * Math.pow(1 + g, n) >= goal) { yrs = n; break; } }
     const when = yrs === 0 ? t("You have reached your goal.") : yrs ? dzF("About {n} years at {g}% growth a year, with no new money added.", { n: yrs, g: divLtGrowth }) : (g === 0 ? t("With 0% growth and no new money, you will not reach it. Add stocks or pick a growth rate above.") : t("More than 40 years at this pace. Adding stocks would speed it up."));
-    return `<section class="pfx-card dg-card" id="dvGoalEdit" role="button" tabindex="0" aria-label="${esc(t("Edit goal"))}"><div class="dg-h"><span>${t("Your dividend goal")}${tip}</span><span class="pfx-btn dg-pill">${t("Edit")}</span></div>
+    return `<section class="pfx-card dg-card" id="dvGoalEdit" role="button" tabindex="0" aria-label="${esc(t("Edit goal"))}"><div class="dg-h"><span>${t("Your dividend goal")}${tip}</span><span class="pfx-btn dg-pill"><svg class="icon"><use href="#i-edit"/></svg>${t("Edit")}</span></div>
       <div class="dg-top"><div class="dg-big dz-n">${money(expM)}<small> / ${t("month")}</small></div><div class="dg-of">${t("of")} ${money(goal)}</div></div>
       <div class="dg-bar"><i style="width:${pct.toFixed(1)}%"></i></div>
       <div class="dg-row"><b>${fmt(pct, { maximumFractionDigits: 0 })}%</b><span>${t("of your goal")}</span><span class="dg-r">${t("Last 12 months")}: ${money(recvM)}</span></div>
@@ -5659,7 +5658,7 @@ function pageDividends() {
       <div class="pfx-nxt"><b>${esc(dvNameOf(d.ticker))}</b><span>${fmtDate(pay)} · ${(d.status === "Estimated" ? t("Estimated") : t("Confirmed")).toLowerCase()}</span></div>
       <div class="pfx-nxa dz-n pos">+${money(d.amtMYR)}${dvLocal(d)}</div></div>`; }).join("");
   const comingCard = panel(`${t("Coming up")}${infoTip(t("next payments"))}`, (comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`));
-  const nextCard = panel(t("Next payments"), comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`, `<button type="button" class="pf-linkbtn" data-dvtab="calendar">${t("Calendar")}</button>`);
+  const nextCard = panel(t("Next payments"), comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`, `<button type="button" class="pf-linkbtn" data-dvtab="calendar">${t("Calendar")} →</button>`);
   overview = `<div class="pfx-two pfx-two-cal">${incomeCard}${nextCard}</div>${goalCard}${ltCard || panel(t("Dividend Forecast"), forecastBody)}`;
   const payFilters = [["all", t("All")], ["past", t("Received")], ["upcoming", t("Upcoming")]];
   const paySeg = `<div class="dz-seg" role="group">${payFilters.map(([k, l]) => `<button type="button" class="${divCalendarFilter === k ? "on" : ""}" data-dvpay="${k}">${l}</button>`).join("")}</div>`;
@@ -5674,7 +5673,7 @@ function pageDividends() {
   const payMore = payList.length > payShown.length ? `<div class="rc-more"><span>${dzF("Showing {a} of {b} records", { a: payShown.length, b: payList.length })}</span><button type="button" class="pfx-btn" data-dvpaymore>${t("Show more")}</button></div>` : "";
   const listPanel = panel(`${t("All payments")}<small class="pfx-sm">${payList.length}</small>`, allDivEntries.length
       ? `<div class="table-wrap pfx-dvt-wrap dv-pay-desk"><table class="data-table pfx-txt"><thead><tr><th>${t("Holding")}</th><th>${t("Pay Date")}</th><th class="pfn">${t("Amount")} (${ccyLabel(FX.base)})</th><th>${t("Status")}</th><th></th></tr></thead><tbody>${payDeskRows}</tbody></table></div><div class="dv-pay-mob">${payMobRows}</div>${payMore}`
-      : `<p class="muted" style="margin:0 0 12px;font-size:13px">${!LIVE_ENABLED ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.") : t("No dividends yet. Record one to get started.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")}</a>`,
+      : `<p class="muted" style="margin:0 0 12px;font-size:13px">${!LIVE_ENABLED ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.") : t("No dividends yet. Record one to get started.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`,
     `${paySeg}<small class="muted" id="divFetchStatus"></small>`);
   const calendarTab = `<div class="pfx-two pfx-two-cal">${monthCard}<div class="dv-pay-wrap" id="divUpcomingSection">${listPanel}</div></div>${exDivPanel}`;
 
@@ -5684,7 +5683,7 @@ function pageDividends() {
   const lifeKv = `<div class="dv-kv"><div><span>${t("Gross Dividends")}</span><b class="dz-n">${money(grossBase)}</b></div><div><span>${t("Withholding Tax")}</span><b class="dz-n${taxBase > 0 ? " neg" : ""}">${money(taxBase)}</b></div><div><span>${t("Net Dividends (Lifetime)")}</span><b class="dz-n pos">${money(netTotal)}</b></div></div>`;
   const incomeByPeriod = panel(`${t("Income by period")}${infoTip(t("dividends received, by month, quarter, year or stock"))}`, received.length
       ? `<div class="pfx-rz"><div class="table-wrap pfx-dvt-wrap dv-inc"><table class="data-table pfx-txt"><thead><tr><th>${incomeLabels[divIncomePeriod] || t("Month")}</th><th></th><th class="pfn">${t("Net Dividends")} (${ccyLabel(FX.base)})</th></tr></thead><tbody>${incomeRowsByPeriod[divIncomePeriod] || monthRows}</tbody></table></div></div>`
-      : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")}</a>`, periodSeg);
+      : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`, periodSeg);
   const historyTab = incomeByPeriod;
 
   const html = `<div class="pfx pfx-div">${dvHeader}${dvReview}${dvCards}${dvNav}${divTab === "calendar" ? calendarTab : divTab === "history" ? historyTab : overview}</div>`;
@@ -5959,7 +5958,7 @@ function pageBrokers() {
 
   const subTxt = LANG === "zh" ? `已连接 ${active.length} 个投资平台 · ${money(totalNet)}` : `${active.length} investment apps connected · ${money(totalNet)} ${t("in total")}`;
   const header = dzTopHTML({ eyebrow: t("Brokers"), h1: t("Your brokers"), sub: subTxt, noLive: true,
-    actions: `<button type="button" class="pfx-btn pfx-btn-p" id="addBrokerBtn">${t("Add Broker")}</button>` });
+    actions: `<button type="button" class="pfx-btn pfx-btn-p" id="addBrokerBtn">＋ ${t("Add Broker")}</button>` });
   const costBasisAll = T.holdings.filter((h) => activeIds.has(h.brokerId)).reduce((s, h) => s + h.costBasis, 0);
   const retPct = costBasisAll ? (totalReturn / costBasisAll) * 100 : 0;
   const brRows = (f) => active.map((b) => ({ op: "+", label: b.name, val: money(f(b)) }));
@@ -5971,7 +5970,7 @@ function pageBrokers() {
   const body = list.length ? `<div class="rc-grid">
       <section class="pfx-card rc-main"><div class="rc-head bk-head"><h2>${t("All brokers")}<span class="pfx-sm">${list.length}</span></h2><div class="bk-tools">${archToggle}</div></div>${table}</section>
       <aside class="pfx-card rc-det" id="brDet">${brDetailHTML(BROKERS.find((b) => b.id === brSel))}</aside></div><div class="rc-back" id="brBack"></div>`
-    : `<section class="pfx-card rc-main">${emptyState(`${t("No brokers yet — every transaction and holding needs one.")}<div class="form-actions" style="margin-top:14px;justify-content:center"><button type="button" class="btn primary" id="emptyAddBroker">${t("Add Broker")}</button></div>`)}</section>`;
+    : `<section class="pfx-card rc-main">${emptyState(`${t("No brokers yet — every transaction and holding needs one.")}<div class="form-actions" style="margin-top:14px;justify-content:center"><button type="button" class="btn primary" id="emptyAddBroker">＋ ${t("Add Broker")}</button></div>`)}</section>`;
   const html = `<div class="pfx pfx-br">${header}${summary}${body}${BROKERS.length && SETTINGS.showReconciliation ? `<div class="pfx-cashpanels">${brokerCashPanelsHTML()}</div>` : ""}</div>`;
 
   return { title: "Brokers", subtitle: LANG === "zh" ? `已连接 ${active.length} 个投资平台。` : `${active.length} investment apps connected.`, html,
@@ -6122,7 +6121,7 @@ function pageSettings() {
         </div>
       </div>
       <div class="fx-foot">
-        <button class="btn ghost small" id="refreshFx">${t("Refresh live rates")}</button>
+        <button class="btn ghost small" id="refreshFx">↻ ${t("Refresh live rates")}</button>
         <span class="muted fx-status" id="fxStatus">${FX_STATUS}</span>
       </div>`)}
 
@@ -7211,7 +7210,7 @@ function pageHolding() {
   const stName = dzName(h.ticker, h.company);
   const chg = h.hasPrice && h.changePct != null ? h.changePct : null;
   const stActions = `${h.hasPrice ? `<span class="pfx-pp">${ccyLabel(h.currentPriceCcy)} ${fmt(h.currentPrice)}${chg != null ? ` <small class="${cls(chg)}">${pctTxt(chg)} ${t("today")}</small>` : ""}</span>` : ""}
-    <button type="button" class="pfx-btn" id="dtlPrice">${t("Set price")}</button><button type="button" class="pfx-btn sn-ico" id="stNoteBtn" aria-label="${esc(t("My notes"))}" title="${esc(t("My notes"))}">${t("Notes")}</button>`;
+    <button type="button" class="pfx-btn" id="dtlPrice">＄ ${t("Set price")}</button><button type="button" class="pfx-btn sn-ico" id="stNoteBtn" aria-label="${esc(t("My notes"))}" title="${esc(t("My notes"))}"><svg class="icon"><use href="#i-edit"/></svg></button>`;
   const stHeader = dzTopHTML({ eyebrow: t("Stock"), h1: esc(stName),
     sub: [stName !== h.ticker ? esc(h.ticker) : "", esc(brokerName(h.brokerId)), esc(meta.country || h.country) || ""].filter(Boolean).join(" · "),
     actions: stActions, refreshAttr: "data-dtl-live", noLive: true });

@@ -3768,12 +3768,3 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
 }
 @keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 .wls-act .rc-del, .gs-act .rc-del { color: var(--neg); }
-
-/* ===== ONE button design: pill, bold 14px. Secondary = outlined, primary = gradient, destructive = outlined red ===== */
-.btn, .pfx-btn, .pfx-ftoggle, .pf-linkbtn { border-radius: 99px !important; font-weight: 700 !important; font-size: 14px !important; padding-left: 18px !important; padding-right: 18px !important; border: 1px solid var(--border) !important; background: var(--dz-live) !important; color: var(--text) !important; box-shadow: none; letter-spacing: 0; text-decoration: none; }
-.btn:hover, .pfx-btn:hover, .pfx-ftoggle:hover, .pf-linkbtn:hover { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)) !important; }
-.btn.primary, .pfx-btn.pfx-btn-p, .pfx-btn-p { background: var(--btn) !important; color: var(--on-btn) !important; border-color: transparent !important; box-shadow: var(--btn-sh); }
-.btn.danger, .rc-del, .pfx-btn.rc-del { color: var(--neg) !important; background: var(--dz-live) !important; border: 1px solid var(--border) !important; box-shadow: none; }
-.dg-pill { display: inline-flex; padding: 0 18px; }
-.gs-act .rc-del, .wls-act .rc-del { color: var(--neg) !important; }
-.btn:disabled { opacity: .45; }
