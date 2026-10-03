@@ -49,7 +49,16 @@ function syncAvailable() { return !!window.SUPABASE; }
  * whether local data has changed since). Shared by every place that has to
  * decide whether pulling right now would silently discard local work. */
 function hasUnsyncedLocalEdit() {
-  return !!(LAST_SAVED && (!LAST_SYNCED || new Date(LAST_SAVED) > new Date(LAST_SYNCED)));
+  // An explicit flag (set by every local save, cleared once the cloud has the data). Comparing the
+  // device clock (LAST_SAVED) with the server clock (LAST_SYNCED) went wrong whenever the two differed.
+  try { const d = localStorage.getItem("il-dirty"); if (d === "1") return true; if (d === "0") return false; } catch (e) {}
+  return !!(LAST_SAVED && (!LAST_SYNCED || new Date(LAST_SAVED) > new Date(LAST_SYNCED)));   // devices that predate the flag
+}
+/* The cloud and this device now hold the same data: remember the SERVER time of that snapshot and clear the edit flag
+ * (unless more edits arrived since seq was taken). */
+function markSynced(updatedAt, seq) {
+  if (updatedAt) { LAST_SYNCED = updatedAt; try { localStorage.setItem("il-last-synced", LAST_SYNCED); } catch (e) {} }
+  if (seq === undefined || seq === SAVE_SEQ) { try { localStorage.setItem("il-dirty", "0"); } catch (e) {} }
 }
 
 /* Every per-account cache that lives OUTSIDE the local snapshot()/applySnapshot() blob
@@ -362,7 +371,7 @@ async function initSync() {
     if (hasUnsyncedLocalEdit() && !confirm(t("You have a change on this device that hasn't finished syncing yet. Pulling now will discard it. Continue?"))) return;
     clearTimeout(_pushTimer);
     const row = await pullFromCloud();
-    if (row) { applySnapshot(row.data); saveStore(); }
+    if (row) { applySnapshot(row.data); saveStore(); markSynced(row.updated_at); }
     hideCloudStaleWarning(); render();
   });
   const dismissBtn = $("#cloudStaleDismiss");
@@ -383,7 +392,7 @@ function debouncedPush() {
   _pushTimer = setTimeout(pushToCloud, 4000);
 }
 
-async function pushToCloud() {
+async function pushToCloud(force) {
   if (!syncAvailable() || !SYNC_USER) return false;
   if (_syncBusy) {
     // A push is already in flight — don't drop this one, retry shortly instead,
@@ -394,14 +403,22 @@ async function pushToCloud() {
   }
   _syncBusy = true;
   let ok = false;
+  const seq = SAVE_SEQ;
   try {
-    const { data, error } = await SUPABASE.from("ledger_data")
-      .upsert({ user_id: SYNC_USER.id, data: snapshot() }, { onConflict: "user_id" })
-      .select("updated_at").single();
-    if (!error && data && data.updated_at) {
-      LAST_SYNCED = data.updated_at;
-      try { localStorage.setItem("il-last-synced", LAST_SYNCED); } catch (e) {}
-      ok = true;
+    // Never silently overwrite a newer cloud copy: if another device pushed since this one last synced, warn instead
+    // (the banner offers "Pull latest"). Server time is compared with server time only. `force` is for the explicit
+    // "keep this device's data" and first-upload paths.
+    let blocked = false;
+    if (force !== true && LAST_SYNCED) {
+      const { data: cur } = await SUPABASE.from("ledger_data").select("updated_at").eq("user_id", SYNC_USER.id).maybeSingle();
+      if (cur && cur.updated_at && new Date(cur.updated_at) > new Date(LAST_SYNCED)) blocked = true;
+    }
+    if (blocked) showCloudStaleWarning();
+    else {
+      const { data, error } = await SUPABASE.from("ledger_data")
+        .upsert({ user_id: SYNC_USER.id, data: snapshot() }, { onConflict: "user_id" })
+        .select("updated_at").single();
+      if (!error && data && data.updated_at) { markSynced(data.updated_at, seq); ok = true; }
     }
   } catch (e) { /* offline/etc — next edit or the "online" listener retries */ }
   _syncBusy = false;
@@ -429,9 +446,9 @@ async function pullIfNewer() {
   if (!syncAvailable() || !SYNC_USER || _syncBusy) return;
   const row = await pullFromCloud();
   if (!row || !row.updated_at) return;
-  if (LAST_SAVED && new Date(row.updated_at) <= new Date(LAST_SAVED)) return;
+  if (LAST_SYNCED && new Date(row.updated_at) <= new Date(LAST_SYNCED)) return;   // server time vs server time
   if (!hasUnsyncedLocalEdit()) {
-    applySnapshot(row.data); saveStore();
+    applySnapshot(row.data); saveStore(); markSynced(row.updated_at);
     toast(t("Synced the latest changes from another device."));
     render();
     return;
@@ -467,14 +484,14 @@ async function reconcileOnSignIn() {
 
   if (!localHas && !cloudHas) { markLinked(); setLocalOwner(userId); return; }
   if (!localHas && cloudHas) {
-    applySnapshot(row.data); saveStore(); markLinked(); setLocalOwner(userId);
+    applySnapshot(row.data); saveStore(); markSynced(row.updated_at); markLinked(); setLocalOwner(userId);
     toast(t("Synced from your account.")); return;
   }
   if (localHas && !cloudHas) {
     // Don't mark as linked (and don't claim success) until the upload actually
     // succeeds — otherwise a failed first push looks permanently synced with
     // no retry path, since every future sign-in would skip straight past it.
-    const ok = await pushToCloud();
+    const ok = await pushToCloud(true);
     if (ok) {
       markLinked(); setLocalOwner(userId);
       toast(t("Your data was uploaded to your account."));
@@ -509,7 +526,7 @@ function openReconcileModal(cloudRow, userId) {
   const marker = `il-cloud-linked-${userId}`;
   $("#reconcileKeepLocal").addEventListener("click", async () => {
     SYNC_STATUS = "idle"; closeModal();
-    const ok = await pushToCloud();
+    const ok = await pushToCloud(true);
     if (ok) {
       try { localStorage.setItem(marker, "1"); } catch (e) {}
       setLocalOwner(userId);
@@ -522,7 +539,7 @@ function openReconcileModal(cloudRow, userId) {
   $("#reconcileKeepCloud").addEventListener("click", () => {
     try { localStorage.setItem(marker, "1"); } catch (e) {}
     setLocalOwner(userId);
-    applySnapshot(cloudRow.data); saveStore();
+    applySnapshot(cloudRow.data); saveStore(); markSynced(cloudRow.updated_at);
     SYNC_STATUS = "idle"; closeModal();
     toast(t("Synced from your account.")); render();
   });

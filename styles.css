@@ -1036,7 +1036,7 @@ input[type="date"] { cursor: pointer; }
 .sel-trigger:hover { border-color: color-mix(in srgb, var(--brand) 40%, var(--border)); }
 .sel.open .sel-trigger { border-color: var(--brand); }
 .sel-val { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sel-caret { color: var(--muted); font-size: 10px; transition: transform .12s; margin-left: 2px; padding-right: 1px; }
+.sel-caret { color: var(--muted); font-size: 11px; transition: transform .12s; margin-left: 2px; padding-right: 1px; }
 .sel.open .sel-caret { transform: rotate(180deg); }
 .sel-pop {
   position: absolute; left: 0; right: 0; top: calc(100% + 5px); z-index: 70;
@@ -2597,7 +2597,7 @@ button, input, select, textarea { font-family: inherit; }
 .pfx-dc { min-height: 82px; border-radius: 14px; background: var(--dz-tile, color-mix(in srgb, var(--text) 4%, transparent)); border: 1px solid var(--border); padding: 8px; font-size: 12px; color: var(--muted); position: relative; min-width: 0; }
 .pfx-dc.off { opacity: .35; }
 .pfx-dc.td { border-color: var(--brand); }
-.pfx-dc em { position: absolute; top: 8px; right: 8px; font-style: normal; font-size: 10px; color: var(--dz-lnk); }
+.pfx-dc em { position: absolute; top: 8px; right: 8px; font-style: normal; font-size: 11px; color: var(--dz-lnk); }
 .pfx-chipd { display: block; margin-top: 6px; padding: 4px 7px; border-radius: 8px; background: var(--pos-bg); color: var(--pos); font-weight: 700; font-size: 11px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; }
 .pfx-chipd.es { background: var(--dz-est-bg); color: var(--dz-est); }
 .pfx-more { display: block; margin-top: 4px; font-size: 11px; font-weight: 700; color: var(--muted); }
@@ -3058,6 +3058,12 @@ a.ticker.tk-name:hover { color: var(--brand); }
   .dv-pay-wrap .dv-pay-desk .data-table th, .dv-pay-wrap .dv-pay-desk .data-table td { padding-left: 8px; padding-right: 8px; }
   .dv-pay-wrap .dv-pay-desk .data-table th:last-child, .dv-pay-wrap .dv-pay-desk .data-table td:last-child { display: none; }
 }
+/* Calendar tab only: the All payments table needs about 406px, so below ~1430px the list goes under the calendar instead of being squeezed beside it. */
+@media (max-width: 1430px) {
+  .pfx-two-calpay { grid-template-columns: minmax(0, 1fr); }
+  .pfx-two-calpay .dv-pay-wrap > .panel { position: static; }
+  .pfx-two-calpay .dv-pay-wrap > .panel > .dv-pay-desk { max-height: 560px; overflow-y: auto; }
+}
 /* Dividends History table follows the Realized P/L table (same row height, header, spacing) */
 .pfx-rz .dv-inc { max-height: none; }
 .pfx-rz .dv-inc .data-table td { padding: 12px 14px; }
@@ -3418,7 +3424,7 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
   .pfx-sum > .pfx-sc .pfx-lbl { font-size: 11.5px; gap: 4px; }
   .pfx-sc .pfx-lt { overflow: visible; text-overflow: clip; }
   .pfx-sc .pfx-pw-top { margin-left: 0; }
-  .pfx-sc .pfx-pw-top .pfx-pl { padding: 2px 5px; font-size: 9.5px; }
+  .pfx-sc .pfx-pw-top .pfx-pl { padding: 2px 5px; font-size: 11px; }
   .pfx-sc .pfx-lbl .pfx-go svg { width: 14px; height: 14px; }
 }
 

@@ -962,7 +962,7 @@ const ZH = {
   "More currencies…": "更多货币…", "Search currency…": "搜索货币…", "No matching currency": "无匹配货币",
   "Pick a different currency for the exchange.": "请为兑换选择不同的货币。",
   "Saved ✓": "已保存 ✓", "Add more holdings to score": "添加更多持仓以评分",
-  "No dividends recorded yet": "尚未记录股息", "Nothing to allocate yet": "暂无可分配项目",
+  "No dividends recorded yet": "尚未记录股息", "No dividends in the last 12 months": "近12个月没有股息", "Yield on this payment": "本次派息的收益率", "Nothing to allocate yet": "暂无可分配项目",
   "No dividend income yet. Record one to start tracking it over time.": "尚无股息收入记录。记录一笔即可开始追踪其变化趋势。",
   "No cash recorded yet.": "尚未记录现金。",
   "added at the live rate": "已按实时汇率添加", "added — set its rate in Settings": "已添加 — 请在设置中设定其汇率",
@@ -1221,9 +1221,9 @@ function xirrPercent(txns, terminalValue) {
   if (!flows.length) return null;
   flows.push({ date: new Date(), amount: terminalValue });
   flows.sort((a, b) => a.date - b.date);
-  // Need a meaningful time span — annualising < 1 week of history is misleading.
+  // Need a meaningful time span — annualising a few weeks of history gives absurd rates (30 days of +25% reads as +1,300% a year).
   const spanDays = (flows[flows.length - 1].date - flows[0].date) / 86400000;
-  if (spanDays < 7) return null;
+  if (spanDays < 90) return null;
   const r = xirr(flows);
   return (r == null || !isFinite(r)) ? null : r * 100;
 }
@@ -1614,6 +1614,7 @@ function prunePvHistory() {
     if (PV_HISTORY[i].date < earliest && !PV_HISTORY[i].seed) PV_HISTORY.splice(i, 1);
   }
 }
+let SAVE_SEQ = 0;   // counts local saves, so a push can tell whether more edits arrived while it was in flight
 /* Returns true if the write actually reached localStorage. LAST_SAVED is only
  * stamped on real success — callers' "Saved ✓" toasts must not be trusted
  * blindly, since a full/blocked store fails setItem() silently otherwise. */
@@ -1627,6 +1628,7 @@ function saveStore() {
     seedPvHistory();
     localStorage.setItem(STORE_KEY, JSON.stringify(snapshot()));
     LAST_SAVED = new Date().toISOString();
+    SAVE_SEQ++; try { localStorage.setItem("il-dirty", "1"); } catch (e) {}   // an edit the cloud has not seen yet (sync.js clears it)
     hideSaveError();
     if (typeof onDataSaved === "function") onDataSaved();
     return true;
@@ -2068,7 +2070,7 @@ function computePendingAutoDividends() {
       const sharesThen = sharesAsOf(h.ticker, h.brokerId, d.date);
       if (sharesThen <= 0) return;   // sold out entirely by the time this dividend priced — not eligible
       const gross = (d.amount || 0) * sharesThen;
-      const tax = gross * ((broker && broker.divTaxRate ? broker.divTaxRate : ((SETTINGS.divTaxByCountry || {})[marketInfo(h.ticker).country] || 0)) / 100);
+      const tax = gross * ((broker && (broker.divTaxRate > 0 || (broker.divTaxExplicit && broker.divTaxRate === 0)) ? broker.divTaxRate : ((SETTINGS.divTaxByCountry || {})[marketInfo(h.ticker).country] || 0)) / 100);
       candidates.push({
         key: dismissKey, brokerId: h.brokerId, brokerName: broker ? broker.name : "",
         ticker: h.ticker, company: h.company || "", market: h.market || "",
@@ -5261,7 +5263,7 @@ function showDividendDetail(d) {
     ${d.ccy && d.ccy !== FX.base && d.amtLocal != null ? row(t("Paid in"), `${ccyLabel(d.ccy)} ${fmt(d.amtLocal)}`) : ""}
     ${row(`${t("Amount")} (${ccyLabel(FX.base)})`, money(d.amtMYR))}
     ${row(`${t("Per Share")} (${ccyLabel(FX.base)})`, d.perShareAmt != null ? fmt(d.perShareAmt, { maximumFractionDigits: 4 }) : "—")}
-    ${row(t("Dividend yield"), d.yieldPct != null ? fmt(d.yieldPct, { maximumFractionDigits: 2 }) + "%" : "—")}
+    ${row(t("Yield on this payment"), d.yieldPct != null ? fmt(d.yieldPct, { maximumFractionDigits: 2 }) + "%" : "—")}
     ${hh && bid ? `<p style="margin:14px 0 0"><a class="link" id="dvOpenStock" href="#/holding/${encodeURIComponent(bid + "|" + d.ticker)}">${t("Open stock page")} ${dzIcon("arrow", 15)}</a></p>` : ""}`;
   const lk = $("#dvOpenStock"); if (lk) lk.addEventListener("click", closeModal);
   $("#modal").hidden = false;
@@ -5711,7 +5713,7 @@ function pageDividends() {
       ? `<div class="table-wrap pfx-dvt-wrap dv-pay-desk"><table class="data-table pfx-txt"><thead><tr><th>${t("Holding")}</th><th>${t("Pay Date")}</th><th class="pfn">${t("Amount")} (${ccyLabel(FX.base)})</th><th>${t("Status")}</th><th></th></tr></thead><tbody>${payDeskRows}</tbody></table></div><div class="dv-pay-mob">${payMobRows}</div>${payMore}`
       : `<p class="muted" style="margin:0 0 12px;font-size:13px">${!LIVE_ENABLED ? t("No dividends yet. Record one, or they'll appear automatically once market data is connected.") : t("No dividends yet. Record one to get started.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} ${dzIcon("arrow", 15)}</a>`,
     `${paySeg}<small class="muted" id="divFetchStatus"></small>`);
-  const calendarTab = `<div class="pfx-two pfx-two-cal">${monthCard}<div class="dv-pay-wrap" id="divUpcomingSection">${listPanel}</div></div>${exDivPanel}`;
+  const calendarTab = `<div class="pfx-two pfx-two-cal pfx-two-calpay">${monthCard}<div class="dv-pay-wrap" id="divUpcomingSection">${listPanel}</div></div>${exDivPanel}`;
 
   // --- History
   const periodTabs = [["monthly", t("Monthly")], ["quarterly", t("Quarterly")], ["annual", t("Yearly")], ["stock", t("By stock")]];
@@ -6067,7 +6069,7 @@ function brokerFormHTML(editing) {
         { value: "broker", label: t("Broker account (adds to cash)") },
         { value: "bank", label: t("Bank account (income only)") },
       ], e.divPaidTo || "broker")}</label>
-      <label><span class="lbl-t">${t("Default dividend tax rate")} (%)${hcTip(t("Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward."))}</span><input type="number" step="any" min="0" max="100" name="divTaxRate" value="${e.divTaxRate != null ? esc(e.divTaxRate) : ""}" placeholder="0"></label>
+      <label><span class="lbl-t">${t("Default dividend tax rate")} (%)${hcTip(t("Applied to dividends auto-logged from market history at this broker — e.g. 30 for US stocks held without a tax treaty, 0 for Malaysian stocks. You can always edit the tax on an individual dividend afterward."))}</span><input type="number" step="any" min="0" max="100" name="divTaxRate" value="${(e.divTaxRate > 0 || e.divTaxExplicit) ? esc(e.divTaxRate) : ""}" placeholder="0"></label>
     </div>
     <label class="block">${t("Notes")}<input name="notes" value="${esc(e.notes)}" placeholder="${t("optional")}"></label>
     <div class="form-actions">
@@ -6102,14 +6104,14 @@ function renderBrokerDrawerBody() {
     const d = Object.fromEntries(new FormData(ev.target).entries());
     if (!d.name.trim()) { toast(t("Enter a broker name.")); return; }
     if (brokerSubmitBtn) brokerSubmitBtn.disabled = true;
-    const divTaxRate = Math.max(0, Math.min(100, parseFloat(d.divTaxRate) || 0));
+    const divTaxRate = Math.max(0, Math.min(100, parseFloat(d.divTaxRate) || 0)), divTaxExplicit = String(d.divTaxRate == null ? "" : d.divTaxRate).trim() !== "";
     if (editingBrokerId) {
       const b = BROKERS.find((x) => x.id === editingBrokerId);
-      if (b) { b.name = d.name.trim(); b.country = (d.country || "").trim(); b.currency = d.currency; b.notes = (d.notes || "").trim(); b.divPaidTo = d.divPaidTo || "broker"; b.divTaxRate = divTaxRate; }
+      if (b) { b.name = d.name.trim(); b.country = (d.country || "").trim(); b.currency = d.currency; b.notes = (d.notes || "").trim(); b.divPaidTo = d.divPaidTo || "broker"; b.divTaxRate = divTaxRate; b.divTaxExplicit = divTaxExplicit; }
       editingBrokerId = null;
       saveStore(); toast(t("Broker updated")); closeBrokerDrawer(); render();
     } else {
-      BROKERS.push({ id: uid("b"), name: d.name.trim(), country: (d.country || "").trim(), currency: d.currency, notes: (d.notes || "").trim(), divPaidTo: d.divPaidTo || "broker", divTaxRate, archived: false });
+      BROKERS.push({ id: uid("b"), name: d.name.trim(), country: (d.country || "").trim(), currency: d.currency, notes: (d.notes || "").trim(), divPaidTo: d.divPaidTo || "broker", divTaxRate, divTaxExplicit, archived: false });
       saveStore(); toast(t("Broker added")); render();
       renderBrokerDrawerBody(); // stay open on a blank form for rapid entry, same as Add Transaction
     }
@@ -6300,6 +6302,9 @@ function pageSettings() {
         });
         HOLDINGS.forEach((h) => { if (h.openingFxRate) h.openingFxRate = +(h.openingFxRate / div).toFixed(6); });
         Object.values(RECON_CHECKS).forEach((chk) => { if (chk.actual != null) chk.actual = +(+chk.actual / div).toFixed(2); });
+        if (SETTINGS.divGoal) SETTINGS.divGoal = +(SETTINGS.divGoal / div).toFixed(2);   // monthly dividend goal is a base-currency amount too
+        UPCOMING_DIVIDENDS.forEach((d) => { if (d.expectedNetMYR != null) d.expectedNetMYR = +(d.expectedNetMYR / div).toFixed(2); });
+        PV_HISTORY.forEach((p) => { ["value", "mv", "principal"].forEach((k) => { if (p[k] != null) p[k] = +(p[k] / div).toFixed(2); }); });   // saved net-worth history feeds the Dashboard chart
         FX.base = nb; saveStore(); toast(`${t("Base currency set to")} ${nb}`); render();
       });
       // Reconciliation: visibility toggle (tolerance uses a fixed default — see data.js)
@@ -6609,8 +6614,8 @@ function pageHelp() {
         "为什么盈亏和券商 App 显示的不同？", "常见原因：(1) Divz 把买入费用算进成本，多数券商 App 不算。(2) 成本计算方法可能不同（平均成本或先进先出）。(3) 汇率不同。(4) Divz 的总回报还包括股息、利息和费用。打开某只股票可以看到数字的分项。"],
       ["Average cost or FIFO: which one should I use?", "This only matters when you sell part of a stock you bought at different prices. <b>Average cost</b> treats every share as costing the average of all your buys. <b>FIFO</b> (first in, first out) treats the oldest shares as the ones sold. Cash is the same either way. Only the profit shown on the sale, and the cost of what you still hold, change. Pick what your tax rules or broker use. You can switch any time in Settings → Preferences → Cost basis method.",
         "平均成本和先进先出（FIFO）该选哪个？", "只有当您分批以不同价格买入、又卖出一部分时才有区别。<b>平均成本法</b>把每股成本算成所有买入的平均价。<b>先进先出</b>则把最早买入的股份当作先卖出的。无论哪种，现金都一样，只有这笔卖出显示的盈亏和剩余持仓成本会变。请选择与您的税务规则或券商一致的方法，随时可在 设置 → 偏好设置 → 成本计算方法 切换。"],
-      ["What is the annual return (XIRR)?", "A yearly rate that takes into account <i>when</i> you added or took out money. A simple percentage ignores timing, so it can flatter you if most of your money went in recently. It needs at least one deposit and about a week of history.",
-        "年化回报（XIRR）是什么？", "一个年化收益率，会考虑您<i>什么时候</i>投入或取出资金。简单的百分比不考虑时间，如果大部分资金是最近才投入的，它会显得偏高。至少需要一笔存入和大约一周的记录。"],
+      ["What is the annual return (XIRR)?", "A yearly rate that takes into account <i>when</i> you added or took out money. A simple percentage ignores timing, so it can flatter you if most of your money went in recently. It needs at least one deposit and about three months of history (a shorter time would give a misleading yearly rate).",
+        "年化回报（XIRR）是什么？", "一个年化收益率，会考虑您<i>什么时候</i>投入或取出资金。简单的百分比不考虑时间，如果大部分资金是最近才投入的，它会显得偏高。至少需要一笔存入和大约三个月的记录（时间太短，年化数字会失真）。"],
       ["What are dividend yield and yield on cost?", "<b>Dividend yield</b> = dividends received in the last 12 months ÷ the current value of your holdings. <b>Yield on cost</b> = the same dividends ÷ what you originally paid. Yield on cost grows when a company keeps raising its dividend, even if the share price does not move.",
         "股息率和成本收益率是什么？", "<b>股息率</b> = 过去 12 个月收到的股息 ÷ 持仓当前市值。<b>成本收益率</b> = 同样的股息 ÷ 您当初付出的成本。如果公司不断提高股息，成本收益率会上升，即使股价没有变动。"],
       ["What is the diversification score?", "A number from 0 to 100. Higher means your money is spread more evenly over more stocks. If everything is in one stock, it is 0. It is only a guide to how concentrated you are, not advice.",
@@ -8413,14 +8418,21 @@ function privacyScan() {
   privacyBusy = true;
   try {
     const re = /[+−-]?(?:RM|[A-Z]{3})\s[\d,]+(?:\.\d+)?/g, found = [];
+    // Cells that show a bare money number (the currency sits in the column header, not in the text): mask any number that is not a percentage.
+    const re2 = /[+−-]?\d[\d,]*(?:\.\d+)?(?![\d%.])/g, BARE = ".dz-mv, .dz-hn2, td.pfn.pfx-tt, .pfx-sub";
     const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: (n) => {
       const p = n.parentElement; if (!p || /^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(p.tagName) || p.closest(".pv")) return NodeFilter.FILTER_REJECT;
-      re.lastIndex = 0; return re.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });
+      const rx = p.closest(BARE) ? re2 : re; rx.lastIndex = 0; return rx.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });
     while (w.nextNode()) found.push(w.currentNode);
     found.forEach((n) => {
-      const frag = document.createDocumentFragment(), s = n.nodeValue; let last = 0, m; re.lastIndex = 0;
-      while ((m = re.exec(s))) { frag.append(s.slice(last, m.index)); const sp = document.createElement("span"); sp.className = "pv"; sp.dataset.o = m[0]; sp.textContent = m[0].replace(/[\d,]+(?:\.\d+)?$/, "••••"); frag.append(sp); last = m.index + m[0].length; }
+      const rx = n.parentElement.closest(BARE) ? re2 : re, frag = document.createDocumentFragment(), s = n.nodeValue; let last = 0, m; rx.lastIndex = 0;
+      while ((m = rx.exec(s))) { frag.append(s.slice(last, m.index)); const sp = document.createElement("span"); sp.className = "pv"; sp.dataset.o = m[0]; sp.textContent = m[0].replace(/[\d,]+(?:\.\d+)?$/, "••••"); frag.append(sp); last = m.index + m[0].length; }
       frag.append(s.slice(last)); n.replaceWith(frag);
+    });
+    // Screen-reader / tooltip labels that spell out amounts (e.g. the Dashboard chart: "Now USD 857, Peak USD 8,511").
+    document.querySelectorAll("[aria-label]:not([data-pv-aria])").forEach((el) => {
+      const a = el.getAttribute("aria-label"), mk = /(?:RM|[A-Z]{3})\s[\d,]+(?:\.\d+)?/;
+      if (mk.test(a)) { el.dataset.pvAria = a; el.setAttribute("aria-label", a.replace(new RegExp(mk.source, "g"), (x) => x.replace(/[\d,]+(?:\.\d+)?$/, "••••"))); }
     });
     document.querySelectorAll(".dz-big:not([data-pvo]), .pfx-big:not([data-pvo])").forEach((el) => {
       const cur = el.querySelector(".cur"); el.dataset.pvo = el.innerHTML;
@@ -8438,6 +8450,7 @@ function applyPrivacy() {
   } else {
     if (privacyObs) { privacyObs.disconnect(); privacyObs = null; }
     document.querySelectorAll(".pv").forEach((s) => s.replaceWith(document.createTextNode(s.dataset.o || s.textContent)));
+    document.querySelectorAll("[data-pv-aria]").forEach((el) => { el.setAttribute("aria-label", el.dataset.pvAria); delete el.dataset.pvAria; });
     document.querySelectorAll("[data-pvo]").forEach((el) => { el.innerHTML = el.dataset.pvo; el.removeAttribute("data-pvo"); });
     document.body.normalize();
   }

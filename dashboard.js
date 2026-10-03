@@ -733,7 +733,7 @@ function dzHealthHTML() {
   const enough = T.holdings.length >= 2;
   const divText = !enough ? t("Add more holdings to score")
     : dzF(hp.effectiveN < 3 ? "About {n} equal-sized stocks, so your portfolio rests on very few." : hp.effectiveN < 6 ? "About {n} equal-sized stocks — fairly concentrated." : hp.effectiveN < 12 ? "About {n} equal-sized stocks — reasonably spread." : "About {n} equal-sized stocks — well spread.", { n: fmt(hp.effectiveN, { maximumFractionDigits: 1 }) });
-  const yieldText = hp.yieldEst != null && hp.ttm > 0 ? dzF("{amt} paid to you in the last 12 months, as a share of your holdings.", { amt: dzMoney0(hp.ttm) }) : t("No dividends recorded yet");
+  const yieldText = hp.yieldEst != null && hp.ttm > 0 ? dzF("{amt} paid to you in the last 12 months, as a share of your holdings.", { amt: dzMoney0(hp.ttm) }) : (T.netDividends > 0 ? t("No dividends in the last 12 months") : t("No dividends recorded yet"));
   return `<section class="dz-card dz-pad"><div class="dz-ch"><div class="dz-ct">${dzL("Portfolio health", "Portfolio Health")}</div></div><div class="dz-hg">
     ${tile("phDivYield", dzL("Dividend yield", "Dividend Yield (TTM)"), hp.yieldEst != null ? fmt(hp.yieldEst, { maximumFractionDigits: 2 }) : "—", hp.yieldEst != null ? "%" : "", yieldText, hp.yieldEst != null ? hp.yieldEst / 8 * 100 : 0)}
     ${tile("phCashAlloc", dzL("Cash share", "Cash Allocation"), hp.cashAlloc != null ? fmt(hp.cashAlloc, { maximumFractionDigits: 1 }) : "—", hp.cashAlloc != null ? "%" : "", hp.cashAlloc != null ? t("Part of your net worth sitting as cash instead of invested.") : t("Nothing to allocate yet"), hp.cashAlloc || 0)}
