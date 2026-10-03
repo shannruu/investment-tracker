@@ -3842,3 +3842,15 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
   .pfx-set .st-wrap[data-open="1"] .st-sh, .pfx-stock .dz-h1, .dz-h1 { font-size: 22px !important; line-height: 1.2; letter-spacing: -.02em; }
   .pfx-set .st-wrap[data-open="1"] .st-back { font-size: 14px !important; height: 36px; }
 }
+
+/* ===== Settings / Account on phones: proper navigation bar (iOS pattern) ===== */
+@media (max-width: 760px) {
+  /* the small label above the page title repeats the title: hide it on these pages */
+  .pfx-set .dz-eyebrow { display: none; }
+  /* opened section: [‹ Settings]   Section name   - one 48px bar, no big heading */
+  .pfx-set .st-wrap[data-open="1"] .st-main { position: relative; padding-top: 0; }
+  .pfx-set .st-wrap[data-open="1"] .st-back { display: inline-flex !important; align-items: center; height: 48px !important; min-width: 48px; margin: 0 0 4px -4px !important; padding: 0 14px 0 4px !important; font-size: 16px !important; font-weight: 600; gap: 2px; border-radius: 12px; }
+  .pfx-set .st-wrap[data-open="1"] .st-back:active { background: color-mix(in srgb, var(--text) 8%, transparent); }
+  .pfx-set .st-wrap[data-open="1"] .st-back::first-letter { font-size: 30px; line-height: 1; padding-right: 4px; }
+  .pfx-set .st-wrap[data-open="1"] .st-sh { position: absolute; top: 0; left: 50%; transform: translateX(-50%); height: 48px; margin: 0 !important; display: flex !important; align-items: center; font-size: 16px !important; font-weight: 700; letter-spacing: 0; max-width: 50%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+}
