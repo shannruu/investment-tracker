@@ -6118,7 +6118,7 @@ function pageSettings() {
   const stMenu = `<div class="st-menu"><div class="st-mg">${stItems.slice(0, 4).map(stMenuRow).join("")}</div><div class="st-mg">${stMenuRow(stItems[4])}</div></div>`;
   const stNav = `<nav class="st-nav" role="tablist">${[["currency", t("Currency")], ["look", t("Appearance")], ["prefs", t("Preferences")], ["data", t("Data & backup")], ["danger", t("Danger zone")]].map(([k, l]) =>
     `<button type="button" role="tab" class="${settingsTab === k ? "on" : ""}${k === "danger" ? " dng" : ""}" data-sttab2="${k}">${l}</button>`).join("")}</nav>`;
-  const html = `<div class="pfx pfx-set">${stHead}<div class="st-wrap" data-tab="${settingsTab}" data-open="${stPhoneOpen ? 1 : 0}">${stNav}${stMenu}<div class="st-main"><button type="button" class="st-back" id="stBack">‹ ${t("Settings")}</button><div class="st-sec" data-sec="currency">
+  const html = `<div class="pfx pfx-set">${stHead}<div class="st-wrap" data-tab="${settingsTab}" data-open="${stPhoneOpen ? 1 : 0}">${stNav}${stMenu}<div class="st-main"><button type="button" class="st-back" id="stBack">‹ ${t("Settings")}</button><h1 class="st-sh" id="stSh">${(stItems.find((x) => x[0] === settingsTab) || [0, ""])[1]}</h1><div class="st-sec" data-sec="currency">
     ${panel(`${t("Currency & Exchange Rates")}${infoTip(`${t("Each record keeps its own currency. Base-currency amounts come from exchange rates.")} ${t("Pull today's market rate or type your own.")}`)}`, `
       <div class="fx-base-row">
         ${settingRow(t("Base currency"), `<div style="width:200px">${styledSelect("baseCcy", Object.keys(FX.rates).map((c) => ({ value: c, label: ccyLabel(c) })), FX.base, { id: "baseCcy" })}</div>`)}
@@ -6230,7 +6230,7 @@ function pageSettings() {
       const stBell = $("#dzBell"); if (stBell) stBell.addEventListener("click", () => toggleMoreSheet());
       $$("[data-stopen]").forEach((b) => b.addEventListener("click", () => {
         settingsTab = b.dataset.stopen; stPhoneOpen = true;
-        const w = $(".st-wrap"); w.dataset.tab = settingsTab; w.dataset.open = "1";
+        const w = $(".st-wrap"); w.dataset.tab = settingsTab; w.dataset.open = "1"; $("#stSh").textContent = (stItems.find((x) => x[0] === settingsTab) || [0, ""])[1];
         $$("[data-sttab2]").forEach((x) => x.classList.toggle("on", x.dataset.sttab2 === settingsTab));
         window.scrollTo(0, 0);
       }));

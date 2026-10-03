@@ -3879,3 +3879,12 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
 @media (max-width: 760px) { .pfx-set .st-wrap[data-open="0"] .st-menu { display: flex; } }
 
 .pfx .panel-head h2 > .pfx-sm, .pfx .panel-head h2 small.pfx-sm { margin-left: 10px !important; }
+
+/* Settings / Account on phones: opened section shows ONE back link and the section name as the page title */
+.st-sh { display: none; }
+@media (max-width: 760px) {
+  .pfx-set:has(.st-wrap[data-open="1"]) .dz-top { display: none !important; }
+  .pfx-set .st-wrap[data-open="1"] .st-back { height: 40px; margin: 0; font-size: 15px !important; }
+  .pfx-set .st-wrap[data-open="1"] .st-sh { display: block; margin: 0 0 6px; font-size: 28px; line-height: 1.15; letter-spacing: -.02em; font-weight: 700; }
+  .pfx-set .st-wrap[data-open="1"] .st-main { gap: 12px; }
+}
