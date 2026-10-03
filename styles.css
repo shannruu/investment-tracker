@@ -3649,3 +3649,10 @@ th .col-info, .rc-rows .col-info, .rc-grp .col-info { transform: translateY(-1px
 .wl-row { grid-template-columns: minmax(0, 1.2fr) minmax(0, .9fr) minmax(0, 1.2fr) minmax(0, 1.2fr) auto; }
 .wl-d b { display: block; font-size: 13.5px; } .wl-d small { display: block; font-size: 11.5px; color: var(--muted); }
 @media (max-width: 760px) { .wl-row { grid-template-columns: minmax(0, 1fr) auto; } .wl-d { grid-column: 1 / -1; grid-row: 3; } .wl-r { grid-row: 4; } }
+
+@media (max-width: 760px) {
+  /* Realized P/L: the main total full width, Gained and Lost side by side */
+  .pfx-sum3:not(.pfx-sumst) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pfx-sum3:not(.pfx-sumst) > :first-child:nth-last-child(3) { grid-column: 1 / -1; }
+  .pfx-sum3:not(.pfx-sumst) > :nth-child(n+2):nth-last-child(-n+2) { grid-column: auto; }
+}
