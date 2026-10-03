@@ -3494,3 +3494,23 @@ html:not([data-theme="dark"]) .sel-pop { background: #fff; border-color: rgba(30
 
 .sel-search { background: color-mix(in srgb, var(--text) 9%, var(--dz-panel, var(--surface))); }
 html:not([data-theme="dark"]) .sel-search { background: #fff; }
+
+/* Icon buttons: the icon is centred by absolute positioning, which every browser (Safari included) lays out the same way */
+.icon-btn, .dz-ib { position: relative; }
+.icon-btn > svg, .dz-ib > svg { position: absolute; left: 50%; top: 50%; margin: 0 !important; transform: translate(-50%, -50%) !important; }
+.theme-btn svg:has(use[href="#i-moon"]) { transform: translate(-50%, -50%) !important; }
+/* Dropdown lists: brand-tinted dark panel / clean white panel, violet highlight */
+.sel-pop, .sel-search { background: #1a1c2c; }
+.sel-pop { border: 1px solid rgba(139,125,255,.38); box-shadow: 0 20px 48px rgba(0,0,0,.6); border-radius: 14px; padding: 6px; }
+.sel-opt, .sel-search-opt { border-radius: 10px; color: #e9eaf5; }
+.sel-opt:hover, .sel-search-opt:hover { background: rgba(139,125,255,.16); }
+.sel-opt.on { background: rgba(139,125,255,.26); color: #fff; }
+.sel-search-input { background: #12131f; border: 1px solid rgba(139,125,255,.3); color: #fff; }
+.sel-name, .sel-search-opt .sel-name { color: #a4a8c4; }
+html:not([data-theme="dark"]) .sel-pop, html:not([data-theme="dark"]) .sel-search { background: #fff; }
+html:not([data-theme="dark"]) .sel-pop { border-color: rgba(90,70,220,.25); box-shadow: 0 16px 40px rgba(40,30,110,.2); }
+html:not([data-theme="dark"]) .sel-opt, html:not([data-theme="dark"]) .sel-search-opt { color: #1c1d33; }
+html:not([data-theme="dark"]) .sel-opt:hover, html:not([data-theme="dark"]) .sel-search-opt:hover { background: rgba(90,70,220,.09); }
+html:not([data-theme="dark"]) .sel-opt.on { background: rgba(90,70,220,.15); color: #2d1fa8; }
+html:not([data-theme="dark"]) .sel-search-input { background: #f4f3fb; color: #1c1d33; border-color: rgba(90,70,220,.25); }
+html:not([data-theme="dark"]) .sel-name { color: #6b6d8c; }
