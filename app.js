@@ -1005,7 +1005,7 @@ const ZH = {
   "This device": "此设备", "Your account": "您的账户",
   "Keep this device, upload it": "保留此设备的数据并上传",
   "Use my account's data": "使用账户中的数据",
-  "Pull and discard": "拉取并放弃", "Discard this device's change?": "放弃此设备上的更改？",
+  "Pull and discard": "拉取并放弃", "Removed from watchlist": "已从自选股中移除", "Discard this device's change?": "放弃此设备上的更改？",
   "Your data was updated from another device. Pull the latest before making more changes here, or you'll overwrite it.": "您的数据已在其他设备上更新。请先拉取最新数据，否则继续编辑将覆盖它。",
   "Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.": "登录状态下您的数据也会同步到账户，因此清除浏览器数据不会丢失它 — 但仍建议定期导出 JSON 备份。",
   "Local data from a previous account was cleared before syncing this account.": "同步此账户前，已清除上一账户遗留在本设备的数据。",
@@ -3352,6 +3352,7 @@ function pagePortfolio() {
             WATCH_Q[q.symbol || sym] = q; wlDraft = ""; saveStore(); toast(t("Added to your watchlist")); render();
           });
         }
+        $$("[data-wlremove]").forEach((b) => b.addEventListener("click", () => { SETTINGS.watchlist = (SETTINGS.watchlist || []).filter((x) => x.ticker !== b.dataset.wlremove); saveStore(); toast(t("Removed from watchlist")); render(); }));
         $$("[data-wlopen]").forEach((el) => { el.addEventListener("click", () => showWatchSheet(el.dataset.wlopen)); el.addEventListener("keydown", (e) => { if (e.key === "Enter") showWatchSheet(el.dataset.wlopen); }); });
         if (LIVE_ENABLED) loadWatchQuotes();
       }
@@ -6993,8 +6994,29 @@ function watchlistHTML() {
     return `<div class="rc-ev wl-item" role="button" tabindex="0" data-wlopen="${escAttr(w.ticker)}"><span class="dz-chip pf-chip" aria-hidden="true">${dzInitials(nm)}</span><div class="rc-tx"><div class="rc-t1">${nm}</div><div class="rc-t2">${esc(w.ticker)}</div></div>
       <div class="rc-am">${q ? `${ccyLabel(q.currency)} ${fmt(q.price)}<small class="${cls(q.changePct)}">${pctTxt(q.changePct)}</small>` : `<small>${t("Loading…")}</small>`}</div></div>`;
   }).join("");
+  // Desktop: one table with everything visible at once (price, today, dividend yield, last dividend, 52-week range).
+  // All of it is already fetched for every stock, so nothing is hidden behind a click. Phones keep the card list above.
+  const loadingTxt = `<span class="muted">${t("Loading…")}</span>`, dash = `<span class="muted">–</span>`;
+  const trs = list.map((w) => {
+    const q = WATCH_Q[w.ticker], d = WATCH_DIV[w.ticker], nm = esc((q && q.name) || w.name || w.ticker), own = T.holdings.some((h) => h.ticker === w.ticker);
+    const y = q && d && d.ttm > 0 && q.price > 0 ? (d.ttm / q.price) * 100 : null;
+    const hasRg = q && q.fiftyTwoWeekHigh != null && q.fiftyTwoWeekLow != null && q.fiftyTwoWeekHigh > q.fiftyTwoWeekLow;
+    const pos = hasRg ? Math.max(0, Math.min(100, ((q.price - q.fiftyTwoWeekLow) / (q.fiftyTwoWeekHigh - q.fiftyTwoWeekLow)) * 100)) : null;
+    const divCell = d === undefined ? loadingTxt : (d && d.last
+      ? `${ccyLabel((q && q.currency) || d.currency || FX.base)} ${fmt(d.last.amount, { maximumFractionDigits: 4 })}<small class="wl-sub">${fmtDate(d.last.date)}</small>`
+      : `<span class="muted">${t("None on record")}</span>`);
+    return `<tr><td><div class="bk-id"><span class="dz-chip pf-chip" aria-hidden="true">${dzInitials(nm)}</span><div><b>${nm}</b>${own ? ` <em class="wl-own">${t("You own this")}</em>` : ""}<div class="wl-sym">${esc(w.ticker)}</div></div></div></td>
+      <td class="pfn dz-n">${q ? `${ccyLabel(q.currency)} ${fmt(q.price)}` : loadingTxt}</td>
+      <td class="pfn dz-n">${q ? `<span class="${cls(q.changePct)}">${pctTxt(q.changePct)}</span>` : dash}</td>
+      <td class="pfn dz-n">${d === undefined ? loadingTxt : (y != null ? fmt(y, { maximumFractionDigits: 2 }) + "%" : dash)}</td>
+      <td class="pfn dz-n">${divCell}</td>
+      <td>${hasRg ? `<div class="wl-rg"><span>${fmt(q.fiftyTwoWeekLow)}</span><div class="wl-bar"><i style="left:${pos.toFixed(0)}%"></i></div><span>${fmt(q.fiftyTwoWeekHigh)}</span></div>` : dash}</td>
+      <td class="wl-xcell"><button type="button" class="icon-btn" data-wlremove="${escAttr(w.ticker)}" aria-label="${esc(t("Remove from watchlist"))}" title="${esc(t("Remove from watchlist"))}">✕</button></td></tr>`;
+  }).join("");
+  const table = `<div class="table-wrap wl-tbl"><table class="data-table pfx-txt"><thead><tr><th>${t("Stock")}</th><th class="pfn">${t("Price")}</th><th class="pfn">${t("Today")}</th><th class="pfn">${t("Dividend yield")}</th><th class="pfn">${t("Last dividend")}</th><th>${t("52-week range")}</th><th></th></tr></thead><tbody>${trs}</tbody></table></div>`;
+  const emptyMsg = `<p class="muted" style="margin:14px 0 0">${t("Nothing on your watchlist yet. Add a stock above to follow its price.")}</p>`;
   return panel(`${t("Watchlist")}${infoTip(t("Stocks you are following but do not own yet. Prices come from the market; nothing here counts toward your portfolio. Tap a stock for details."))}`,
-    `${form}<div class="wl-list">${rows || `<p class="muted" style="margin:14px 0 0">${t("Nothing on your watchlist yet. Add a stock above to follow its price.")}</p>`}</div>`);
+    `${form}${list.length ? `<div class="wl-list">${rows}</div>${table}` : emptyMsg}`);
 }
 function showWatchSheet(tk) {
   const w = (SETTINGS.watchlist || []).find((x) => x.ticker === tk); if (!w) return;
