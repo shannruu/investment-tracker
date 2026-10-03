@@ -3877,3 +3877,5 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
   .pfx-set .st-wrap[data-open="1"] .st-back { font-size: 13px !important; }
 }
 @media (max-width: 760px) { .pfx-set .st-wrap[data-open="0"] .st-menu { display: flex; } }
+
+.pfx .panel-head h2 > .pfx-sm, .pfx .panel-head h2 small.pfx-sm { margin-left: 10px !important; }
