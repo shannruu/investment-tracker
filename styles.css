@@ -297,7 +297,7 @@ button.brand { border: none; background: none; padding: 0; font: inherit; cursor
    with everything else and collapses the same way. */
 .sidebar-add { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 14px; }
 .sidebar-add .btn {
-  justify-content: flex-start; gap: 11px; padding: 9px 11px 9px 15px; width: 100%;
+  justify-content: center; gap: 11px; padding: 9px 15px; width: 100%;
   transition: background .12s, border-color .12s, transform .05s, gap .15s;
 }
 .sidebar.collapsed .sidebar-add .btn { gap: 0; }
@@ -2851,7 +2851,7 @@ a.ticker.tk-name:hover { color: var(--brand); }
 .dv-kv span { display: block; font-size: 12px; font-weight: 700; color: var(--muted); }
 .dv-kv b { display: block; margin-top: 4px; font-size: 17px; font-weight: 700; }
 .pfx-chipd { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal; }
-.pfx-chipd .rm { display: none; }
+.pfx-chipd .rm { display: inline; }
 .pfx-chipd.es { background: color-mix(in srgb, var(--brand) 16%, transparent); color: var(--dz-lnk); }
 @media (max-width: 760px) { .dv-kv { grid-template-columns: 1fr; gap: 8px; } }
 
