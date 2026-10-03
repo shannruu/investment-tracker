@@ -3344,3 +3344,15 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
   .pfx-div .pfx-chipd::after { content: ""; position: absolute; inset: -9px; }
   .pfx-div .pfx-more { font-size: 10px; flex: 1 1 100%; text-align: center; }
 }
+
+/* Phone: pill bars and calendar dots one step smaller */
+@media (max-width: 760px) {
+  .dz-seg { padding: 4px; }
+  .dz-seg button { min-height: 34px; padding: 6px 10px; font-size: 13px; }
+  .pfx .panel-head > .dz-seg > button, .pfx .panel-head-actions > .dz-seg > button { padding-inline: 6px; }
+  .pfx-div .pfx-chipd { width: 8px; height: 8px; min-width: 8px; margin: 3px 0 0; }
+  .pfx-div .pfx-chipd.ex { border-width: 1.5px; }
+  .pfx-div .pfx-chipd::after { inset: -11px; }
+  .pfx-div .pfx-dc { gap: 3px; }
+}
+.pfx-leg2 i { width: 10px; height: 10px; }
