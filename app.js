@@ -1005,6 +1005,7 @@ const ZH = {
   "This device": "此设备", "Your account": "您的账户",
   "Keep this device, upload it": "保留此设备的数据并上传",
   "Use my account's data": "使用账户中的数据",
+  "Pull and discard": "拉取并放弃", "Discard this device's change?": "放弃此设备上的更改？",
   "Your data was updated from another device. Pull the latest before making more changes here, or you'll overwrite it.": "您的数据已在其他设备上更新。请先拉取最新数据，否则继续编辑将覆盖它。",
   "Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.": "登录状态下您的数据也会同步到账户，因此清除浏览器数据不会丢失它 — 但仍建议定期导出 JSON 备份。",
   "Local data from a previous account was cleared before syncing this account.": "同步此账户前，已清除上一账户遗留在本设备的数据。",
@@ -1628,7 +1629,7 @@ function saveStore() {
     seedPvHistory();
     localStorage.setItem(STORE_KEY, JSON.stringify(snapshot()));
     LAST_SAVED = new Date().toISOString();
-    SAVE_SEQ++; try { localStorage.setItem("il-dirty", "1"); } catch (e) {}   // an edit the cloud has not seen yet (sync.js clears it)
+    SAVE_SEQ++;   // counts saves; sync.js uses it to tell whether more edits arrived while a push was in flight
     hideSaveError();
     if (typeof onDataSaved === "function") onDataSaved();
     return true;

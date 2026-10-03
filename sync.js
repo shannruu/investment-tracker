@@ -48,17 +48,26 @@ function syncAvailable() { return !!window.SUPABASE; }
  * LAST_SYNCED (only the last successful round-trip, which says nothing about
  * whether local data has changed since). Shared by every place that has to
  * decide whether pulling right now would silently discard local work. */
-function hasUnsyncedLocalEdit() {
-  // An explicit flag (set by every local save, cleared once the cloud has the data). Comparing the
-  // device clock (LAST_SAVED) with the server clock (LAST_SYNCED) went wrong whenever the two differed.
-  try { const d = localStorage.getItem("il-dirty"); if (d === "1") return true; if (d === "0") return false; } catch (e) {}
-  return !!(LAST_SAVED && (!LAST_SYNCED || new Date(LAST_SAVED) > new Date(LAST_SYNCED)));   // devices that predate the flag
+/* A short fingerprint of what the USER typed or chose: brokers, holdings, records, settings, profile. Deliberately leaves out
+ * everything the app refreshes by itself (prices, FX rates, history points, fetched dividends, stock info, last-backup date) -
+ * those change on every visit and are not "a change on this device that needs syncing". */
+function userDataHashOf(s) {
+  const st = Object.assign({}, s.SETTINGS || {}); delete st.lastBackup;
+  const str = JSON.stringify([s.BROKERS, s.HOLDINGS, s.ALL_TRANSACTIONS, st, s.USER, s.RECON_CHECKS, s.DISMISSED_AUTO_DIVS, s.HOLDING_TYPES]);
+  let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+  return h + ":" + str.length;
 }
-/* The cloud and this device now hold the same data: remember the SERVER time of that snapshot and clear the edit flag
- * (unless more edits arrived since seq was taken). */
-function markSynced(updatedAt, seq) {
+function hasUnsyncedLocalEdit() {
+  // Compare the user data now with the user data the cloud last held for this device. (Comparing the device clock with the
+  // server clock, or counting every automatic save, kept raising a conflict when the person had not typed anything.)
+  try { const h = localStorage.getItem("il-synced-hash"); if (h) return userDataHashOf(snapshot()) !== h; } catch (e) {}
+  return !!(LAST_SAVED && (!LAST_SYNCED || new Date(LAST_SAVED) > new Date(LAST_SYNCED)));   // devices that predate this check
+}
+/* The cloud and this device now hold the same data: remember the SERVER time of that snapshot and a fingerprint of the user
+ * data (unless more edits arrived since seq was taken, then the fingerprint of what was actually sent is kept). */
+function markSynced(updatedAt, seq, sentHash) {
   if (updatedAt) { LAST_SYNCED = updatedAt; try { localStorage.setItem("il-last-synced", LAST_SYNCED); } catch (e) {} }
-  if (seq === undefined || seq === SAVE_SEQ) { try { localStorage.setItem("il-dirty", "0"); } catch (e) {} }
+  try { localStorage.setItem("il-synced-hash", sentHash || userDataHashOf(snapshot())); } catch (e) {}
 }
 
 /* Every per-account cache that lives OUTSIDE the local snapshot()/applySnapshot() blob
@@ -368,10 +377,14 @@ async function initSync() {
     // cloud yet — pulling now would overwrite that edit in memory, and letting
     // the pending push fire afterward would silently re-push the stale (reverted)
     // data right back over the fresh pull, losing the edit on both sides.
-    if (hasUnsyncedLocalEdit() && !confirm(t("You have a change on this device that hasn't finished syncing yet. Pulling now will discard it. Continue?"))) return;
     clearTimeout(_pushTimer);
     const row = await pullFromCloud();
-    if (row) { applySnapshot(row.data); saveStore(); markSynced(row.updated_at); }
+    if (row) {
+      // Only ask when this device really holds records or settings the cloud copy does not.
+      const differs = userDataHashOf(row.data) !== userDataHashOf(snapshot());
+      if (differs && hasUnsyncedLocalEdit() && !(await showConfirmModal(t("You have a change on this device that hasn't finished syncing yet. Pulling now will discard it. Continue?"), { title: "Discard this device's change?", okLabel: "Pull and discard", danger: true }))) return;
+      applySnapshot(row.data); saveStore(); markSynced(row.updated_at);
+    }
     hideCloudStaleWarning(); render();
   });
   const dismissBtn = $("#cloudStaleDismiss");
@@ -403,25 +416,27 @@ async function pushToCloud(force) {
   }
   _syncBusy = true;
   let ok = false;
-  const seq = SAVE_SEQ;
+  const seq = SAVE_SEQ, sentHash = userDataHashOf(snapshot());
+  let blocked = false;
   try {
     // Never silently overwrite a newer cloud copy: if another device pushed since this one last synced, warn instead
     // (the banner offers "Pull latest"). Server time is compared with server time only. `force` is for the explicit
     // "keep this device's data" and first-upload paths.
-    let blocked = false;
     if (force !== true && LAST_SYNCED) {
       const { data: cur } = await SUPABASE.from("ledger_data").select("updated_at").eq("user_id", SYNC_USER.id).maybeSingle();
       if (cur && cur.updated_at && new Date(cur.updated_at) > new Date(LAST_SYNCED)) blocked = true;
     }
-    if (blocked) showCloudStaleWarning();
-    else {
+    if (!blocked) {
       const { data, error } = await SUPABASE.from("ledger_data")
         .upsert({ user_id: SYNC_USER.id, data: snapshot() }, { onConflict: "user_id" })
         .select("updated_at").single();
-      if (!error && data && data.updated_at) { markSynced(data.updated_at, seq); ok = true; }
+      if (!error && data && data.updated_at) { markSynced(data.updated_at, seq, sentHash); ok = true; }
     }
   } catch (e) { /* offline/etc — next edit or the "online" listener retries */ }
   _syncBusy = false;
+  // The cloud is newer. If this device has no records or settings of its own that the cloud lacks, just refresh quietly;
+  // only warn when there is a real change here that a refresh would throw away.
+  if (blocked) { if (hasUnsyncedLocalEdit()) showCloudStaleWarning(); else pullIfNewer(); }
   return ok;
 }
 
@@ -447,6 +462,7 @@ async function pullIfNewer() {
   const row = await pullFromCloud();
   if (!row || !row.updated_at) return;
   if (LAST_SYNCED && new Date(row.updated_at) <= new Date(LAST_SYNCED)) return;   // server time vs server time
+  if (userDataHashOf(row.data) === userDataHashOf(snapshot())) { markSynced(row.updated_at); return; }   // same records and settings: nothing to merge
   if (!hasUnsyncedLocalEdit()) {
     applySnapshot(row.data); saveStore(); markSynced(row.updated_at);
     toast(t("Synced the latest changes from another device."));
