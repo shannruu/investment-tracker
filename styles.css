@@ -3225,3 +3225,8 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
 .dzc-sheet .dzc-h button { width: 40px; height: 40px; }
 .dzc-sheet .dzc-f button { padding: 10px 14px; font-size: 14px; }
 @media (max-width: 760px) { .pfx .sel-trigger, .pfx-stock .sel-trigger { min-height: 40px; } }
+/* Phone: keep the footer text clear of the bottom bar (its height grows with the phone's home-indicator area) */
+@media (max-width: 760px) {
+  .app-disclaimer { padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px)); }
+  .content { padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)); }
+}
