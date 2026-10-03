@@ -3636,3 +3636,7 @@ html:not([data-theme="dark"]) body:has(.sel.open)::after { background: rgba(40, 
 .dg-bar { max-width: none; }
 .dg-form { margin-top: 4px; }
 .dg-edit { position: absolute; right: 0; top: -2px; margin: 0; }
+
+/* Card titles: a description lives in the (i) icon, never beside the title */
+.panel-head h2 { align-items: center; }
+.panel-head h2 .col-info { margin-left: 8px; }

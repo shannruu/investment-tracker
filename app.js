@@ -3583,11 +3583,10 @@ function realizedPLHTML() {
   const sortSel = styledSelect("rzSort", [["high", "Highest profit first"], ["low", "Biggest loss first"], ["new", "Most recent first"]]
     .map(([value, label]) => ({ value, label: t(label) })), realizedView.sort, { id: "rzSort" });
   const w = (100 / headers.length).toFixed(1) + "%";
-  return summary + panel(`${t("Realized P/L")}<small class="pfx-sm">${t("profit or loss you locked in by selling")}</small>`,
+  return summary + panel(`${t("Realized P/L")}${infoTip(t("profit or loss you locked in by selling") + " " + (SETTINGS.costBasis === "fifo" ? t("Profit = sale proceeds − cost of the oldest shares sold (FIFO) − fees and taxes on the sale. Dividends and interest are counted separately.") : t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately.")))}`,
     `<div class="pf-rzbar" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px">${modeBtns}${filterBtns}${sortSel}</div>
      <div class="dcc-table-scroll pf-rz-desk">${`<div class="pfx-rz pfx-rz-${realizedView.mode}">${table(headers.map((h, i) => ({ label: h, num: i >= numFrom && i !== headers.length - 3, style: "width:" + w })), rows)}</div>`}</div>
-     <div class="pf-rz-mob">${rzMob}</div>
-     <p class="muted" style="font-size:12px;margin:10px 0 0">${(SETTINGS.costBasis === "fifo" ? t("Profit = sale proceeds − cost of the oldest shares sold (FIFO) − fees and taxes on the sale. Dividends and interest are counted separately.") : t("Profit = sale proceeds − average cost of the shares sold − fees and taxes on the sale. Dividends and interest are counted separately."))}</p>${bestWorst}`);
+     <div class="pf-rz-mob">${rzMob}</div>${bestWorst}`);
 }
 
 function pfHeaderHTML() {
@@ -5604,7 +5603,7 @@ function pageDividends() {
         ${back != null ? `<div class="lt-bar"><i style="width:${Math.min(100, back).toFixed(0)}%"></i></div><div class="lt-s">${dzF("{n}% of your cost back", { n: fmt(back, { maximumFractionDigits: 0 }) })}</div>` : ""}</div>`; }).join("");
     const endOf = (n) => { const d = new Date(todayDate()); d.setFullYear(d.getFullYear() + n); return d.toLocaleDateString(LANG === "zh" ? "zh-CN" : "en-GB", { month: "short", year: "numeric" }); };
     const rows = [1, 2, 3, 4, 5].map((n) => `<tr><td>${dzF("Year {n}", { n })} <span class="muted">· ${t("until")} ${endOf(n)}</span></td><td class="pfn">${money(perYear[n - 1])}</td><td class="pfn">${money(cum[n - 1])}</td></tr>`).join("");
-    return panel(`${t("If you keep what you own")}${infoTip(dzF("Based on the {n} of dividends expected over the next 12 months from the shares you hold today. Assumes you buy and sell nothing more and the companies keep paying. An estimate, not a promise.", { n: money(ltBase) }))}<small class="pfx-sm">${t("dividends you could collect, added up over the years")}</small>`, `<div class="lt-ms">${miles}</div>`,
+    return panel(`${t("If you keep what you own")}${infoTip(t("dividends you could collect, added up over the years") + " " + dzF("Based on the {n} of dividends expected over the next 12 months from the shares you hold today. Assumes you buy and sell nothing more and the companies keep paying. An estimate, not a promise.", { n: money(ltBase) }))}`, `<div class="lt-ms">${miles}</div>`,
       `<div class="lt-grow"><span>${t("Dividends grow")}</span>${growthSeg}</div>`);
   })();
   let overview = "";   // assembled below, once the "next payments" list exists
@@ -5635,14 +5634,14 @@ function pageDividends() {
   for (let i = 0; i < (7 - ((firstDow + dim) % 7)) % 7; i++) cells += `<div class="pfx-dc off"></div>`;
   const monthTitle = new Date(cy, cm - 1, 1).toLocaleString(LANG === "zh" ? "zh-CN" : "en", { month: "long", year: "numeric" });
   const calNav = `<div class="dz-seg" role="group"><button type="button" data-dvcal="prev" aria-label="${t("Previous month")}">‹</button><button type="button" class="on" data-dvcal="today">${t("Today")}</button><button type="button" data-dvcal="next" aria-label="${t("Next month")}">›</button></div>`;
-  const monthCard = panel(`${monthTitle}<small class="pfx-sm">${t("your dividend dates")}</small>`, `<div class="pfx-cal7">${cells}</div><div class="pfx-leg pfx-leg2"><div><i class="pfx-leg-ex"></i><span><b>${t("Ex-date")}</b>${t("Own the stock before this day.")}</span></div><div><i class="lg-rec"></i><span><b>${t("Payout")}</b>${t("The day the money arrives.")}</span></div><div><i class="lg-est"></i><span><b>${t("Estimated")}</b>${t("A guess, so the date may move.")}</span></div></div>`, calNav);
+  const monthCard = panel(`${monthTitle}${infoTip(t("your dividend dates"))}`, `<div class="pfx-cal7">${cells}</div><div class="pfx-leg pfx-leg2"><div><i class="pfx-leg-ex"></i><span><b>${t("Ex-date")}</b>${t("Own the stock before this day.")}</span></div><div><i class="lg-rec"></i><span><b>${t("Payout")}</b>${t("The day the money arrives.")}</span></div><div><i class="lg-est"></i><span><b>${t("Estimated")}</b>${t("A guess, so the date may move.")}</span></div></div>`, calNav);
   const dvAmt = (d) => money(d.amtMYR);
   const dvLocal = (d) => (d.ccy && d.ccy !== FX.base && d.amtLocal != null ? `<small class="dv-ccy">${ccyLabel(d.ccy)} ${fmt(d.amtLocal)}</small>` : "");
   const comingList = allDivEntries.filter((d) => (d.payDisplay || d.payDate) >= today).slice(0, 4).map((d) => { const pay = d.payDisplay || d.payDate, dt = new Date(pay + "T00:00:00");
     return `<div class="pfx-nx" role="button" tabindex="0" data-dvdetail="${dvIdx.get(d)}"><div class="pfx-dd" title="${t("Payout date")}"><small>${dt.toLocaleString("en", { month: "short" }).toUpperCase()}</small><b class="dz-n">${dt.getDate()}</b></div>
       <div class="pfx-nxt"><b>${esc(dvNameOf(d.ticker))}</b><span>${fmtDate(pay)} · ${(d.status === "Estimated" ? t("Estimated") : t("Confirmed")).toLowerCase()}</span></div>
       <div class="pfx-nxa dz-n pos">+${money(d.amtMYR)}${dvLocal(d)}</div></div>`; }).join("");
-  const comingCard = panel(`${t("Coming up")}<small class="pfx-sm">${t("next payments")}</small>`, (comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`));
+  const comingCard = panel(`${t("Coming up")}${infoTip(t("next payments"))}`, (comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`));
   const nextCard = panel(t("Next payments"), comingList || `<p class="muted" style="margin:0">${t("Nothing scheduled yet.")}</p>`, `<button type="button" class="pf-linkbtn" data-dvtab="calendar">${t("Calendar")} →</button>`);
   overview = `<div class="pfx-two pfx-two-cal">${incomeCard}${nextCard}</div>${goalCard}${ltCard || panel(t("Dividend Forecast"), forecastBody)}`;
   const payFilters = [["all", t("All")], ["past", t("Received")], ["upcoming", t("Upcoming")]];
@@ -5666,7 +5665,7 @@ function pageDividends() {
   const periodTabs = [["monthly", t("Monthly")], ["quarterly", t("Quarterly")], ["annual", t("Yearly")], ["stock", t("By stock")]];
   const periodSeg = `<div class="dz-seg" role="group">${periodTabs.map(([k, l]) => `<button type="button" class="${divIncomePeriod === k ? "on" : ""}" data-dvperiod="${k}">${l}</button>`).join("")}</div>`;
   const lifeKv = `<div class="dv-kv"><div><span>${t("Gross Dividends")}</span><b class="dz-n">${money(grossBase)}</b></div><div><span>${t("Withholding Tax")}</span><b class="dz-n${taxBase > 0 ? " neg" : ""}">${money(taxBase)}</b></div><div><span>${t("Net Dividends (Lifetime)")}</span><b class="dz-n pos">${money(netTotal)}</b></div></div>`;
-  const incomeByPeriod = panel(`${t("Income by period")}<small class="pfx-sm">${t("dividends received, by month, quarter, year or stock")}</small>`, received.length
+  const incomeByPeriod = panel(`${t("Income by period")}${infoTip(t("dividends received, by month, quarter, year or stock"))}`, received.length
       ? `<div class="pfx-rz"><div class="table-wrap pfx-dvt-wrap dv-inc"><table class="data-table pfx-txt"><thead><tr><th>${incomeLabels[divIncomePeriod] || t("Month")}</th><th>${t("Size")}</th><th class="pfn">${t("Net")} (${ccyLabel(FX.base)})</th></tr></thead><tbody>${incomeRowsByPeriod[divIncomePeriod] || monthRows}</tbody></table></div></div>`
       : `<p class="muted" style="margin:0 0 12px;font-size:13px">${t("No dividend income yet. Record one to start tracking it over time.")}</p><a class="btn primary small" href="#/add/dividend">${t("Record a dividend")} →</a>`, periodSeg);
   const historyTab = incomeByPeriod;
@@ -7254,7 +7253,7 @@ function pageHolding() {
     const seg = `<div class="dz-seg" role="group" aria-label="${esc(t("Dividends grow"))}">${[0, 3, 6].map((n) => `<button type="button" class="${divLtGrowth === n ? "on" : ""}" data-dvgrowth="${n}">${n === 0 ? "0%" : dzF("{n}% a year", { n })}</button>`).join("")}</div>`;
     const miles = [1, 3, 5, 10].map((n) => { const c = cum[n - 1], back = h.costBasis > 0 ? (c / h.costBasis) * 100 : null;
       return `<div class="lt-m"><div class="lt-y">${n === 1 ? t("In 1 year") : dzF("In {n} years", { n })}</div><div class="lt-v dz-n">${money(c)}</div>${back != null ? `<div class="lt-bar"><i style="width:${Math.min(100, back).toFixed(0)}%"></i></div><div class="lt-s">${dzF("{n}% of your cost back", { n: fmt(back, { maximumFractionDigits: 0 }) })}</div>` : ""}</div>`; }).join("");
-    return panel(`${t("If you keep this stock")}${infoTip(dzF("Based on the {n} of dividends expected over the next 12 months from the shares you hold today. Assumes you buy and sell nothing more and the companies keep paying. An estimate, not a promise.", { n: money(ltBaseSt) }))}<small class="pfx-sm">${t("dividends you could collect, added up over the years")}</small>`, `<div class="lt-ms">${miles}</div>`,
+    return panel(`${t("If you keep this stock")}${infoTip(t("dividends you could collect, added up over the years") + " " + dzF("Based on the {n} of dividends expected over the next 12 months from the shares you hold today. Assumes you buy and sell nothing more and the companies keep paying. An estimate, not a promise.", { n: money(ltBaseSt) }))}`, `<div class="lt-ms">${miles}</div>`,
       `<div class="lt-grow"><span>${t("Dividends grow")}</span>${seg}</div>`);
   })();
   const divTabBody = `${dvCardsTab}<div class="pfx-two pfx-two-cal">${dvHistoryHTML || panel(t("Dividends by year"), `<p class="muted" style="margin:0">${t("Not enough dividends yet to draw a chart.")}</p>`)}${nextCardSt}</div>${ltCardSt}${dvCalendarHTML}`;
