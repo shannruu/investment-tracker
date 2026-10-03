@@ -3509,3 +3509,7 @@ html:not([data-theme="dark"]) body:has(.sel.open)::after { background: rgba(40, 
   .pfx:not(.pfx-stock) .dz-top:has(.pfx-btn) .dz-topr { grid-column: 2; grid-row: 2; margin: 0; align-self: center; justify-content: flex-end; flex-wrap: nowrap; }
   .pfx:not(.pfx-stock) .dz-topr .pfx-btn { min-height: 38px; padding-inline: 14px; white-space: nowrap; font-size: 13px; }
 }
+
+/* Dropdowns: no purple outline on the box or the search field, only neutral borders */
+.sel-trigger:hover, .sel.open .sel-trigger { border-color: color-mix(in srgb, var(--text) 28%, var(--border)); }
+.sel-search-input:focus, .sel-trigger:focus, .sel-trigger:focus-visible { outline: none; border-color: color-mix(in srgb, var(--text) 28%, var(--border)); box-shadow: none; }
