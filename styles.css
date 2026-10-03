@@ -3868,3 +3868,11 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
   .st-mi.dng b, .st-mi.dng .st-mic { color: var(--neg); }
 }
 @media (max-width: 760px) { .st-mi { padding: 16px 18px; } }
+
+/* Settings list: same text sizes as the other lists (14px title, 12px detail) */
+@media (max-width: 760px) {
+  .st-mi { padding: 13px 16px !important; gap: 12px; min-height: 56px; }
+  .st-mt b { font-size: 14px !important; font-weight: 700; } .st-mt small { font-size: 12px !important; }
+  .st-mc { font-size: 20px; }
+  .pfx-set:not(.pfx-acct) .st-wrap[data-open="1"] .st-back { font-size: 13px !important; }
+}
