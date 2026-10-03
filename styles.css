@@ -3645,3 +3645,7 @@ html:not([data-theme="dark"]) body:has(.sel.open)::after { background: rgba(40, 
 /* (i) icons sit on the optical middle of the text next to them */
 .panel-head h2 .col-info, .pfx .panel-head h2 .col-info { transform: translateY(1.5px); }
 th .col-info, .rc-rows .col-info, .rc-grp .col-info { transform: translateY(-1px); }
+
+.wl-row { grid-template-columns: minmax(0, 1.2fr) minmax(0, .9fr) minmax(0, 1.2fr) minmax(0, 1.2fr) auto; }
+.wl-d b { display: block; font-size: 13.5px; } .wl-d small { display: block; font-size: 11.5px; color: var(--muted); }
+@media (max-width: 760px) { .wl-row { grid-template-columns: minmax(0, 1fr) auto; } .wl-d { grid-column: 1 / -1; grid-row: 3; } .wl-r { grid-row: 4; } }
