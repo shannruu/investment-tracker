@@ -3421,3 +3421,31 @@ input[type="date"] { background-image: url("data:image/svg+xml,%3Csvg xmlns='htt
   .pfx-sc .pfx-pw-top .pfx-pl { padding: 2px 5px; font-size: 9.5px; }
   .pfx-sc .pfx-lbl .pfx-go svg { width: 14px; height: 14px; }
 }
+
+/* ===== Phone: Settings tidy-up ===== */
+@media (max-width: 760px) {
+  /* section tabs: all visible, wrapping into rows instead of sliding off the screen */
+  .st-nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; overflow: visible; border-radius: 22px; padding: 6px; }
+  .st-nav button { white-space: normal; text-align: center; padding: 10px 6px; font-size: 13px; line-height: 1.2; border-radius: 16px; }
+  /* every setting row: label on the left, control on the right in one fixed-width column */
+  .setting-row { gap: 12px; align-items: center; }
+  .setting-row .sr-label { flex: 1 1 0; min-width: 0; }
+  .setting-row .sr-value { flex: 0 0 168px; width: 168px; display: flex; justify-content: flex-end; }
+  .setting-row .sr-value > div[style] { width: 100% !important; }
+  .setting-row .sr-value .sel { width: 100%; }
+  .setting-row .sr-value .input-prefix { width: 100%; justify-content: flex-end; }
+  .setting-row .sr-value .dz-seg { width: 100%; }
+  .setting-row .sr-value .switch { margin-left: auto; }
+  .setting-row .lbl-t { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  /* pill buttons: text always centred */
+  .dz-seg button { display: inline-flex; align-items: center; justify-content: center; text-align: center; }
+  /* action buttons keep their text inside */
+  .st-sec .form-actions .btn { white-space: normal; text-align: center; line-height: 1.25; }
+  .st-sec .form-actions .btn.small { white-space: nowrap; }
+}
+
+@media (max-width: 760px) {
+  .setting-row .sr-value .dz-seg > button { flex: 1 1 0; }
+  .setting-row .lbl-t { display: block; }
+  .setting-row .lbl-t .col-info { margin-left: 6px; vertical-align: middle; }
+}
