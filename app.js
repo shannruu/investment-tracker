@@ -7333,7 +7333,7 @@ function pageHolding() {
   const stBody = holdingTab === "dividends" ? (divTabBody.trim() ? divTabBody : panel(t("Dividends"), emptyState(t("No dividend data for this holding yet."))))
     : holdingTab === "tx" ? `${dvCardsTab}${txPanel}`
     : `${stSum}<div class="pfx-two2">${priceBlock}${returnPanel}</div>${priceHistPanel}${positionPanel}${chartsHTML}`;
-  const html = `<div class="pfx pfx-stock"><p style="margin:-4px 0 0"><a class="link" href="#/portfolio">← ${t("Back to Portfolio")}</a></p>${stHeader}${stNav}${stBody}</div>`;
+  const html = `<div class="pfx pfx-stock">${stHeader.replace('<header class="dz-top">', `<a class="pf-back" href="#/portfolio">‹ ${t("Portfolio")}</a><header class="dz-top">`)}${stNav}${stBody}</div>`;
 
   return { title: h.ticker, subtitle: h.company || t("Holding detail"), html,
     mount() {

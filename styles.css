@@ -3863,3 +3863,9 @@ html, body { touch-action: manipulation; -webkit-text-size-adjust: 100%; text-si
 @keyframes stPushBack { from { opacity: 0; transform: translateX(-32px); } to { opacity: 1; transform: none; } }
 .push-in { animation: stPushIn .34s cubic-bezier(.32,.72,0,1); }
 .push-back { animation: stPushBack .34s cubic-bezier(.32,.72,0,1); }
+
+/* Stock page back link = the same back button as Settings / Account */
+.pf-back { display: inline-flex; align-items: center; height: 48px; min-width: 48px; margin: 0 0 0 -4px; padding: 0 14px 0 4px; border-radius: 12px; color: var(--brand-ink, #a99dff); font-size: 16px; font-weight: 600; text-decoration: none; gap: 2px; }
+.pf-back::first-letter { font-size: 30px; line-height: 1; padding-right: 4px; }
+.pf-back:active { background: color-mix(in srgb, var(--text) 8%, transparent); }
+@media (max-width: 760px) { .pfx-stock .dz-top { margin-top: -6px; } }
