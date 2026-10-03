@@ -847,6 +847,36 @@ const ZH = {
   "Tags, e.g. bank, reit, long term": "标签，例如：银行, 房地产信托, 长期",
   "Save note": "保存笔记",
   "Note saved": "笔记已保存",
+  "Add a stock: code or name": "添加股票：代码或名称",
+  "You own this": "您已持有",
+  "52-week range": "52 周区间",
+  "Watchlist": "自选股",
+  "Stocks you are following but do not own yet. Prices come from the market; nothing here counts toward your portfolio.": "您关注但尚未持有的股票。价格来自市场，这里的内容不计入您的投资组合。",
+  "Nothing on your watchlist yet. Add a stock above to follow its price.": "自选股还是空的。在上方添加股票即可关注价格。",
+  "Already on your watchlist.": "已在自选股中。",
+  "Couldn't find that stock. Check the code (for example 1155.KL).": "找不到这只股票，请检查代码（例如 1155.KL）。",
+  "Added to your watchlist": "已加入自选股",
+  "Target mix": "目标配置",
+  "Set the share you would like each part of your portfolio to have. Divz shows how far you are from it and about how much you would buy or sell to get there. A guide only, it does not trade anything.": "设定您希望投资组合各部分所占的比例。Divz 会显示目前与目标的差距，以及大约需要买入或卖出多少。仅供参考，不会进行任何交易。",
+  "On target": "已达标",
+  "{p}% over · sell about {a}": "超出 {p}% · 约需卖出 {a}",
+  "{p}% under · buy about {a}": "低于 {p}% · 约需买入 {a}",
+  "Targets add up to": "目标合计",
+  "Save targets": "保存目标",
+  "Clear": "清除",
+  "Targets saved": "目标已保存",
+  "Now": "目前",
+  "Compared with the market": "与大盘比较",
+  "Add some records first to compare.": "请先添加记录再比较。",
+  "Market data isn't available right now.": "目前无法取得市场数据。",
+  "You": "您",
+  "Annual return": "年化回报",
+  "Per year": "每年",
+  "You are ahead of {n} by {p} points a year.": "您每年领先 {n} {p} 个百分点。",
+  "You are behind {n} by {p} points a year.": "您每年落后 {n} {p} 个百分点。",
+  "Your annual return needs at least a month of records.": "年化回报需要至少一个月的记录。",
+  "{n} went from {a} to {b} since {d} ({p} in total).": "自 {d} 起，{n} 从 {a} 变为 {b}（累计 {p}）。",
+  "Your annual return (XIRR) counts your deposits, dividends and fees. The index shows only its price, without dividends, so it can look lower than a fair comparison. Both cover the time since your first record.": "您的年化回报 (XIRR) 已计入存款、股息和费用。指数只反映价格、不含股息，所以可能比公平比较偏低。两者的时间范围都是从您的第一笔记录起。",
   "Your ledger": "你的账本",
   "records": "笔记录",
   "since": "自",
@@ -2244,6 +2274,7 @@ async function autofillFromTicker(form, statusEl, opts = {}) {
   const tEl = form.querySelector('[name="ticker"]');
   if (!tEl) return;
   const raw = tEl.value.trim();
+  if (opts.noFill) return;   // watchlist: only the search dropdown is wanted, not the form auto-fill
   if (!raw) { if (statusEl) statusEl.textContent = ""; return; }
   if (!LIVE_ENABLED) { if (statusEl) { statusEl.innerHTML = `⚠️ ${t("Live lookup only works on your deployed website, not when you open the file locally. Commit, push, and try it on your Vercel URL.")}`; statusEl.className = "lookup-status warn"; } return; }
   const symbol = normalizeSymbol(raw);
@@ -3245,14 +3276,14 @@ function pagePortfolio() {
   const priceStampHtml = `<span id="pfPriceStamp">${latestFetch ? metaNote(CLOCK_ICON_SVG, `${t("Prices as of")} ${fmtDateTime(latestFetch)}`) : ""}</span>`;
   // Holdings table vs. allocation breakdowns — same tp-tab pills as the Records page,
   // so switching doesn't feel like a different component elsewhere in the app.
-  const pfTabs = [["holdings", "Holdings"], ["allocation", "Allocation"], ["realized", "Realized P/L"]];
+  const pfTabs = [["holdings", "Holdings"], ["allocation", "Allocation"], ["realized", "Realized P/L"], ["watch", "Watchlist"]];
   const pfNav = `<div class="pfx-tabs"><div class="dz-seg" role="tablist">${pfTabs.map(([k, lbl]) =>
     `<button type="button" role="tab" aria-selected="${portfolioTab === k}" class="${portfolioTab === k ? "on" : ""}" data-pftab="${k}">${t(lbl)}</button>`).join("")}</div></div>`;
   const hasSales = (T.realizedSales || []).length > 0;
   const html = (has || hasSales)
     ? `<div class="pfx">${pfHeaderHTML()}${has ? `<div id="pfSummary">${portfolioSummaryHTML()}</div>` : ""}
        ${pfNav}
-       ${portfolioTab === "realized" ? realizedPLHTML() : !has ? panel(t("Holdings"), emptyContent)
+       ${portfolioTab === "watch" ? watchlistHTML() : portfolioTab === "realized" ? realizedPLHTML() : !has ? panel(t("Holdings"), emptyContent)
           : portfolioTab === "allocation" ? breakdowns
           : panel(t("All Holdings"), `<div class="pf-stamp">${priceStampHtml}</div>` + filterBar + `<div id="holdingsBody">${portfolioTable()}</div>`,
               `<div class="panel-head-actions">${filterToggleBtn}${colPanelHtml}</div>`)}</div>`
@@ -3263,6 +3294,35 @@ function pagePortfolio() {
       : `${plural(T.holdings.length, "holding", "holdings")} across ${plural(BROKERS.length, "broker", "brokers")} · ${money(T.portfolioValue)}`, html,
     mount() {
       $$("[data-pftab]").forEach((b) => b.addEventListener("click", () => { portfolioTab = b.dataset.pftab; render(); }));
+      if (portfolioTab === "watch") {
+        const wf = $("#wlForm");
+        if (wf) {
+          attachAutocomplete(wf, $("#wlStatus"), { noFill: true });
+          wf.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const sym = normalizeSymbol(wf.ticker.value), st = $("#wlStatus"); if (!sym) return;
+            if ((SETTINGS.watchlist || []).some((w) => w.ticker === sym)) { toast(t("Already on your watchlist.")); return; }
+            st.textContent = t("Looking up…");
+            const q = await fetchQuote(sym);
+            if (!q) { st.textContent = t("Couldn't find that stock. Check the code (for example 1155.KL)."); return; }
+            (SETTINGS.watchlist || (SETTINGS.watchlist = [])).push({ ticker: q.symbol || sym, name: q.name || "" });
+            WATCH_Q[q.symbol || sym] = q; saveStore(); toast(t("Added to your watchlist")); render();
+          });
+        }
+        $$("[data-wlrm]").forEach((b) => b.addEventListener("click", () => { SETTINGS.watchlist = (SETTINGS.watchlist || []).filter((w) => w.ticker !== b.dataset.wlrm); saveStore(); render(); }));
+        if (LIVE_ENABLED) loadWatchQuotes();
+      }
+      if (portfolioTab === "allocation") {
+        const ts = $("#tmSave");
+        if (ts) ts.addEventListener("click", () => {
+          const dim = ts.dataset.tmdim, map = (SETTINGS.targetMix || (SETTINGS.targetMix = {}));
+          const o = {}; $$("[data-tm]").forEach((inp) => { const v = parseFloat(inp.value); if (v >= 0) o[inp.dataset.tm] = Math.min(100, v); });
+          map[dim] = o; saveStore(); toast(t("Targets saved")); render();
+        });
+        const tc = $("#tmClear"); if (tc) tc.addEventListener("click", () => { if (SETTINGS.targetMix) delete SETTINGS.targetMix[tc.dataset.tmdim]; saveStore(); render(); });
+        const bs = $("#benchSel"); if (bs) bs.addEventListener("change", () => { SETTINGS.benchmark = bs.value; saveStore(); loadBenchmark(); render(); });
+        if (LIVE_ENABLED) loadBenchmark();
+      }
       $$("[data-pfalloc]").forEach((b) => b.addEventListener("click", () => { pfAllocDim = b.dataset.pfalloc; render(); }));
       $$("[data-rzfilter]").forEach((el) => {
         const go = () => { realizedView.filter = el.dataset.rzfilter; render(); };
@@ -3592,7 +3652,7 @@ function pfAllocationHTML() {
   const sectorNote = dimOn[0] === "sector" && noSector ? `<div class="pf-insight">${dzIcon("info", 16)}<span>${noSector}</span></div>` : "";
   const sitsTip = [dimOn[0] === "sector" && noSector ? noSector : "", insight].filter(Boolean).join(" ");
   const sitsCard = panel(`${t("Where your money sits")}${sitsTip ? infoTip(sitsTip) : ""}`, `${facts}${sitsBar}`, dimSeg);
-  return `<div class="pfx-two">${panel(t("By holding"), ring)}${sitsCard}</div>`;
+  return `<div class="pfx-two">${panel(t("By holding"), ring)}${sitsCard}</div>${targetMixHTML(dimOn[0], sitsItems, total)}${benchmarkHTML()}`;
 }
 
 /* Fresh-computed at click time (not baked in at render) since #pfSummary can be
@@ -6760,6 +6820,75 @@ function stockNotesPanelHTML(h) {
   return panel(`${t("My notes")}${infoTip(t("Why you bought it, what to watch for, anything you want to remember. Only you can see this. Tags are separated by commas."))}`,
     `${chips ? `<div class="sn-chips">${chips}</div>` : ""}<form id="stNotesForm" class="sn-form"><textarea name="note" rows="3" maxlength="800" placeholder="${esc(t("Write a note about this stock…"))}">${esc(n.note || "")}</textarea>
      <input name="tags" maxlength="80" placeholder="${esc(t("Tags, e.g. bank, reit, long term"))}" value="${esc((n.tags || []).join(", "))}"><div><button type="submit" class="btn primary small">${t("Save note")}</button></div></form>`);
+}
+
+/* ---- Portfolio extras: watchlist, target mix (with a rebalancing hint) and "compared with the market" ---- */
+const WATCH_Q = {};            // ticker -> latest quote (this session)
+const BENCH_HIST = {};         // index symbol -> { dates, closes }
+const BENCHMARKS = [["^KLSE", "FBM KLCI"], ["^GSPC", "S&P 500"], ["^IXIC", "Nasdaq"], ["^STI", "Straits Times (STI)"], ["^HSI", "Hang Seng"]];
+function watchlistHTML() {
+  const list = SETTINGS.watchlist || [];
+  const form = `<form id="wlForm" class="wl-form" autocomplete="off"><label class="ac-wrap"><input name="ticker" placeholder="${esc(t("Add a stock: code or name"))}" autocapitalize="characters" autocorrect="off" spellcheck="false"></label><button type="submit" class="btn primary small">${t("Add")}</button></form><small class="muted" id="wlStatus"></small>`;
+  const held = new Set(T.holdings.map((h) => h.ticker));
+  const rows = list.map((w) => {
+    const q = WATCH_Q[w.ticker], nm = esc((q && q.name) || w.name || w.ticker);
+    const pos = q && q.fiftyTwoWeekHigh != null && q.fiftyTwoWeekLow != null && q.fiftyTwoWeekHigh > q.fiftyTwoWeekLow ? Math.max(0, Math.min(100, ((q.price - q.fiftyTwoWeekLow) / (q.fiftyTwoWeekHigh - q.fiftyTwoWeekLow)) * 100)) : null;
+    return `<div class="wl-row"><div class="wl-n"><b>${nm}</b><span>${esc(w.ticker)}${held.has(w.ticker) ? ` · <i class="wl-own">${t("You own this")}</i>` : ""}</span></div>
+      <div class="wl-p dz-n">${q ? `${ccyLabel(q.currency)} ${fmt(q.price)}<small class="${cls(q.changePct)}">${pctTxt(q.changePct)} ${t("today")}</small>` : `<small>${t("Loading…")}</small>`}</div>
+      <div class="wl-r">${pos != null ? `<div class="wl-bar"><i style="left:${pos.toFixed(0)}%"></i></div><small>${t("52-week range")}: ${fmt(q.fiftyTwoWeekLow)} – ${fmt(q.fiftyTwoWeekHigh)}</small>` : ""}</div>
+      <button type="button" class="icon-btn" data-wlrm="${escAttr(w.ticker)}" aria-label="${t("Remove")}" title="${t("Remove")}"><svg class="icon"><use href="#i-trash"/></svg></button></div>`;
+  }).join("");
+  return panel(`${t("Watchlist")}${infoTip(t("Stocks you are following but do not own yet. Prices come from the market; nothing here counts toward your portfolio."))}`,
+    `${form}<div class="wl-list">${rows || `<p class="muted" style="margin:14px 0 0">${t("Nothing on your watchlist yet. Add a stock above to follow its price.")}</p>`}</div>`);
+}
+async function loadWatchQuotes() {
+  const list = SETTINGS.watchlist || []; let got = false;
+  await Promise.all(list.map(async (w) => { const q = await fetchQuote(w.ticker); if (q) { WATCH_Q[w.ticker] = q; got = true; } }));
+  if (got && portfolioTab === "watch" && currentPageKey() === "portfolio") render();
+}
+function targetMixHTML(dimKey, items, total) {
+  if (!(total > 0)) return "";
+  const store = (SETTINGS.targetMix || {})[dimKey] || {};
+  const names = [...new Set(items.map((x) => x.label).concat(Object.keys(store)))];
+  const actual = {}; items.forEach((x) => { actual[x.label] = (x.value / total) * 100; });
+  const sum = names.reduce((s, n) => s + (+store[n] || 0), 0);
+  const rows = names.map((n) => {
+    const tg = store[n] != null && store[n] !== "" ? +store[n] : null, ac = actual[n] || 0, diff = tg == null ? null : ac - tg, amt = tg == null ? null : ((tg - ac) / 100) * total;
+    const hint = tg == null ? "" : Math.abs(diff) < 1 ? `<span class="pos">${t("On target")}</span>` : diff > 0 ? `<span class="tm-over">${dzF("{p}% over · sell about {a}", { p: fmt(diff, { maximumFractionDigits: 1 }), a: money(Math.abs(amt)) })}</span>` : `<span class="tm-under">${dzF("{p}% under · buy about {a}", { p: fmt(-diff, { maximumFractionDigits: 1 }), a: money(Math.abs(amt)) })}</span>`;
+    return `<div class="tm-row"><div class="tm-n"><b>${esc(n)}</b><small>${t("Now")} ${fmt(ac, { maximumFractionDigits: 1 })}%</small></div><div class="tm-bar"><i style="width:${Math.min(100, ac).toFixed(1)}%"></i>${tg != null ? `<u style="left:${Math.min(100, tg)}%"></u>` : ""}</div>
+      <label class="tm-in"><input type="number" min="0" max="100" step="any" data-tm="${escAttr(n)}" value="${tg != null ? tg : ""}" placeholder="–" inputmode="decimal"><span>%</span></label><div class="tm-h">${hint}</div></div>`;
+  }).join("");
+  return panel(`${t("Target mix")}${infoTip(t("Set the share you would like each part of your portfolio to have. Divz shows how far you are from it and about how much you would buy or sell to get there. A guide only, it does not trade anything."))}`,
+    `<div class="tm-list">${rows}</div><div class="tm-foot"><span class="${sum > 100.5 ? "neg" : "muted"}">${t("Targets add up to")} ${fmt(sum, { maximumFractionDigits: 1 })}%</span><button type="button" class="btn primary small" id="tmSave" data-tmdim="${escAttr(dimKey)}">${t("Save targets")}</button><button type="button" class="btn ghost small" id="tmClear" data-tmdim="${escAttr(dimKey)}">${t("Clear")}</button></div>`);
+}
+function benchmarkHTML() {
+  const sym = SETTINGS.benchmark || "^KLSE", nm = (BENCHMARKS.find((b) => b[0] === sym) || [sym, sym])[1];
+  const first = ALL_TRANSACTIONS.map((x) => x.date).filter(Boolean).sort()[0];
+  const sel = styledSelect("benchSel", BENCHMARKS.map(([value, label]) => ({ value, label })), sym, { id: "benchSel" });
+  const hist = BENCH_HIST[sym];
+  let body;
+  if (!first) body = `<p class="muted" style="margin:0">${t("Add some records first to compare.")}</p>`;
+  else if (hist === "fail") body = `<p class="muted" style="margin:0">${t("Market data isn't available right now.")}</p>`;
+  else if (!hist) body = `<p class="muted" style="margin:0">${t("Loading…")}</p>`;
+  else {
+    const i0 = hist.dates.findIndex((d) => d >= first), start = hist.closes[i0 < 0 ? hist.closes.length - 1 : i0], end = hist.closes[hist.closes.length - 1];
+    const days = Math.max(1, (new Date() - new Date(first + "T00:00:00")) / 864e5), idxTotal = (end / start - 1) * 100, idxAnn = (Math.pow(end / start, 365 / days) - 1) * 100;
+    const you = T.xirr, hasYou = you != null && isFinite(you) && days >= 30;
+    const mx = Math.max(Math.abs(idxAnn), hasYou ? Math.abs(you) : 0, 1), w = (v) => (Math.min(100, (Math.abs(v) / mx) * 100)).toFixed(0);
+    const diff = hasYou ? you - idxAnn : null;
+    body = `<div class="bm-rows"><div class="bm-r"><span>${t("You")} <small>${t("Annual return")}</small></span><div class="bm-b"><i class="you" style="width:${hasYou ? w(you) : 0}%"></i></div><b class="dz-n ${hasYou ? cls(you) : ""}">${hasYou ? pctTxt(you) : "–"}</b></div>
+      <div class="bm-r"><span>${esc(nm)} <small>${t("Per year")}</small></span><div class="bm-b"><i class="idx" style="width:${w(idxAnn)}%"></i></div><b class="dz-n ${cls(idxAnn)}">${pctTxt(idxAnn)}</b></div></div>
+      <p class="bm-note">${hasYou ? (diff >= 0 ? dzF("You are ahead of {n} by {p} points a year.", { n: esc(nm), p: fmt(diff, { maximumFractionDigits: 1 }) }) : dzF("You are behind {n} by {p} points a year.", { n: esc(nm), p: fmt(-diff, { maximumFractionDigits: 1 }) })) : t("Your annual return needs at least a month of records.")}
+      ${dzF("{n} went from {a} to {b} since {d} ({p} in total).", { n: esc(nm), a: fmt(start), b: fmt(end), d: fmtDate(first), p: pctTxt(idxTotal) })}</p>`;
+  }
+  return panel(`${t("Compared with the market")}${infoTip(t("Your annual return (XIRR) counts your deposits, dividends and fees. The index shows only its price, without dividends, so it can look lower than a fair comparison. Both cover the time since your first record."))}`, `<div class="bm-sel">${sel}</div>${body}`);
+}
+async function loadBenchmark() {
+  const sym = SETTINGS.benchmark || "^KLSE", first = ALL_TRANSACTIONS.map((x) => x.date).filter(Boolean).sort()[0];
+  if (BENCH_HIST[sym] || !first) return;
+  const r = typeof dzFetchHistory === "function" ? await dzFetchHistory(sym, first) : null;
+  BENCH_HIST[sym] = r || "fail";
+  if (portfolioTab === "allocation" && currentPageKey() === "portfolio") render();
 }
 
 function pageHolding() {
