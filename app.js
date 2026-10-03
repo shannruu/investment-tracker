@@ -3484,7 +3484,9 @@ function pagePortfolio() {
             if (up) up.disabled = i === 0;
             if (down) down.disabled = i === sorted.length - 1;
           });
-          apply();
+          // Rebuilding the big table behind the sheet takes tens of milliseconds (much more on a phone): do it just after the
+          // dropped row has settled, so letting go of the handle never stutters.
+          clearTimeout(applyColOrder._t); applyColOrder._t = setTimeout(apply, 60);
         };
         colPanel.addEventListener("drop", (e) => {
           const row = e.target.closest(".col-toggle-row");
@@ -3502,32 +3504,57 @@ function pagePortfolio() {
           _panelDragId = null;
         });
         // Touch / pen: press the handle (right side of the row) and drag the row up or down, like the iPhone's own reorder.
+        // Smooth on slow phones: every row is measured ONCE when the finger goes down; while dragging, only CSS transforms
+        // change (the lifted row follows the finger, the rows it passes slide aside) - no DOM moves and no layout reads per
+        // move. The real rows are reordered a single time, when the finger lifts.
         let _td = null;
+        const tdFrame = () => {
+          const t = _td; if (!t) return;
+          // edge auto-scroll: base it on the scroll position the 'scroll' event last reported - reading scrollTop here would force a layout every frame
+          if (t.y > t.lb - 50) t.list.scrollTop = t.sc + 8; else if (t.y < t.lt + 70) t.list.scrollTop = t.sc - 8;
+          const dy = (t.y - t.startY) + (t.sc - t.startScroll), g = t.geo, h = g[t.from].h;
+          t.row.style.transform = "translateY(" + dy + "px)";
+          const c = g[t.from].top + h / 2 + dy;
+          let to = 0;
+          for (let j = 0; j < g.length; j++) if (j !== t.from && g[j].top + g[j].h / 2 < c) to++;   // rows whose centre is above the lifted row
+          if (to !== t.to) {
+            t.to = to;
+            t.rows.forEach((r, j) => {
+              if (j === t.from) return;
+              const s = (t.from < to && j > t.from && j <= to) ? -h : (t.from > to && j >= to && j < t.from) ? h : 0;
+              r.style.transform = s ? "translateY(" + s + "px)" : "";
+            });
+          }
+          t.raf = requestAnimationFrame(tdFrame);
+        };
         colPanel.addEventListener("pointerdown", (e) => {
           if (e.pointerType === "mouse") return;
           const grip = e.target.closest(".col-grip"); if (!grip) return;
           const row = grip.closest(".col-toggle-row"); if (!row) return;
           e.preventDefault();
           try { grip.setPointerCapture(e.pointerId); } catch (err) {}
-          _td = { row, grip, id: e.pointerId, startY: e.clientY };
+          const list = row.parentElement, rows = [...list.querySelectorAll(".col-toggle-row")], lr = list.getBoundingClientRect();
+          _td = { row, list, rows, geo: rows.map((r) => ({ top: r.offsetTop, h: r.offsetHeight })), from: rows.indexOf(row), to: rows.indexOf(row),
+            id: e.pointerId, startY: e.clientY, y: e.clientY, startScroll: list.scrollTop, sc: list.scrollTop, lt: lr.top, lb: lr.bottom, raf: 0 };
+          _td.onScroll = () => { if (_td) _td.sc = list.scrollTop; };
+          list.addEventListener("scroll", _td.onScroll, { passive: true });
+          rows.forEach((r) => { if (r !== row) r.style.transition = "transform .16s ease"; });
+          row.style.willChange = "transform";   // only the lifted row gets its own layer
           row.classList.add("col-row-lifted");
+          _td.raf = requestAnimationFrame(tdFrame);
         });
         colPanel.addEventListener("pointermove", (e) => {
           if (!_td || e.pointerId !== _td.id) return;
           e.preventDefault();
-          const { row } = _td, list = row.parentElement;
-          const others = [...list.querySelectorAll(".col-toggle-row")].filter((r) => r !== row);
-          const y = e.clientY;
-          const target = others.find((r) => { const b = r.getBoundingClientRect(); return y < b.top + b.height / 2; });
-          if (target) { if (row.nextElementSibling !== target) list.insertBefore(row, target); } else if (row.nextElementSibling) list.appendChild(row);
-          const lb = list.parentElement.getBoundingClientRect();
-          if (y > lb.bottom - 50) list.scrollTop += 8; else if (y < lb.top + 70) list.scrollTop -= 8;
+          _td.y = e.clientY;
         });
         const endTouchDrag = (e) => {
           if (!_td || (e && e.pointerId !== _td.id)) return;
-          const row = _td.row; row.classList.remove("col-row-lifted"); row.style.transform = "";
-          const order = [...colPanel.querySelectorAll(".col-toggle-row")].map((r) => r.dataset.colId);
-          _td = null;
+          const t = _td; _td = null; cancelAnimationFrame(t.raf); t.list.removeEventListener("scroll", t.onScroll);
+          t.rows.forEach((r) => { r.style.transition = ""; r.style.transform = ""; r.style.willChange = ""; });
+          t.row.classList.remove("col-row-lifted");
+          const order = t.rows.map((r) => r.dataset.colId);
+          if (t.to !== t.from && !(e && e.type === "pointercancel")) { const [moved] = order.splice(t.from, 1); order.splice(t.to, 0, moved); }
           if (order.join() !== portfolioPrefs.colOrder.join()) applyColOrder(order);
         };
         colPanel.addEventListener("pointerup", endTouchDrag);
@@ -4325,6 +4352,36 @@ function closeDrawer(dr) {
   if (panel) panel.addEventListener("animationend", finish, { once: true });
   setTimeout(finish, 260); // fallback in case animationend doesn't fire
 }
+
+/* Keyboard focus for pop-ups (add drawer, broker drawer, record sheet, More sheet, modals).
+ * Without this, Tab kept walking through the page BEHIND an open pop-up and never reached it. While one is open, Tab
+ * now moves into it, cycles inside it, and Shift+Tab wraps backwards. It deliberately does NOT pull focus when the
+ * pop-up opens, so a phone never pops its keyboard up by itself. Escape handling lives where each pop-up is built. */
+(() => {
+  const OVERLAYS = ["#moreSheet", "#brokerDrawer", "#recDet", "#brDet", "#addDrawer", "#modal"];   // later = on top
+  const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  const isShown = (el) => !!el && !el.hidden && !el.classList.contains("closing") && el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden";
+  const topOverlay = () => {
+    let top = null;
+    for (const s of OVERLAYS) {
+      const el = document.querySelector(s); if (!isShown(el)) continue;
+      // #recDet / #brDet are always in the page: on a wide screen they are a side panel, not a pop-up. Only trap when they float over the page.
+      if ((s === "#recDet" || s === "#brDet") && getComputedStyle(el).position !== "fixed") continue;
+      top = el;
+    }
+    return top;
+  };
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Tab" || e.ctrlKey || e.altKey || e.metaKey) return;
+    const ov = topOverlay(); if (!ov) return;
+    const items = [...ov.querySelectorAll(FOCUSABLE)].filter((el) => el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden");
+    if (!items.length) return;
+    const a = document.activeElement, first = items[0], last = items[items.length - 1];
+    if (!ov.contains(a)) { e.preventDefault(); (e.shiftKey ? last : first).focus(); return; }
+    if (e.shiftKey && a === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
+  });
+})();
 
 function closeAddDrawer() { closeDrawer($("#addDrawer")); }
 

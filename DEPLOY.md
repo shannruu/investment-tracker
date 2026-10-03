@@ -6,11 +6,10 @@ a perfect fit and the free tier is enough. Two optional exceptions, both off by 
 both safe to skip entirely:
 - **Cloud Sync** (see below) — if you set it up, the browser loads one small library from
   a CDN at runtime; everything else about the deploy stays exactly the same.
-- **Price Alerts** (see below) — this is the one piece that isn't purely static. It adds a
-  `package.json` (so Vercel installs two small server-side libraries for one function,
-  `api/check-alerts.js`) and needs its own Supabase tables, VAPID keys, and an external
-  cron ping. If you never set it up, `package.json` just sits there unused and the rest of
-  the site is unaffected.
+- **Delete account** (Account page) is the one piece that isn't purely static: `api/delete-account.js` needs the
+  `package.json` (Vercel installs `@supabase/supabase-js` for it) and two Vercel environment variables,
+  `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. Without them the Delete account button reports that it is not set up
+  and the rest of the site is unaffected.
 
 > ⚠️ **Do not upload the `.claude/` folder.** It holds local editor settings, not website
 > files. The included `.gitignore` excludes it automatically when you use git. If you use
@@ -35,7 +34,7 @@ sw.js
 manifest.json
 package.json
 api/            (folder — quote.js, history.js, dividend.js, search.js, ex-dividend-calendar.js,
-                 ex-dividend-calendar-my.js, stock-symbol-my.js, check-alerts.js)
+                 ex-dividend-calendar-my.js, stock-symbol-my.js, delete-account.js)
 icons/          (folder — icon-192.png, icon-512.png)
 README.md
 .gitignore
