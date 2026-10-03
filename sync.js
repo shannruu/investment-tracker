@@ -51,11 +51,36 @@ function syncAvailable() { return !!window.SUPABASE; }
 /* A short fingerprint of what the USER typed or chose: brokers, holdings, records, settings, profile. Deliberately leaves out
  * everything the app refreshes by itself (prices, FX rates, history points, fetched dividends, stock info, last-backup date) -
  * those change on every visit and are not "a change on this device that needs syncing". */
+/* JSON with the keys of every object in a fixed (sorted) order. The cloud database stores the data as JSONB, which re-orders the
+ * fields inside each record; comparing plain JSON.stringify output made identical data look "changed" after a round trip. */
+function stableStringify(v) {
+  if (Array.isArray(v)) return "[" + v.map(stableStringify).join(",") + "]";
+  if (v && typeof v === "object") return "{" + Object.keys(v).filter((k) => v[k] !== undefined).sort().map((k) => JSON.stringify(k) + ":" + stableStringify(v[k])).join(",") + "}";
+  const j = JSON.stringify(v); return j === undefined ? "null" : j;
+}
+/* Settings that are about how THIS device looks (not the person's data) never count as a change that needs syncing. */
+const SYNC_IGNORED_SETTINGS = ["lastBackup", "privacy"];
+function userDataParts(s) {
+  const st = Object.assign({}, s.SETTINGS || {}); SYNC_IGNORED_SETTINGS.forEach((k) => delete st[k]);
+  return { BROKERS: s.BROKERS, HOLDINGS: s.HOLDINGS, ALL_TRANSACTIONS: s.ALL_TRANSACTIONS, SETTINGS: st, USER: s.USER, RECON_CHECKS: s.RECON_CHECKS, DISMISSED_AUTO_DIVS: s.DISMISSED_AUTO_DIVS, HOLDING_TYPES: s.HOLDING_TYPES };
+}
 function userDataHashOf(s) {
-  const st = Object.assign({}, s.SETTINGS || {}); delete st.lastBackup;
-  const str = JSON.stringify([s.BROKERS, s.HOLDINGS, s.ALL_TRANSACTIONS, st, s.USER, s.RECON_CHECKS, s.DISMISSED_AUTO_DIVS, s.HOLDING_TYPES]);
+  const str = stableStringify(userDataParts(s));
   let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
   return h + ":" + str.length;
+}
+/* A short, plain description of what differs between this device and the account copy (shown in the Pull question). */
+function userDataDiffText(cloudData) {
+  const a = userDataParts(snapshot()), c = userDataParts(cloudData || {}), parts = [];
+  const lab = { BROKERS: "Brokers", HOLDINGS: "Opening holdings", ALL_TRANSACTIONS: "Records", USER: "Profile", RECON_CHECKS: "Broker checks", DISMISSED_AUTO_DIVS: "Dismissed dividends", HOLDING_TYPES: "Stock types" };
+  Object.keys(lab).forEach((k) => {
+    if (stableStringify(a[k]) === stableStringify(c[k])) return;
+    const x = Array.isArray(a[k]) ? a[k].length : null, y = Array.isArray(c[k]) ? c[k].length : null;
+    parts.push(t(lab[k]) + (x != null && y != null ? ` (${t("this device")} ${x}, ${t("your account")} ${y})` : ""));
+  });
+  const keys = [...new Set([...Object.keys(a.SETTINGS), ...Object.keys(c.SETTINGS)])].filter((k) => stableStringify(a.SETTINGS[k]) !== stableStringify(c.SETTINGS[k]));
+  if (keys.length) parts.push(t("Settings") + " (" + keys.slice(0, 4).join(", ") + (keys.length > 4 ? ", …" : "") + ")");
+  return parts.length ? " " + t("Differences:") + " " + parts.join("; ") + "." : "";
 }
 function hasUnsyncedLocalEdit() {
   // Compare the user data now with the user data the cloud last held for this device. (Comparing the device clock with the
@@ -382,7 +407,7 @@ async function initSync() {
     if (row) {
       // Only ask when this device really holds records or settings the cloud copy does not.
       const differs = userDataHashOf(row.data) !== userDataHashOf(snapshot());
-      if (differs && hasUnsyncedLocalEdit() && !(await showConfirmModal(t("You have a change on this device that hasn't finished syncing yet. Pulling now will discard it. Continue?"), { title: "Discard this device's change?", okLabel: "Pull and discard", danger: true }))) return;
+      if (differs && hasUnsyncedLocalEdit() && !(await showConfirmModal(t("You have a change on this device that hasn't finished syncing yet. Pulling now will discard it. Continue?") + userDataDiffText(row.data), { title: "Discard this device's change?", okLabel: "Pull and discard", danger: true }))) return;
       applySnapshot(row.data); saveStore(); markSynced(row.updated_at);
     }
     hideCloudStaleWarning(); render();
@@ -462,9 +487,9 @@ async function pullIfNewer() {
   const row = await pullFromCloud();
   if (!row || !row.updated_at) return;
   if (LAST_SYNCED && new Date(row.updated_at) <= new Date(LAST_SYNCED)) return;   // server time vs server time
-  if (userDataHashOf(row.data) === userDataHashOf(snapshot())) { markSynced(row.updated_at); return; }   // same records and settings: nothing to merge
+  if (userDataHashOf(row.data) === userDataHashOf(snapshot())) { markSynced(row.updated_at); hideCloudStaleWarning(); return; }   // same records and settings: nothing to merge
   if (!hasUnsyncedLocalEdit()) {
-    applySnapshot(row.data); saveStore(); markSynced(row.updated_at);
+    applySnapshot(row.data); saveStore(); markSynced(row.updated_at); hideCloudStaleWarning();
     toast(t("Synced the latest changes from another device."));
     render();
     return;

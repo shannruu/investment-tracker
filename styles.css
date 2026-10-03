@@ -1934,7 +1934,7 @@ body { background-image: var(--page); background-repeat: no-repeat; }
 .sidebar { background: var(--sb); border-right-color: var(--sb-bd); }
 .brand-mark { border-radius: 11px; background: var(--btn); box-shadow: var(--btn-sh); color: var(--on-btn); font-weight: 700; font-size: 16px; }
 .brand-name { font-weight: 700; font-size: 18px; letter-spacing: -.02em; }
-.nav-item, button.nav-item { border: 1px solid transparent; border-radius: 13px; padding: 8px 10px 8px 14px; color: var(--nav); font-weight: 600; }
+.nav-item, button.nav-item { border: 1px solid transparent; border-radius: 13px; padding: 8px 10px 8px 12.5px; color: var(--nav); font-weight: 600; }
 .nav-item:hover { background: var(--surface-2); color: var(--text); }
 .nav-item.active { background: var(--nav-on-bg); border-color: var(--nav-on-bd); color: var(--nav-on-tx); }
 .nav-item.active .ni-ico { color: var(--nav-on-ic); opacity: 1; }
@@ -4004,3 +4004,5 @@ a.dz-lnk, .dz-lnk { color: var(--dz-lnk); }
 .wl-list { display: none; }
 @media (min-width: 761px) { .wl-tbl { display: block; } }
 @media (max-width: 760px) { .wl-list { display: block; } .wl-tbl { display: none; } }
+/* Expanded Add button: the drawn "+ Add" sat ~1.7px right of the middle (side bearings of the icon and the label), so give it a little extra on the right. The global button padding is !important, hence this one too. */
+.sidebar:not(.collapsed) .sidebar-add .btn { padding-right: 18px !important; }

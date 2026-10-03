@@ -1005,7 +1005,7 @@ const ZH = {
   "This device": "此设备", "Your account": "您的账户",
   "Keep this device, upload it": "保留此设备的数据并上传",
   "Use my account's data": "使用账户中的数据",
-  "Pull and discard": "拉取并放弃", "Removed from watchlist": "已从自选股中移除", "Discard this device's change?": "放弃此设备上的更改？",
+  "Pull and discard": "拉取并放弃", "Differences:": "差异：", "Records": "记录", "this device": "此设备", "your account": "您的账户", "Opening holdings": "初始持仓", "Broker checks": "券商核对", "Dismissed dividends": "已忽略的股息", "Stock types": "股票类型", "Removed from watchlist": "已从自选股中移除", "Discard this device's change?": "放弃此设备上的更改？",
   "Your data was updated from another device. Pull the latest before making more changes here, or you'll overwrite it.": "您的数据已在其他设备上更新。请先拉取最新数据，否则继续编辑将覆盖它。",
   "Your data also syncs to your account while you're signed in, so clearing browser data won't lose it — but a JSON backup is still recommended.": "登录状态下您的数据也会同步到账户，因此清除浏览器数据不会丢失它 — 但仍建议定期导出 JSON 备份。",
   "Local data from a previous account was cleared before syncing this account.": "同步此账户前，已清除上一账户遗留在本设备的数据。",
